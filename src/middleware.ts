@@ -1,6 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const protectedPaths = ["/app", "/diario", "/conteudos", "/plano-de-crise", "/familias", "/conta"];
+const protectedPaths = [
+  "/app",
+  "/hoje",
+  "/planejador",
+  "/checkin",
+  "/insights",
+  "/mais",
+  "/diario",
+  "/conteudos",
+  "/plano-de-crise",
+  "/familias",
+  "/conta",
+  "/sono",
+  "/exercicios",
+  "/rotina",
+  "/sos",
+  "/sons",
+  "/relatorio",
+  "/cursos",
+];
 const authPaths = ["/login", "/cadastro"];
 
 export function middleware(request: NextRequest) {
@@ -15,7 +34,7 @@ export function middleware(request: NextRequest) {
   }
 
   if (isAuthPage && sessionCookie) {
-    return NextResponse.redirect(new URL("/app", request.url));
+    return NextResponse.redirect(new URL("/hoje", request.url));
   }
 
   return NextResponse.next();

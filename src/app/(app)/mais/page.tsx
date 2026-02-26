@@ -9,6 +9,8 @@ const modules = [
   { href: "/exercicios", label: "Exercicios", description: "Respiracao e aterramento" },
   { href: "/rotina", label: "Rotina", description: "Rastreador de ritmo social (IPSRT)" },
   { href: "/rotina/tendencias", label: "Tendencias de Rotina", description: "Regularidade de ancoras" },
+  { href: "/mais/templates", label: "Templates", description: "Templates de semana salvos" },
+  { href: "/mais/rotinas", label: "Rotinas", description: "Gerenciar rotinas persistentes" },
   { href: "/conteudos", label: "Biblioteca", description: "Artigos educacionais sobre TAB1" },
   { href: "/cursos", label: "Cursos", description: "Cursos estruturados com aulas" },
   { href: "/sons", label: "Sons Ambiente", description: "Ruido branco, rosa, marrom e chuva" },

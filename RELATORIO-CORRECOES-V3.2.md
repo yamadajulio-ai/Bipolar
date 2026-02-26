@@ -9,9 +9,11 @@
 
 ## Contexto
 
-O ChatGPT Pro analisou o repositorio e identificou 5 bugs criticos que afetavam o uso diario da aplicacao. Os 5 bugs estao organizados em 4 secoes abaixo (Bug 2 agrupa 2 problemas relacionados: duplicatas no Diario + erro 500 no Sono, ambos resolvidos pela mesma estrategia de upsert). Todas as correcoes foram implementadas em 4 commits atomicos + 1 hotfix (v3.2.1), com lint e build passando em cada etapa.
+O ChatGPT Pro analisou o repositorio e identificou 5 bugs criticos que afetavam o uso diario da aplicacao. Os 5 bugs estao organizados em 4 secoes abaixo (Bug 2 agrupa 2 problemas relacionados: duplicatas no Diario + erro 500 no Sono, ambos resolvidos pela mesma estrategia de upsert). Todas as correcoes foram implementadas em 4 commits atomicos + 2 hotfixes (v3.2.1 e v3.2.2), com lint e build passando em cada etapa.
 
 **Nota sobre v3.2.1** (commit `7263bad`): Apos a primeira revisao do ChatGPT Pro, foram encontradas 7 instancias adicionais do padrao UTC e outros bugs menores. Todos foram corrigidos no hotfix. Resultado: **zero ocorrencias** de `toISOString().split("T")[0]` restantes no codebase (verificado via grep).
+
+**Nota sobre v3.2.2** (commit `071e39d`): A terceira revisao do ChatGPT Pro encontrou 6 bugs adicionais: off-by-one no range semanal, queries sem overlap (blocos overnight nao apareciam), regra de late-night desalinhada entre client/server, countdown congelado no TodayBlocks, e inconsistencia `||` vs `??` nas excecoes. Todos corrigidos neste hotfix.
 
 ---
 
@@ -110,7 +112,7 @@ Hotfix v3.2.1 adicional:
 
 | Metrica | Valor |
 |---------|-------|
-| Commits | 5 (4 originais + 1 hotfix v3.2.1) |
+| Commits | 7 (4 originais + 1 hotfix v3.2.1 + 1 docs + 1 hotfix v3.2.2) |
 | Arquivos alterados | 30+ |
 | Resultado liquido | Menos codigo, mais correto |
 | Padrao UTC restante | 0 (verificado via grep) |
@@ -126,7 +128,9 @@ e7bfefb fix: replace UTC toISOString date splits with local timezone dateUtils
 c859c6d fix: add DiaryEntry unique constraint and use upserts for diary/sleep
 4263b47 fix: rewrite recurrence engine with range-based algorithm
 ff15a2c fix: handle blocks crossing midnight correctly
-7263bad fix: remaining UTC instances, smart defaults wrap, getOccsForDay, applyException notes
+7263bad fix(v3.2.1): remaining UTC instances, smart defaults wrap, getOccsForDay, applyException notes
+30d8fb3 docs: update v3.2 report with hotfix details and clarify bug count
+071e39d fix(v3.2.2): overlap queries, off-by-one, live countdown, late-night alignment
 ```
 
 ---
@@ -161,13 +165,13 @@ ff15a2c fix: handle blocks crossing midnight correctly
 
 ## Pontos abertos para proxima revisao
 
-### Prioridade A — Funcional
-1. **Blocos overnight no "Hoje"** — O fetch do endpoint `/api/planner/blocks` usa `startAt >= timeMin AND startAt <= timeMax`, o que exclui blocos que comecaram ontem e terminam hoje (ex.: sono 23:00→07:00). Correcao: usar overlap (`startAt <= timeMax AND endAt >= timeMin`)
+### ~~Prioridade A — Funcional~~ ✅ Resolvido no v3.2.2
+1. ~~**Blocos overnight no "Hoje"**~~ — ✅ Corrigido: API e HojePage agora usam overlap query (`startAt <= timeMax AND endAt >= timeMin`)
 2. **`until` semantica** — `until` e DateTime no Prisma; se gravado como `T00:00:00`, pode excluir ocorrencia do proprio dia (cursor esta ao meio-dia). Tratar como `endOfDay(until)` na comparacao
 
 ### Prioridade B — Divida tecnica
 3. **Templates/weekClone ainda duplicam expansao local** — usam loop manual ao inves do `expandAllBlocks` compartilhado (funciona, mas e codigo repetido no servidor)
-4. **checkConstraintsClient no WeeklyView** — versao simplificada client-side duplica parte da logica de `constraints.ts` (servidor). Poderia ser unificada via API
+4. ~~**checkConstraintsClient no WeeklyView**~~ — ✅ Parcialmente resolvido: regra de late-night pos-meia-noite agora alinhada com `constraints.ts`. Restante da duplicacao (wind-down, etc.) poderia ser unificada via API
 
 ### Prioridade C — Testes
 5. **Testes automatizados** — nenhum teste unitario para o motor de recorrencia ou para as rotas API. Cenarios prioritarios:
@@ -195,3 +199,31 @@ A segunda revisao do ChatGPT Pro encontrou os seguintes problemas adicionais, **
 | P4 | Fetch URL com sufixo UTC "Z" | Removido "Z" |
 
 **Status apos hotfix**: Todos os 5 problemas adicionais foram corrigidos. Zero ocorrencias do padrao UTC restantes no codebase.
+
+---
+
+## Resultado da terceira revisao (ChatGPT Pro)
+
+A terceira revisao encontrou 6 bugs novos alem dos pontos abertos, **todos corrigidos no hotfix v3.2.2** (`071e39d`):
+
+| # | Problema | Correcao | Arquivo |
+|---|----------|----------|---------|
+| A | WeeklyView buscava 8 dias (off-by-one) | `addDays(start, 7)` → `addDays(start, 6)` | WeeklyView.tsx |
+| B | API blocks nao pegava blocos overnight | Overlap query: `startAt <= timeMax AND endAt >= timeMin` | blocks/route.ts |
+| C | "Hoje" perdia blocos 23:00→01:00 | Overlap query para non-recurring | hoje/page.tsx |
+| D | Late-night client ignorava pos-meia-noite | Adicionado `endMin < 360 && endMin > 0` (alinhado com constraints.ts) | WeeklyView.tsx |
+| E | Countdown/proximo bloco congelava no mount | `mountTime` → `nowMs` com `setInterval(30s)` | TodayBlocks.tsx |
+| F | Excecoes nao limpavam notes com string vazia | `\|\|` → `??` para overrideNotes/overrideTitle | exceptions/route.ts |
+
+**Status apos v3.2.2**: Todos os 6 problemas corrigidos. Lint e build passando.
+
+---
+
+## Pedido para proxima revisao
+
+Por favor analise o repositorio atualizado (commit `071e39d`, branch main) e foque em:
+1. As correcoes do v3.2.2 estao corretas? (overlap queries, off-by-one, countdown, late-night)
+2. O `until` semantica precisa de correcao imediata ou pode esperar?
+3. Templates/weekClone: vale refatorar agora ou e risco baixo com interval=1?
+4. Quais testes automatizados voce priorizaria para validar a estabilidade do motor de recorrencia?
+5. Ha novos bugs introduzidos pelas correcoes do v3.2.2?

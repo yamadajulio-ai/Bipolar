@@ -2,6 +2,7 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { Card } from "@/components/Card";
 import { TodayBlocks } from "@/components/planner/TodayBlocks";
+import { OnboardingBanner } from "@/components/planner/OnboardingBanner";
 import Link from "next/link";
 
 export default async function HojePage() {
@@ -45,6 +46,11 @@ export default async function HojePage() {
     where: { userId: session.userId },
   });
 
+  // Check if first-run (no blocks and no templates)
+  const totalBlocks = await prisma.plannerBlock.count({ where: { userId: session.userId } });
+  const totalTemplates = await prisma.plannerTemplate.count({ where: { userId: session.userId } });
+  const isFirstRun = totalBlocks === 0 && totalTemplates === 0;
+
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";
 
@@ -82,6 +88,9 @@ export default async function HojePage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">{greeting}</h1>
+
+      {/* Onboarding for first-run users */}
+      {isFirstRun && <OnboardingBanner />}
 
       {/* Quick status */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

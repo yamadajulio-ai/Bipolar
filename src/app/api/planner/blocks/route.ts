@@ -48,12 +48,10 @@ export async function GET(request: NextRequest) {
       userId: session.userId,
       ...(routinesOnly ? { isRoutine: true } : {}),
       OR: [
-        // Non-recurring blocks (or any block) whose startAt falls in range
+        // Non-recurring blocks that overlap with range (startAt <= timeMax AND endAt >= timeMin)
         {
-          startAt: {
-            ...(timeMin ? { gte: new Date(timeMin) } : {}),
-            ...(timeMax ? { lte: new Date(timeMax) } : {}),
-          },
+          ...(timeMin ? { endAt: { gte: new Date(timeMin) } } : {}),
+          ...(timeMax ? { startAt: { lte: new Date(timeMax) } } : {}),
         },
         // Recurring blocks created before range that might still generate occurrences
         ...(timeMax

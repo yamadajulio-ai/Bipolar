@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/Card";
 import { CATEGORY_COLORS } from "@/lib/planner/categories";
 import { expandSerializedBlocks } from "@/lib/planner/expandClient";
@@ -25,10 +25,16 @@ interface DisplayBlock {
 }
 
 export function TodayBlocks({ blocks, today, targetSleepTimeMin }: TodayBlocksProps) {
-  const [mountTime] = useState(() => Date.now());
+  const [nowMs, setNowMs] = useState(() => Date.now());
+
+  // Update "now" every 30 seconds so countdown/past status stays fresh
+  useEffect(() => {
+    const id = setInterval(() => setNowMs(Date.now()), 30_000);
+    return () => clearInterval(id);
+  }, []);
 
   const displayBlocks = useMemo(() => {
-    const now = new Date(mountTime);
+    const now = new Date(nowMs);
     const rangeStart = new Date(today + "T00:00:00");
     const rangeEnd = new Date(today + "T23:59:59");
 
@@ -59,7 +65,7 @@ export function TodayBlocks({ blocks, today, targetSleepTimeMin }: TodayBlocksPr
     }
 
     return result;
-  }, [blocks, today, mountTime]);
+  }, [blocks, today, nowMs]);
 
   // Energy budget
   const totalEnergy = displayBlocks.reduce((sum, b) => sum + b.energyCost, 0);
@@ -67,7 +73,7 @@ export function TodayBlocks({ blocks, today, targetSleepTimeMin }: TodayBlocksPr
   // Time until next block
   const nextBlock = displayBlocks.find((b) => b.isNext);
   const minutesUntilNext = nextBlock
-    ? Math.max(0, Math.round((nextBlock.startAt.getTime() - mountTime) / 60000))
+    ? Math.max(0, Math.round((nextBlock.startAt.getTime() - nowMs) / 60000))
     : null;
 
   return (

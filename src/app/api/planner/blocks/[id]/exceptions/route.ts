@@ -54,8 +54,8 @@ export async function POST(
         isCancelled: parsed.data.isCancelled,
         overrideStartAt: parsed.data.overrideStartAt ? new Date(parsed.data.overrideStartAt) : null,
         overrideEndAt: parsed.data.overrideEndAt ? new Date(parsed.data.overrideEndAt) : null,
-        overrideTitle: parsed.data.overrideTitle || null,
-        overrideNotes: parsed.data.overrideNotes || null,
+        overrideTitle: parsed.data.overrideTitle ?? null,
+        overrideNotes: parsed.data.overrideNotes ?? null,
       },
       create: {
         blockId: id,
@@ -63,8 +63,8 @@ export async function POST(
         isCancelled: parsed.data.isCancelled,
         overrideStartAt: parsed.data.overrideStartAt ? new Date(parsed.data.overrideStartAt) : null,
         overrideEndAt: parsed.data.overrideEndAt ? new Date(parsed.data.overrideEndAt) : null,
-        overrideTitle: parsed.data.overrideTitle || null,
-        overrideNotes: parsed.data.overrideNotes || null,
+        overrideTitle: parsed.data.overrideTitle ?? null,
+        overrideNotes: parsed.data.overrideNotes ?? null,
       },
     });
 

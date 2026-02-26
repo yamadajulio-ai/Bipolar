@@ -70,7 +70,7 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
   const fetchData = useCallback(async (start: string) => {
     setLoading(true);
     try {
-      const end = addDays(start, 7);
+      const end = addDays(start, 6);
       const res = await fetch(
         `/api/planner/blocks?timeMin=${start}T00:00:00&timeMax=${end}T23:59:59`,
       );
@@ -408,11 +408,13 @@ function checkConstraintsClient(
       }
     }
 
-    // Late nights
+    // Late nights (aligned with server-side constraints.ts)
     for (const occ of sorted) {
       const endDate = new Date(occ.endAt);
       const endMin = endDate.getHours() * 60 + endDate.getMinutes();
-      if (endMin > rules.lateEventCutoffMin && occ.kind !== "ANCHOR") {
+      // Handle blocks ending after midnight: endMin < 360 (before 6:00) means late night
+      const isLate = endMin > rules.lateEventCutoffMin || (endMin < 360 && endMin > 0);
+      if (isLate && occ.kind !== "ANCHOR") {
         if (!lateNightDates.includes(date)) lateNightDates.push(date);
         alerts.push({
           type: "late_night",

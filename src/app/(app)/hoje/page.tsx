@@ -18,8 +18,9 @@ export default async function HojePage() {
     where: {
       userId: session.userId,
       OR: [
-        { startAt: { gte: dayStart, lte: dayEnd } },
-        // Also fetch recurring blocks that might apply today
+        // Non-recurring blocks that overlap with today (including overnight from yesterday)
+        { startAt: { lte: dayEnd }, endAt: { gte: dayStart } },
+        // Recurring blocks that might apply today
         { recurrence: { isNot: null }, startAt: { lte: dayEnd } },
       ],
     },

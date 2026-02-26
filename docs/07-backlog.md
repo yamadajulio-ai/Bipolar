@@ -18,6 +18,19 @@
 - [x] Como **usuario**, quero ver insights de regularidade de sono, ancoras IPSRT, carga de energia e noites de risco.
 - [x] Como **sistema**, quero exibir observacoes suaves (nao alarmistas) sobre padroes detectados.
 
+## Epico 0.1: Setup uma vez, roda sempre (v3.1.0)
+
+- [x] Como **usuario**, quero salvar minha semana como template para reaplicar em outras semanas.
+- [x] Como **usuario**, quero aplicar um template com opcoes de mesclar/substituir/preencher.
+- [x] Como **usuario**, quero criar rotinas persistentes que repetem automaticamente.
+- [x] Como **usuario**, quero pausar ou remover rotinas sem perder o bloco original.
+- [x] Como **usuario**, quero copiar blocos de uma semana anterior para a semana atual.
+- [x] Como **usuario**, quero adicionar blocos rapidamente digitando texto livre (quick-add).
+- [x] Como **sistema**, quero detectar categoria automaticamente por keywords pt-BR sem IA.
+- [x] Como **usuario**, quero smart defaults ao mudar categoria no modal.
+- [x] Como **usuario novo**, quero configurar minha semana base no primeiro acesso.
+- [x] Como **sistema**, quero buscar blocos recorrentes criados antes da semana visualizada.
+
 ## Épico 1: Autenticação e Conta
 
 - [x] Como **usuário**, quero me cadastrar com e-mail e senha para acessar o aplicativo.
@@ -140,5 +153,12 @@
 | Relatorio mensal | Should | Feito |
 | Cursos estruturados | Should | Feito |
 | Lembretes | Should | Feito |
+| **Setup uma vez, roda sempre** | Must | Feito |
+| Templates de semana | Must | Feito |
+| Rotinas persistentes | Must | Feito |
+| Copiar semana | Must | Feito |
+| Quick-add deterministico | Must | Feito |
+| Smart defaults | Should | Feito |
+| Onboarding first-run | Must | Feito |
 | Modo escuro | Won't | — |
 | Comunidade/chat | Won't | — |

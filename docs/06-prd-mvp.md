@@ -22,6 +22,17 @@ O modulo central e o **Calendario de Estabilidade**, um planejador semanal TAB-f
 4. **Check-in 30s** — salva humor, energia, ansiedade, irritabilidade, sono e medicacao via DiaryEntry existente
 5. **Insights** — regularidade de sono (variancia de horarios), regularidade de ancoras (IPSRT), carga semanal de energia, noites de risco
 
+### Setup uma vez, roda sempre (v3.1.0)
+
+Reducao drastica da entrada manual:
+
+6. **Templates de Semana** — salvar/aplicar semanas com 3 modos (mesclar/preencher/substituir)
+7. **Rotinas Persistentes** — blocos que repetem automaticamente (flag isRoutine, sem modelo novo)
+8. **Copiar Semana** — clonar blocos de semana anterior com deteccao de duplicatas
+9. **Quick Add** — parser deterministico pt-BR para adicionar blocos por texto (0 IA)
+10. **Smart Defaults** — auto-preenchimento de energia/tipo/duracao por categoria
+11. **Onboarding First-Run** — setup de horarios base + rotinas comuns no primeiro acesso
+
 ### Modulos Complementares (Implementados)
 
 1. **Landing page** com proposito, disclaimers e CTAs (criar conta / entrar)

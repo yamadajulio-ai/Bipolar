@@ -1,5 +1,58 @@
 # Changelog — Empresa Bipolar
 
+## v3.1.0 — 2026-02-26
+
+### "Setup uma vez, roda sempre"
+
+Reduz drasticamente a entrada manual no Calendario de Estabilidade com templates, rotinas, clonagem, quick-add e smart defaults.
+
+#### Templates de Semana
+- CRUD completo de templates (/api/templates)
+- Criar template a partir de semana existente (fromWeekStart)
+- Aplicar template com 3 modos: mesclar, preencher, substituir
+- Tela de gerenciamento em /mais/templates com preview em grid 7 dias
+
+#### Rotinas Persistentes
+- Flag isRoutine no PlannerBlock (reutiliza 100% do codigo existente)
+- Rotinas = blocos com recorrencia que repetem indefinidamente
+- Pausar/remover rotinas em /mais/rotinas
+- Indicador visual (↻) nos blocos de rotina no planejador
+- Filtro ?routinesOnly=true na API
+
+#### Copiar Semana
+- POST /api/planner/weeks/clone com modos all/flexOnly/exceptAnchors
+- Pula rotinas automaticamente (ja repetem)
+- Deteccao de duplicatas por titulo + horario
+- Modal no planejador com selecao de semana fonte
+
+#### Quick Add
+- Parser deterministico pt-BR (0 IA, 0 deps)
+- Suporte: hoje/amanha/dia da semana, range de horario (14-15, 14h30), titulo
+- Keyword matching para ~40 palavras → 8 categorias
+- Se parse completo: cria bloco automaticamente
+- Se parse parcial: abre modal preenchido
+- Input integrado na toolbar do planejador
+
+#### Smart Defaults
+- CATEGORY_DEFAULTS com duracao, energia, estimulacao e tipo por categoria
+- Auto-preenchimento no modal ao mudar categoria (novo bloco)
+
+#### Onboarding First-Run
+- Banner na tela Hoje quando 0 blocos e 0 templates
+- Step 1: definir horarios de acordar/dormir
+- Step 2: selecionar rotinas comuns (cafe, almoco, jantar, medicacao)
+- Gera blocos DAILY com isRoutine=true + salva regras de estabilidade
+
+### Infraestrutura
+- 2 modelos novos (PlannerTemplate, PlannerTemplateBlock)
+- 1 campo novo (PlannerBlock.isRoutine)
+- 5 novas API routes (templates CRUD, apply, clone, quick-add)
+- 6 novos componentes UI
+- Fix critico: GET /api/planner/blocks agora busca blocos recorrentes criados antes da semana visualizada
+- 0 dependencias novas
+
+---
+
 ## v3.0.0 — 2026-02-25
 
 ### Core: Calendario de Estabilidade (MVP)

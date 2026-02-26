@@ -8,6 +8,7 @@ import {
   RECURRENCE_OPTIONS,
   WEEKDAY_LABELS,
 } from "@/lib/planner/categories";
+import { CATEGORY_DEFAULTS } from "@/lib/planner/defaults";
 
 interface BlockFormData {
   id?: string;
@@ -62,7 +63,27 @@ export function BlockEditorModal({
   if (!isOpen) return null;
 
   function updateField<K extends keyof BlockFormData>(key: K, value: BlockFormData[K]) {
-    setForm((prev) => ({ ...prev, [key]: value }));
+    setForm((prev) => {
+      const next = { ...prev, [key]: value };
+      // Smart defaults: auto-fill when category changes on a new block
+      if (key === "category" && !initial?.id) {
+        const defaults = CATEGORY_DEFAULTS[value as string];
+        if (defaults) {
+          next.kind = defaults.kind;
+          next.energyCost = defaults.energyCost;
+          next.stimulation = defaults.stimulation;
+          // Adjust end time based on category duration
+          if (prev.startTime) {
+            const [h, m] = prev.startTime.split(":").map(Number);
+            const endMin = h * 60 + m + defaults.durationMin;
+            const endH = Math.min(23, Math.floor(endMin / 60));
+            const endM = endMin % 60;
+            next.endTime = `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`;
+          }
+        }
+      }
+      return next;
+    });
   }
 
   function toggleWeekDay(day: number) {

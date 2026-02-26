@@ -4,6 +4,9 @@ import { useState, useEffect, useCallback } from "react";
 import { Card } from "@/components/Card";
 import { Alert } from "@/components/Alert";
 import { BlockEditorModal } from "./BlockEditorModal";
+import { QuickAddInput } from "./QuickAddInput";
+import { TemplateApplyModal } from "./TemplateApplyModal";
+import { WeekCloneModal } from "./WeekCloneModal";
 import { CATEGORY_COLORS } from "@/lib/planner/categories";
 import type { ExpandedOccurrence, StabilityAlert } from "@/lib/planner/types";
 
@@ -55,6 +58,8 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingBlock, setEditingBlock] = useState<Partial<BlockFormData> | undefined>();
   const [editingBlockId, setEditingBlockId] = useState<string | undefined>();
+  const [templateModalOpen, setTemplateModalOpen] = useState(false);
+  const [cloneModalOpen, setCloneModalOpen] = useState(false);
 
   const weekEnd = addDays(weekStart, 6);
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
@@ -171,6 +176,26 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
     await fetchData(weekStart);
   }
 
+  function handlePartialParse(parsed: Record<string, unknown>) {
+    const startAt = parsed.startAt ? new Date(parsed.startAt as string) : new Date();
+    const endAt = parsed.endAt ? new Date(parsed.endAt as string) : new Date();
+    setEditingBlock({
+      title: (parsed.title as string) || "",
+      category: (parsed.category as string) || "outro",
+      kind: (parsed.kind as string) || "FLEX",
+      date: startAt.toISOString().split("T")[0],
+      startTime: `${String(startAt.getHours()).padStart(2, "0")}:${String(startAt.getMinutes()).padStart(2, "0")}`,
+      endTime: `${String(endAt.getHours()).padStart(2, "0")}:${String(endAt.getMinutes()).padStart(2, "0")}`,
+      energyCost: (parsed.energyCost as number) || 3,
+      stimulation: (parsed.stimulation as number) || 1,
+      notes: "",
+      recurrenceFreq: "NONE",
+      recurrenceWeekDays: [],
+    });
+    setEditingBlockId(undefined);
+    setModalOpen(true);
+  }
+
   // Get occurrences for a specific day
   function getOccsForDay(dayStr: string): ExpandedOccurrence[] {
     return occurrences.filter((o) => {
@@ -213,6 +238,31 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
         >
           Proximo &rarr;
         </button>
+      </div>
+
+      {/* Toolbar: Quick-add + actions */}
+      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="flex-1">
+          <QuickAddInput
+            contextDate={weekStart}
+            onCreated={() => fetchData(weekStart)}
+            onPartialParse={handlePartialParse}
+          />
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setTemplateModalOpen(true)}
+            className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-medium text-muted hover:border-primary/50 hover:text-foreground"
+          >
+            Template
+          </button>
+          <button
+            onClick={() => setCloneModalOpen(true)}
+            className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-medium text-muted hover:border-primary/50 hover:text-foreground"
+          >
+            Copiar semana
+          </button>
+        </div>
       </div>
 
       {/* Week-level alerts */}
@@ -270,6 +320,7 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
                         <span className="font-medium">{formatTime(occ.startAt)}</span>{" "}
                         <span>{occ.title}</span>
                         {occ.kind === "ANCHOR" && <span className="ml-0.5 opacity-60">⚓</span>}
+                        {occ.isRoutine && <span className="ml-0.5 opacity-60">↻</span>}
                       </button>
                     );
                   })}
@@ -291,6 +342,20 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
         onDelete={editingBlockId ? handleDelete : undefined}
         initial={editingBlock}
         isRecurring={editingBlock?.id !== undefined}
+      />
+
+      <TemplateApplyModal
+        isOpen={templateModalOpen}
+        onClose={() => setTemplateModalOpen(false)}
+        onApplied={() => fetchData(weekStart)}
+        weekStart={weekStart}
+      />
+
+      <WeekCloneModal
+        isOpen={cloneModalOpen}
+        onClose={() => setCloneModalOpen(false)}
+        onCloned={() => fetchData(weekStart)}
+        currentWeekStart={weekStart}
       />
     </div>
   );

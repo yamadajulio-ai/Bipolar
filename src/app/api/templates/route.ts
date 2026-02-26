@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod/v4";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { localDateStr } from "@/lib/dateUtils";
+import { expandPrismaBlocks } from "@/lib/planner/expandServer";
 
 const VALID_CATEGORIES = [
   "sono", "medicacao", "refeicao", "trabalho", "social", "exercicio", "lazer", "outro",
@@ -68,106 +68,36 @@ export async function POST(request: NextRequest) {
     // Create from existing week
     if (fromWeekStart) {
       const monday = new Date(fromWeekStart + "T00:00:00");
-      const weekEnd = new Date(monday);
-      weekEnd.setDate(weekEnd.getDate() + 7);
+      const sundayEnd = new Date(fromWeekStart + "T00:00:00");
+      sundayEnd.setDate(sundayEnd.getDate() + 6);
+      sundayEnd.setHours(23, 59, 59, 999);
 
-      const existingBlocks = await prisma.plannerBlock.findMany({
+      // Fetch all blocks that could produce occurrences in this week
+      const allBlocks = await prisma.plannerBlock.findMany({
         where: {
           userId: session.userId,
-          startAt: { gte: monday, lt: weekEnd },
-        },
-        include: { recurrence: true },
-      });
-
-      // Also expand recurring blocks into this week
-      const allRecurring = await prisma.plannerBlock.findMany({
-        where: {
-          userId: session.userId,
-          recurrence: { isNot: null },
-          startAt: { lt: weekEnd },
+          OR: [
+            { startAt: { lte: sundayEnd }, endAt: { gte: monday } },
+            { recurrence: { isNot: null }, startAt: { lte: sundayEnd } },
+          ],
         },
         include: { recurrence: true, exceptions: true },
       });
 
-      // Build template blocks from concrete + expanded recurring
-      const templateBlocks: {
-        title: string; category: string; kind: string;
-        startTimeMin: number; durationMin: number;
-        energyCost: number; stimulation: number;
-        weekDay: number; notes?: string;
-      }[] = [];
-      const seen = new Set<string>();
+      // Use the shared range-based engine (respects interval, exceptions, etc.)
+      const occurrences = expandPrismaBlocks(allBlocks, monday, sundayEnd);
 
-      // Process concrete blocks in the week
-      for (const block of existingBlocks) {
-        const startAt = new Date(block.startAt);
-        const endAt = new Date(block.endAt);
-        const key = `${block.title}-${startAt.getTime()}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
-
-        templateBlocks.push({
-          title: block.title,
-          category: block.category,
-          kind: block.kind,
-          weekDay: startAt.getDay(),
-          startTimeMin: startAt.getHours() * 60 + startAt.getMinutes(),
-          durationMin: Math.round((endAt.getTime() - startAt.getTime()) / 60000),
-          energyCost: block.energyCost,
-          stimulation: block.stimulation,
-          notes: block.notes || undefined,
-        });
-      }
-
-      // Expand recurring blocks into this week
-      for (const block of allRecurring) {
-        if (!block.recurrence) continue;
-        const rec = block.recurrence;
-        const blockStart = new Date(block.startAt);
-        const durationMs = new Date(block.endAt).getTime() - blockStart.getTime();
-        const weekDaysSet = rec.weekDays ? new Set(rec.weekDays.split(",").map(Number)) : null;
-
-        for (let d = 0; d < 7; d++) {
-          const date = new Date(monday);
-          date.setDate(date.getDate() + d);
-
-          if (rec.until && new Date(rec.until) < date) continue;
-          if (blockStart > date) continue;
-
-          let matches = false;
-          if (rec.freq === "DAILY") matches = true;
-          if (rec.freq === "WEEKLY") {
-            matches = weekDaysSet
-              ? weekDaysSet.has(date.getDay())
-              : date.getDay() === blockStart.getDay();
-          }
-
-          if (matches) {
-            const occStart = new Date(date);
-            occStart.setHours(blockStart.getHours(), blockStart.getMinutes(), 0, 0);
-            const key = `${block.title}-${occStart.getTime()}`;
-            if (seen.has(key)) continue;
-            seen.add(key);
-
-            // Check exceptions
-            const ymd = localDateStr(date);
-            const ex = block.exceptions.find((e) => localDateStr(new Date(e.occurrenceDate)) === ymd);
-            if (ex?.isCancelled) continue;
-
-            templateBlocks.push({
-              title: ex?.overrideTitle || block.title,
-              category: block.category,
-              kind: block.kind,
-              weekDay: date.getDay(),
-              startTimeMin: occStart.getHours() * 60 + occStart.getMinutes(),
-              durationMin: Math.round(durationMs / 60000),
-              energyCost: block.energyCost,
-              stimulation: block.stimulation,
-              notes: block.notes || undefined,
-            });
-          }
-        }
-      }
+      const templateBlocks = occurrences.map((occ) => ({
+        title: occ.title,
+        category: occ.category,
+        kind: occ.kind,
+        weekDay: occ.startAt.getDay(),
+        startTimeMin: occ.startAt.getHours() * 60 + occ.startAt.getMinutes(),
+        durationMin: Math.max(5, Math.round((occ.endAt.getTime() - occ.startAt.getTime()) / 60000)),
+        energyCost: occ.energyCost,
+        stimulation: occ.stimulation,
+        notes: occ.notes || undefined,
+      }));
 
       const template = await prisma.plannerTemplate.create({
         data: {

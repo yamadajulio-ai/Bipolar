@@ -82,6 +82,16 @@ export async function PATCH(
     if (parsed.data.stimulation !== undefined) updateData.stimulation = parsed.data.stimulation;
     if (parsed.data.isRoutine !== undefined) updateData.isRoutine = parsed.data.isRoutine;
 
+    // Validate endAt > startAt (using updated or existing values)
+    const finalStart = updateData.startAt ? (updateData.startAt as Date) : existing.startAt;
+    const finalEnd = updateData.endAt ? (updateData.endAt as Date) : existing.endAt;
+    if (finalEnd <= finalStart) {
+      return NextResponse.json(
+        { errors: { endAt: ["endAt deve ser posterior a startAt"] } },
+        { status: 400 },
+      );
+    }
+
     const block = await prisma.plannerBlock.update({
       where: { id },
       data: updateData,

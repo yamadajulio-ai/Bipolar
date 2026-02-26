@@ -97,6 +97,16 @@ export async function POST(request: NextRequest) {
 
     const { recurrence, ...blockData } = parsed.data;
 
+    // Validate endAt > startAt (prevent negative duration)
+    const startDate = new Date(blockData.startAt);
+    const endDate = new Date(blockData.endAt);
+    if (endDate <= startDate) {
+      return NextResponse.json(
+        { errors: { endAt: ["endAt deve ser posterior a startAt"] } },
+        { status: 400 },
+      );
+    }
+
     const block = await prisma.plannerBlock.create({
       data: {
         userId: session.userId,

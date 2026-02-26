@@ -4,6 +4,7 @@ import { Card } from "@/components/Card";
 import { Alert } from "@/components/Alert";
 import { InsightsCharts } from "@/components/planner/InsightsCharts";
 import { localDateStr } from "@/lib/dateUtils";
+import { expandPrismaBlocks } from "@/lib/planner/expandServer";
 
 export default async function InsightsPage() {
   const session = await getSession();
@@ -32,14 +33,19 @@ export default async function InsightsPage() {
     orderBy: { date: "asc" },
   });
 
-  // Fetch planner blocks for last 7 days (for energy load)
-  const blocks = await prisma.plannerBlock.findMany({
+  // Fetch planner blocks for last 7 days (using overlap + recurring expansion)
+  const rawBlocks = await prisma.plannerBlock.findMany({
     where: {
       userId: session.userId,
-      startAt: { gte: cutoff7 },
+      OR: [
+        { startAt: { lte: now }, endAt: { gte: cutoff7 } },
+        { recurrence: { isNot: null }, startAt: { lte: now } },
+      ],
     },
+    include: { recurrence: true, exceptions: true },
     orderBy: { startAt: "asc" },
   });
+  const expandedBlocks = expandPrismaBlocks(rawBlocks, cutoff7, now);
 
   // Fetch stability rules
   const rules = await prisma.stabilityRule.findUnique({
@@ -77,14 +83,15 @@ export default async function InsightsPage() {
     anchorVariances[field] = values.length >= 3 ? computeStdDev(values) : null;
   }
 
-  // 3. Weekly energy load from planner
-  const weeklyEnergy = blocks.reduce((sum, b) => sum + b.energyCost, 0);
+  // 3. Weekly energy load from planner (using expanded occurrences)
+  const weeklyEnergy = expandedBlocks.reduce((sum, b) => sum + b.energyCost, 0);
 
-  // 4. Late nights (blocks ending after cutoff)
+  // 4. Late nights — consistent with constraints.ts (includes post-midnight)
   const lateEventCutoffMin = rules?.lateEventCutoffMin ?? 1260;
-  const lateNights = blocks.filter((b) => {
+  const lateNights = expandedBlocks.filter((b) => {
     const endMin = b.endAt.getHours() * 60 + b.endAt.getMinutes();
-    return endMin > lateEventCutoffMin && b.kind !== "ANCHOR";
+    const isLate = endMin > lateEventCutoffMin || (endMin < 360 && endMin > 0);
+    return isLate && b.kind !== "ANCHOR";
   }).length;
 
   // 5. Mood-sleep data for chart

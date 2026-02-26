@@ -1,17 +1,5 @@
 import { prisma } from "@/lib/db";
-import { localDateStr } from "@/lib/dateUtils";
-
-interface ExpandedBlock {
-  title: string;
-  category: string;
-  kind: string;
-  startAt: Date;
-  endAt: Date;
-  energyCost: number;
-  stimulation: number;
-  notes: string | null;
-  isRoutine: boolean;
-}
+import { expandPrismaBlocks } from "./expandServer";
 
 /**
  * Clone blocks from one week to another.
@@ -27,114 +15,39 @@ export async function cloneWeek(
   offsetMin: number = 0,
 ) {
   const fromMonday = new Date(fromWeekStart + "T00:00:00");
-  const fromEnd = new Date(fromMonday);
-  fromEnd.setDate(fromEnd.getDate() + 7);
+  const fromSundayEnd = new Date(fromWeekStart + "T00:00:00");
+  fromSundayEnd.setDate(fromSundayEnd.getDate() + 6);
+  fromSundayEnd.setHours(23, 59, 59, 999);
 
   const toMonday = new Date(toWeekStart + "T00:00:00");
   const toEnd = new Date(toMonday);
   toEnd.setDate(toEnd.getDate() + 7);
 
-  // Fetch source blocks (concrete in range)
-  const sourceBlocks = await prisma.plannerBlock.findMany({
+  // Fetch all blocks that could produce occurrences in the source week
+  const allBlocks = await prisma.plannerBlock.findMany({
     where: {
       userId,
-      startAt: { gte: fromMonday, lt: fromEnd },
-    },
-    include: { recurrence: true },
-  });
-
-  // Also fetch recurring blocks that may expand into the source week
-  const recurringBlocks = await prisma.plannerBlock.findMany({
-    where: {
-      userId,
-      recurrence: { isNot: null },
-      startAt: { lt: fromEnd },
+      OR: [
+        { startAt: { lte: fromSundayEnd }, endAt: { gte: fromMonday } },
+        { recurrence: { isNot: null }, startAt: { lte: fromSundayEnd } },
+      ],
     },
     include: { recurrence: true, exceptions: true },
   });
 
-  // Build expanded list
-  const expanded: ExpandedBlock[] = [];
-  const seen = new Set<string>();
-
-  for (const block of sourceBlocks) {
-    const key = `${block.title}-${new Date(block.startAt).getTime()}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    expanded.push({
-      title: block.title,
-      category: block.category,
-      kind: block.kind,
-      startAt: new Date(block.startAt),
-      endAt: new Date(block.endAt),
-      energyCost: block.energyCost,
-      stimulation: block.stimulation,
-      notes: block.notes,
-      isRoutine: block.isRoutine,
-    });
-  }
-
-  // Expand recurring into the source week
-  for (const block of recurringBlocks) {
-    if (!block.recurrence) continue;
-    const rec = block.recurrence;
-    const blockStart = new Date(block.startAt);
-    const durationMs = new Date(block.endAt).getTime() - blockStart.getTime();
-    const weekDaysSet = rec.weekDays ? new Set(rec.weekDays.split(",").map(Number)) : null;
-
-    for (let d = 0; d < 7; d++) {
-      const date = new Date(fromMonday);
-      date.setDate(date.getDate() + d);
-      if (rec.until && new Date(rec.until) < date) continue;
-      if (blockStart > date) continue;
-
-      let matches = false;
-      if (rec.freq === "DAILY") matches = true;
-      if (rec.freq === "WEEKLY") {
-        matches = weekDaysSet
-          ? weekDaysSet.has(date.getDay())
-          : date.getDay() === blockStart.getDay();
-      }
-
-      if (matches) {
-        const occStart = new Date(date);
-        occStart.setHours(blockStart.getHours(), blockStart.getMinutes(), 0, 0);
-        const key = `${block.title}-${occStart.getTime()}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
-
-        // Check exceptions
-        const ymd = localDateStr(date);
-        const ex = block.exceptions.find(
-          (e) => localDateStr(new Date(e.occurrenceDate)) === ymd,
-        );
-        if (ex?.isCancelled) continue;
-
-        expanded.push({
-          title: ex?.overrideTitle || block.title,
-          category: block.category,
-          kind: block.kind,
-          startAt: ex?.overrideStartAt ? new Date(ex.overrideStartAt) : occStart,
-          endAt: ex?.overrideEndAt ? new Date(ex.overrideEndAt) : new Date(occStart.getTime() + durationMs),
-          energyCost: block.energyCost,
-          stimulation: block.stimulation,
-          notes: block.notes,
-          isRoutine: block.isRoutine,
-        });
-      }
-    }
-  }
+  // Use shared range-based engine (respects interval, exceptions, etc.)
+  const occurrences = expandPrismaBlocks(allBlocks, fromMonday, fromSundayEnd);
 
   // Filter by mode
-  let filtered = expanded;
+  let filtered = occurrences;
   if (mode === "flexOnly") {
-    filtered = expanded.filter((b) => b.kind === "FLEX");
+    filtered = occurrences.filter((o) => o.kind === "FLEX");
   } else if (mode === "exceptAnchors") {
-    filtered = expanded.filter((b) => b.kind !== "ANCHOR");
+    filtered = occurrences.filter((o) => o.kind !== "ANCHOR");
   }
 
   // Skip routines (they repeat naturally)
-  filtered = filtered.filter((b) => !b.isRoutine);
+  filtered = filtered.filter((o) => !o.isRoutine);
 
   // Fetch existing blocks in target week for duplicate detection
   const existingTarget = await prisma.plannerBlock.findMany({
@@ -151,14 +64,14 @@ export async function cloneWeek(
 
   let created = 0;
 
-  for (const block of filtered) {
-    const newStart = new Date(block.startAt.getTime() + dayOffsetMs + offsetMs);
-    const newEnd = new Date(block.endAt.getTime() + dayOffsetMs + offsetMs);
+  for (const occ of filtered) {
+    const newStart = new Date(occ.startAt.getTime() + dayOffsetMs + offsetMs);
+    const newEnd = new Date(occ.endAt.getTime() + dayOffsetMs + offsetMs);
 
     // Duplicate detection: same title + overlapping time
     const isDuplicate = existingTarget.some(
       (eb) =>
-        eb.title === block.title &&
+        eb.title === occ.title &&
         new Date(eb.startAt) < newEnd &&
         new Date(eb.endAt) > newStart,
     );
@@ -167,14 +80,14 @@ export async function cloneWeek(
     await prisma.plannerBlock.create({
       data: {
         userId,
-        title: block.title,
-        category: block.category,
-        kind: block.kind,
+        title: occ.title,
+        category: occ.category,
+        kind: occ.kind,
         startAt: newStart,
         endAt: newEnd,
-        energyCost: block.energyCost,
-        stimulation: block.stimulation,
-        notes: block.notes,
+        energyCost: occ.energyCost,
+        stimulation: occ.stimulation,
+        notes: occ.notes,
       },
     });
     created++;

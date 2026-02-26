@@ -17,6 +17,7 @@ const blockUpdateSchema = z.object({
   notes: z.string().max(280).optional(),
   energyCost: z.number().int().min(0).max(10).optional(),
   stimulation: z.number().int().min(0).max(2).optional(),
+  isRoutine: z.boolean().optional(),
 });
 
 export async function GET(
@@ -79,6 +80,7 @@ export async function PATCH(
     if (parsed.data.notes !== undefined) updateData.notes = parsed.data.notes;
     if (parsed.data.energyCost !== undefined) updateData.energyCost = parsed.data.energyCost;
     if (parsed.data.stimulation !== undefined) updateData.stimulation = parsed.data.stimulation;
+    if (parsed.data.isRoutine !== undefined) updateData.isRoutine = parsed.data.isRoutine;
 
     const block = await prisma.plannerBlock.update({
       where: { id },

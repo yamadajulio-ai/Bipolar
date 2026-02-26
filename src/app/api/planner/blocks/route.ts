@@ -25,6 +25,7 @@ const blockCreateSchema = z.object({
   notes: z.string().max(280).optional(),
   energyCost: z.number().int().min(0).max(10).default(3),
   stimulation: z.number().int().min(0).max(2).default(1),
+  isRoutine: z.boolean().default(false),
   recurrence: recurrenceSchema.optional(),
 });
 
@@ -37,13 +38,15 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const timeMin = searchParams.get("timeMin");
   const timeMax = searchParams.get("timeMax");
+  const routinesOnly = searchParams.get("routinesOnly") === "true";
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let where: any = { userId: session.userId };
+  let where: any = { userId: session.userId, ...(routinesOnly ? { isRoutine: true } : {}) };
   if (timeMin || timeMax) {
     // Fetch non-recurring blocks in range AND recurring blocks that may expand into range
     where = {
       userId: session.userId,
+      ...(routinesOnly ? { isRoutine: true } : {}),
       OR: [
         // Non-recurring blocks (or any block) whose startAt falls in range
         {
@@ -107,6 +110,7 @@ export async function POST(request: NextRequest) {
         notes: blockData.notes || null,
         energyCost: blockData.energyCost,
         stimulation: blockData.stimulation,
+        isRoutine: blockData.isRoutine,
         ...(recurrence && recurrence.freq !== "NONE"
           ? {
               recurrence: {

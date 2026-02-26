@@ -1,8 +1,8 @@
-# PRD — MVP Empresa Bipolar
+# PRD — Empresa Bipolar
 
 ## Objetivo
 
-Criar um MVP web educativo e de auto-organização para pessoas com Transtorno Afetivo Bipolar tipo 1 (TAB1) e suas famílias. O produto não substitui tratamento médico ou psicológico.
+Criar uma plataforma web educativa e de auto-organização para pessoas com Transtorno Afetivo Bipolar tipo 1 (TAB1) e suas famílias. O produto não substitui tratamento médico ou psicológico.
 
 ## Público-alvo
 
@@ -12,51 +12,62 @@ Criar um MVP web educativo e de auto-organização para pessoas com Transtorno A
 
 ## Funcionalidades
 
-### Must-have (MVP)
+### Core: Calendario de Estabilidade (MVP)
 
-1. **Landing page** com propósito, disclaimers e CTAs (criar conta / entrar)
-2. **Cadastro e login** seguros (bcrypt, sessão HttpOnly, rate limiting)
-3. **Diário de humor e sono** — criar registro (data, humor 1-5, sono, nota curta) e listar histórico
-4. **Biblioteca de conteúdos** — 10 artigos markdown sobre TAB1, listagem com tempo de leitura, página individual com disclaimer
-5. **Plano de crise** — sinais de alerta, passos seguros, recursos Brasil (CVV 188, SAMU 192, UPA 24h)
-6. **Área famílias** — checklist de apoio, guia de comunicação, o que evitar
-7. **Política de privacidade** e **termos de uso** em pt-BR
-8. **Exclusão de conta** — endpoint para remoção permanente de dados
-9. **Disclaimers** visíveis em todas as áreas relevantes
+O modulo central e o **Calendario de Estabilidade**, um planejador semanal TAB-first:
 
-### Nice-to-have (pós-MVP)
+1. **Planejador Semanal** — blocos de atividades (ancora, flexivel, risco), recorrencia (nenhuma/diaria/semanal) e excecoes por data
+2. **Motor de regras transparente** — detecta conflitos de horario, noites tardias, violacao de wind-down, protecao de ancoras, limite de noites tardias por semana
+3. **Tela "Hoje"** — proximo bloco com contagem regressiva, ancoras do dia, orcamento de energia e acoes rapidas
+4. **Check-in 30s** — salva humor, energia, ansiedade, irritabilidade, sono e medicacao via DiaryEntry existente
+5. **Insights** — regularidade de sono (variancia de horarios), regularidade de ancoras (IPSRT), carga semanal de energia, noites de risco
 
-- Gráficos de evolução do humor/sono (recharts)
-- Tracking de visualização de conteúdos (ContentView)
-- Contatos pessoais de crise salvos pelo usuário
-- Exportação do diário em PDF
-- Modo escuro
-- PWA (Progressive Web App)
-- Preferências de notificação
-- Filtros avançados no diário (por período)
+### Modulos Complementares (Implementados)
+
+1. **Landing page** com proposito, disclaimers e CTAs (criar conta / entrar)
+2. **Cadastro e login** seguros (bcrypt, sessao HttpOnly, rate limiting)
+3. **Diario expandido** — humor (1-5), sono, energia, ansiedade, irritabilidade, adesao a medicacao, sinais de alerta
+4. **Modulo de sono** — registro detalhado (horarios, qualidade, despertares, rotina pre-sono), tendencias
+5. **Exercicios de respiracao** — 4-7-8, quadrada, diafragmatica com animacao visual CSS
+6. **Tecnicas de aterramento** — 5 sentidos (5-4-3-2-1), relaxamento muscular progressivo
+7. **Rastreador de ritmo social** — baseado na IPSRT, monitora regularidade de horarios
+8. **SOS de crise interativo** — botao sempre visivel, interface escura, respiracao rapida, numeros de emergencia
+9. **Plano de crise personalizado** — contatos de confianca, profissional, medicamentos, hospital, estrategias
+10. **Sons ambiente** — ruido branco/rosa/marrom, chuva (Web Audio API), timer de sono
+11. **Relatorio mensal** — resumo imprimivel para compartilhar com profissionais
+12. **Cursos estruturados** — 4 cursos com aulas sequenciais (progresso nao gamificado)
+13. **Biblioteca de conteudos** — 11+ artigos markdown sobre TAB1
+14. **Lembretes gentis** — Notification API do browser para rotina
+15. **Area familias** — checklist de apoio, guia de comunicacao
+16. **Politica de privacidade** e **termos de uso** em pt-BR
+17. **Exclusao de conta** — remocao permanente de dados
 
 ### Fora de escopo
 
 - Comunidade / fórum / chat
-- Rastreamento de medicação
 - Recomendações de IA
 - Ferramenta de diagnóstico
 - Funcionalidades sociais (perfil público, compartilhamento)
-- Gamificação (streaks, rankings, desafios)
+- Gamificação (streaks, rankings, desafios, badges, pontos)
+- Recomendação de medicação ou dosagem
 
 ## Métricas de sucesso
 
-| Métrica | Meta MVP |
-|---------|----------|
+| Métrica | Meta |
+|---------|------|
 | Usuários cadastrados | Validar fluxo funcional |
-| Registros no diário por usuário/semana | ≥ 2 |
-| Visualizações de conteúdo | Distribuição entre artigos |
-| Visitas ao plano de crise | Monitorar (sem meta numérica) |
+| Blocos criados no planejador por semana | ≥ 5 |
+| Check-ins 30s por semana | ≥ 3 |
+| Regularidade de ancoras (IPSRT) | Monitorar tendencia |
+| Registros no diario por usuario/semana | ≥ 2 |
+| Exercicios realizados por semana | ≥ 1 |
+| Visitas ao plano de crise | Monitorar (sem meta numerica) |
 
 ## Restrições
 
-- Sem gamificação: nenhum streak, ranking ou mensagem motivacional agressiva
+- Sem gamificação: nenhum streak, ranking, badge ou mensagem motivacional agressiva
 - Sem aconselhamento clínico: nenhuma recomendação de medicação ou dosagem
 - LGPD: dados de saúde são sensíveis, minimizar coleta, permitir exclusão
 - Todo conteúdo em pt-BR
 - Linguagem compassiva, respeitosa e não alarmista
+- Disclaimers visíveis em todas as páginas

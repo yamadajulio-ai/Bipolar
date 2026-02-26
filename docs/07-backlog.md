@@ -1,64 +1,144 @@
 # Backlog do Produto — Empresa Bipolar
 
+## Epico 0: Calendario de Estabilidade (Core MVP)
+
+- [x] Como **usuario**, quero criar blocos de atividades no planejador semanal para organizar minha rotina.
+- [x] Como **usuario**, quero classificar blocos como ancora, flexivel ou risco para priorizar estabilidade.
+- [x] Como **usuario**, quero configurar recorrencia (nenhuma/diaria/semanal) para blocos repetitivos.
+- [x] Como **usuario**, quero criar excecoes para cancelar ou alterar ocorrencias especificas de blocos recorrentes.
+- [x] Como **usuario**, quero navegar entre semanas no planejador para planejar com antecedencia.
+- [x] Como **sistema**, quero detectar conflitos de horario entre blocos e exibir alertas.
+- [x] Como **sistema**, quero alertar sobre atividades apos o horario limite (noites tardias).
+- [x] Como **sistema**, quero alertar sobre violacao do periodo de wind-down antes de dormir.
+- [x] Como **sistema**, quero proteger ancoras alertando quando blocos flexiveis conflitam com elas.
+- [x] Como **sistema**, quero alertar quando o limite de noites tardias por semana e excedido.
+- [x] Como **usuario**, quero configurar regras de estabilidade (horario limite, wind-down, protecao de ancoras).
+- [x] Como **usuario**, quero ver a tela "Hoje" com proximo bloco, ancoras e orcamento de energia.
+- [x] Como **usuario**, quero fazer check-in em 30 segundos (humor, energia, ansiedade, irritabilidade, sono, medicacao).
+- [x] Como **usuario**, quero ver insights de regularidade de sono, ancoras IPSRT, carga de energia e noites de risco.
+- [x] Como **sistema**, quero exibir observacoes suaves (nao alarmistas) sobre padroes detectados.
+
 ## Épico 1: Autenticação e Conta
 
-- Como **usuário**, quero me cadastrar com e-mail e senha para acessar o aplicativo.
-- Como **usuário**, quero fazer login de forma segura para acessar meus dados.
-- Como **usuário**, quero fazer logout para encerrar minha sessão.
-- Como **usuário**, quero excluir minha conta para remover todos os meus dados permanentemente.
-- Como **sistema**, quero limitar tentativas de login para prevenir ataques de força bruta.
-- Como **sistema**, quero armazenar senhas com hash seguro para proteger dados dos usuários.
+- [x] Como **usuário**, quero me cadastrar com e-mail e senha para acessar o aplicativo.
+- [x] Como **usuário**, quero fazer login de forma segura para acessar meus dados.
+- [x] Como **usuário**, quero fazer logout para encerrar minha sessão.
+- [x] Como **usuário**, quero excluir minha conta para remover todos os meus dados permanentemente.
+- [x] Como **sistema**, quero limitar tentativas de login para prevenir ataques de força bruta.
+- [x] Como **sistema**, quero armazenar senhas com hash seguro para proteger dados dos usuários.
 
-## Épico 2: Diário de Humor e Sono
+## Épico 2: Diário Expandido de Humor e Sono
 
-- Como **usuário**, quero registrar meu humor diário (1-5) para acompanhar padrões.
-- Como **usuário**, quero registrar minhas horas de sono para observar regularidade.
-- Como **usuário**, quero adicionar uma nota curta opcional ao meu registro diário.
-- Como **usuário**, quero ver o histórico dos meus registros dos últimos 30 dias.
-- Como **usuário**, quero que os rótulos de humor sejam neutros (não motivacionais) para evitar pressão.
-- Como **sistema**, quero validar que humor esteja entre 1-5 e sono entre 0-24h.
+- [x] Como **usuário**, quero registrar meu humor diário (1-5) para acompanhar padrões.
+- [x] Como **usuário**, quero registrar minhas horas de sono para observar regularidade.
+- [x] Como **usuário**, quero adicionar uma nota curta opcional ao meu registro diário.
+- [x] Como **usuário**, quero ver o histórico dos meus registros dos últimos 30 dias.
+- [x] Como **usuário**, quero registrar meu nível de energia (1-5) para perceber padrões.
+- [x] Como **usuário**, quero registrar meu nível de ansiedade (1-5) para acompanhar ao longo do tempo.
+- [x] Como **usuário**, quero registrar irritabilidade (1-5) como sinal precoce de episódios.
+- [x] Como **usuário**, quero marcar se tomei medicação (sim/não/não lembro) sem especificar qual.
+- [x] Como **usuário**, quero marcar sinais de alerta (checklist) para identificar padrões precocemente.
+- [x] Como **sistema**, quero validar que humor esteja entre 1-5 e sono entre 0-24h.
 
-## Épico 3: Biblioteca de Conteúdos
+## Épico 3: Painel de Tendências
 
-- Como **usuário**, quero ver uma lista de conteúdos educacionais sobre TAB para me informar.
-- Como **usuário**, quero ler um artigo completo com layout legível.
-- Como **usuário**, quero ver o tempo estimado de leitura para planejar meu tempo.
-- Como **sistema**, quero exibir disclaimer educacional em todos os conteúdos.
-- Como **profissional indicante**, quero que o conteúdo seja confiável e sem aconselhamento clínico.
+- [x] Como **usuário**, quero ver gráficos de humor e sono ao longo do tempo para identificar padrões.
+- [x] Como **usuário**, quero selecionar períodos (7/14/30/90 dias) para analisar diferentes janelas.
+- [x] Como **usuário**, quero ver distribuição de humor (quantos dias em cada nível).
+- [x] Como **sistema**, quero alertar quando sono diminui 3+ dias consecutivos.
+- [x] Como **sistema**, quero alertar quando humor está persistentemente elevado (≥4 por 3+ dias).
+- [x] Como **sistema**, quero alertar quando humor está persistentemente baixo (≤2 por 3+ dias).
+- [x] Como **sistema**, quero incluir disclaimer em todos os alertas automáticos.
 
-## Épico 4: Plano de Crise e Famílias
+## Épico 4: Módulo de Sono
 
-- Como **usuário**, quero acessar orientações sobre sinais de alerta para reconhecer episódios.
-- Como **usuário**, quero ver passos seguros para momentos de crise.
-- Como **usuário**, quero ter acesso rápido aos números de emergência (CVV 188, SAMU 192, UPA 24h).
-- Como **familiar**, quero um checklist de como apoiar alguém com TAB.
-- Como **familiar**, quero um guia sobre comunicação, limites e sinais precoces.
-- Como **familiar**, quero saber o que evitar (discutir medicação, minimizar sentimentos).
-- Como **sistema**, quero exibir disclaimers sobre buscar apoio profissional.
+- [x] Como **usuário**, quero registrar horário de dormir e acordar para medir regularidade.
+- [x] Como **usuário**, quero avaliar qualidade do sono (1-5) para identificar noites ruins.
+- [x] Como **usuário**, quero registrar número de despertares noturnos.
+- [x] Como **usuário**, quero marcar rotina pré-sono (tela, cafeína, leitura, respiração, etc.).
+- [x] Como **usuário**, quero ver tendências de sono ao longo do tempo.
+- [x] Como **sistema**, quero calcular variância de horário de sono e alertar sobre irregularidade.
 
-## Épico 5: Legal e Compliance
+## Épico 5: Exercícios de Respiração e Aterramento
 
-- Como **empresa**, quero publicar uma política de privacidade conforme LGPD.
-- Como **empresa**, quero publicar termos de uso que definam a natureza educacional do serviço.
-- Como **empresa**, quero configurar headers de segurança para proteger contra ataques comuns.
-- Como **empresa**, quero permitir que usuários excluam seus dados conforme LGPD.
-- Como **empresa**, quero que nenhum dado sensível seja logado em texto.
-- Como **empresa**, quero manter um checklist de compliance atualizado.
+- [x] Como **usuário**, quero fazer exercício de respiração 4-7-8 com animação visual.
+- [x] Como **usuário**, quero fazer respiração quadrada (box breathing) para ansiedade.
+- [x] Como **usuário**, quero fazer respiração diafragmática para aterramento.
+- [x] Como **usuário**, quero fazer técnica 5-4-3-2-1 (5 sentidos) para aterramento sensorial.
+- [x] Como **usuário**, quero fazer relaxamento muscular progressivo para liberar tensão.
+- [x] Como **sistema**, quero registrar sessões de exercício para acompanhar frequência.
+
+## Épico 6: Rastreador de Ritmo Social
+
+- [x] Como **usuário**, quero registrar horários-âncora do dia (acordar, contato, atividade, jantar, dormir).
+- [x] Como **usuário**, quero ver minha regularidade de ritmo ao longo da semana.
+- [x] Como **usuário**, quero ver tendências de regularidade com gráficos.
+- [x] Como **sistema**, quero calcular regularidade como métrica clínica (não gamificada).
+
+## Épico 7: SOS de Crise
+
+- [x] Como **usuário**, quero acesso rápido ao SOS em todas as telas (botão visível).
+- [x] Como **usuário**, quero ver números de emergência (CVV 188, SAMU 192, UPA 24h) rapidamente.
+- [x] Como **usuário**, quero iniciar respiração de emergência com um toque.
+- [x] Como **usuário**, quero exercício guiado para quando não consigo dormir.
+- [x] Como **usuário**, quero personalizar meu plano de crise (contatos, profissional, medicamentos, hospital).
+
+## Épico 8: Sons Ambiente
+
+- [x] Como **usuário**, quero ouvir ruído branco para foco ou sono.
+- [x] Como **usuário**, quero ouvir ruído rosa e marrom para relaxamento.
+- [x] Como **usuário**, quero ouvir simulação de chuva para relaxar.
+- [x] Como **usuário**, quero controlar volume e programar timer de sono.
+
+## Épico 9: Dashboard Inteligente e Relatório
+
+- [x] Como **usuário**, quero ver status do dia atual no dashboard (registro feito ou não).
+- [x] Como **usuário**, quero ver mini-gráfico dos últimos 7 dias.
+- [x] Como **usuário**, quero receber sugestões contextuais baseadas em regras simples.
+- [x] Como **usuário**, quero gerar relatório mensal imprimível para compartilhar com profissional.
+
+## Épico 10: Cursos Estruturados
+
+- [x] Como **usuário**, quero acessar cursos educacionais com aulas sequenciais.
+- [x] Como **usuário**, quero marcar aulas como concluídas para acompanhar meu progresso.
+- [x] Como **sistema**, quero exibir progresso como fração (ex: "3 de 8 aulas") sem gamificação.
+
+## Épico 11: Lembretes e Preferências
+
+- [x] Como **usuário**, quero configurar lembretes para registro diário e rotina.
+- [x] Como **sistema**, quero usar Notification API do browser (sem push server).
+
+## Épico 12: Legal e Compliance
+
+- [x] Como **empresa**, quero publicar uma política de privacidade conforme LGPD.
+- [x] Como **empresa**, quero publicar termos de uso que definam a natureza educacional do serviço.
+- [x] Como **empresa**, quero configurar headers de segurança para proteger contra ataques comuns.
+- [x] Como **empresa**, quero permitir que usuários excluam seus dados conforme LGPD.
 
 ## Priorização (MoSCoW)
 
-| Funcionalidade | Prioridade |
-|---|---|
-| Cadastro/Login seguro | Must |
-| Diário (criar + listar) | Must |
-| Biblioteca de conteúdos | Must |
-| Plano de crise | Must |
-| Área famílias | Must |
-| Privacidade e termos | Must |
-| Exclusão de conta | Must |
-| Gráficos do diário | Should |
-| Filtros avançados | Should |
-| Contatos pessoais de crise | Could |
-| Exportação PDF | Could |
-| Modo escuro | Won't (MVP) |
-| Comunidade/chat | Won't (MVP) |
+| Funcionalidade | Prioridade | Status |
+|---|---|---|
+| **Calendario de Estabilidade** | Must | Feito |
+| Planejador semanal (blocos/recorrencia) | Must | Feito |
+| Motor de regras (alertas de estabilidade) | Must | Feito |
+| Tela Hoje (autopiloto) | Must | Feito |
+| Check-in 30s | Must | Feito |
+| Insights (regularidade/carga/risco) | Must | Feito |
+| Cadastro/Login seguro | Must | Feito |
+| Diario expandido | Must | Feito |
+| Modulo de sono | Must | Feito |
+| Exercicios de respiracao/aterramento | Must | Feito |
+| Rastreador de ritmo social | Must | Feito |
+| SOS de crise | Must | Feito |
+| Plano de crise personalizado | Must | Feito |
+| Biblioteca de conteudos | Must | Feito |
+| Area familias | Must | Feito |
+| Privacidade e termos | Must | Feito |
+| Exclusao de conta | Must | Feito |
+| Sons ambiente | Should | Feito |
+| Relatorio mensal | Should | Feito |
+| Cursos estruturados | Should | Feito |
+| Lembretes | Should | Feito |
+| Modo escuro | Won't | — |
+| Comunidade/chat | Won't | — |

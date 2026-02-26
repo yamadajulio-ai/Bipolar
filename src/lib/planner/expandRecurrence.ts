@@ -148,6 +148,7 @@ function applyException(
     title: ex?.overrideTitle || block.title,
     category: block.category,
     kind: block.kind,
+    isRoutine: block.isRoutine,
     startAt: ex?.overrideStartAt || startAt,
     endAt: ex?.overrideEndAt || endAt,
     notes: ex?.overrideNotes !== undefined ? ex.overrideNotes : block.notes,

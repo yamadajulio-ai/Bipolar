@@ -38,11 +38,31 @@ export async function GET(request: NextRequest) {
   const timeMin = searchParams.get("timeMin");
   const timeMax = searchParams.get("timeMax");
 
-  const where: Record<string, unknown> = { userId: session.userId };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let where: any = { userId: session.userId };
   if (timeMin || timeMax) {
-    where.startAt = {};
-    if (timeMin) (where.startAt as Record<string, unknown>).gte = new Date(timeMin);
-    if (timeMax) (where.startAt as Record<string, unknown>).lte = new Date(timeMax);
+    // Fetch non-recurring blocks in range AND recurring blocks that may expand into range
+    where = {
+      userId: session.userId,
+      OR: [
+        // Non-recurring blocks (or any block) whose startAt falls in range
+        {
+          startAt: {
+            ...(timeMin ? { gte: new Date(timeMin) } : {}),
+            ...(timeMax ? { lte: new Date(timeMax) } : {}),
+          },
+        },
+        // Recurring blocks created before range that might still generate occurrences
+        ...(timeMax
+          ? [
+              {
+                recurrence: { isNot: null },
+                startAt: { lte: new Date(timeMax) },
+              },
+            ]
+          : []),
+      ],
+    };
   }
 
   const blocks = await prisma.plannerBlock.findMany({

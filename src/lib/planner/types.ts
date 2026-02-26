@@ -3,6 +3,7 @@ export interface PlannerBlockData {
   title: string;
   category: string;
   kind: string;
+  isRoutine: boolean;
   startAt: Date;
   endAt: Date;
   notes: string | null;
@@ -29,6 +30,7 @@ export interface ExpandedOccurrence {
   title: string;
   category: string;
   kind: string;
+  isRoutine: boolean;
   startAt: Date;
   endAt: Date;
   notes: string | null;

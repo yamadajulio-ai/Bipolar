@@ -338,6 +338,7 @@ function expandBlocksClient(
             notes: ex?.overrideNotes !== undefined ? ex.overrideNotes : (block.notes as string | null),
             energyCost: block.energyCost as number,
             stimulation: block.stimulation as number,
+            isRoutine: (block.isRoutine as boolean) || false,
             isRecurring: false,
             occurrenceDate: ymd,
           });
@@ -377,6 +378,7 @@ function expandBlocksClient(
             notes: ex?.overrideNotes !== undefined ? ex.overrideNotes : (block.notes as string | null),
             energyCost: block.energyCost as number,
             stimulation: block.stimulation as number,
+            isRoutine: (block.isRoutine as boolean) || false,
             isRecurring: true,
             occurrenceDate: ymd,
           });

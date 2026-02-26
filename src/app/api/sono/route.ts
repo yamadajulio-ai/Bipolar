@@ -58,8 +58,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ errors: fieldErrors }, { status: 400 });
     }
 
-    const log = await prisma.sleepLog.create({
-      data: {
+    const log = await prisma.sleepLog.upsert({
+      where: {
+        userId_date: {
+          userId: session.userId,
+          date: parsed.data.date,
+        },
+      },
+      update: {
+        bedtime: parsed.data.bedtime,
+        wakeTime: parsed.data.wakeTime,
+        totalHours: parsed.data.totalHours,
+        quality: parsed.data.quality,
+        awakenings: parsed.data.awakenings ?? 0,
+        preRoutine: parsed.data.preRoutine || null,
+        notes: parsed.data.notes || null,
+      },
+      create: {
         userId: session.userId,
         date: parsed.data.date,
         bedtime: parsed.data.bedtime,

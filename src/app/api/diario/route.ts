@@ -59,8 +59,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ errors: fieldErrors }, { status: 400 });
     }
 
-    const entry = await prisma.diaryEntry.create({
-      data: {
+    const entry = await prisma.diaryEntry.upsert({
+      where: {
+        userId_date: {
+          userId: session.userId,
+          date: parsed.data.date,
+        },
+      },
+      update: {
+        mood: parsed.data.mood,
+        sleepHours: parsed.data.sleepHours,
+        note: parsed.data.note || null,
+        energyLevel: parsed.data.energyLevel ?? null,
+        anxietyLevel: parsed.data.anxietyLevel ?? null,
+        irritability: parsed.data.irritability ?? null,
+        tookMedication: parsed.data.tookMedication ?? null,
+        warningSigns: parsed.data.warningSigns ?? null,
+      },
+      create: {
         userId: session.userId,
         date: parsed.data.date,
         mood: parsed.data.mood,

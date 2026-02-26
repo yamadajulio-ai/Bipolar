@@ -42,6 +42,7 @@ model DiaryEntry {
 
   @@index([userId])
   @@index([date])
+  @@unique([userId, date])
 }
 
 model ContentView {

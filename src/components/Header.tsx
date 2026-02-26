@@ -12,6 +12,7 @@ const navLinks = [
   { href: "/planejador", label: "Planejador" },
   { href: "/checkin", label: "Check-in" },
   { href: "/insights", label: "Insights" },
+  { href: "/como-usar", label: "Guia" },
   { href: "/mais", label: "Mais" },
 ];
 
@@ -19,9 +20,9 @@ export function Header({ isLoggedIn }: HeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <header className="border-b border-border bg-surface">
+    <header className="border-b border-border bg-white/80 backdrop-blur-sm">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-        <Link href={isLoggedIn ? "/hoje" : "/"} className="text-lg font-semibold text-foreground no-underline">
+        <Link href={isLoggedIn ? "/hoje" : "/"} className="text-lg font-semibold text-primary-dark no-underline">
           Empresa Bipolar
         </Link>
 
@@ -113,7 +114,8 @@ export function Header({ isLoggedIn }: HeaderProps) {
             </Link>
             <Link
               href="/cadastro"
-              className="rounded bg-primary px-3 py-1 text-white no-underline hover:bg-primary-dark"
+              className="rounded-full bg-primary px-4 py-1.5 text-sm no-underline hover:bg-primary-dark"
+              style={{ color: "#fff" }}
             >
               Criar conta
             </Link>

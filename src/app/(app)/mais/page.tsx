@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Card } from "@/components/Card";
 
 const modules = [
+  { href: "/como-usar", label: "Como usar", description: "Guia completo de como usar o sistema" },
   { href: "/diario", label: "Diario", description: "Registro expandido de humor, sono e sinais" },
   { href: "/diario/tendencias", label: "Tendencias do Diario", description: "Graficos e alertas de padrao" },
   { href: "/sono", label: "Sono", description: "Registro detalhado de sono" },

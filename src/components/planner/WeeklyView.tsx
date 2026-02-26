@@ -134,8 +134,14 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
   }
 
   async function handleSave(data: BlockFormData) {
-    const startAt = new Date(`${data.date}T${data.startTime}:00`).toISOString();
-    const endAt = new Date(`${data.date}T${data.endTime}:00`).toISOString();
+    const startDate = new Date(`${data.date}T${data.startTime}:00`);
+    const endDate = new Date(`${data.date}T${data.endTime}:00`);
+    // If endTime <= startTime, the block crosses midnight — move endAt to next day
+    if (endDate <= startDate) {
+      endDate.setDate(endDate.getDate() + 1);
+    }
+    const startAt = startDate.toISOString();
+    const endAt = endDate.toISOString();
 
     const body: Record<string, unknown> = {
       title: data.title,

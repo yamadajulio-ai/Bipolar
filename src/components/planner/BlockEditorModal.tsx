@@ -218,6 +218,13 @@ export function BlockEditorModal({
             </div>
           </div>
 
+          {/* Midnight crossing indicator */}
+          {form.endTime && form.startTime && form.endTime <= form.startTime && (
+            <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-1.5">
+              Termina no dia seguinte (bloco cruza meia-noite)
+            </p>
+          )}
+
           {/* Energy + Stimulation */}
           <div className="grid grid-cols-2 gap-3">
             <div>

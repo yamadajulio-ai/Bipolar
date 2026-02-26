@@ -3,6 +3,8 @@ import { getSession } from "@/lib/auth";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Alert } from "@/components/Alert";
+import { SOSButton } from "@/components/SOSButton";
+import { ReminderManager } from "@/components/ReminderManager";
 
 export default async function AppLayout({
   children,
@@ -24,6 +26,8 @@ export default async function AppLayout({
         {children}
       </main>
       <Footer />
+      <SOSButton />
+      <ReminderManager />
     </div>
   );
 }

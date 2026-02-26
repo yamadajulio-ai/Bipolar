@@ -8,6 +8,11 @@ const diarioSchema = z.object({
   mood: z.number().int().min(1).max(5),
   sleepHours: z.number().min(0).max(24),
   note: z.string().max(280).optional(),
+  energyLevel: z.number().int().min(1).max(5).optional(),
+  anxietyLevel: z.number().int().min(1).max(5).optional(),
+  irritability: z.number().int().min(1).max(5).optional(),
+  tookMedication: z.enum(["sim", "nao", "nao_sei"]).optional(),
+  warningSigns: z.string().optional(), // JSON array
 });
 
 export async function GET(request: NextRequest) {
@@ -60,6 +65,11 @@ export async function POST(request: NextRequest) {
         mood: parsed.data.mood,
         sleepHours: parsed.data.sleepHours,
         note: parsed.data.note || null,
+        energyLevel: parsed.data.energyLevel ?? null,
+        anxietyLevel: parsed.data.anxietyLevel ?? null,
+        irritability: parsed.data.irritability ?? null,
+        tookMedication: parsed.data.tookMedication ?? null,
+        warningSigns: parsed.data.warningSigns ?? null,
       },
     });
 

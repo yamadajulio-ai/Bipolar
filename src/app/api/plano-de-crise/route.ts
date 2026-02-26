@@ -1,0 +1,76 @@
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod/v4";
+import { prisma } from "@/lib/db";
+import { getSession } from "@/lib/auth";
+
+const crisisPlanSchema = z.object({
+  trustedContacts: z.string().optional(),
+  professionalName: z.string().max(200).optional(),
+  professionalPhone: z.string().max(20).optional(),
+  medications: z.string().optional(),
+  preferredHospital: z.string().max(200).optional(),
+  copingStrategies: z.string().optional(),
+});
+
+export async function GET() {
+  const session = await getSession();
+  if (!session.isLoggedIn) {
+    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  }
+
+  const plan = await prisma.crisisPlan.findUnique({
+    where: { userId: session.userId },
+  });
+
+  return NextResponse.json(plan);
+}
+
+export async function PUT(request: NextRequest) {
+  const session = await getSession();
+  if (!session.isLoggedIn) {
+    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  }
+
+  try {
+    const body = await request.json();
+    const parsed = crisisPlanSchema.safeParse(body);
+
+    if (!parsed.success) {
+      const fieldErrors: Record<string, string[]> = {};
+      for (const issue of parsed.error.issues) {
+        const key = String(issue.path?.[0] || "geral");
+        if (!fieldErrors[key]) fieldErrors[key] = [];
+        fieldErrors[key].push(issue.message);
+      }
+      return NextResponse.json({ errors: fieldErrors }, { status: 400 });
+    }
+
+    const plan = await prisma.crisisPlan.upsert({
+      where: { userId: session.userId },
+      update: {
+        trustedContacts: parsed.data.trustedContacts ?? null,
+        professionalName: parsed.data.professionalName ?? null,
+        professionalPhone: parsed.data.professionalPhone ?? null,
+        medications: parsed.data.medications ?? null,
+        preferredHospital: parsed.data.preferredHospital ?? null,
+        copingStrategies: parsed.data.copingStrategies ?? null,
+      },
+      create: {
+        userId: session.userId,
+        trustedContacts: parsed.data.trustedContacts ?? null,
+        professionalName: parsed.data.professionalName ?? null,
+        professionalPhone: parsed.data.professionalPhone ?? null,
+        medications: parsed.data.medications ?? null,
+        preferredHospital: parsed.data.preferredHospital ?? null,
+        copingStrategies: parsed.data.copingStrategies ?? null,
+      },
+    });
+
+    return NextResponse.json(plan);
+  } catch {
+    return NextResponse.json(
+      { error: "Erro ao salvar plano de crise." },
+      { status: 500 },
+    );
+  }
+}

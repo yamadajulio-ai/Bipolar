@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/Card";
 import { CATEGORY_COLORS } from "@/lib/planner/categories";
+import { localDateStr } from "@/lib/dateUtils";
 
 interface TemplateBlock {
   title: string;
@@ -55,7 +56,7 @@ export function TemplatesManager({ templates: initial }: { templates: Template[]
     const diff = day === 0 ? -6 : 1 - day;
     const monday = new Date(today);
     monday.setDate(monday.getDate() + diff);
-    const weekStart = monday.toISOString().split("T")[0];
+    const weekStart = localDateStr(monday);
 
     const res = await fetch(`/api/templates/${id}/apply`, {
       method: "POST",

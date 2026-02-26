@@ -1,11 +1,12 @@
 import { WeeklyView } from "@/components/planner/WeeklyView";
+import { localDateStr } from "@/lib/dateUtils";
 
 function getMonday(): string {
   const d = new Date();
   const day = d.getDay();
   const diff = day === 0 ? -6 : 1 - day;
   d.setDate(d.getDate() + diff);
-  return d.toISOString().split("T")[0];
+  return localDateStr(d);
 }
 
 export default function PlanejadorPage() {

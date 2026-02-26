@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { Card } from "@/components/Card";
+import { localDateStr } from "@/lib/dateUtils";
 import {
   MOOD_LABELS,
   ENERGY_LABELS,
@@ -29,7 +30,7 @@ export default async function DiarioPage() {
 
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - 30);
-  const cutoffStr = cutoff.toISOString().split("T")[0];
+  const cutoffStr = localDateStr(cutoff);
 
   const entries = await prisma.diaryEntry.findMany({
     where: {

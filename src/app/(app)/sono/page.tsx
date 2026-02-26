@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { Card } from "@/components/Card";
+import { localDateStr } from "@/lib/dateUtils";
 
 const qualityLabels: Record<number, string> = {
   1: "Pessima",
@@ -20,7 +21,7 @@ export default async function SonoPage() {
 
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - 30);
-  const cutoffStr = cutoff.toISOString().split("T")[0];
+  const cutoffStr = localDateStr(cutoff);
 
   const logs = await prisma.sleepLog.findMany({
     where: {

@@ -72,7 +72,7 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
     try {
       const end = addDays(start, 7);
       const res = await fetch(
-        `/api/planner/blocks?timeMin=${start}T00:00:00.000Z&timeMax=${end}T23:59:59.999Z`,
+        `/api/planner/blocks?timeMin=${start}T00:00:00&timeMax=${end}T23:59:59`,
       );
       if (!res.ok) throw new Error("Fetch failed");
       const data: SerializedBlock[] = await res.json();
@@ -207,10 +207,7 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
 
   // Get occurrences for a specific day
   function getOccsForDay(dayStr: string): ExpandedOccurrence[] {
-    return occurrences.filter((o) => {
-      const oDate = typeof o.startAt === "string" ? o.startAt : new Date(o.startAt).toISOString();
-      return oDate.startsWith(dayStr);
-    });
+    return occurrences.filter((o) => o.occurrenceDate === dayStr);
   }
 
   // Get alerts for a specific day

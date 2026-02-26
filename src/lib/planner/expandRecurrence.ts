@@ -132,7 +132,7 @@ function applyException(
     isRoutine: block.isRoutine,
     startAt: ex?.overrideStartAt || startAt,
     endAt: ex?.overrideEndAt || endAt,
-    notes: ex?.overrideNotes !== undefined ? ex.overrideNotes : block.notes,
+    notes: ex?.overrideNotes != null ? ex.overrideNotes : block.notes,
     energyCost: block.energyCost,
     stimulation: block.stimulation,
     isRecurring,

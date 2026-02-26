@@ -76,8 +76,8 @@ export function BlockEditorModal({
           // Adjust end time based on category duration
           if (prev.startTime) {
             const [h, m] = prev.startTime.split(":").map(Number);
-            const endMin = h * 60 + m + defaults.durationMin;
-            const endH = Math.min(23, Math.floor(endMin / 60));
+            const endMin = (h * 60 + m + defaults.durationMin) % 1440;
+            const endH = Math.floor(endMin / 60);
             const endM = endMin % 60;
             next.endTime = `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`;
           }

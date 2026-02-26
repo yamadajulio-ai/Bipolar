@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { localDateStr } from "@/lib/dateUtils";
 
 interface WeekCloneModalProps {
   isOpen: boolean;
@@ -12,7 +13,7 @@ interface WeekCloneModalProps {
 function addDays(dateStr: string, n: number): string {
   const d = new Date(dateStr + "T12:00:00");
   d.setDate(d.getDate() + n);
-  return d.toISOString().split("T")[0];
+  return localDateStr(d);
 }
 
 function formatDateBR(dateStr: string): string {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { localDateStr } from "@/lib/dateUtils";
 
 function timeToMinutes(time: string): number {
   const [h, m] = time.split(":").map(Number);
@@ -65,7 +66,7 @@ export async function GET(request: NextRequest) {
   const days = parseInt(searchParams.get("days") || "30", 10);
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - days);
-  const cutoffStr = cutoff.toISOString().split("T")[0];
+  const cutoffStr = localDateStr(cutoff);
 
   const entries = await prisma.dailyRhythm.findMany({
     where: {

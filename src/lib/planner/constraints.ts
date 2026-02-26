@@ -1,7 +1,8 @@
 import type { ExpandedOccurrence, StabilityRuleData, StabilityAlert } from "./types";
+import { localDateStr } from "@/lib/dateUtils";
 
 function dateToYMD(d: Date): string {
-  return d.toISOString().split("T")[0];
+  return localDateStr(d);
 }
 
 function minutesSinceMidnight(d: Date): number {

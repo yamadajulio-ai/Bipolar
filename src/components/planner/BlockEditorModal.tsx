@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { localToday } from "@/lib/dateUtils";
 import {
   BLOCK_CATEGORIES,
   BLOCK_KINDS,
@@ -38,7 +39,7 @@ const defaultForm: BlockFormData = {
   title: "",
   category: "outro",
   kind: "FLEX",
-  date: new Date().toISOString().split("T")[0],
+  date: localToday(),
   startTime: "09:00",
   endTime: "10:00",
   energyCost: 3,

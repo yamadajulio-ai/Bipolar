@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { localDateStr } from "@/lib/dateUtils";
 
 interface ExpandedBlock {
   title: string;
@@ -103,9 +104,9 @@ export async function cloneWeek(
         seen.add(key);
 
         // Check exceptions
-        const ymd = date.toISOString().split("T")[0];
+        const ymd = localDateStr(date);
         const ex = block.exceptions.find(
-          (e) => e.occurrenceDate.toISOString().split("T")[0] === ymd,
+          (e) => localDateStr(new Date(e.occurrenceDate)) === ymd,
         );
         if (ex?.isCancelled) continue;
 

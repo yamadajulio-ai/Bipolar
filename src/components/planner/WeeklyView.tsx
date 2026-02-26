@@ -8,6 +8,7 @@ import { QuickAddInput } from "./QuickAddInput";
 import { TemplateApplyModal } from "./TemplateApplyModal";
 import { WeekCloneModal } from "./WeekCloneModal";
 import { CATEGORY_COLORS } from "@/lib/planner/categories";
+import { localToday, localDateStr } from "@/lib/dateUtils";
 import type { ExpandedOccurrence, StabilityAlert } from "@/lib/planner/types";
 
 interface WeeklyViewProps {
@@ -34,7 +35,7 @@ const WEEKDAY_NAMES = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sab", "Dom"];
 function addDays(dateStr: string, n: number): string {
   const d = new Date(dateStr + "T12:00:00");
   d.setDate(d.getDate() + n);
-  return d.toISOString().split("T")[0];
+  return localDateStr(d);
 }
 
 function formatTime(d: string | Date): string {
@@ -47,7 +48,7 @@ function getMonday(dateStr: string): string {
   const day = d.getDay();
   const diff = day === 0 ? -6 : 1 - day;
   d.setDate(d.getDate() + diff);
-  return d.toISOString().split("T")[0];
+  return localDateStr(d);
 }
 
 export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
@@ -101,8 +102,8 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
   }
 
   function goToToday() {
-    const today = new Date().toISOString().split("T")[0];
-    setWeekStart(getMonday(today));
+    const td = localToday();
+    setWeekStart(getMonday(td));
   }
 
   function openNewBlock(date: string) {
@@ -183,7 +184,7 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
       title: (parsed.title as string) || "",
       category: (parsed.category as string) || "outro",
       kind: (parsed.kind as string) || "FLEX",
-      date: startAt.toISOString().split("T")[0],
+      date: localDateStr(startAt),
       startTime: `${String(startAt.getHours()).padStart(2, "0")}:${String(startAt.getMinutes()).padStart(2, "0")}`,
       endTime: `${String(endAt.getHours()).padStart(2, "0")}:${String(endAt.getMinutes()).padStart(2, "0")}`,
       energyCost: (parsed.energyCost as number) || 3,
@@ -209,7 +210,7 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
     return alerts.filter((a) => a.date === dayStr);
   }
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = localToday();
 
   return (
     <div>
@@ -381,7 +382,7 @@ function expandBlocksClient(
     const exceptions = (block.exceptions as Array<{ occurrenceDate: string; isCancelled: boolean; overrideStartAt: string | null; overrideEndAt: string | null; overrideTitle: string | null; overrideNotes: string | null }>) || [];
     const exMap = new Map<string, typeof exceptions[number]>();
     for (const ex of exceptions) {
-      exMap.set(ex.occurrenceDate.split("T")[0], ex);
+      exMap.set(ex.occurrenceDate.split("T")[0] || ex.occurrenceDate, ex);
     }
 
     const startAt = new Date(block.startAt as string);

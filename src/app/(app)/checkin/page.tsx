@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { localToday } from "@/lib/dateUtils";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/Card";
 import { Alert } from "@/components/Alert";
@@ -21,7 +22,7 @@ export default function CheckinPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = localToday();
 
   const toggleSign = useCallback((key: string) => {
     setSelectedSigns((prev) =>

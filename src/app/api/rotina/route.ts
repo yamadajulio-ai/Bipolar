@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod/v4";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { localDateStr } from "@/lib/dateUtils";
 
 const rhythmSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -23,7 +24,7 @@ export async function GET(request: NextRequest) {
   const days = parseInt(searchParams.get("days") || "7", 10);
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - days);
-  const cutoffStr = cutoff.toISOString().split("T")[0];
+  const cutoffStr = localDateStr(cutoff);
 
   const entries = await prisma.dailyRhythm.findMany({
     where: {

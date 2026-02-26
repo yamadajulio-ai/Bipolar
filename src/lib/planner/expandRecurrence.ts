@@ -1,7 +1,8 @@
 import type { PlannerBlockData, ExpandedOccurrence } from "./types";
+import { localDateStr } from "@/lib/dateUtils";
 
 function dateToYMD(d: Date): string {
-  return d.toISOString().split("T")[0];
+  return localDateStr(d);
 }
 
 function addDays(d: Date, n: number): Date {

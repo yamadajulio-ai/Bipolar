@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { localToday } from "@/lib/dateUtils";
 import { useRouter } from "next/navigation";
 import { FormField } from "@/components/FormField";
 import { Alert } from "@/components/Alert";
@@ -19,7 +20,7 @@ export function RhythmForm() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = localToday();
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { localToday } from "@/lib/dateUtils";
 import { useRouter } from "next/navigation";
 import { FormField } from "@/components/FormField";
 import { Alert } from "@/components/Alert";
@@ -37,7 +38,7 @@ export default function NovoSonoPage() {
   const [wakeTime, setWakeTime] = useState("07:00");
   const [selectedRoutines, setSelectedRoutines] = useState<string[]>([]);
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = localToday();
   const totalHours = calculateTotalHours(bedtime, wakeTime);
 
   const handleRoutineChange = useCallback((selected: string[]) => {

@@ -1,5 +1,6 @@
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { localToday } from "@/lib/dateUtils";
 import { Card } from "@/components/Card";
 import { TodayBlocks } from "@/components/planner/TodayBlocks";
 import { OnboardingBanner } from "@/components/planner/OnboardingBanner";
@@ -7,7 +8,7 @@ import Link from "next/link";
 
 export default async function HojePage() {
   const session = await getSession();
-  const today = new Date().toISOString().split("T")[0];
+  const today = localToday();
 
   // Fetch today's blocks
   const dayStart = new Date(today + "T00:00:00");

@@ -1,5 +1,6 @@
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { localToday, localDateStr } from "@/lib/dateUtils";
 import { TodayStatus } from "@/components/dashboard/TodayStatus";
 import { QuickActions } from "@/components/dashboard/QuickActions";
 import { ContextualSuggestions } from "@/components/dashboard/ContextualSuggestions";
@@ -8,7 +9,7 @@ import { Card } from "@/components/Card";
 
 export default async function DashboardPage() {
   const session = await getSession();
-  const today = new Date().toISOString().split("T")[0];
+  const today = localToday();
 
   const todayEntry = await prisma.diaryEntry.findFirst({
     where: { userId: session.userId, date: today },
@@ -20,7 +21,7 @@ export default async function DashboardPage() {
 
   const last7Days = new Date();
   last7Days.setDate(last7Days.getDate() - 7);
-  const cutoffStr = last7Days.toISOString().split("T")[0];
+  const cutoffStr = localDateStr(last7Days);
 
   const recentEntries = await prisma.diaryEntry.findMany({
     where: { userId: session.userId, date: { gte: cutoffStr } },

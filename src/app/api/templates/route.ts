@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod/v4";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { localDateStr } from "@/lib/dateUtils";
 
 const VALID_CATEGORIES = [
   "sono", "medicacao", "refeicao", "trabalho", "social", "exercicio", "lazer", "outro",
@@ -149,8 +150,8 @@ export async function POST(request: NextRequest) {
             seen.add(key);
 
             // Check exceptions
-            const ymd = date.toISOString().split("T")[0];
-            const ex = block.exceptions.find((e) => e.occurrenceDate.toISOString().split("T")[0] === ymd);
+            const ymd = localDateStr(date);
+            const ex = block.exceptions.find((e) => localDateStr(new Date(e.occurrenceDate)) === ymd);
             if (ex?.isCancelled) continue;
 
             templateBlocks.push({

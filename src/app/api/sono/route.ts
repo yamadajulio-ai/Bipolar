@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod/v4";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { localDateStr } from "@/lib/dateUtils";
 
 const sleepLogSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data deve ser YYYY-MM-DD"),
@@ -24,7 +25,7 @@ export async function GET(request: NextRequest) {
   const days = parseInt(searchParams.get("days") || "30", 10);
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - days);
-  const cutoffStr = cutoff.toISOString().split("T")[0];
+  const cutoffStr = localDateStr(cutoff);
 
   const logs = await prisma.sleepLog.findMany({
     where: {

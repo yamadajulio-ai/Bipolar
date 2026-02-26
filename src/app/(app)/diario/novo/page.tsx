@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { localToday } from "@/lib/dateUtils";
 import { useRouter } from "next/navigation";
 import { FormField } from "@/components/FormField";
 import { Alert } from "@/components/Alert";
@@ -27,7 +28,7 @@ export default function NovoDiarioPage() {
   const [tookMedication, setTookMedication] = useState<string | undefined>(undefined);
   const [warningSigns, setWarningSigns] = useState<string[]>([]);
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = localToday();
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();

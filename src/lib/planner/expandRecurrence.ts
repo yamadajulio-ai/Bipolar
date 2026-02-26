@@ -11,10 +11,6 @@ function addDays(d: Date, n: number): Date {
   return r;
 }
 
-function getDayOfWeek(d: Date): number {
-  return d.getDay(); // 0=Sun..6=Sat
-}
-
 function getTimeParts(d: Date): { hours: number; minutes: number } {
   return { hours: d.getHours(), minutes: d.getMinutes() };
 }
@@ -25,9 +21,20 @@ function setTimeOnDate(date: Date, hours: number, minutes: number): Date {
   return r;
 }
 
+function stripTime(d: Date): Date {
+  const r = new Date(d);
+  r.setHours(0, 0, 0, 0);
+  return r;
+}
+
+function daysBetween(a: Date, b: Date): number {
+  return Math.round((stripTime(b).getTime() - stripTime(a).getTime()) / 86400000);
+}
+
 /**
- * Expands a block's recurrence into individual occurrences within [rangeStart, rangeEnd].
- * Applies exceptions (cancellations and overrides).
+ * Range-based recurrence expansion.
+ * Iterates each day in [rangeStart, rangeEnd] and checks whether the block
+ * recurs on that day, correctly handling interval for both DAILY and WEEKLY.
  */
 export function expandBlock(
   block: PlannerBlockData,
@@ -58,41 +65,40 @@ export function expandBlock(
     return occurrences;
   }
 
-  // Recurring: iterate from block start through range
+  // Recurring: range-based iteration
   const effectiveUntil = rec.until && rec.until < rangeEnd ? rec.until : rangeEnd;
   const weekDaysSet = rec.weekDays
     ? new Set(rec.weekDays.split(",").map(Number))
     : null;
 
-  let cursor = new Date(block.startAt);
-  // Move cursor to rangeStart if block starts earlier
-  while (cursor < rangeStart) {
-    cursor = advanceCursor(cursor, rec.freq, rec.interval, weekDaysSet);
-  }
-  // But we also need the original start if it falls in range
-  if (block.startAt >= rangeStart && block.startAt <= rangeEnd) {
-    cursor = new Date(block.startAt);
-  }
+  const blockStartDay = stripTime(block.startAt);
+  const interval = Math.max(1, rec.interval);
 
-  // Reset cursor to the original block start date to correctly generate occurrences
-  cursor = new Date(block.startAt);
+  // Start iterating from the later of rangeStart or block creation day
+  let cursor = rangeStart < blockStartDay ? new Date(blockStartDay) : new Date(rangeStart);
+  cursor.setHours(12, 0, 0, 0); // Noon to avoid DST issues
 
-  const maxIterations = 400; // safety limit
-  let iterations = 0;
+  while (cursor <= effectiveUntil) {
+    const daysSince = daysBetween(blockStartDay, cursor);
 
-  while (cursor <= effectiveUntil && iterations < maxIterations) {
-    iterations++;
+    let matches = false;
 
-    const occStart = setTimeOnDate(cursor, startTime.hours, startTime.minutes);
-    const occEnd = new Date(occStart.getTime() + durationMs);
-
-    // Check if in range
-    if (occStart <= rangeEnd && occEnd >= rangeStart) {
-      // Check weekday filter for WEEKLY
-      if (rec.freq === "WEEKLY" && weekDaysSet && !weekDaysSet.has(getDayOfWeek(cursor))) {
-        cursor = addDays(cursor, 1);
-        continue;
+    if (rec.freq === "DAILY") {
+      matches = daysSince % interval === 0;
+    } else if (rec.freq === "WEEKLY") {
+      const weeksSince = Math.floor(daysSince / 7);
+      if (weekDaysSet && weekDaysSet.size > 0) {
+        // WEEKLY with specific days: check weekday is in set AND week interval matches
+        matches = weekDaysSet.has(cursor.getDay()) && weeksSince % interval === 0;
+      } else {
+        // WEEKLY plain: same weekday as original AND week interval matches
+        matches = cursor.getDay() === blockStartDay.getDay() && weeksSince % interval === 0;
       }
+    }
+
+    if (matches) {
+      const occStart = setTimeOnDate(cursor, startTime.hours, startTime.minutes);
+      const occEnd = new Date(occStart.getTime() + durationMs);
 
       const ymd = dateToYMD(cursor);
       const ex = exceptionMap.get(ymd);
@@ -104,36 +110,10 @@ export function expandBlock(
       }
     }
 
-    cursor = advanceCursor(cursor, rec.freq, rec.interval, weekDaysSet);
+    cursor = addDays(cursor, 1);
   }
 
   return occurrences;
-}
-
-function advanceCursor(
-  cursor: Date,
-  freq: string,
-  interval: number,
-  weekDaysSet: Set<number> | null,
-): Date {
-  if (freq === "DAILY") {
-    return addDays(cursor, interval);
-  }
-  if (freq === "WEEKLY") {
-    if (weekDaysSet && weekDaysSet.size > 0) {
-      // Advance to next matching weekday
-      let next = addDays(cursor, 1);
-      let safety = 0;
-      while (!weekDaysSet.has(getDayOfWeek(next)) && safety < 14) {
-        next = addDays(next, 1);
-        safety++;
-      }
-      return next;
-    }
-    return addDays(cursor, 7 * interval);
-  }
-  // NONE — shouldn't reach here
-  return addDays(cursor, 1);
 }
 
 function applyException(

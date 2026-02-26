@@ -9,6 +9,8 @@ import { TemplateApplyModal } from "./TemplateApplyModal";
 import { WeekCloneModal } from "./WeekCloneModal";
 import { CATEGORY_COLORS } from "@/lib/planner/categories";
 import { localToday, localDateStr } from "@/lib/dateUtils";
+import { expandSerializedBlocks } from "@/lib/planner/expandClient";
+import type { SerializedBlock } from "@/lib/planner/expandClient";
 import type { ExpandedOccurrence, StabilityAlert } from "@/lib/planner/types";
 
 interface WeeklyViewProps {
@@ -73,10 +75,10 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
         `/api/planner/blocks?timeMin=${start}T00:00:00.000Z&timeMax=${end}T23:59:59.999Z`,
       );
       if (!res.ok) throw new Error("Fetch failed");
-      const data = await res.json();
+      const data: SerializedBlock[] = await res.json();
 
-      // Expand recurrences client-side using the API data
-      const expanded = expandBlocksClient(data, new Date(start + "T00:00:00"), new Date(end + "T23:59:59"));
+      // Expand recurrences client-side using shared engine
+      const expanded = expandSerializedBlocks(data, new Date(start + "T00:00:00"), new Date(end + "T23:59:59"));
       setOccurrences(expanded);
 
       // Fetch rules and check constraints
@@ -367,105 +369,6 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
 function formatDateBR(dateStr: string): string {
   const [, m, d] = dateStr.split("-");
   return `${d}/${m}`;
-}
-
-// Simplified client-side recurrence expansion
-function expandBlocksClient(
-  blocks: Array<Record<string, unknown>>,
-  rangeStart: Date,
-  rangeEnd: Date,
-): ExpandedOccurrence[] {
-  const result: ExpandedOccurrence[] = [];
-
-  for (const block of blocks) {
-    const rec = block.recurrence as { freq: string; interval: number; weekDays: string | null; until: string | null } | null;
-    const exceptions = (block.exceptions as Array<{ occurrenceDate: string; isCancelled: boolean; overrideStartAt: string | null; overrideEndAt: string | null; overrideTitle: string | null; overrideNotes: string | null }>) || [];
-    const exMap = new Map<string, typeof exceptions[number]>();
-    for (const ex of exceptions) {
-      exMap.set(ex.occurrenceDate.split("T")[0] || ex.occurrenceDate, ex);
-    }
-
-    const startAt = new Date(block.startAt as string);
-    const endAt = new Date(block.endAt as string);
-    const durationMs = endAt.getTime() - startAt.getTime();
-
-    if (!rec || rec.freq === "NONE") {
-      if (startAt <= rangeEnd && endAt >= rangeStart) {
-        const ymd = startAt.toISOString().split("T")[0];
-        const ex = exMap.get(ymd);
-        if (!ex?.isCancelled) {
-          result.push({
-            blockId: block.id as string,
-            title: ex?.overrideTitle || (block.title as string),
-            category: block.category as string,
-            kind: block.kind as string,
-            startAt: ex?.overrideStartAt ? new Date(ex.overrideStartAt) : startAt,
-            endAt: ex?.overrideEndAt ? new Date(ex.overrideEndAt) : endAt,
-            notes: ex?.overrideNotes !== undefined ? ex.overrideNotes : (block.notes as string | null),
-            energyCost: block.energyCost as number,
-            stimulation: block.stimulation as number,
-            isRoutine: (block.isRoutine as boolean) || false,
-            isRecurring: false,
-            occurrenceDate: ymd,
-          });
-        }
-      }
-      continue;
-    }
-
-    // Recurring
-    const weekDaysSet = rec.weekDays ? new Set(rec.weekDays.split(",").map(Number)) : null;
-    const effectiveUntil = rec.until ? new Date(rec.until) : rangeEnd;
-    const cursor = new Date(startAt);
-    let safety = 0;
-
-    while (cursor <= effectiveUntil && cursor <= rangeEnd && safety < 400) {
-      safety++;
-      const occStart = new Date(cursor);
-      occStart.setHours(startAt.getHours(), startAt.getMinutes(), 0, 0);
-      const occEnd = new Date(occStart.getTime() + durationMs);
-
-      if (occStart >= rangeStart && occStart <= rangeEnd) {
-        if (rec.freq === "WEEKLY" && weekDaysSet && !weekDaysSet.has(cursor.getDay())) {
-          cursor.setDate(cursor.getDate() + 1);
-          continue;
-        }
-
-        const ymd = cursor.toISOString().split("T")[0];
-        const ex = exMap.get(ymd);
-        if (!ex?.isCancelled) {
-          result.push({
-            blockId: block.id as string,
-            title: ex?.overrideTitle || (block.title as string),
-            category: block.category as string,
-            kind: block.kind as string,
-            startAt: ex?.overrideStartAt ? new Date(ex.overrideStartAt) : occStart,
-            endAt: ex?.overrideEndAt ? new Date(ex.overrideEndAt) : occEnd,
-            notes: ex?.overrideNotes !== undefined ? ex.overrideNotes : (block.notes as string | null),
-            energyCost: block.energyCost as number,
-            stimulation: block.stimulation as number,
-            isRoutine: (block.isRoutine as boolean) || false,
-            isRecurring: true,
-            occurrenceDate: ymd,
-          });
-        }
-      }
-
-      if (rec.freq === "DAILY") {
-        cursor.setDate(cursor.getDate() + rec.interval);
-      } else if (rec.freq === "WEEKLY") {
-        if (weekDaysSet && weekDaysSet.size > 0) {
-          cursor.setDate(cursor.getDate() + 1);
-        } else {
-          cursor.setDate(cursor.getDate() + 7 * rec.interval);
-        }
-      } else {
-        break;
-      }
-    }
-  }
-
-  return result.sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime());
 }
 
 // Simplified client-side constraint checking

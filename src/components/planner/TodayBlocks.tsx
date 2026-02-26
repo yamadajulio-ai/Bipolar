@@ -3,30 +3,8 @@
 import { useMemo, useState } from "react";
 import { Card } from "@/components/Card";
 import { CATEGORY_COLORS } from "@/lib/planner/categories";
-
-interface SerializedBlock {
-  id: string;
-  title: string;
-  category: string;
-  kind: string;
-  startAt: string;
-  endAt: string;
-  energyCost: number;
-  stimulation: number;
-  notes: string | null;
-  recurrence: {
-    freq: string;
-    weekDays: string | null;
-    until: string | null;
-  } | null;
-  exceptions: {
-    occurrenceDate: string;
-    isCancelled: boolean;
-    overrideStartAt: string | null;
-    overrideEndAt: string | null;
-    overrideTitle: string | null;
-  }[];
-}
+import { expandSerializedBlocks } from "@/lib/planner/expandClient";
+import type { SerializedBlock } from "@/lib/planner/expandClient";
 
 interface TodayBlocksProps {
   blocks: SerializedBlock[];
@@ -51,77 +29,22 @@ export function TodayBlocks({ blocks, today, targetSleepTimeMin }: TodayBlocksPr
 
   const displayBlocks = useMemo(() => {
     const now = new Date(mountTime);
-    const result: DisplayBlock[] = [];
+    const rangeStart = new Date(today + "T00:00:00");
+    const rangeEnd = new Date(today + "T23:59:59");
 
-    for (const block of blocks) {
-      const startAt = new Date(block.startAt);
-      const endAt = new Date(block.endAt);
-      const durationMs = endAt.getTime() - startAt.getTime();
-      const rec = block.recurrence;
+    const expanded = expandSerializedBlocks(blocks, rangeStart, rangeEnd);
 
-      // Build exception map
-      const exMap = new Map<string, typeof block.exceptions[number]>();
-      for (const ex of block.exceptions) {
-        exMap.set(ex.occurrenceDate.split("T")[0], ex);
-      }
-
-      if (!rec || rec.freq === "NONE") {
-        // Single block — check if it falls on today
-        if (startAt.toISOString().split("T")[0] === today) {
-          const ex = exMap.get(today);
-          if (ex?.isCancelled) continue;
-          result.push({
-            id: block.id,
-            title: ex?.overrideTitle || block.title,
-            category: block.category,
-            kind: block.kind,
-            startAt: ex?.overrideStartAt ? new Date(ex.overrideStartAt) : startAt,
-            endAt: ex?.overrideEndAt ? new Date(ex.overrideEndAt) : endAt,
-            energyCost: block.energyCost,
-            isPast: false,
-            isNext: false,
-          });
-        }
-        continue;
-      }
-
-      // Recurring: check if today matches
-      const weekDaysSet = rec.weekDays ? new Set(rec.weekDays.split(",").map(Number)) : null;
-      const todayDate = new Date(today + "T12:00:00");
-
-      if (rec.until && new Date(rec.until) < todayDate) continue;
-      if (startAt > todayDate) continue;
-
-      let matches = false;
-      if (rec.freq === "DAILY") matches = true;
-      if (rec.freq === "WEEKLY") {
-        if (weekDaysSet) {
-          matches = weekDaysSet.has(todayDate.getDay());
-        } else {
-          matches = todayDate.getDay() === startAt.getDay();
-        }
-      }
-
-      if (matches) {
-        const ex = exMap.get(today);
-        if (ex?.isCancelled) continue;
-
-        const occStart = new Date(today + "T" + formatTime(startAt));
-        const occEnd = new Date(occStart.getTime() + durationMs);
-
-        result.push({
-          id: block.id,
-          title: ex?.overrideTitle || block.title,
-          category: block.category,
-          kind: block.kind,
-          startAt: ex?.overrideStartAt ? new Date(ex.overrideStartAt) : occStart,
-          endAt: ex?.overrideEndAt ? new Date(ex.overrideEndAt) : occEnd,
-          energyCost: block.energyCost,
-          isPast: false,
-          isNext: false,
-        });
-      }
-    }
+    const result: DisplayBlock[] = expanded.map((occ) => ({
+      id: occ.blockId,
+      title: occ.title,
+      category: occ.category,
+      kind: occ.kind,
+      startAt: occ.startAt instanceof Date ? occ.startAt : new Date(occ.startAt),
+      endAt: occ.endAt instanceof Date ? occ.endAt : new Date(occ.endAt),
+      energyCost: occ.energyCost,
+      isPast: false,
+      isNext: false,
+    }));
 
     // Sort and mark past/next
     result.sort((a, b) => a.startAt.getTime() - b.startAt.getTime());
@@ -220,10 +143,6 @@ export function TodayBlocks({ blocks, today, targetSleepTimeMin }: TodayBlocksPr
       )}
     </div>
   );
-}
-
-function formatTime(d: Date): string {
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}:00`;
 }
 
 function formatTimeDisplay(d: Date): string {

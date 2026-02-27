@@ -15,7 +15,7 @@ O ChatGPT Pro analisou o repositorio e identificou 5 bugs criticos que afetavam 
 
 **Nota sobre v3.2.2** (commit `071e39d`): A terceira revisao do ChatGPT Pro encontrou 6 bugs adicionais: off-by-one no range semanal, queries sem overlap (blocos overnight nao apareciam), regra de late-night desalinhada entre client/server, countdown congelado no TodayBlocks, e inconsistencia `||` vs `??` nas excecoes. Todos corrigidos neste hotfix.
 
-**Nota sobre v3.2.4** (commit pendente): A quinta revisao do ChatGPT Pro confirmou a unificacao do motor como correta e encontrou 3 edge-cases: overlap query em template/weekClone puxava blocos de fora da semana, excecoes nao validavam overrideEndAt > overrideStartAt, e Insights usava hora parcial no cutoff de 7 dias. Todos corrigidos neste hotfix.
+**Nota sobre v3.2.4** (commit `5710ad4`): A quinta revisao do ChatGPT Pro confirmou a unificacao do motor como correta e encontrou 3 edge-cases: overlap query em template/weekClone puxava blocos de fora da semana, excecoes nao validavam overrideEndAt > overrideStartAt, e Insights usava hora parcial no cutoff de 7 dias. Todos corrigidos neste hotfix.
 
 ---
 
@@ -135,7 +135,7 @@ ff15a2c fix: handle blocks crossing midnight correctly
 071e39d fix(v3.2.2): overlap queries, off-by-one, live countdown, late-night alignment
 239c58e docs: update v3.2 report with v3.2.2 hotfix details
 e5d9806 fix(v3.2.3): unify server-side recurrence, fix Insights, add API validation
-??????? fix(v3.2.4): filter overlap edge-cases in template/clone, validate exceptions, clean Insights cutoff
+5710ad4 fix(v3.2.4): filter overlap edge-cases in template/clone, validate exceptions, clean Insights cutoff
 ```
 
 ---

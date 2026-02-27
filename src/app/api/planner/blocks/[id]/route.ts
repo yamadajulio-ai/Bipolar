@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod/v4";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { getAuthenticatedClient } from "@/lib/google/auth";
+import { blockToGoogleEvent, updateGoogleEvent, deleteGoogleEvent } from "@/lib/google/calendar";
 
 const VALID_KINDS = ["ANCHOR", "FLEX", "RISK"] as const;
 const VALID_CATEGORIES = [
@@ -98,6 +100,22 @@ export async function PATCH(
       include: { recurrence: true, exceptions: true },
     });
 
+    // Sync update to Google Calendar if linked (non-blocking)
+    if (block.googleEventId) {
+      try {
+        const googleAccount = await prisma.googleAccount.findUnique({
+          where: { userId: session.userId },
+        });
+        if (googleAccount) {
+          const auth = await getAuthenticatedClient(session.userId);
+          const event = blockToGoogleEvent(block);
+          await updateGoogleEvent(auth, googleAccount.calendarId, block.googleEventId, event);
+        }
+      } catch {
+        // Google sync failure doesn't prevent block update
+      }
+    }
+
     return NextResponse.json(block);
   } catch {
     return NextResponse.json(
@@ -120,6 +138,21 @@ export async function DELETE(
   const existing = await prisma.plannerBlock.findUnique({ where: { id } });
   if (!existing || existing.userId !== session.userId) {
     return NextResponse.json({ error: "Bloco não encontrado" }, { status: 404 });
+  }
+
+  // Delete from Google Calendar if linked (non-blocking)
+  if (existing.googleEventId) {
+    try {
+      const googleAccount = await prisma.googleAccount.findUnique({
+        where: { userId: session.userId },
+      });
+      if (googleAccount) {
+        const auth = await getAuthenticatedClient(session.userId);
+        await deleteGoogleEvent(auth, googleAccount.calendarId, existing.googleEventId);
+      }
+    } catch {
+      // Google sync failure doesn't prevent block deletion
+    }
   }
 
   await prisma.plannerBlock.delete({ where: { id } });

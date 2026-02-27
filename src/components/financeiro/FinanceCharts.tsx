@@ -40,7 +40,7 @@ export function CategoryChart({ data }: { data: CategoryData[] }) {
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis type="number" tick={{ fontSize: 11 }} />
           <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={75} />
-          <Tooltip formatter={(v: number) => `R$ ${v.toFixed(2)}`} />
+          <Tooltip formatter={(v) => `R$ ${Number(v).toFixed(2)}`} />
           <Bar dataKey="valor">
             {chartData.map((entry, i) => (
               <Cell key={i} fill={entry.isExpense ? "#ef4444" : "#22c55e"} />

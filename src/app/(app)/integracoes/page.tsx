@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Card } from "@/components/Card";
+import { GoogleCalendarSync } from "@/components/integrations/GoogleCalendarSync";
 
 interface IntegrationKeyData {
   id: string;
@@ -15,6 +16,7 @@ export default function IntegracoesPage() {
   const [keys, setKeys] = useState<IntegrationKeyData[]>([]);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [googleConnected, setGoogleConnected] = useState(false);
 
   const fetchKeys = useCallback(async () => {
     const res = await fetch("/api/integrations/settings");
@@ -23,6 +25,15 @@ export default function IntegracoesPage() {
 
   useEffect(() => {
     fetchKeys();
+    // Check Google Calendar connection status
+    fetch("/api/google/sync", { method: "POST" })
+      .then((r) => { if (r.ok) setGoogleConnected(true); })
+      .catch(() => {});
+    // Also check via URL param after OAuth callback
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("google") === "connected") setGoogleConnected(true);
+    }
   }, [fetchKeys]);
 
   const healthKey = keys.find((k) => k.service === "health_auto_export");
@@ -149,12 +160,13 @@ export default function IntegracoesPage() {
         )}
       </Card>
 
-      {/* Google Calendar - placeholder */}
-      <Card className="mb-6 opacity-75">
+      {/* Google Calendar */}
+      <Card className="mb-6">
         <h2 className="mb-2 text-lg font-semibold">Google Agenda</h2>
-        <p className="text-sm text-muted">
-          Sincronize blocos do planejador com o Google Calendar. Em breve.
+        <p className="mb-4 text-sm text-muted">
+          Sincronize blocos do planejador com o Google Calendar. Bidirecional.
         </p>
+        <GoogleCalendarSync isConnected={googleConnected} />
       </Card>
     </div>
   );

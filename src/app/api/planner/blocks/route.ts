@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod/v4";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { getAuthenticatedClient } from "@/lib/google/auth";
+import { blockToGoogleEvent, createGoogleEvent } from "@/lib/google/calendar";
 
 const VALID_KINDS = ["ANCHOR", "FLEX", "RISK"] as const;
 const VALID_CATEGORIES = [
@@ -134,6 +136,24 @@ export async function POST(request: NextRequest) {
       },
       include: { recurrence: true, exceptions: true },
     });
+
+    // Sync to Google Calendar if connected (non-blocking)
+    try {
+      const googleAccount = await prisma.googleAccount.findUnique({
+        where: { userId: session.userId },
+      });
+      if (googleAccount) {
+        const auth = await getAuthenticatedClient(session.userId);
+        const event = blockToGoogleEvent(block);
+        const created = await createGoogleEvent(auth, googleAccount.calendarId, event);
+        await prisma.plannerBlock.update({
+          where: { id: block.id },
+          data: { googleEventId: created.id },
+        });
+      }
+    } catch {
+      // Google sync failure doesn't prevent block creation
+    }
 
     return NextResponse.json(block, { status: 201 });
   } catch {

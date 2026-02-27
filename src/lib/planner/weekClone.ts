@@ -36,7 +36,10 @@ export async function cloneWeek(
   });
 
   // Use shared range-based engine (respects interval, exceptions, etc.)
-  const occurrences = expandPrismaBlocks(allBlocks, fromMonday, fromSundayEnd);
+  // Filter to only include occurrences whose start falls within the source week
+  // (overlap query may pull in overnight blocks starting before fromMonday)
+  const occurrences = expandPrismaBlocks(allBlocks, fromMonday, fromSundayEnd)
+    .filter((occ) => occ.startAt >= fromMonday && occ.startAt <= fromSundayEnd);
 
   // Filter by mode
   let filtered = occurrences;

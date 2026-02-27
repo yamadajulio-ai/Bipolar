@@ -15,6 +15,8 @@ O ChatGPT Pro analisou o repositorio e identificou 5 bugs criticos que afetavam 
 
 **Nota sobre v3.2.2** (commit `071e39d`): A terceira revisao do ChatGPT Pro encontrou 6 bugs adicionais: off-by-one no range semanal, queries sem overlap (blocos overnight nao apareciam), regra de late-night desalinhada entre client/server, countdown congelado no TodayBlocks, e inconsistencia `||` vs `??` nas excecoes. Todos corrigidos neste hotfix.
 
+**Nota sobre v3.2.4** (commit pendente): A quinta revisao do ChatGPT Pro confirmou a unificacao do motor como correta e encontrou 3 edge-cases: overlap query em template/weekClone puxava blocos de fora da semana, excecoes nao validavam overrideEndAt > overrideStartAt, e Insights usava hora parcial no cutoff de 7 dias. Todos corrigidos neste hotfix.
+
 ---
 
 ## Bugs Encontrados vs Correcoes Aplicadas
@@ -112,7 +114,7 @@ Hotfix v3.2.1 adicional:
 
 | Metrica | Valor |
 |---------|-------|
-| Commits | 9 (4 originais + 1 hotfix v3.2.1 + 1 docs + 1 hotfix v3.2.2 + 1 docs + 1 hotfix v3.2.3) |
+| Commits | 10 (4 originais + 1 hotfix v3.2.1 + 1 docs + 1 hotfix v3.2.2 + 1 docs + 1 hotfix v3.2.3 + 1 hotfix v3.2.4) |
 | Arquivos alterados | 30+ |
 | Resultado liquido | Menos codigo, mais correto |
 | Padrao UTC restante | 0 (verificado via grep) |
@@ -133,6 +135,7 @@ ff15a2c fix: handle blocks crossing midnight correctly
 071e39d fix(v3.2.2): overlap queries, off-by-one, live countdown, late-night alignment
 239c58e docs: update v3.2 report with v3.2.2 hotfix details
 e5d9806 fix(v3.2.3): unify server-side recurrence, fix Insights, add API validation
+??????? fix(v3.2.4): filter overlap edge-cases in template/clone, validate exceptions, clean Insights cutoff
 ```
 
 ---
@@ -248,13 +251,31 @@ Todos os caminhos (WeeklyView, TodayBlocks, Templates, WeekClone, Insights) usam
 
 ---
 
+## Resultado da quinta revisao (ChatGPT Pro)
+
+A quinta revisao confirmou a unificacao do motor como **correta** e identificou 3 edge-cases funcionais + 1 melhoria de qualidade, **todos corrigidos no hotfix v3.2.4**:
+
+| # | Problema | Impacto | Correcao (v3.2.4) |
+|---|----------|---------|-------------------|
+| R1 | Template/weekClone puxava blocos overnight de fora da semana | Bloco de domingo anterior aparecia no template/clone | Filtro `occ.startAt >= weekStart` apos expandPrismaBlocks |
+| R2 | Excecoes nao validavam overrideEndAt > overrideStartAt | Duracao negativa possivel em excecoes | Validacao em POST (400 se end <= start) |
+| R3 | Insights cutoff 7 dias usava hora parcial (nao startOfDay) | Distorcao: "semana" nao fechava em dias inteiros | `startOfDay(localDateStr(...))` para janela limpa |
+
+**Decisoes da quinta revisao**:
+- `until` semantica: **pode esperar** (campo nao exposto na UI atualmente)
+- `checkConstraintsClient`: **nao unificar via API agora** — melhor usar `checkConstraints` direto (isomorfico) ou documentar subset como intencional
+- Testes: priorizados expandRecurrence (interval, weekDays, excecoes), dateUtils (meia-noite), paridade client/server
+
+**Status apos v3.2.4**: Todos os 3 edge-cases corrigidos. Lint e build passando.
+
+---
+
 ## Pedido para proxima revisao
 
-Por favor analise o repositorio atualizado (commit `e5d9806`, branch main) e foque em:
+Por favor analise o repositorio atualizado (branch main) e foque em:
 
-1. A unificacao do motor esta correta? (`expandServer.ts` + refatoracoes em templates/weekClone/insights)
-2. O `until` semantica precisa de correcao imediata ou pode esperar?
-3. O `checkConstraintsClient` no WeeklyView ainda duplica wind-down/anchor logic — vale unificar via API agora?
-4. Quais testes automatizados voce priorizaria para validar o motor de recorrencia?
-5. Ha novos bugs introduzidos pelas correcoes do v3.2.3?
-6. O app esta pronto para uso diario como paciente-teste?
+1. Os filtros `occ.startAt >= weekStart` em template/weekClone estao corretos para todos os cenarios (overnight, recurring, etc.)?
+2. A validacao de excecoes cobre os casos necessarios? (ex: quando so overrideEndAt e fornecido sem overrideStartAt)
+3. Ha novos edge-cases introduzidos pelas correcoes do v3.2.4?
+4. O app esta pronto para uso diario como paciente-teste?
+5. Quais testes unitarios voce escreveria primeiro para o motor de recorrencia?

@@ -43,6 +43,18 @@ export async function POST(
 
     const occDate = new Date(parsed.data.occurrenceDate);
 
+    // Validate overrideEndAt > overrideStartAt when both are provided
+    if (parsed.data.overrideStartAt && parsed.data.overrideEndAt) {
+      const overrideStart = new Date(parsed.data.overrideStartAt);
+      const overrideEnd = new Date(parsed.data.overrideEndAt);
+      if (overrideEnd <= overrideStart) {
+        return NextResponse.json(
+          { errors: { overrideEndAt: ["overrideEndAt deve ser posterior a overrideStartAt"] } },
+          { status: 400 },
+        );
+      }
+    }
+
     const exception = await prisma.plannerException.upsert({
       where: {
         blockId_occurrenceDate: {

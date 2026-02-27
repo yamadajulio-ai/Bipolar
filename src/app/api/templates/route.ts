@@ -85,7 +85,10 @@ export async function POST(request: NextRequest) {
       });
 
       // Use the shared range-based engine (respects interval, exceptions, etc.)
-      const occurrences = expandPrismaBlocks(allBlocks, monday, sundayEnd);
+      // Filter to only include occurrences whose start falls within the week
+      // (overlap query may pull in overnight blocks starting before Monday)
+      const occurrences = expandPrismaBlocks(allBlocks, monday, sundayEnd)
+        .filter((occ) => occ.startAt >= monday && occ.startAt <= sundayEnd);
 
       const templateBlocks = occurrences.map((occ) => ({
         title: occ.title,

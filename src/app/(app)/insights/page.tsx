@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db";
 import { Card } from "@/components/Card";
 import { Alert } from "@/components/Alert";
 import { InsightsCharts } from "@/components/planner/InsightsCharts";
-import { localDateStr } from "@/lib/dateUtils";
+import { localDateStr, startOfDay } from "@/lib/dateUtils";
 import { expandPrismaBlocks } from "@/lib/planner/expandServer";
 
 export default async function InsightsPage() {
@@ -11,9 +11,9 @@ export default async function InsightsPage() {
   const now = new Date();
   const cutoff30 = new Date(now);
   cutoff30.setDate(cutoff30.getDate() - 30);
-  const cutoff7 = new Date(now);
-  cutoff7.setDate(cutoff7.getDate() - 7);
   const cutoff30Str = localDateStr(cutoff30);
+  // Use startOfDay for a clean 7-day window (avoids partial-day distortions)
+  const cutoff7 = startOfDay(localDateStr(new Date(now.getTime() - 7 * 86400000)));
 
   // Fetch last 30 days of sleep logs
   const sleepLogs = await prisma.sleepLog.findMany({

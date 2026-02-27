@@ -23,6 +23,9 @@ model User {
   plannerBlocks    PlannerBlock[]
   stabilityRule    StabilityRule?
   templates        PlannerTemplate[]
+  googleAccount         GoogleAccount?
+  integrationKeys       IntegrationKey[]
+  financialTransactions FinancialTransaction[]
 }
 
 model DiaryEntry {
@@ -151,9 +154,11 @@ model PlannerBlock {
   endAt       DateTime
   notes       String?
   energyCost  Int      @default(3)  // 0..10
-  stimulation Int      @default(1)  // 0=LOW, 1=MED, 2=HIGH
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  stimulation   Int      @default(1)  // 0=LOW, 1=MED, 2=HIGH
+  googleEventId String?
+  sourceType    String   @default("app") // "app" | "google"
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   recurrence  PlannerRecurrence?
@@ -239,4 +244,52 @@ model PlannerTemplateBlock {
   template     PlannerTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
 
   @@index([templateId])
+}
+
+// ── Integracoes Externas ────────────────────────────────────────
+
+model GoogleAccount {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  accessToken  String
+  refreshToken String
+  expiresAt    DateTime
+  calendarId   String   @default("primary")
+  syncToken    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user         User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model IntegrationKey {
+  id        String   @id @default(uuid())
+  userId    String
+  service   String   // "health_auto_export"
+  apiKey    String   @unique
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, service])
+}
+
+// ── Financeiro ──────────────────────────────────────────────────
+
+model FinancialTransaction {
+  id          String   @id @default(uuid())
+  userId      String
+  date        String   // YYYY-MM-DD
+  description String
+  amount      Float    // positivo = receita, negativo = despesa
+  category    String
+  account     String?
+  source      String   @default("manual") // "manual" | "mobills_csv"
+  createdAt   DateTime @default(now())
+
+  user        User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+  @@unique([userId, date, description, amount])
 }

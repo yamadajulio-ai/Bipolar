@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod/v4";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { localDateStr } from "@/lib/dateUtils";
+import { localDateStr, startOfDay, endOfDay } from "@/lib/dateUtils";
 
 const exceptionUpsertSchema = z.object({
   occurrenceDate: z.string().datetime(),
@@ -23,7 +23,10 @@ export async function POST(
   }
 
   const { id } = await params;
-  const block = await prisma.plannerBlock.findUnique({ where: { id } });
+  const block = await prisma.plannerBlock.findUnique({
+    where: { id },
+    include: { recurrence: true },
+  });
   if (!block || block.userId !== session.userId) {
     return NextResponse.json({ error: "Bloco não encontrado" }, { status: 404 });
   }
@@ -43,9 +46,20 @@ export async function POST(
     }
 
     // Normalize occurrenceDate to noon local to prevent duplicate keys
-    // for the same calendar day (the unique is on the full DateTime)
     const occYmd = localDateStr(new Date(parsed.data.occurrenceDate));
     const occDate = new Date(occYmd + "T12:00:00");
+
+    // For non-recurring blocks, exception must target the block's own day
+    const isRecurring = block.recurrence && block.recurrence.freq !== "NONE";
+    if (!isRecurring) {
+      const blockYmd = localDateStr(block.startAt);
+      if (occYmd !== blockYmd) {
+        return NextResponse.json(
+          { errors: { occurrenceDate: ["Bloco não-recorrente só aceita exceção no próprio dia"] } },
+          { status: 400 },
+        );
+      }
+    }
 
     // Compute the occurrence's base interval (same logic as the expand engine):
     // baseStart = occurrenceDate at block's start time, baseEnd = baseStart + duration
@@ -54,7 +68,7 @@ export async function POST(
     baseStart.setHours(block.startAt.getHours(), block.startAt.getMinutes(), 0, 0);
     const baseEnd = new Date(baseStart.getTime() + durationMs);
 
-    // Validate effective interval using occurrence base (not block's original dates)
+    // Validate effective interval using occurrence base
     if (parsed.data.overrideStartAt || parsed.data.overrideEndAt) {
       const effectiveStart = parsed.data.overrideStartAt
         ? new Date(parsed.data.overrideStartAt)
@@ -68,32 +82,61 @@ export async function POST(
           { status: 400 },
         );
       }
+
+      // Validate overrideStartAt stays within the occurrence day
+      // (prevent day-jumping — allows overnight into next day only)
+      if (parsed.data.overrideStartAt) {
+        const overrideStartYmd = localDateStr(effectiveStart);
+        if (overrideStartYmd !== occYmd) {
+          return NextResponse.json(
+            { errors: { overrideStartAt: ["overrideStartAt deve ser no mesmo dia da ocorrência"] } },
+            { status: 400 },
+          );
+        }
+      }
+      // overrideEndAt can be occYmd or occYmd+1 (overnight), but not further
+      if (parsed.data.overrideEndAt) {
+        const nextDayEnd = new Date(occYmd + "T00:00:00");
+        nextDayEnd.setDate(nextDayEnd.getDate() + 2); // end of occYmd+1
+        if (effectiveEnd > nextDayEnd) {
+          return NextResponse.json(
+            { errors: { overrideEndAt: ["overrideEndAt não pode passar do dia seguinte"] } },
+            { status: 400 },
+          );
+        }
+      }
     }
 
-    const exception = await prisma.plannerException.upsert({
+    // Find existing exception for this day (handles legacy data with non-noon times)
+    const dayStart = startOfDay(occYmd);
+    const dayEnd = endOfDay(occYmd);
+    const existing = await prisma.plannerException.findFirst({
       where: {
-        blockId_occurrenceDate: {
-          blockId: id,
-          occurrenceDate: occDate,
-        },
-      },
-      update: {
-        isCancelled: parsed.data.isCancelled,
-        overrideStartAt: parsed.data.overrideStartAt ? new Date(parsed.data.overrideStartAt) : null,
-        overrideEndAt: parsed.data.overrideEndAt ? new Date(parsed.data.overrideEndAt) : null,
-        overrideTitle: parsed.data.overrideTitle ?? null,
-        overrideNotes: parsed.data.overrideNotes ?? null,
-      },
-      create: {
         blockId: id,
-        occurrenceDate: occDate,
-        isCancelled: parsed.data.isCancelled,
-        overrideStartAt: parsed.data.overrideStartAt ? new Date(parsed.data.overrideStartAt) : null,
-        overrideEndAt: parsed.data.overrideEndAt ? new Date(parsed.data.overrideEndAt) : null,
-        overrideTitle: parsed.data.overrideTitle ?? null,
-        overrideNotes: parsed.data.overrideNotes ?? null,
+        occurrenceDate: { gte: dayStart, lte: dayEnd },
       },
     });
+
+    const data = {
+      isCancelled: parsed.data.isCancelled,
+      overrideStartAt: parsed.data.overrideStartAt ? new Date(parsed.data.overrideStartAt) : null,
+      overrideEndAt: parsed.data.overrideEndAt ? new Date(parsed.data.overrideEndAt) : null,
+      overrideTitle: parsed.data.overrideTitle ?? null,
+      overrideNotes: parsed.data.overrideNotes ?? null,
+    };
+
+    let exception;
+    if (existing) {
+      // Update existing + normalize occurrenceDate to noon
+      exception = await prisma.plannerException.update({
+        where: { id: existing.id },
+        data: { ...data, occurrenceDate: occDate },
+      });
+    } else {
+      exception = await prisma.plannerException.create({
+        data: { blockId: id, occurrenceDate: occDate, ...data },
+      });
+    }
 
     return NextResponse.json(exception, { status: 201 });
   } catch {

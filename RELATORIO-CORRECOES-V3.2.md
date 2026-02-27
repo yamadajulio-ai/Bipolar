@@ -314,12 +314,38 @@ rejeita se effectiveEnd <= effectiveStart
 
 ---
 
+## Resultado da oitava revisao (ChatGPT Pro)
+
+A oitava revisao confirmou a validacao occurrence-aware como correta para recorrencia e overnight, mas identificou 3 lacunas:
+
+| # | Problema | Impacto | Correcao (v3.2.6) |
+|---|----------|---------|-------------------|
+| U1 | Excecao para bloco nao-recorrente aceitava qualquer dia | Excecao orfa que nunca seria aplicada pelo motor | Validacao: `occYmd === localDateStr(block.startAt)` para blocos sem recorrencia |
+| U2 | Upsert por DateTime exato nao encontrava excecoes legadas (horario diferente) | Duplicatas silenciosas no DB | Substituido por find-by-day-range (`gte startOfDay, lte endOfDay`) + update/create — normaliza legado para noon |
+| U3 | Override podia mover ocorrencia para dia arbitrario | Motor nao "rebucketa" por data | `overrideStartAt` deve ser no mesmo dia; `overrideEndAt` pode ir ate fim do dia seguinte (overnight) |
+
+**Como funciona agora (exceções)**:
+```
+1. Normaliza occurrenceDate para noon (T12:00:00)
+2. Se bloco não-recorrente: occYmd deve == dia do bloco (senão 400)
+3. Calcula baseStart/baseEnd da ocorrência (occurrence-aware)
+4. Valida effectiveEnd > effectiveStart
+5. overrideStartAt deve ser no mesmo dia da ocorrência (senão 400)
+6. overrideEndAt pode ir até fim de occYmd+1 (overnight ok, 2+ dias não)
+7. Busca exceção existente por range do dia (absorve legado com hora diferente)
+8. Update se existente (normaliza para noon) ou create se nova
+```
+
+**Status apos v3.2.6**: Todas as 3 lacunas fechadas. Lint e build passando.
+
+---
+
 ## Pedido para proxima revisao
 
 Por favor analise o repositorio atualizado (branch main) e foque em:
 
-1. A validacao occurrence-aware de excecoes esta correta para todos os cenarios (recorrente, single, overnight)?
-2. A normalizacao de occurrenceDate para noon pode causar problema com excecoes existentes no DB (criadas antes da normalizacao)?
-3. Ha novos bugs introduzidos?
-4. O app esta pronto para uso diario?
-5. Proximos passos prioritarios (testes, seguranca, etc)?
+1. A rota de excecoes esta agora completa e segura? Ha edge-cases nao cobertos?
+2. O app esta pronto para uso diario como paciente-teste?
+3. Vale comecar a escrever testes automatizados agora ou ha mais correcoes pendentes?
+4. Ha novos bugs introduzidos?
+5. O que priorizaria como proximos passos?

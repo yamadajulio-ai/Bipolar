@@ -9,7 +9,7 @@
 
 ## Contexto
 
-O ChatGPT Pro analisou o repositorio e identificou 5 bugs criticos que afetavam o uso diario da aplicacao. Os 5 bugs estao organizados em 4 secoes abaixo (Bug 2 agrupa 2 problemas relacionados: duplicatas no Diario + erro 500 no Sono, ambos resolvidos pela mesma estrategia de upsert). Todas as correcoes foram implementadas em 4 commits atomicos + 2 hotfixes (v3.2.1 e v3.2.2), com lint e build passando em cada etapa.
+O ChatGPT Pro analisou o repositorio e identificou 5 bugs criticos que afetavam o uso diario da aplicacao. Os 5 bugs estao organizados em 4 secoes abaixo (Bug 2 agrupa 2 problemas relacionados: duplicatas no Diario + erro 500 no Sono, ambos resolvidos pela mesma estrategia de upsert). Todas as correcoes foram implementadas em 4 commits atomicos + 3 hotfixes (v3.2.1, v3.2.2, v3.2.3), com lint e build passando em cada etapa.
 
 **Nota sobre v3.2.1** (commit `7263bad`): Apos a primeira revisao do ChatGPT Pro, foram encontradas 7 instancias adicionais do padrao UTC e outros bugs menores. Todos foram corrigidos no hotfix. Resultado: **zero ocorrencias** de `toISOString().split("T")[0]` restantes no codebase (verificado via grep).
 
@@ -112,7 +112,7 @@ Hotfix v3.2.1 adicional:
 
 | Metrica | Valor |
 |---------|-------|
-| Commits | 7 (4 originais + 1 hotfix v3.2.1 + 1 docs + 1 hotfix v3.2.2) |
+| Commits | 9 (4 originais + 1 hotfix v3.2.1 + 1 docs + 1 hotfix v3.2.2 + 1 docs + 1 hotfix v3.2.3) |
 | Arquivos alterados | 30+ |
 | Resultado liquido | Menos codigo, mais correto |
 | Padrao UTC restante | 0 (verificado via grep) |
@@ -131,6 +131,8 @@ ff15a2c fix: handle blocks crossing midnight correctly
 7263bad fix(v3.2.1): remaining UTC instances, smart defaults wrap, getOccsForDay, applyException notes
 30d8fb3 docs: update v3.2 report with hotfix details and clarify bug count
 071e39d fix(v3.2.2): overlap queries, off-by-one, live countdown, late-night alignment
+239c58e docs: update v3.2 report with v3.2.2 hotfix details
+e5d9806 fix(v3.2.3): unify server-side recurrence, fix Insights, add API validation
 ```
 
 ---
@@ -142,6 +144,7 @@ ff15a2c fix: handle blocks crossing midnight correctly
 | `src/lib/dateUtils.ts` | Funcoes centrais de data local (34 linhas) |
 | `src/lib/planner/expandRecurrence.ts` | Motor de recorrencia range-based (156 linhas) |
 | `src/lib/planner/expandClient.ts` | Hidratacao + expansao para client components (75 linhas) |
+| `src/lib/planner/expandServer.ts` | Conversao Prisma → PlannerBlockData + expansao para server (70 linhas) |
 | `src/lib/planner/constraints.ts` | Alertas de estabilidade (125 linhas) |
 | `prisma/schema.prisma` | Schema com DiaryEntry @@unique |
 | `src/app/api/diario/route.ts` | POST com upsert |
@@ -169,8 +172,8 @@ ff15a2c fix: handle blocks crossing midnight correctly
 1. ~~**Blocos overnight no "Hoje"**~~ — ✅ Corrigido: API e HojePage agora usam overlap query (`startAt <= timeMax AND endAt >= timeMin`)
 2. **`until` semantica** — `until` e DateTime no Prisma; se gravado como `T00:00:00`, pode excluir ocorrencia do proprio dia (cursor esta ao meio-dia). Tratar como `endOfDay(until)` na comparacao
 
-### Prioridade B — Divida tecnica
-3. **Templates/weekClone ainda duplicam expansao local** — usam loop manual ao inves do `expandAllBlocks` compartilhado (funciona, mas e codigo repetido no servidor)
+### ~~Prioridade B — Divida tecnica~~ ✅ Resolvido no v3.2.3
+3. ~~**Templates/weekClone duplicavam expansao local**~~ — ✅ Corrigido: ambos agora usam `expandPrismaBlocks()` via `expandServer.ts`. Motor unificado, interval respeitado, -130 linhas
 4. ~~**checkConstraintsClient no WeeklyView**~~ — ✅ Parcialmente resolvido: regra de late-night pos-meia-noite agora alinhada com `constraints.ts`. Restante da duplicacao (wind-down, etc.) poderia ser unificada via API
 
 ### Prioridade C — Testes
@@ -219,11 +222,39 @@ A terceira revisao encontrou 6 bugs novos alem dos pontos abertos, **todos corri
 
 ---
 
+## Resultado da quarta revisao (ChatGPT Pro)
+
+A quarta revisao reconfirmou os 5 bugs originais como corrigidos e encontrou problemas de **consistencia e qualidade** (nao crashes):
+
+| # | Problema | Impacto | Correcao (v3.2.3) |
+|---|----------|---------|-------------------|
+| P1 | Templates/weekClone usavam expansao manual (sem interval) | Divergencia silenciosa | Refatorados para usar `expandPrismaBlocks()` (-130 linhas) |
+| P2 | Insights usava blocos crus (sem expandir recorrencias) | Energia/noites tardias subdimensionadas | Usa `expandPrismaBlocks()` com overlap query |
+| P3 | Insights late-night ignorava pos-meia-noite | Regra inconsistente com constraints.ts | Adicionado `endMin < 360 && endMin > 0` |
+| P4 | API aceitava endAt <= startAt | Duracao negativa possivel | Validacao em POST e PATCH |
+
+**Novo arquivo**: `src/lib/planner/expandServer.ts` — helper server-side que converte Prisma → PlannerBlockData e chama o motor compartilhado.
+
+**Arquitetura do motor agora**:
+```
+expandRecurrence.ts (core — range-based algorithm)
+├── expandClient.ts (client: hydrate ISO strings → Date → expand)
+└── expandServer.ts (server: Prisma Date objects → PlannerBlockData → expand)
+```
+
+Todos os caminhos (WeeklyView, TodayBlocks, Templates, WeekClone, Insights) usam o mesmo motor. Zero duplicacao de logica de recorrencia.
+
+**Status apos v3.2.3**: Todos os 4 problemas corrigidos. Lint e build passando. -130 linhas liquido.
+
+---
+
 ## Pedido para proxima revisao
 
-Por favor analise o repositorio atualizado (commit `071e39d`, branch main) e foque em:
-1. As correcoes do v3.2.2 estao corretas? (overlap queries, off-by-one, countdown, late-night)
+Por favor analise o repositorio atualizado (commit `e5d9806`, branch main) e foque em:
+
+1. A unificacao do motor esta correta? (`expandServer.ts` + refatoracoes em templates/weekClone/insights)
 2. O `until` semantica precisa de correcao imediata ou pode esperar?
-3. Templates/weekClone: vale refatorar agora ou e risco baixo com interval=1?
-4. Quais testes automatizados voce priorizaria para validar a estabilidade do motor de recorrencia?
-5. Ha novos bugs introduzidos pelas correcoes do v3.2.2?
+3. O `checkConstraintsClient` no WeeklyView ainda duplica wind-down/anchor logic — vale unificar via API agora?
+4. Quais testes automatizados voce priorizaria para validar o motor de recorrencia?
+5. Ha novos bugs introduzidos pelas correcoes do v3.2.3?
+6. O app esta pronto para uso diario como paciente-teste?

@@ -18,6 +18,8 @@ const modules = [
   { href: "/relatorio", label: "Relatorio Mensal", description: "Resumo para profissionais de saude" },
   { href: "/plano-de-crise", label: "Plano de Crise", description: "Contatos e estrategias pessoais" },
   { href: "/familias", label: "Familias", description: "Guia para familiares e cuidadores" },
+  { href: "/integracoes", label: "Integracoes", description: "Health Auto Export, Google Calendar" },
+  { href: "/financeiro", label: "Financeiro", description: "Transacoes, importacao Mobills" },
   { href: "/conta", label: "Conta", description: "Configuracoes e lembretes" },
 ];
 

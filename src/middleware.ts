@@ -19,6 +19,8 @@ const protectedPaths = [
   "/sons",
   "/relatorio",
   "/cursos",
+  "/integracoes",
+  "/financeiro",
 ];
 const authPaths = ["/login", "/cadastro"];
 

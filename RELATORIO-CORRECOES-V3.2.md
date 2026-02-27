@@ -270,12 +270,29 @@ A quinta revisao confirmou a unificacao do motor como **correta** e identificou 
 
 ---
 
+## Resultado da sexta revisao (ChatGPT Pro)
+
+A sexta revisao confirmou filtros de template/weekClone como corretos e encontrou 1 lacuna funcional na validacao de excecoes:
+
+| # | Problema | Impacto | Correcao (v3.2.4.1) |
+|---|----------|---------|---------------------|
+| S1 | Validacao de excecoes so cobria "ambos overrides presentes" | Enviar apenas overrideEndAt <= block.startAt passava sem erro | Validacao agora usa intervalo efetivo: `effectiveStart = overrideStartAt ?? block.startAt`, `effectiveEnd = overrideEndAt ?? block.endAt` |
+
+**Decisoes da sexta revisao**:
+- Filtros `startAt >= weekStart`: ✅ corretos para overnight, recorrencia, e single events
+- App pronto para uso diario: ✅ sim (local-first), com backup SQLite e checklist de 15min
+- Testes prioritarios: DAILY/WEEKLY interval, WEEKLY+weekDays, excecoes (cancel/override/apenas-um), overlap, paridade client/server, regressoes v3.2.4
+
+**Status apos v3.2.4.1**: Lacuna de validacao fechada. Lint e build passando.
+
+---
+
 ## Pedido para proxima revisao
 
 Por favor analise o repositorio atualizado (branch main) e foque em:
 
-1. Os filtros `occ.startAt >= weekStart` em template/weekClone estao corretos para todos os cenarios (overnight, recurring, etc.)?
-2. A validacao de excecoes cobre os casos necessarios? (ex: quando so overrideEndAt e fornecido sem overrideStartAt)
-3. Ha novos edge-cases introduzidos pelas correcoes do v3.2.4?
-4. O app esta pronto para uso diario como paciente-teste?
-5. Quais testes unitarios voce escreveria primeiro para o motor de recorrencia?
+1. A validacao de excecoes com intervalo efetivo (block.startAt/endAt como fallback) esta correta?
+2. Ha edge-cases no override de excecoes para blocos overnight (23:00→01:00)?
+3. Quais testes unitarios voce escreveria para a rota de excecoes?
+4. Ha novos bugs introduzidos?
+5. Proximos passos prioritarios para o projeto?

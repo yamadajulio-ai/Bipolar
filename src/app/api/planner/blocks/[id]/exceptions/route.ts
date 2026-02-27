@@ -43,13 +43,18 @@ export async function POST(
 
     const occDate = new Date(parsed.data.occurrenceDate);
 
-    // Validate overrideEndAt > overrideStartAt when both are provided
-    if (parsed.data.overrideStartAt && parsed.data.overrideEndAt) {
-      const overrideStart = new Date(parsed.data.overrideStartAt);
-      const overrideEnd = new Date(parsed.data.overrideEndAt);
-      if (overrideEnd <= overrideStart) {
+    // Validate effective interval: when either override is provided,
+    // compute the effective start/end using the block's base times as fallback
+    if (parsed.data.overrideStartAt || parsed.data.overrideEndAt) {
+      const effectiveStart = parsed.data.overrideStartAt
+        ? new Date(parsed.data.overrideStartAt)
+        : block.startAt;
+      const effectiveEnd = parsed.data.overrideEndAt
+        ? new Date(parsed.data.overrideEndAt)
+        : block.endAt;
+      if (effectiveEnd <= effectiveStart) {
         return NextResponse.json(
-          { errors: { overrideEndAt: ["overrideEndAt deve ser posterior a overrideStartAt"] } },
+          { errors: { overrideEndAt: ["overrideEndAt deve ser posterior a overrideStartAt (efetivo)"] } },
           { status: 400 },
         );
       }

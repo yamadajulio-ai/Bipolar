@@ -137,7 +137,7 @@ ff15a2c fix: handle blocks crossing midnight correctly
 e5d9806 fix(v3.2.3): unify server-side recurrence, fix Insights, add API validation
 5710ad4 fix(v3.2.4): filter overlap edge-cases in template/clone, validate exceptions, clean Insights cutoff
 2267f18 fix(v3.2.4.1): validate exception effective interval using block base times
-??????? fix(v3.2.5): occurrence-aware exception validation, normalize occurrenceDate to noon
+2f12b04 fix(v3.2.5): occurrence-aware exception validation, normalize occurrenceDate to noon
 ```
 
 ---

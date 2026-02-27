@@ -136,6 +136,8 @@ ff15a2c fix: handle blocks crossing midnight correctly
 239c58e docs: update v3.2 report with v3.2.2 hotfix details
 e5d9806 fix(v3.2.3): unify server-side recurrence, fix Insights, add API validation
 5710ad4 fix(v3.2.4): filter overlap edge-cases in template/clone, validate exceptions, clean Insights cutoff
+2267f18 fix(v3.2.4.1): validate exception effective interval using block base times
+??????? fix(v3.2.5): occurrence-aware exception validation, normalize occurrenceDate to noon
 ```
 
 ---
@@ -287,12 +289,37 @@ A sexta revisao confirmou filtros de template/weekClone como corretos e encontro
 
 ---
 
+## Resultado da setima revisao (ChatGPT Pro)
+
+A setima revisao encontrou que a validacao de excecoes v3.2.4.1 usava `block.startAt/endAt` originais como fallback, o que nao funciona para blocos recorrentes (o intervalo base muda por ocorrencia). Tambem identificou risco de chaves duplicadas no `occurrenceDate`.
+
+| # | Problema | Impacto | Correcao (v3.2.5) |
+|---|----------|---------|-------------------|
+| T1 | Validacao de excecoes usava block.startAt/endAt originais | Override parcial em bloco recorrente podia passar/falhar erradamente | Calculo occurrence-aware: `baseStart = occDate + block.hours`, `baseEnd = baseStart + durationMs` (mesma logica do motor) |
+| T2 | occurrenceDate sem normalizacao — DateTime completo como unique key | Mesmo dia com horarios diferentes criava 2 excecoes | Normalizado para meio-dia local (`T12:00:00`) antes do upsert — alinhado com cursor do motor |
+
+**Como funciona agora**:
+```
+occYmd = localDateStr(occurrenceDate)       // "YYYY-MM-DD"
+occDate = new Date(occYmd + "T12:00:00")    // normalizado para noon (igual cursor do motor)
+durationMs = block.endAt - block.startAt    // duracao do bloco
+baseStart = occDate at block's hour:min     // inicio real daquela ocorrencia
+baseEnd = baseStart + durationMs            // fim real (cobre overnight automaticamente)
+effectiveStart = overrideStartAt ?? baseStart
+effectiveEnd = overrideEndAt ?? baseEnd
+rejeita se effectiveEnd <= effectiveStart
+```
+
+**Status apos v3.2.5**: Validacao alinhada com o motor de recorrencia. Lint e build passando.
+
+---
+
 ## Pedido para proxima revisao
 
 Por favor analise o repositorio atualizado (branch main) e foque em:
 
-1. A validacao de excecoes com intervalo efetivo (block.startAt/endAt como fallback) esta correta?
-2. Ha edge-cases no override de excecoes para blocos overnight (23:00→01:00)?
-3. Quais testes unitarios voce escreveria para a rota de excecoes?
-4. Ha novos bugs introduzidos?
-5. Proximos passos prioritarios para o projeto?
+1. A validacao occurrence-aware de excecoes esta correta para todos os cenarios (recorrente, single, overnight)?
+2. A normalizacao de occurrenceDate para noon pode causar problema com excecoes existentes no DB (criadas antes da normalizacao)?
+3. Ha novos bugs introduzidos?
+4. O app esta pronto para uso diario?
+5. Proximos passos prioritarios (testes, seguranca, etc)?

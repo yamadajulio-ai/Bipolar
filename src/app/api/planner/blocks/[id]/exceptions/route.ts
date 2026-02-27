@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod/v4";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { localDateStr } from "@/lib/dateUtils";
 
 const exceptionUpsertSchema = z.object({
   occurrenceDate: z.string().datetime(),
@@ -41,17 +42,26 @@ export async function POST(
       return NextResponse.json({ errors: fieldErrors }, { status: 400 });
     }
 
-    const occDate = new Date(parsed.data.occurrenceDate);
+    // Normalize occurrenceDate to noon local to prevent duplicate keys
+    // for the same calendar day (the unique is on the full DateTime)
+    const occYmd = localDateStr(new Date(parsed.data.occurrenceDate));
+    const occDate = new Date(occYmd + "T12:00:00");
 
-    // Validate effective interval: when either override is provided,
-    // compute the effective start/end using the block's base times as fallback
+    // Compute the occurrence's base interval (same logic as the expand engine):
+    // baseStart = occurrenceDate at block's start time, baseEnd = baseStart + duration
+    const durationMs = block.endAt.getTime() - block.startAt.getTime();
+    const baseStart = new Date(occYmd + "T00:00:00");
+    baseStart.setHours(block.startAt.getHours(), block.startAt.getMinutes(), 0, 0);
+    const baseEnd = new Date(baseStart.getTime() + durationMs);
+
+    // Validate effective interval using occurrence base (not block's original dates)
     if (parsed.data.overrideStartAt || parsed.data.overrideEndAt) {
       const effectiveStart = parsed.data.overrideStartAt
         ? new Date(parsed.data.overrideStartAt)
-        : block.startAt;
+        : baseStart;
       const effectiveEnd = parsed.data.overrideEndAt
         ? new Date(parsed.data.overrideEndAt)
-        : block.endAt;
+        : baseEnd;
       if (effectiveEnd <= effectiveStart) {
         return NextResponse.json(
           { errors: { overrideEndAt: ["overrideEndAt deve ser posterior a overrideStartAt (efetivo)"] } },

@@ -32,10 +32,14 @@ export function checkConstraints(
   for (const [date, dayOccs] of byDay) {
     const sorted = [...dayOccs].sort((a, b) => a.startAt.getTime() - b.startAt.getTime());
 
-    // 1) Conflict detection: overlapping blocks
+    // 1) Conflict detection: overlapping blocks (skip cross-source app↔google)
     for (let i = 0; i < sorted.length; i++) {
       for (let j = i + 1; j < sorted.length; j++) {
         if (sorted[i].endAt > sorted[j].startAt) {
+          const srcI = sorted[i].sourceType || "app";
+          const srcJ = sorted[j].sourceType || "app";
+          if (srcI !== srcJ) continue;
+
           alerts.push({
             type: "conflict",
             severity: "warning",
@@ -47,8 +51,9 @@ export function checkConstraints(
       }
     }
 
-    // 2) Late night: blocks ending after cutoff
+    // 2) Late night: blocks ending after cutoff (skip Google-sourced blocks)
     for (const occ of sorted) {
+      if (occ.sourceType === "google") continue;
       const endMin = minutesSinceMidnight(occ.endAt);
       // Handle blocks that end after midnight (endMin will be small)
       const isLate = endMin > rules.lateEventCutoffMin ||

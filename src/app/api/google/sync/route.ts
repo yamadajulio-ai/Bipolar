@@ -3,6 +3,19 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { syncGoogleCalendar } from "@/lib/google/sync";
 
+export async function GET() {
+  const session = await getSession();
+  if (!session.isLoggedIn) {
+    return NextResponse.json({ connected: false }, { status: 401 });
+  }
+
+  const account = await prisma.googleAccount.findUnique({
+    where: { userId: session.userId },
+  });
+
+  return NextResponse.json({ connected: !!account });
+}
+
 export async function POST() {
   const session = await getSession();
   if (!session.isLoggedIn) {

@@ -135,6 +135,7 @@ function applyException(
     notes: ex?.overrideNotes != null ? ex.overrideNotes : block.notes,
     energyCost: block.energyCost,
     stimulation: block.stimulation,
+    sourceType: block.sourceType,
     isRecurring,
     occurrenceDate: ymd,
   };

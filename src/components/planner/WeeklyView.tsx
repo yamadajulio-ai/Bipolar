@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Card } from "@/components/Card";
 import { Alert } from "@/components/Alert";
 import { BlockEditorModal } from "./BlockEditorModal";
@@ -33,6 +33,8 @@ interface BlockFormData {
 }
 
 const WEEKDAY_NAMES = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sab", "Dom"];
+const HOUR_HEIGHT = 48; // px per hour
+const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
 function addDays(dateStr: string, n: number): string {
   const d = new Date(dateStr + "T12:00:00");
@@ -53,6 +55,67 @@ function getMonday(dateStr: string): string {
   return localDateStr(d);
 }
 
+// ── Overlap layout algorithm (Google Calendar style) ──────────────
+
+interface LayoutBlock {
+  occ: ExpandedOccurrence;
+  col: number;
+  totalCols: number;
+}
+
+function computeOverlapLayout(occs: ExpandedOccurrence[]): LayoutBlock[] {
+  if (occs.length === 0) return [];
+
+  const sorted = [...occs].sort((a, b) => {
+    const sa = new Date(a.startAt).getTime();
+    const sb = new Date(b.startAt).getTime();
+    if (sa !== sb) return sa - sb;
+    return new Date(b.endAt).getTime() - new Date(a.endAt).getTime();
+  });
+
+  const result: LayoutBlock[] = [];
+  let groupStart = 0;
+
+  while (groupStart < sorted.length) {
+    // Find extent of this overlap group
+    let groupEnd = groupStart;
+    let maxEnd = new Date(sorted[groupStart].endAt).getTime();
+
+    while (groupEnd + 1 < sorted.length && new Date(sorted[groupEnd + 1].startAt).getTime() < maxEnd) {
+      groupEnd++;
+      maxEnd = Math.max(maxEnd, new Date(sorted[groupEnd].endAt).getTime());
+    }
+
+    // Assign columns within this group
+    const columns: number[] = []; // end times for each column
+    const groupItems: { occ: ExpandedOccurrence; col: number }[] = [];
+
+    for (let i = groupStart; i <= groupEnd; i++) {
+      const start = new Date(sorted[i].startAt).getTime();
+      let col = 0;
+      while (col < columns.length && columns[col] > start) {
+        col++;
+      }
+      if (col >= columns.length) {
+        columns.push(0);
+      }
+      columns[col] = new Date(sorted[i].endAt).getTime();
+      groupItems.push({ occ: sorted[i], col });
+    }
+
+    const totalCols = columns.length;
+    for (const item of groupItems) {
+      result.push({ occ: item.occ, col: item.col, totalCols });
+    }
+
+    groupStart = groupEnd + 1;
+  }
+
+  return result;
+}
+
+// ── Main component ────────────────────────────────────────────────
+
 export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
   const [weekStart, setWeekStart] = useState(initialWeekStart);
   const [occurrences, setOccurrences] = useState<ExpandedOccurrence[]>([]);
@@ -63,6 +126,8 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
   const [editingBlockId, setEditingBlockId] = useState<string | undefined>();
   const [templateModalOpen, setTemplateModalOpen] = useState(false);
   const [cloneModalOpen, setCloneModalOpen] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const didScroll = useRef(false);
 
   const weekEnd = addDays(weekStart, 6);
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
@@ -77,19 +142,20 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
       if (!res.ok) throw new Error("Fetch failed");
       const data: SerializedBlock[] = await res.json();
 
-      // Expand recurrences client-side using shared engine
       const expanded = expandSerializedBlocks(data, new Date(start + "T00:00:00"), new Date(end + "T23:59:59"));
       setOccurrences(expanded);
 
-      // Fetch rules and check constraints
       const rulesRes = await fetch("/api/planner/rules");
       if (rulesRes.ok) {
         const rules = await rulesRes.json();
-        const constraintAlerts = checkConstraintsClient(expanded, rules);
+        // Filter to only occurrences whose date falls within the 7-day week
+        // This prevents "8 late nights" caused by edge-of-range blocks
+        const weekOccs = expanded.filter((o) => o.occurrenceDate >= start && o.occurrenceDate <= end);
+        const constraintAlerts = checkConstraintsClient(weekOccs, rules);
         setAlerts(constraintAlerts);
       }
     } catch {
-      // silently fail — empty state
+      // silently fail
     } finally {
       setLoading(false);
     }
@@ -99,17 +165,30 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
     fetchData(weekStart);
   }, [weekStart, fetchData]);
 
+  // Scroll to 7am on first load
+  useEffect(() => {
+    if (!loading && scrollRef.current && !didScroll.current) {
+      scrollRef.current.scrollTop = 7 * HOUR_HEIGHT;
+      didScroll.current = true;
+    }
+  }, [loading]);
+
   function navigateWeek(dir: number) {
     setWeekStart(addDays(weekStart, dir * 7));
   }
 
   function goToToday() {
-    const td = localToday();
-    setWeekStart(getMonday(td));
+    setWeekStart(getMonday(localToday()));
   }
 
-  function openNewBlock(date: string) {
-    setEditingBlock({ date, id: undefined });
+  function openNewBlock(date: string, hour?: number) {
+    const startTime = hour !== undefined
+      ? `${String(hour).padStart(2, "0")}:00`
+      : undefined;
+    const endTime = hour !== undefined
+      ? `${String(Math.min(hour + 1, 23)).padStart(2, "0")}:00`
+      : undefined;
+    setEditingBlock({ date, id: undefined, startTime, endTime } as Partial<BlockFormData>);
     setEditingBlockId(undefined);
     setModalOpen(true);
   }
@@ -136,19 +215,16 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
   async function handleSave(data: BlockFormData) {
     const startDate = new Date(`${data.date}T${data.startTime}:00`);
     const endDate = new Date(`${data.date}T${data.endTime}:00`);
-    // If endTime <= startTime, the block crosses midnight — move endAt to next day
     if (endDate <= startDate) {
       endDate.setDate(endDate.getDate() + 1);
     }
-    const startAt = startDate.toISOString();
-    const endAt = endDate.toISOString();
 
     const body: Record<string, unknown> = {
       title: data.title,
       category: data.category,
       kind: data.kind,
-      startAt,
-      endAt,
+      startAt: startDate.toISOString(),
+      endAt: endDate.toISOString(),
       notes: data.notes || undefined,
       energyCost: data.energyCost,
       stimulation: data.stimulation,
@@ -193,8 +269,8 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
       category: (parsed.category as string) || "outro",
       kind: (parsed.kind as string) || "FLEX",
       date: localDateStr(startAt),
-      startTime: `${String(startAt.getHours()).padStart(2, "0")}:${String(startAt.getMinutes()).padStart(2, "0")}`,
-      endTime: `${String(endAt.getHours()).padStart(2, "0")}:${String(endAt.getMinutes()).padStart(2, "0")}`,
+      startTime: formatTime(startAt),
+      endTime: formatTime(endAt),
       energyCost: (parsed.energyCost as number) || 3,
       stimulation: (parsed.stimulation as number) || 1,
       notes: "",
@@ -205,17 +281,16 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
     setModalOpen(true);
   }
 
-  // Get occurrences for a specific day
   function getOccsForDay(dayStr: string): ExpandedOccurrence[] {
     return occurrences.filter((o) => o.occurrenceDate === dayStr);
   }
 
-  // Get alerts for a specific day
-  function getAlertsForDay(dayStr: string): StabilityAlert[] {
-    return alerts.filter((a) => a.date === dayStr);
-  }
-
   const today = localToday();
+
+  // Now indicator
+  const now = new Date();
+  const nowHour = now.getHours() + now.getMinutes() / 60;
+  const nowTop = nowHour * HOUR_HEIGHT;
 
   return (
     <div>
@@ -246,7 +321,7 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
         </button>
       </div>
 
-      {/* Toolbar: Quick-add + actions */}
+      {/* Toolbar */}
       <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
         <div className="flex-1">
           <QuickAddInput
@@ -271,7 +346,7 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
         </div>
       </div>
 
-      {/* Week-level alerts */}
+      {/* Week-level alerts (no conflict alerts — overlaps are shown visually) */}
       {alerts.filter((a) => a.type === "max_late_nights").map((a, i) => (
         <Alert key={i} variant="warning" className="mb-3">
           {a.message} Este alerta e automatico e nao substitui avaliacao profissional.
@@ -283,61 +358,145 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
           <p className="text-center text-muted py-4">Carregando...</p>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-7">
-          {days.map((day, i) => {
-            const dayOccs = getOccsForDay(day);
-            const dayAlerts = getAlertsForDay(day);
-            const isToday = day === today;
-
-            return (
-              <div key={day} className={`rounded-lg border p-2 ${isToday ? "border-primary bg-primary/5" : "border-border"}`}>
-                <div className="mb-2 flex items-center justify-between">
-                  <span className={`text-xs font-semibold ${isToday ? "text-primary" : "text-muted"}`}>
-                    {WEEKDAY_NAMES[i]} {day.slice(8)}
-                  </span>
-                  <button
-                    onClick={() => openNewBlock(day)}
-                    className="text-xs text-primary hover:underline"
-                    title="Adicionar bloco"
+        <div className="rounded-lg border border-border overflow-hidden">
+          {/* Day headers */}
+          <div className="flex border-b border-border bg-surface">
+            <div className="w-12 flex-shrink-0" />
+            {days.map((day, i) => {
+              const isToday = day === today;
+              return (
+                <div
+                  key={day}
+                  className={`flex-1 border-l border-border px-1 py-2 text-center ${isToday ? "bg-primary/5" : ""}`}
+                >
+                  <div className={`text-[10px] font-medium ${isToday ? "text-primary" : "text-muted"}`}>
+                    {WEEKDAY_NAMES[i]}
+                  </div>
+                  <div
+                    className={`mx-auto mt-0.5 flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${
+                      isToday ? "bg-primary text-white" : "text-foreground"
+                    }`}
                   >
-                    +
-                  </button>
+                    {day.slice(8)}
+                  </div>
                 </div>
+              );
+            })}
+          </div>
 
-                {/* Day alerts */}
-                {dayAlerts.filter((a) => a.type !== "max_late_nights").map((a, j) => (
-                  <div key={j} className={`mb-1 rounded px-1.5 py-0.5 text-[10px] ${
-                    a.severity === "warning" ? "bg-amber-50 text-amber-700" : "bg-blue-50 text-blue-700"
-                  }`}>
-                    {a.type === "conflict" ? "Conflito" : a.type === "late_night" ? "Noite tardia" : a.type === "wind_down" ? "Wind-down" : "Ancora"}
+          {/* Time grid (scrollable) */}
+          <div
+            ref={scrollRef}
+            className="overflow-y-auto overflow-x-hidden"
+            style={{ maxHeight: "70vh" }}
+          >
+            <div className="flex" style={{ height: 24 * HOUR_HEIGHT }}>
+              {/* Hour labels */}
+              <div className="w-12 flex-shrink-0 relative">
+                {HOURS.map((h) => (
+                  <div
+                    key={h}
+                    className="absolute right-1 text-[10px] text-muted leading-none"
+                    style={{ top: h * HOUR_HEIGHT - 5 }}
+                  >
+                    {h > 0 ? `${String(h).padStart(2, "0")}:00` : ""}
                   </div>
                 ))}
-
-                {/* Blocks */}
-                <div className="space-y-1">
-                  {dayOccs.map((occ, k) => {
-                    const colors = CATEGORY_COLORS[occ.category] || CATEGORY_COLORS.outro;
-                    return (
-                      <button
-                        key={k}
-                        onClick={() => openEditBlock(occ)}
-                        className={`w-full rounded border px-1.5 py-1 text-left text-[11px] leading-tight transition-opacity hover:opacity-80 ${colors}`}
-                      >
-                        <span className="font-medium">{formatTime(occ.startAt)}</span>{" "}
-                        <span>{occ.title}</span>
-                        {occ.kind === "ANCHOR" && <span className="ml-0.5 opacity-60">⚓</span>}
-                        {occ.isRoutine && <span className="ml-0.5 opacity-60">↻</span>}
-                      </button>
-                    );
-                  })}
-
-                  {dayOccs.length === 0 && (
-                    <p className="py-2 text-center text-[10px] text-muted">—</p>
-                  )}
-                </div>
               </div>
-            );
-          })}
+
+              {/* Day columns */}
+              {days.map((day) => {
+                const isToday = day === today;
+                const dayOccs = getOccsForDay(day);
+                const layout = computeOverlapLayout(dayOccs);
+
+                return (
+                  <div
+                    key={day}
+                    className={`flex-1 border-l border-border relative ${isToday ? "bg-primary/[0.02]" : ""}`}
+                    onClick={(e) => {
+                      // Click on empty area to create block at that hour
+                      if ((e.target as HTMLElement).closest("button")) return;
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      const y = e.clientY - rect.top;
+                      const hour = Math.floor(y / HOUR_HEIGHT);
+                      openNewBlock(day, hour);
+                    }}
+                  >
+                    {/* Hour grid lines */}
+                    {HOURS.map((h) => (
+                      <div
+                        key={h}
+                        className="absolute w-full border-t border-border/30"
+                        style={{ top: h * HOUR_HEIGHT }}
+                      />
+                    ))}
+
+                    {/* "Now" indicator */}
+                    {isToday && (
+                      <div
+                        className="absolute left-0 right-0 z-20 pointer-events-none"
+                        style={{ top: nowTop }}
+                      >
+                        <div className="flex items-center">
+                          <div className="h-2.5 w-2.5 -ml-[5px] rounded-full bg-red-500" />
+                          <div className="flex-1 h-[2px] bg-red-500" />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Blocks */}
+                    {layout.map((lb, k) => {
+                      const startH = new Date(lb.occ.startAt).getHours() + new Date(lb.occ.startAt).getMinutes() / 60;
+                      let endH = new Date(lb.occ.endAt).getHours() + new Date(lb.occ.endAt).getMinutes() / 60;
+                      // Cross-midnight: cap at 24
+                      if (endH <= startH) endH = 24;
+
+                      const top = startH * HOUR_HEIGHT;
+                      const height = Math.max((endH - startH) * HOUR_HEIGHT, 18);
+                      const leftPct = (lb.col / lb.totalCols) * 100;
+                      const widthPct = (1 / lb.totalCols) * 100;
+                      const colors = CATEGORY_COLORS[lb.occ.category] || CATEGORY_COLORS.outro;
+                      const isShort = height < 36;
+
+                      return (
+                        <button
+                          key={k}
+                          onClick={(e) => { e.stopPropagation(); openEditBlock(lb.occ); }}
+                          className={`absolute z-10 overflow-hidden rounded border text-left transition-opacity hover:opacity-80 ${colors}`}
+                          style={{
+                            top,
+                            height,
+                            left: `${leftPct}%`,
+                            width: `calc(${widthPct}% - 2px)`,
+                            marginLeft: 1,
+                          }}
+                          title={`${lb.occ.title}\n${formatTime(lb.occ.startAt)} - ${formatTime(lb.occ.endAt)}`}
+                        >
+                          {isShort ? (
+                            <div className="px-1 py-0.5 text-[9px] leading-tight truncate">
+                              <span className="font-semibold">{lb.occ.title}</span>
+                            </div>
+                          ) : (
+                            <div className="px-1.5 py-1">
+                              <div className="text-[10px] font-semibold leading-tight truncate">
+                                {lb.occ.title}
+                                {lb.occ.kind === "ANCHOR" && <span className="ml-0.5 opacity-60">⚓</span>}
+                                {lb.occ.isRoutine && <span className="ml-0.5 opacity-60">↻</span>}
+                              </div>
+                              <div className="text-[9px] opacity-75 leading-tight">
+                                {formatTime(lb.occ.startAt)} – {formatTime(lb.occ.endAt)}
+                              </div>
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       )}
 
@@ -374,7 +533,7 @@ function formatDateBR(dateStr: string): string {
   return `${d}/${m}`;
 }
 
-// Simplified client-side constraint checking
+// Constraint checking (no conflict alerts — overlaps are visual now)
 function checkConstraintsClient(
   occs: ExpandedOccurrence[],
   rules: { lateEventCutoffMin: number; windDownMin: number; maxLateNightsPerWeek: number; protectAnchors: boolean; targetSleepTimeMin: number | null },
@@ -393,55 +552,14 @@ function checkConstraintsClient(
   for (const [date, dayOccs] of byDay) {
     const sorted = [...dayOccs].sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime());
 
-    // Conflicts
-    for (let i = 0; i < sorted.length; i++) {
-      for (let j = i + 1; j < sorted.length; j++) {
-        if (new Date(sorted[i].endAt) > new Date(sorted[j].startAt)) {
-          alerts.push({
-            type: "conflict",
-            severity: "warning",
-            message: `"${sorted[i].title}" e "${sorted[j].title}" se sobrepoem.`,
-            date,
-            blockIds: [sorted[i].blockId, sorted[j].blockId],
-          });
-        }
-      }
-    }
-
-    // Late nights (aligned with server-side constraints.ts)
+    // Late nights (skip Google-sourced blocks)
     for (const occ of sorted) {
+      if (occ.sourceType === "google") continue;
       const endDate = new Date(occ.endAt);
       const endMin = endDate.getHours() * 60 + endDate.getMinutes();
-      // Handle blocks ending after midnight: endMin < 360 (before 6:00) means late night
       const isLate = endMin > rules.lateEventCutoffMin || (endMin < 360 && endMin > 0);
       if (isLate && occ.kind !== "ANCHOR") {
         if (!lateNightDates.includes(date)) lateNightDates.push(date);
-        alerts.push({
-          type: "late_night",
-          severity: "info",
-          message: `"${occ.title}" termina apos o horario limite.`,
-          date,
-          blockIds: [occ.blockId],
-        });
-      }
-    }
-
-    // Anchor protection
-    if (rules.protectAnchors) {
-      const anchors = sorted.filter((o) => o.kind === "ANCHOR");
-      const flexes = sorted.filter((o) => o.kind !== "ANCHOR");
-      for (const anchor of anchors) {
-        for (const flex of flexes) {
-          if (new Date(flex.startAt) < new Date(anchor.endAt) && new Date(flex.endAt) > new Date(anchor.startAt)) {
-            alerts.push({
-              type: "anchor_override",
-              severity: "warning",
-              message: `"${flex.title}" conflita com ancora "${anchor.title}".`,
-              date,
-              blockIds: [flex.blockId, anchor.blockId],
-            });
-          }
-        }
       }
     }
   }
@@ -450,7 +568,7 @@ function checkConstraintsClient(
     alerts.push({
       type: "max_late_nights",
       severity: "warning",
-      message: `${lateNightDates.length} noites tardias nesta semana (limite: ${rules.maxLateNightsPerWeek}).`,
+      message: `${lateNightDates.length} noites tardias nesta semana (limite: ${rules.maxLateNightsPerWeek}). Este alerta e automatico e nao substitui avaliacao profissional.`,
       date: lateNightDates[0],
       blockIds: [],
     });

@@ -9,6 +9,7 @@ export interface PlannerBlockData {
   notes: string | null;
   energyCost: number;
   stimulation: number;
+  sourceType?: string; // "app" | "google"
   recurrence: {
     freq: string;
     interval: number;
@@ -36,6 +37,7 @@ export interface ExpandedOccurrence {
   notes: string | null;
   energyCost: number;
   stimulation: number;
+  sourceType?: string; // "app" | "google"
   isRecurring: boolean;
   occurrenceDate: string; // YYYY-MM-DD anchor for this occurrence
 }

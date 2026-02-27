@@ -13,6 +13,7 @@ export interface SerializedBlock {
   notes: string | null;
   energyCost: number;
   stimulation: number;
+  sourceType?: string; // "app" | "google"
   recurrence: {
     freq: string;
     interval: number;
@@ -42,6 +43,7 @@ function hydrate(block: SerializedBlock): PlannerBlockData {
     notes: block.notes,
     energyCost: block.energyCost,
     stimulation: block.stimulation,
+    sourceType: block.sourceType,
     recurrence: block.recurrence
       ? {
           freq: block.recurrence.freq,

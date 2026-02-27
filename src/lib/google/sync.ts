@@ -3,6 +3,8 @@ import { getAuthenticatedClient } from "./auth";
 import {
   blockToGoogleEvent,
   googleEventToBlockData,
+  isAllDayEvent,
+  isLongEvent,
   createGoogleEvent,
   updateGoogleEvent,
   deleteGoogleEvent,
@@ -32,13 +34,14 @@ export async function syncGoogleCalendar(userId: string): Promise<SyncResult> {
   let errors = 0;
 
   // ── PUSH: App → Google ─────────────────────────────────────
+  const pushWatermark = account.lastSyncAt || account.createdAt;
   const unsyncedBlocks = await prisma.plannerBlock.findMany({
     where: {
       userId,
       sourceType: "app",
       OR: [
         { googleEventId: null },
-        { updatedAt: { gt: account.updatedAt } },
+        { updatedAt: { gt: pushWatermark } },
       ],
     },
   });
@@ -97,52 +100,49 @@ export async function syncGoogleCalendar(userId: string): Promise<SyncResult> {
       // Skip events created by our app — app is source of truth
       if (extProps.empresaBipolarId) continue;
 
-      // Upsert Google-sourced event
-      const blockData = googleEventToBlockData(event);
-      const existing = await prisma.plannerBlock.findFirst({
-        where: { googleEventId: event.id, userId },
-      });
+      // Skip all-day and excessively long events (>18h) — they pollute the planner
+      if (isAllDayEvent(event) || isLongEvent(event)) continue;
 
-      if (existing) {
-        await prisma.plannerBlock.update({
-          where: { id: existing.id },
-          data: {
-            title: blockData.title,
-            startAt: blockData.startAt,
-            endAt: blockData.endAt,
-            notes: blockData.notes,
-          },
-        });
-      } else {
-        await prisma.plannerBlock.create({
-          data: {
-            userId,
-            title: blockData.title,
-            category: blockData.category,
-            kind: blockData.kind,
-            startAt: blockData.startAt,
-            endAt: blockData.endAt,
-            notes: blockData.notes,
-            energyCost: blockData.energyCost,
-            stimulation: blockData.stimulation,
-            googleEventId: event.id,
-            sourceType: "google",
-          },
-        });
-      }
+      // Upsert Google-sourced event (unique constraint prevents duplicates)
+      const blockData = googleEventToBlockData(event);
+      await prisma.plannerBlock.upsert({
+        where: {
+          userId_googleEventId: { userId, googleEventId: event.id },
+        },
+        update: {
+          title: blockData.title,
+          startAt: blockData.startAt,
+          endAt: blockData.endAt,
+          notes: blockData.notes,
+        },
+        create: {
+          userId,
+          title: blockData.title,
+          category: blockData.category,
+          kind: blockData.kind,
+          startAt: blockData.startAt,
+          endAt: blockData.endAt,
+          notes: blockData.notes,
+          energyCost: blockData.energyCost,
+          stimulation: blockData.stimulation,
+          googleEventId: event.id,
+          sourceType: "google",
+        },
+      });
       pulled++;
     } catch {
       errors++;
     }
   }
 
-  // Update syncToken for next incremental sync
-  if (response.nextSyncToken) {
-    await prisma.googleAccount.update({
-      where: { userId },
-      data: { syncToken: response.nextSyncToken },
-    });
-  }
+  // Update syncToken and lastSyncAt for next incremental sync
+  await prisma.googleAccount.update({
+    where: { userId },
+    data: {
+      ...(response.nextSyncToken ? { syncToken: response.nextSyncToken } : {}),
+      lastSyncAt: new Date(),
+    },
+  });
 
   return { pushed, pulled, errors };
 }

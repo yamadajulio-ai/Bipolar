@@ -26,8 +26,9 @@ export default function IntegracoesPage() {
   useEffect(() => {
     fetchKeys();
     // Check Google Calendar connection status
-    fetch("/api/google/sync", { method: "POST" })
-      .then((r) => { if (r.ok) setGoogleConnected(true); })
+    fetch("/api/google/sync")
+      .then((r) => r.json())
+      .then((data) => { if (data.connected) setGoogleConnected(true); })
       .catch(() => {});
     // Also check via URL param after OAuth callback
     if (typeof window !== "undefined") {

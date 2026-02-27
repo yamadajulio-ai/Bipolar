@@ -37,7 +37,8 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.redirect(new URL("/integracoes?google=connected", request.url));
-  } catch {
+  } catch (err) {
+    console.error("Google auth callback error:", err);
     return NextResponse.redirect(new URL("/integracoes?error=google_auth_failed", request.url));
   }
 }

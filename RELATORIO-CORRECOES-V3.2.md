@@ -1,4 +1,4 @@
-# Empresa Bipolar — Relatorio de Correcoes Criticas v3.2
+# Rede Bipolar — Relatorio de Correcoes Criticas v3.2
 
 **Data**: 26/02/2026
 **Repositorio**: https://github.com/yamadajulio-ai/Bipolar.git (publico)

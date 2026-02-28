@@ -1,4 +1,4 @@
-# Empresa Bipolar
+# Rede Bipolar
 
 Plataforma educacional e de auto-organização para pessoas com Transtorno Afetivo Bipolar tipo 1 (TAB1) e suas famílias.
 
@@ -7,7 +7,7 @@ Plataforma educacional e de auto-organização para pessoas com Transtorno Afeti
 
 ## Sobre o projeto
 
-O Empresa Bipolar oferece:
+O Rede Bipolar oferece:
 
 - **Diário Expandido** — Humor (1-5), sono, energia, ansiedade, irritabilidade, adesão à medicação, sinais de alerta
 - **Painel de Tendências** — Gráficos de humor/sono com recharts, alertas automáticos de padrões

@@ -64,7 +64,7 @@ export function MonthlyReport({ data }: MonthlyReportProps) {
           {new Date(data.month + "-15").toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}
         </p>
         <p className="mt-2 text-xs text-muted print:text-[10px]">
-          Gerado em {new Date().toLocaleDateString("pt-BR")} — Empresa Bipolar
+          Gerado em {new Date().toLocaleDateString("pt-BR")} — Rede Bipolar
         </p>
         <p className="mt-1 text-xs text-warning print:text-[10px]">
           Este relatório é educacional e não substitui avaliação profissional.

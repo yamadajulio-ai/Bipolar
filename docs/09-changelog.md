@@ -1,4 +1,4 @@
-# Changelog — Empresa Bipolar
+# Changelog — Rede Bipolar
 
 ## v3.3.0 — 2026-02-28
 

@@ -69,7 +69,7 @@ export function ReminderManager() {
         const notifKey = `${key}-${currentTime}`;
         if (time === currentTime && !notifiedRef.current.has(notifKey)) {
           notifiedRef.current.add(notifKey);
-          new Notification("Empresa Bipolar", {
+          new Notification("Rede Bipolar", {
             body: reminderLabels[key],
             icon: "/favicon.ico",
           });

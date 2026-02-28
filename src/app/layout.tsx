@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Empresa Bipolar — Educação e auto-organização para TAB",
+  title: "Rede Bipolar — Juntos pelo equilíbrio",
   description:
     "Ferramentas educativas e de auto-organização para pessoas com Transtorno Afetivo Bipolar tipo 1 e suas famílias. Não substitui tratamento médico ou psicológico.",
 };

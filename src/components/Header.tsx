@@ -23,7 +23,7 @@ export function Header({ isLoggedIn }: HeaderProps) {
     <header className="border-b border-border bg-white/80 backdrop-blur-sm">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
         <Link href={isLoggedIn ? "/hoje" : "/"} className="text-lg font-semibold text-primary-dark no-underline">
-          Empresa Bipolar
+          Rede Bipolar
         </Link>
 
         {isLoggedIn ? (

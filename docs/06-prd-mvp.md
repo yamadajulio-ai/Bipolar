@@ -1,4 +1,4 @@
-# PRD — Empresa Bipolar
+# PRD — Rede Bipolar
 
 ## Objetivo
 

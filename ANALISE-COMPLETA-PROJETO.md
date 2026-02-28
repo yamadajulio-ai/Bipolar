@@ -1,4 +1,4 @@
-# Empresa Bipolar — Relatório Completo do Projeto
+# Rede Bipolar — Relatório Completo do Projeto
 
 **Data**: 28/02/2026
 **Autor do desenvolvimento**: Julio Yamada (com Claude Code / Claude Opus 4.6)
@@ -11,7 +11,7 @@
 
 ## 1. O QUE É O PROJETO
 
-**Empresa Bipolar** é uma plataforma web educativa e de auto-organização para pessoas com Transtorno Afetivo Bipolar Tipo 1 (TAB1) e suas famílias. O produto NÃO substitui tratamento médico/psicológico — funciona como ferramenta complementar.
+**Rede Bipolar** é uma plataforma web educativa e de auto-organização para pessoas com Transtorno Afetivo Bipolar Tipo 1 (TAB1) e suas famílias. O produto NÃO substitui tratamento médico/psicológico — funciona como ferramenta complementar.
 
 ### Princípios Fundamentais
 1. Segurança em primeiro lugar (avaliação de risco para estados de crise)
@@ -713,4 +713,4 @@ O backlog planejado original (86 stories) está 100% completo. Direções futura
 
 ---
 
-*Documento atualizado em 28/02/2026 para análise externa do estado completo do projeto Empresa Bipolar.*
+*Documento atualizado em 28/02/2026 para análise externa do estado completo do projeto Rede Bipolar.*

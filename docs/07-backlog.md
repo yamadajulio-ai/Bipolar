@@ -1,4 +1,4 @@
-# Backlog do Produto — Empresa Bipolar
+# Backlog do Produto — Rede Bipolar
 
 ## Epico 0: Calendario de Estabilidade (Core MVP)
 

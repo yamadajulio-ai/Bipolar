@@ -18,7 +18,7 @@ export interface SyncResult {
 }
 
 /**
- * Bidirectional sync between Empresa Bipolar planner and Google Calendar.
+ * Bidirectional sync between Rede Bipolar planner and Google Calendar.
  *
  * Conflict resolution:
  * - Blocks with sourceType="app" are owned by this app. Changes push to Google.

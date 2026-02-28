@@ -4,6 +4,7 @@ import { localToday } from "@/lib/dateUtils";
 import { Card } from "@/components/Card";
 import { Greeting } from "@/components/Greeting";
 import { TodayBlocks } from "@/components/planner/TodayBlocks";
+import { getNews } from "@/lib/news";
 import Link from "next/link";
 
 export default async function HojePage() {
@@ -47,6 +48,10 @@ export default async function HojePage() {
   const rules = await prisma.stabilityRule.findUnique({
     where: { userId: session.userId },
   });
+
+  // Latest news (3 items for preview)
+  const latestNews = await getNews();
+  const newsPreview = latestNews.slice(0, 3);
 
   // Serialize blocks for client component
   const serializedBlocks = blocks.map((b) => ({
@@ -161,6 +166,47 @@ export default async function HojePage() {
           </Card>
         </Link>
       </div>
+
+      {/* Notícias */}
+      {newsPreview.length > 0 && (
+        <div>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="font-semibold text-foreground">Notícias e Estudos</h2>
+            <Link href="/noticias" className="text-sm text-primary hover:underline">
+              Ver todas
+            </Link>
+          </div>
+          <div className="space-y-2">
+            {newsPreview.map((article) => (
+              <a
+                key={article.id}
+                href={article.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block no-underline"
+              >
+                <Card className="hover:border-primary/50 transition-colors">
+                  <div className="flex items-start gap-3">
+                    <span className={`mt-0.5 inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                      article.source === "pubmed"
+                        ? "bg-blue-100 text-blue-700"
+                        : "bg-green-100 text-green-700"
+                    }`}>
+                      {article.source === "pubmed" ? "PubMed" : "Notícia"}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-foreground line-clamp-2">{article.title}</p>
+                      <p className="mt-1 text-xs text-muted">
+                        {article.sourceName} · {article.publishedAt.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Integrações */}
       <div>

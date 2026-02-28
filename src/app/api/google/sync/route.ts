@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { syncGoogleCalendar } from "@/lib/google/sync";
+import { pullGoogleCalendar } from "@/lib/google/sync";
 
 export async function GET() {
   const session = await getSession();
@@ -19,7 +19,7 @@ export async function GET() {
 export async function POST() {
   const session = await getSession();
   if (!session.isLoggedIn) {
-    return NextResponse.json({ error: "Nao autorizado" }, { status: 401 });
+    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
   const account = await prisma.googleAccount.findUnique({
@@ -27,17 +27,17 @@ export async function POST() {
   });
   if (!account) {
     return NextResponse.json(
-      { error: "Google Calendar nao conectado" },
+      { error: "Google Calendar não conectado" },
       { status: 400 },
     );
   }
 
   try {
-    const result = await syncGoogleCalendar(session.userId);
+    const result = await pullGoogleCalendar(session.userId);
     return NextResponse.json(result);
   } catch {
     return NextResponse.json(
-      { error: "Erro na sincronizacao com Google Calendar" },
+      { error: "Erro na sincronização com Google Calendar" },
       { status: 500 },
     );
   }

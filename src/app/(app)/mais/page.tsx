@@ -10,8 +10,6 @@ const modules = [
   { href: "/exercicios", label: "Exercícios", description: "Respiração e aterramento" },
   { href: "/rotina", label: "Rotina", description: "Rastreador de ritmo social (IPSRT)" },
   { href: "/rotina/tendencias", label: "Tendências de Rotina", description: "Regularidade de âncoras" },
-  { href: "/mais/templates", label: "Templates", description: "Templates de semana salvos" },
-  { href: "/mais/rotinas", label: "Rotinas", description: "Gerenciar rotinas persistentes" },
   { href: "/conteudos", label: "Biblioteca", description: "Artigos educacionais sobre Transtorno Bipolar" },
   { href: "/cursos", label: "Cursos", description: "Cursos estruturados com aulas" },
   { href: "/sons", label: "Sons Ambiente", description: "Ruído branco, rosa, marrom e chuva" },

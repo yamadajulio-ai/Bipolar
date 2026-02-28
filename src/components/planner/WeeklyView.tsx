@@ -3,33 +3,15 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Card } from "@/components/Card";
 import { Alert } from "@/components/Alert";
-import { BlockEditorModal } from "./BlockEditorModal";
-import { QuickAddInput } from "./QuickAddInput";
-import { TemplateApplyModal } from "./TemplateApplyModal";
-import { WeekCloneModal } from "./WeekCloneModal";
 import { CATEGORY_COLORS } from "@/lib/planner/categories";
 import { localToday, localDateStr } from "@/lib/dateUtils";
 import { expandSerializedBlocks } from "@/lib/planner/expandClient";
 import type { SerializedBlock } from "@/lib/planner/expandClient";
 import type { ExpandedOccurrence, StabilityAlert } from "@/lib/planner/types";
+import Link from "next/link";
 
 interface WeeklyViewProps {
   initialWeekStart: string; // YYYY-MM-DD (Monday)
-}
-
-interface BlockFormData {
-  id?: string;
-  title: string;
-  category: string;
-  kind: string;
-  date: string;
-  startTime: string;
-  endTime: string;
-  energyCost: number;
-  stimulation: number;
-  notes: string;
-  recurrenceFreq: string;
-  recurrenceWeekDays: number[];
 }
 
 const WEEKDAY_NAMES = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sab", "Dom"];
@@ -77,7 +59,6 @@ function computeOverlapLayout(occs: ExpandedOccurrence[]): LayoutBlock[] {
   let groupStart = 0;
 
   while (groupStart < sorted.length) {
-    // Find extent of this overlap group
     let groupEnd = groupStart;
     let maxEnd = new Date(sorted[groupStart].endAt).getTime();
 
@@ -86,8 +67,7 @@ function computeOverlapLayout(occs: ExpandedOccurrence[]): LayoutBlock[] {
       maxEnd = Math.max(maxEnd, new Date(sorted[groupEnd].endAt).getTime());
     }
 
-    // Assign columns within this group
-    const columns: number[] = []; // end times for each column
+    const columns: number[] = [];
     const groupItems: { occ: ExpandedOccurrence; col: number }[] = [];
 
     for (let i = groupStart; i <= groupEnd; i++) {
@@ -121,13 +101,11 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
   const [occurrences, setOccurrences] = useState<ExpandedOccurrence[]>([]);
   const [alerts, setAlerts] = useState<StabilityAlert[]>([]);
   const [loading, setLoading] = useState(true);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingBlock, setEditingBlock] = useState<Partial<BlockFormData> | undefined>();
-  const [editingBlockId, setEditingBlockId] = useState<string | undefined>();
-  const [templateModalOpen, setTemplateModalOpen] = useState(false);
-  const [cloneModalOpen, setCloneModalOpen] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [googleConnected, setGoogleConnected] = useState<boolean | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const didScroll = useRef(false);
+  const didAutoSync = useRef(false);
 
   const weekEnd = addDays(weekStart, 6);
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
@@ -148,8 +126,6 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
       const rulesRes = await fetch("/api/planner/rules");
       if (rulesRes.ok) {
         const rules = await rulesRes.json();
-        // Filter to only occurrences whose date falls within the 7-day week
-        // This prevents "8 late nights" caused by edge-of-range blocks
         const weekOccs = expanded.filter((o) => o.occurrenceDate >= start && o.occurrenceDate <= end);
         const constraintAlerts = checkConstraintsClient(weekOccs, rules);
         setAlerts(constraintAlerts);
@@ -161,8 +137,48 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
     }
   }, []);
 
+  // Auto-sync from Google Calendar on mount
   useEffect(() => {
-    fetchData(weekStart);
+    async function autoSync() {
+      if (didAutoSync.current) return;
+      didAutoSync.current = true;
+
+      // Check if Google is connected
+      try {
+        const res = await fetch("/api/google/sync");
+        if (res.ok) {
+          const data = await res.json();
+          setGoogleConnected(data.connected);
+
+          if (data.connected) {
+            setSyncing(true);
+            try {
+              await fetch("/api/google/sync", { method: "POST" });
+            } catch {
+              // sync failure is non-blocking
+            } finally {
+              setSyncing(false);
+            }
+            // Refresh blocks after sync
+            await fetchData(weekStart);
+            return;
+          }
+        }
+      } catch {
+        setGoogleConnected(false);
+      }
+
+      // If not connected, just fetch existing blocks
+      await fetchData(weekStart);
+    }
+    autoSync();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fetch data when week changes (after initial load)
+  useEffect(() => {
+    if (didAutoSync.current) {
+      fetchData(weekStart);
+    }
   }, [weekStart, fetchData]);
 
   // Scroll to 7am on first load
@@ -181,106 +197,6 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
     setWeekStart(getMonday(localToday()));
   }
 
-  function openNewBlock(date: string, hour?: number) {
-    const startTime = hour !== undefined
-      ? `${String(hour).padStart(2, "0")}:00`
-      : undefined;
-    const endTime = hour !== undefined
-      ? `${String(Math.min(hour + 1, 23)).padStart(2, "0")}:00`
-      : undefined;
-    setEditingBlock({ date, id: undefined, startTime, endTime } as Partial<BlockFormData>);
-    setEditingBlockId(undefined);
-    setModalOpen(true);
-  }
-
-  function openEditBlock(occ: ExpandedOccurrence) {
-    setEditingBlock({
-      id: occ.blockId,
-      title: occ.title,
-      category: occ.category,
-      kind: occ.kind,
-      date: occ.occurrenceDate,
-      startTime: formatTime(occ.startAt),
-      endTime: formatTime(occ.endAt),
-      energyCost: occ.energyCost,
-      stimulation: occ.stimulation,
-      notes: occ.notes || "",
-      recurrenceFreq: "NONE",
-      recurrenceWeekDays: [],
-    });
-    setEditingBlockId(occ.blockId);
-    setModalOpen(true);
-  }
-
-  async function handleSave(data: BlockFormData) {
-    const startDate = new Date(`${data.date}T${data.startTime}:00`);
-    const endDate = new Date(`${data.date}T${data.endTime}:00`);
-    if (endDate <= startDate) {
-      endDate.setDate(endDate.getDate() + 1);
-    }
-
-    const body: Record<string, unknown> = {
-      title: data.title,
-      category: data.category,
-      kind: data.kind,
-      startAt: startDate.toISOString(),
-      endAt: endDate.toISOString(),
-      notes: data.notes || undefined,
-      energyCost: data.energyCost,
-      stimulation: data.stimulation,
-    };
-
-    if (data.recurrenceFreq !== "NONE") {
-      body.recurrence = {
-        freq: data.recurrenceFreq,
-        interval: 1,
-        weekDays: data.recurrenceFreq === "WEEKLY" ? data.recurrenceWeekDays.join(",") : undefined,
-      };
-    }
-
-    if (data.id) {
-      await fetch(`/api/planner/blocks/${data.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-    } else {
-      await fetch("/api/planner/blocks", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-    }
-
-    await fetchData(weekStart);
-  }
-
-  async function handleDelete() {
-    if (!editingBlockId) return;
-    await fetch(`/api/planner/blocks/${editingBlockId}`, { method: "DELETE" });
-    await fetchData(weekStart);
-  }
-
-  function handlePartialParse(parsed: Record<string, unknown>) {
-    const startAt = parsed.startAt ? new Date(parsed.startAt as string) : new Date();
-    const endAt = parsed.endAt ? new Date(parsed.endAt as string) : new Date();
-    setEditingBlock({
-      title: (parsed.title as string) || "",
-      category: (parsed.category as string) || "outro",
-      kind: (parsed.kind as string) || "FLEX",
-      date: localDateStr(startAt),
-      startTime: formatTime(startAt),
-      endTime: formatTime(endAt),
-      energyCost: (parsed.energyCost as number) || 3,
-      stimulation: (parsed.stimulation as number) || 1,
-      notes: "",
-      recurrenceFreq: "NONE",
-      recurrenceWeekDays: [],
-    });
-    setEditingBlockId(undefined);
-    setModalOpen(true);
-  }
-
   function getOccsForDay(dayStr: string): ExpandedOccurrence[] {
     return occurrences.filter((o) => o.occurrenceDate === dayStr);
   }
@@ -294,6 +210,36 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
 
   return (
     <div>
+      {/* Banner: connect Google Calendar */}
+      {googleConnected === false && (
+        <Link
+          href="/integracoes"
+          className="mb-4 flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 no-underline transition-colors hover:bg-amber-100"
+        >
+          <svg className="h-5 w-5 shrink-0" viewBox="0 0 24 24">
+            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
+            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+          </svg>
+          <div>
+            <p className="text-sm font-medium text-amber-800">Conecte seu Google Calendar</p>
+            <p className="text-xs text-amber-600">Seus eventos aparecerão automaticamente no planejador.</p>
+          </div>
+        </Link>
+      )}
+
+      {/* Syncing indicator */}
+      {syncing && (
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2.5">
+          <svg className="h-4 w-4 animate-spin text-blue-600" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          <span className="text-sm text-blue-700">Sincronizando com Google Calendar...</span>
+        </div>
+      )}
+
       {/* Week navigation */}
       <div className="mb-4 flex items-center justify-between">
         <button
@@ -317,39 +263,14 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
           onClick={() => navigateWeek(1)}
           className="rounded-lg border border-border bg-surface px-3 py-1.5 text-sm font-medium text-muted hover:border-primary/50"
         >
-          Proximo &rarr;
+          Próximo &rarr;
         </button>
       </div>
 
-      {/* Toolbar */}
-      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
-        <div className="flex-1">
-          <QuickAddInput
-            contextDate={weekStart}
-            onCreated={() => fetchData(weekStart)}
-            onPartialParse={handlePartialParse}
-          />
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setTemplateModalOpen(true)}
-            className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-medium text-muted hover:border-primary/50 hover:text-foreground"
-          >
-            Template
-          </button>
-          <button
-            onClick={() => setCloneModalOpen(true)}
-            className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-medium text-muted hover:border-primary/50 hover:text-foreground"
-          >
-            Copiar semana
-          </button>
-        </div>
-      </div>
-
-      {/* Week-level alerts (no conflict alerts — overlaps are shown visually) */}
+      {/* Week-level alerts */}
       {alerts.filter((a) => a.type === "max_late_nights").map((a, i) => (
         <Alert key={i} variant="warning" className="mb-3">
-          {a.message} Este alerta e automatico e nao substitui avaliacao profissional.
+          {a.message} Este alerta é automático e não substitui avaliação profissional.
         </Alert>
       ))}
 
@@ -414,14 +335,6 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
                   <div
                     key={day}
                     className={`flex-1 border-l border-border relative ${isToday ? "bg-primary/[0.02]" : ""}`}
-                    onClick={(e) => {
-                      // Click on empty area to create block at that hour
-                      if ((e.target as HTMLElement).closest("button")) return;
-                      const rect = e.currentTarget.getBoundingClientRect();
-                      const y = e.clientY - rect.top;
-                      const hour = Math.floor(y / HOUR_HEIGHT);
-                      openNewBlock(day, hour);
-                    }}
                   >
                     {/* Hour grid lines */}
                     {HOURS.map((h) => (
@@ -445,11 +358,10 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
                       </div>
                     )}
 
-                    {/* Blocks */}
+                    {/* Blocks (read-only) */}
                     {layout.map((lb, k) => {
                       const startH = new Date(lb.occ.startAt).getHours() + new Date(lb.occ.startAt).getMinutes() / 60;
                       let endH = new Date(lb.occ.endAt).getHours() + new Date(lb.occ.endAt).getMinutes() / 60;
-                      // Cross-midnight: cap at 24
                       if (endH <= startH) endH = 24;
 
                       const top = startH * HOUR_HEIGHT;
@@ -460,10 +372,9 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
                       const isShort = height < 36;
 
                       return (
-                        <button
+                        <div
                           key={k}
-                          onClick={(e) => { e.stopPropagation(); openEditBlock(lb.occ); }}
-                          className={`absolute z-10 overflow-hidden rounded border text-left transition-opacity hover:opacity-80 ${colors}`}
+                          className={`absolute z-10 overflow-hidden rounded border text-left ${colors}`}
                           style={{
                             top,
                             height,
@@ -482,14 +393,13 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
                               <div className="text-[10px] font-semibold leading-tight truncate">
                                 {lb.occ.title}
                                 {lb.occ.kind === "ANCHOR" && <span className="ml-0.5 opacity-60">⚓</span>}
-                                {lb.occ.isRoutine && <span className="ml-0.5 opacity-60">↻</span>}
                               </div>
                               <div className="text-[9px] opacity-75 leading-tight">
                                 {formatTime(lb.occ.startAt)} – {formatTime(lb.occ.endAt)}
                               </div>
                             </div>
                           )}
-                        </button>
+                        </div>
                       );
                     })}
                   </div>
@@ -500,28 +410,13 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
         </div>
       )}
 
-      <BlockEditorModal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        onSave={handleSave}
-        onDelete={editingBlockId ? handleDelete : undefined}
-        initial={editingBlock}
-        isRecurring={editingBlock?.id !== undefined}
-      />
-
-      <TemplateApplyModal
-        isOpen={templateModalOpen}
-        onClose={() => setTemplateModalOpen(false)}
-        onApplied={() => fetchData(weekStart)}
-        weekStart={weekStart}
-      />
-
-      <WeekCloneModal
-        isOpen={cloneModalOpen}
-        onClose={() => setCloneModalOpen(false)}
-        onCloned={() => fetchData(weekStart)}
-        currentWeekStart={weekStart}
-      />
+      {/* Empty state */}
+      {!loading && occurrences.length === 0 && googleConnected && (
+        <div className="mt-4 text-center text-sm text-muted">
+          <p>Nenhum evento nesta semana.</p>
+          <p className="mt-1">Crie eventos no Google Calendar e eles aparecerão aqui automaticamente.</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -533,7 +428,6 @@ function formatDateBR(dateStr: string): string {
   return `${d}/${m}`;
 }
 
-// Constraint checking (no conflict alerts — overlaps are visual now)
 function checkConstraintsClient(
   occs: ExpandedOccurrence[],
   rules: { lateEventCutoffMin: number; windDownMin: number; maxLateNightsPerWeek: number; protectAnchors: boolean; targetSleepTimeMin: number | null },
@@ -552,9 +446,7 @@ function checkConstraintsClient(
   for (const [date, dayOccs] of byDay) {
     const sorted = [...dayOccs].sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime());
 
-    // Late nights (skip Google-sourced blocks)
     for (const occ of sorted) {
-      if (occ.sourceType === "google") continue;
       const endDate = new Date(occ.endAt);
       const endMin = endDate.getHours() * 60 + endDate.getMinutes();
       const isLate = endMin > rules.lateEventCutoffMin || (endMin < 360 && endMin > 0);
@@ -568,7 +460,7 @@ function checkConstraintsClient(
     alerts.push({
       type: "max_late_nights",
       severity: "warning",
-      message: `${lateNightDates.length} noites tardias nesta semana (limite: ${rules.maxLateNightsPerWeek}). Este alerta e automatico e nao substitui avaliacao profissional.`,
+      message: `${lateNightDates.length} noites tardias nesta semana (limite: ${rules.maxLateNightsPerWeek}).`,
       date: lateNightDates[0],
       blockIds: [],
     });

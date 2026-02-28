@@ -138,12 +138,16 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
   }, []);
 
   // Auto-sync from Google Calendar on mount
+  // Strategy: show existing blocks immediately, sync in background, refresh after
   useEffect(() => {
     async function autoSync() {
       if (didAutoSync.current) return;
       didAutoSync.current = true;
 
-      // Check if Google is connected
+      // 1. Show existing blocks immediately (no waiting for sync)
+      await fetchData(weekStart);
+
+      // 2. Check if Google is connected and sync in background
       try {
         const res = await fetch("/api/google/sync");
         if (res.ok) {
@@ -153,23 +157,25 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
           if (data.connected) {
             setSyncing(true);
             try {
-              await fetch("/api/google/sync", { method: "POST" });
+              const controller = new AbortController();
+              const timeout = setTimeout(() => controller.abort(), 15000);
+              await fetch("/api/google/sync", {
+                method: "POST",
+                signal: controller.signal,
+              });
+              clearTimeout(timeout);
+              // Refresh blocks after successful sync
+              await fetchData(weekStart);
             } catch {
-              // sync failure is non-blocking
+              // sync failure or timeout is non-blocking
             } finally {
               setSyncing(false);
             }
-            // Refresh blocks after sync
-            await fetchData(weekStart);
-            return;
           }
         }
       } catch {
         setGoogleConnected(false);
       }
-
-      // If not connected, just fetch existing blocks
-      await fetchData(weekStart);
     }
     autoSync();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps

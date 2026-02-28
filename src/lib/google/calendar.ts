@@ -47,10 +47,10 @@ export async function listEvents(
 
   const fullSyncParams = {
     calendarId,
-    timeMin: new Date(Date.now() - 30 * 86400000).toISOString(),
-    timeMax: new Date(Date.now() + 30 * 86400000).toISOString(),
+    timeMin: new Date(Date.now() - 7 * 86400000).toISOString(),
+    timeMax: new Date(Date.now() + 14 * 86400000).toISOString(),
     singleEvents: true,
-    maxResults: 2500,
+    maxResults: 500,
     showDeleted: true,
   };
 

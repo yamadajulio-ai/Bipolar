@@ -110,7 +110,7 @@ export default async function HojePage() {
           <p className="text-lg font-bold">{todayEntry?.energyLevel ? `${todayEntry.energyLevel}/5` : "—"}</p>
         </Card>
         <Card>
-          <p className="text-xs text-muted">Medicacao</p>
+          <p className="text-xs text-muted">Medicação</p>
           <p className="text-lg font-bold">
             {todayEntry?.tookMedication === "sim" ? "Sim" : todayEntry?.tookMedication === "nao" ? "Nao" : "—"}
           </p>
@@ -161,7 +161,7 @@ export default async function HojePage() {
         </Link>
         <Link href="/exercicios" className="block no-underline">
           <Card className="hover:border-primary/50 transition-colors text-center">
-            <p className="font-medium text-foreground">Respiracao</p>
+            <p className="font-medium text-foreground">Respiração</p>
           </Card>
         </Link>
         <Link href="/sos" className="block no-underline">
@@ -171,10 +171,10 @@ export default async function HojePage() {
         </Link>
       </div>
 
-      {/* Integracoes */}
+      {/* Integrações */}
       <div>
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="font-semibold text-foreground">Integracoes</h2>
+          <h2 className="font-semibold text-foreground">Integrações</h2>
           <Link href="/integracoes" className="text-sm text-primary hover:underline">
             Ver todas
           </Link>

@@ -146,7 +146,7 @@ export default function CheckinPage() {
 
         {/* Medication */}
         <Card>
-          <label className="block text-sm font-medium text-foreground mb-2">Medicacao</label>
+          <label className="block text-sm font-medium text-foreground mb-2">Medicação</label>
           <div className="flex gap-2">
             {MEDICATION_OPTIONS.map((opt) => (
               <button

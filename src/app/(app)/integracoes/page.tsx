@@ -12,7 +12,7 @@ interface IntegrationKeyData {
   createdAt: string;
 }
 
-export default function IntegracoesPage() {
+export default function IntegraçõesPage() {
   const [keys, setKeys] = useState<IntegrationKeyData[]>([]);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -81,9 +81,9 @@ export default function IntegracoesPage() {
 
   return (
     <div>
-      <h1 className="mb-2 text-2xl font-bold">Integracoes</h1>
+      <h1 className="mb-2 text-2xl font-bold">Integrações</h1>
       <p className="mb-6 text-sm text-muted">
-        Conecte servicos externos para sincronizar dados automaticamente.
+        Conecte serviços externos para sincronizar dados automaticamente.
       </p>
 
       {/* Health Auto Export */}

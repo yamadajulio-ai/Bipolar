@@ -31,7 +31,7 @@ export default function ExerciciosPage() {
       <h1 className="mb-6 text-2xl font-bold">Exercicios</h1>
 
       <section className="mb-8">
-        <h2 className="mb-4 text-lg font-semibold text-foreground">Respiracao</h2>
+        <h2 className="mb-4 text-lg font-semibold text-foreground">Respiração</h2>
         <div className="space-y-3">
           {breathingEntries.map(([key, config]) => (
             <Link key={key} href={`/exercicios/respiracao/${key}`} className="block no-underline">

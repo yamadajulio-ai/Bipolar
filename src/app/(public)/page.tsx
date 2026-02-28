@@ -32,11 +32,11 @@ export default function LandingPage() {
             </h1>
             <p className="mx-auto mb-6 max-w-2xl text-base leading-relaxed text-[#6b7280]">
               Tudo que uma pessoa com Transtorno Afetivo Bipolar tipo 1 precisa em um
-              so lugar: rotina, sono, humor, financas e corpo. Feito por quem entende.
+              só lugar: rotina, sono, humor, finanças e corpo. Feito por quem entende.
             </p>
 
             <div className="mx-auto mb-8 max-w-md rounded-2xl border border-[#fde68a] bg-[#fef3c7] px-5 py-3 text-sm text-[#92400e]">
-              Conteudo educacional — nao substitui seu profissional de saude
+              Conteúdo educacional — não substitui seu profissional de saúde
             </div>
 
             <div className="flex gap-3">
@@ -63,7 +63,7 @@ export default function LandingPage() {
             Os 4 pilares do seu cuidado
           </h2>
           <p className="mx-auto mb-12 max-w-lg text-center text-sm text-[#6b7280]">
-            Cada area e um ponto critico para a estabilidade no TAB tipo 1. Aqui voce monitora todas.
+            Cada área é um ponto crítico para a estabilidade no TAB tipo 1. Aqui você monitora todas.
           </p>
           <div className="grid gap-6 md:grid-cols-2">
             {/* Rotina */}
@@ -79,8 +79,8 @@ export default function LandingPage() {
               <div>
                 <h3 className="mb-1 font-semibold text-[#14532d]">Rotina e Google Agenda</h3>
                 <p className="text-sm leading-relaxed text-[#6b7280]">
-                  Regularidade protege contra episodios. Planeje sua semana com blocos de atividades,
-                  ancoras de sono e sincronize tudo com o Google Calendar.
+                  Regularidade protege contra episódios. Planeje sua semana com blocos de atividades,
+                  âncoras de sono e sincronize tudo com o Google Calendar.
                 </p>
               </div>
             </div>
@@ -92,8 +92,8 @@ export default function LandingPage() {
               <div>
                 <h3 className="mb-1 font-semibold text-[#14532d]">Controle financeiro e Mobills</h3>
                 <p className="text-sm leading-relaxed text-[#6b7280]">
-                  Gastos impulsivos sao um dos primeiros sinais de mania. Importe do Mobills
-                  e veja seus padroes de gasto cruzados com humor e energia.
+                  Gastos impulsivos são um dos primeiros sinais de mania. Importe do Mobills
+                  e veja seus padrões de gasto cruzados com humor e energia.
                 </p>
               </div>
             </div>
@@ -107,8 +107,8 @@ export default function LandingPage() {
               <div>
                 <h3 className="mb-1 font-semibold text-[#14532d]">Sono e corpo via Apple Health</h3>
                 <p className="text-sm leading-relaxed text-[#6b7280]">
-                  Alteracoes no sono precedem crises em ate 72h. Dados de HRV, sono e atividade
-                  fisica entram automaticamente via Health Auto Export.
+                  Alterações no sono precedem crises em até 72h. Dados de HRV, sono e atividade
+                  física entram automaticamente via Health Auto Export.
                 </p>
               </div>
             </div>
@@ -120,8 +120,8 @@ export default function LandingPage() {
               <div>
                 <h3 className="mb-1 font-semibold text-[#14532d]">Check-in de humor em 30s</h3>
                 <p className="text-sm leading-relaxed text-[#6b7280]">
-                  Registre humor, energia e medicacao diariamente. O sistema detecta padroes e
-                  avisa quando algo foge do normal — antes que voce perceba.
+                  Registre humor, energia e medicação diariamente. O sistema detecta padrões e
+                  avisa quando algo foge do normal — antes que você perceba.
                 </p>
               </div>
             </div>
@@ -141,26 +141,26 @@ export default function LandingPage() {
               {[
                 {
                   icon: "📊",
-                  title: "Insights e tendencias",
-                  desc: "Graficos de humor, sono e energia ao longo do tempo. Identifique ciclos e compartilhe com seu medico.",
+                  title: "Insights e tendências",
+                  desc: "Gráficos de humor, sono e energia ao longo do tempo. Identifique ciclos e compartilhe com seu médico.",
                   bg: "#dbeafe",
                 },
                 {
                   icon: "📖",
                   title: "Biblioteca educacional",
-                  desc: "Conteudos confiaveis sobre TAB tipo 1, sinais precoces, sono e direitos do paciente.",
+                  desc: "Conteúdos confiáveis sobre TAB tipo 1, sinais precoces, sono e direitos do paciente.",
                   bg: "#fce7f3",
                 },
                 {
                   icon: "🫁",
-                  title: "Respiracao e aterramento",
-                  desc: "Exercicios guiados para ansiedade e insonia. Visuais calmos, sem pressao.",
+                  title: "Respiração e aterramento",
+                  desc: "Exercícios guiados para ansiedade e insônia. Visuais calmos, sem pressão.",
                   bg: "#e0e7ff",
                 },
                 {
                   icon: "💛",
-                  title: "Apoio para familias",
-                  desc: "Guia pratico para familiares: como apoiar, limites saudaveis e quando buscar ajuda.",
+                  title: "Apoio para famílias",
+                  desc: "Guia prático para familiares: como apoiar, limites saudáveis e quando buscar ajuda.",
                   bg: "#fef9c3",
                 },
               ].map((feature) => (

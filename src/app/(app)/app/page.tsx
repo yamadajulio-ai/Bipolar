@@ -97,10 +97,10 @@ export default async function DashboardPage() {
         <QuickActions />
       </div>
 
-      {/* Integracoes */}
+      {/* Integrações */}
       <div>
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="font-semibold text-foreground">Integracoes</h2>
+          <h2 className="font-semibold text-foreground">Integrações</h2>
           <Link href="/integracoes" className="text-sm text-primary hover:underline">
             Ver todas
           </Link>

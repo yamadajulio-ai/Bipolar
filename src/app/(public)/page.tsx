@@ -31,7 +31,7 @@ export default function LandingPage() {
               Seu painel de estabilidade
             </h1>
             <p className="mx-auto mb-6 max-w-2xl text-base leading-relaxed text-[#6b7280]">
-              Tudo que uma pessoa com Transtorno Afetivo Bipolar tipo 1 precisa em um
+              Tudo que uma pessoa com Transtorno Afetivo Bipolar precisa em um
               só lugar: rotina, sono, humor, finanças e corpo. Feito por quem entende.
             </p>
 
@@ -63,7 +63,7 @@ export default function LandingPage() {
             Os 4 pilares do seu cuidado
           </h2>
           <p className="mx-auto mb-12 max-w-lg text-center text-sm text-[#6b7280]">
-            Cada área é um ponto crítico para a estabilidade no TAB tipo 1. Aqui você monitora todas.
+            Cada área é um ponto crítico para a estabilidade no TAB. Aqui você monitora todas.
           </p>
           <div className="grid gap-6 md:grid-cols-2">
             {/* Rotina */}
@@ -148,7 +148,7 @@ export default function LandingPage() {
                 {
                   icon: "📖",
                   title: "Biblioteca educacional",
-                  desc: "Conteúdos confiáveis sobre TAB tipo 1, sinais precoces, sono e direitos do paciente.",
+                  desc: "Conteúdos confiáveis sobre Transtorno Bipolar, sinais precoces, sono e direitos do paciente.",
                   bg: "#fce7f3",
                 },
                 {

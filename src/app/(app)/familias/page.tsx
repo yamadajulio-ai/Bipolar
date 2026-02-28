@@ -13,7 +13,7 @@ export default function FamiliasPage() {
 
       <section className="mb-8">
         <h2 className="mb-3 text-lg font-semibold">
-          Como apoiar alguém com TAB tipo 1
+          Como apoiar alguém com TAB
         </h2>
         <Card>
           <div className="space-y-3 text-sm text-muted">

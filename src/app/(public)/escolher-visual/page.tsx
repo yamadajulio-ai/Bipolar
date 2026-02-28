@@ -70,7 +70,7 @@ function PreviewAurora() {
           Você não precisa passar<br/>por isso sozinho
         </h2>
         <p className="relative text-[10px] text-[#6b7280] mb-4 max-w-[220px] mx-auto leading-relaxed">
-          Ferramentas de cuidado para quem convive com TAB tipo 1 e suas famílias
+          Ferramentas de cuidado para quem convive com Transtorno Bipolar e suas famílias
         </p>
 
         <div className="relative rounded-2xl p-3 mb-3" style={{ background: "rgba(255,255,255,0.5)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.6)" }}>
@@ -138,7 +138,7 @@ function PreviewTerra() {
           Juntos, um passo de cada vez
         </h2>
         <p className="relative text-[10px] text-[#795548] mb-3 leading-relaxed">
-          Educação e ferramentas para o dia a dia com TAB tipo 1. No seu ritmo.
+          Educação e ferramentas para o dia a dia com Transtorno Bipolar. No seu ritmo.
         </p>
 
         <div className="relative inline-block rounded-full bg-[#efebe9] border border-[#d7ccc8] px-4 py-1.5 text-[10px] text-[#6d4c41] mb-3">
@@ -214,7 +214,7 @@ function PreviewNoite() {
           Calma. Você está seguro.
         </h2>
         <p className="relative text-[10px] text-[#94a3b8] mb-4 max-w-[220px] mx-auto leading-relaxed">
-          Ferramentas gentis para o dia a dia com TAB tipo 1
+          Ferramentas gentis para o dia a dia com Transtorno Bipolar
         </p>
 
         <div className="relative inline-block rounded-xl px-3 py-1.5 text-[9px] text-[#93c5fd] mb-3" style={{ background: "rgba(59,130,246,0.08)", border: "1px solid rgba(59,130,246,0.15)" }}>
@@ -280,7 +280,7 @@ function PreviewJardim() {
           Cultive sua estabilidade
         </h2>
         <p className="relative text-[10px] text-[#6b7280] mb-3 max-w-[220px] mx-auto leading-relaxed">
-          Cada dia é uma semente. Educação e ferramentas para o dia a dia com TAB tipo 1.
+          Cada dia é uma semente. Educação e ferramentas para o dia a dia com Transtorno Bipolar.
         </p>
 
         <div className="relative inline-block rounded-xl bg-[#fef3c7] border border-[#fde68a] px-3 py-1 text-[10px] text-[#92400e] mb-3">
@@ -348,7 +348,7 @@ function PreviewEditorial() {
             Você não<br/>precisa passar<br/>por isso sozinho.
           </h2>
           <p className="text-[9px] text-[#737373] mb-3 leading-relaxed">
-            Ferramentas de cuidado para quem convive com TAB tipo 1.
+            Ferramentas de cuidado para quem convive com Transtorno Bipolar.
           </p>
           <div className="border-l-2 border-[#ea580c] pl-2 mb-3">
             <p className="text-[8px] text-[#a3a3a3] italic">Educacional — não substitui profissional</p>

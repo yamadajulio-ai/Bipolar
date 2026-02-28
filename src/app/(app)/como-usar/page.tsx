@@ -160,7 +160,7 @@ const sections = [
     id: "dicas",
     title: "Dicas para estabilidade",
     content: [
-      "Essas dicas sao baseadas em praticas comuns de manejo do TAB tipo 1:",
+      "Essas dicas são baseadas em práticas comuns de manejo do TAB:",
       "• Proteja suas ancoras — acordar, refeicoes e dormir no mesmo horario todos os dias",
       "• Defina um horario limite noturno — evite atividades estimulantes depois desse horario",
       "• Monitore sua carga de energia — dias com muita carga exigem mais descanso",

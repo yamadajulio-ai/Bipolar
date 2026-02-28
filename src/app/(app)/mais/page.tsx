@@ -12,7 +12,7 @@ const modules = [
   { href: "/rotina/tendencias", label: "Tendências de Rotina", description: "Regularidade de âncoras" },
   { href: "/mais/templates", label: "Templates", description: "Templates de semana salvos" },
   { href: "/mais/rotinas", label: "Rotinas", description: "Gerenciar rotinas persistentes" },
-  { href: "/conteudos", label: "Biblioteca", description: "Artigos educacionais sobre TAB1" },
+  { href: "/conteudos", label: "Biblioteca", description: "Artigos educacionais sobre Transtorno Bipolar" },
   { href: "/cursos", label: "Cursos", description: "Cursos estruturados com aulas" },
   { href: "/sons", label: "Sons Ambiente", description: "Ruído branco, rosa, marrom e chuva" },
   { href: "/relatorio", label: "Relatório Mensal", description: "Resumo para profissionais de saúde" },

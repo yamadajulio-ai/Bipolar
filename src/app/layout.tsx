@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Rede Bipolar — Juntos pelo equilíbrio",
   description:
-    "Ferramentas educativas e de auto-organização para pessoas com Transtorno Afetivo Bipolar tipo 1 e suas famílias. Não substitui tratamento médico ou psicológico.",
+    "Ferramentas educativas e de auto-organização para pessoas com Transtorno Afetivo Bipolar e suas famílias. Não substitui tratamento médico ou psicológico.",
 };
 
 export default function RootLayout({

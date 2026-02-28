@@ -5,6 +5,7 @@ import { Card } from "@/components/Card";
 import { Greeting } from "@/components/Greeting";
 import { TodayBlocks } from "@/components/planner/TodayBlocks";
 import { getNews } from "@/lib/news";
+import Image from "next/image";
 import Link from "next/link";
 
 export default async function HojePage() {
@@ -238,10 +239,8 @@ export default async function HojePage() {
           <Link href="/financeiro" className="block no-underline">
             <Card className="hover:border-primary/50 transition-colors">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-50">
-                  <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
-                  </svg>
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg">
+                  <Image src="/mobills-logo.png" alt="Mobills" width={40} height={40} className="object-contain" />
                 </div>
                 <div>
                   <p className="font-medium text-foreground">Mobills</p>

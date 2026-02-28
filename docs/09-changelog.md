@@ -1,5 +1,17 @@
 # Changelog — Rede Bipolar
 
+## v3.3.1 — 2026-02-28
+
+### Rebrand: Empresa Bipolar → Rede Bipolar
+
+- Rebrand completo em todo o projeto (17 arquivos)
+- Novo nome: **Rede Bipolar**
+- Tagline: **"Juntos pelo equilíbrio"**
+- E-mails atualizados: contato@redebipolar.com, privacidade@redebipolar.com
+- Cookie name mantido (`empresa-bipolar-session`) para não invalidar sessões
+
+---
+
 ## v3.3.0 — 2026-02-28
 
 ### Hardening, Deploy Producao, XLSX

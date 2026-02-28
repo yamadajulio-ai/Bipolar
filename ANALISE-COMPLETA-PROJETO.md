@@ -130,6 +130,13 @@ Redução drástica de entrada manual:
 - **Importação XLSX do Mobills** — suporte a arquivos .xlsx/.xls além de .csv (SheetJS), detecção automática de formato, parser com suporte a datas Excel serial e formato R$
 - Migration: `lastSyncAt` + unique index `PlannerBlock_userId_googleEventId_key`
 
+### v3.3.1 — 28/02/2026 (Rebrand)
+- **Rebrand completo**: "Empresa Bipolar" → **"Rede Bipolar"** em todo o projeto
+- Tagline: **"Juntos pelo equilíbrio"**
+- E-mails atualizados: `contato@redebipolar.com`, `privacidade@redebipolar.com`
+- 17 arquivos alterados (código-fonte + documentação)
+- Cookie name mantido como `empresa-bipolar-session` para não invalidar sessões existentes
+
 ---
 
 ## 4. ARQUITETURA DO PROJETO
@@ -137,7 +144,7 @@ Redução drástica de entrada manual:
 ### Estrutura de diretórios
 
 ```
-empresa-bipolar/
+rede-bipolar/
 ├── content/
 │   ├── biblioteca/          # 11 artigos markdown sobre TAB1
 │   └── cursos/              # 4 cursos com aulas sequenciais
@@ -154,9 +161,9 @@ empresa-bipolar/
 ├── src/
 │   ├── middleware.ts         # Auth middleware (protege rotas, redireciona)
 │   ├── app/
-│   │   ├── layout.tsx       # Root layout
+│   │   ├── layout.tsx       # Root layout (title: "Rede Bipolar — Juntos pelo equilíbrio")
 │   │   ├── globals.css      # Tailwind + CSS custom properties
-│   │   ├── (app)/           # Rotas autenticadas (42+ páginas)
+│   │   ├── (app)/           # Rotas autenticadas (42 páginas)
 │   │   │   ├── layout.tsx       # Layout com Header, Footer, SOSButton, disclaimers
 │   │   │   ├── hoje/            # Tela Hoje (autopiloto)
 │   │   │   ├── planejador/      # Calendário de estabilidade
@@ -180,7 +187,7 @@ empresa-bipolar/
 │   │   │   └── como-usar/       # Guia completo
 │   │   ├── (auth)/          # Login, cadastro
 │   │   ├── (public)/        # Landing, termos, privacidade, escolher-visual
-│   │   └── api/             # 32+ API routes
+│   │   └── api/             # 33 API routes
 │   │       ├── auth/            # login, cadastro, logout, google OAuth
 │   │       ├── diario/          # CRUD + tendências
 │   │       ├── sono/            # CRUD + tendências
@@ -196,7 +203,7 @@ empresa-bipolar/
 │   │       ├── plano-de-crise/  # GET/PUT
 │   │       ├── relatorio/       # GET
 │   │       └── cursos/          # aula + progresso
-│   ├── components/          # 53+ componentes React
+│   ├── components/          # 47+ componentes React
 │   │   ├── planner/         # 11 componentes (WeeklyView, BlockEditor, QuickAdd, etc.)
 │   │   ├── charts/          # 5 gráficos (Mood, Sleep, Rhythm, Distribution, Period)
 │   │   ├── dashboard/       # 5 widgets (TodayStatus, QuickActions, MiniTrend, etc.)
@@ -311,16 +318,16 @@ empresa-bipolar/
 
 | Métrica | Valor |
 |---------|-------|
-| Arquivos .ts/.tsx | ~130+ |
-| Páginas/telas | 42+ |
-| API routes | 32+ |
-| Componentes React | 53+ |
+| Arquivos .ts/.tsx | 152 |
+| Páginas/telas | 42 |
+| API routes | 33 |
+| Componentes React | 47+ |
 | Modelos Prisma | 18 |
 | Módulos de lib | 24+ |
 | Conteúdo educacional | 4 cursos (16 aulas) + 11 artigos |
 | Dependências de produção | 15 |
 | Dependências de dev | 11 |
-| Dias de desenvolvimento | 5 (24-28/02/2026) |
+| Dias de desenvolvimento | 5 (24-28/02/2026) + rebrand |
 | Integrações externas | 3 (Google Calendar, Health Auto Export, Mobills CSV/XLSX) |
 | Uso de IA para recomendações | 0 |
 | Gamificação | 0 |
@@ -580,7 +587,7 @@ model FinancialTransaction {
 ### Autenticação
 - Senhas com bcrypt (cost 12)
 - Sessão iron-session HttpOnly (7 dias)
-- Cookie: `empresa-bipolar-session`, httpOnly, secure em prod, sameSite=lax
+- Cookie: `empresa-bipolar-session` (nome legado mantido para não invalidar sessões), httpOnly, secure em prod, sameSite=lax
 - Middleware protege todas as rotas autenticadas
 - Rate limiting no login
 
@@ -650,7 +657,7 @@ model FinancialTransaction {
 | 06-prd-mvp.md | PRD completo (funcionalidades, métricas, restrições) |
 | 07-backlog.md | 86+ user stories em 13+ épicos |
 | 08-politica-de-moderacao-e-crise.md | Política de moderação e gestão de crise |
-| 09-changelog.md | Changelog v1.0.0 → v3.2.0 |
+| 09-changelog.md | Changelog v1.0.0 → v3.3.1 |
 
 ---
 
@@ -713,4 +720,4 @@ O backlog planejado original (86 stories) está 100% completo. Direções futura
 
 ---
 
-*Documento atualizado em 28/02/2026 para análise externa do estado completo do projeto Rede Bipolar.*
+*Documento atualizado em 28/02/2026 para análise externa do estado completo do projeto Rede Bipolar (rebrand de "Empresa Bipolar").*

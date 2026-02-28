@@ -75,9 +75,9 @@ export default function FinanceiroPage() {
             </p>
           </Card>
           <Card>
-            <p className="text-xs text-muted">Media/dia</p>
+            <p className="text-xs text-muted">Média/dia</p>
             <p className="text-xl font-bold">R$ {summary.dailyAverage.toFixed(2)}</p>
-            <p className="text-xs text-muted">{summary.transactionCount} transacoes</p>
+            <p className="text-xs text-muted">{summary.transactionCount} transações</p>
           </Card>
         </div>
       )}
@@ -93,7 +93,7 @@ export default function FinanceiroPage() {
           onClick={() => setShowForm(!showForm)}
           className="text-sm font-medium text-primary"
         >
-          {showForm ? "Fechar" : "+ Adicionar transacao manual"}
+          {showForm ? "Fechar" : "+ Adicionar transação manual"}
         </button>
         {showForm && <ManualEntryForm onCreated={() => { fetchData(); setShowForm(false); }} />}
       </Card>
@@ -116,13 +116,13 @@ export default function FinanceiroPage() {
 
       {/* Transaction list */}
       <Card className="mb-6">
-        <h2 className="mb-3 text-lg font-semibold">Transacoes (30 dias)</h2>
-        <TransactionList transactions={transactions} />
+        <h2 className="mb-3 text-lg font-semibold">Transações (30 dias)</h2>
+        <TransactionList transactions={transactions} onDeleted={fetchData} />
       </Card>
 
       <p className="text-center text-xs text-muted mt-4">
-        Gastos elevados em periodos de humor alto podem ser sinal de fase maniaca.
-        Compartilhe com seu profissional de saude.
+        Gastos elevados em períodos de humor alto podem ser sinal de fase maníaca.
+        Compartilhe com seu profissional de saúde.
       </p>
     </div>
   );
@@ -183,7 +183,7 @@ function ManualEntryForm({ onCreated }: { onCreated: () => void }) {
         </div>
       </div>
       <div>
-        <label className="text-xs text-muted">Descricao</label>
+        <label className="text-xs text-muted">Descrição</label>
         <input name="description" type="text" required maxLength={200} className="w-full rounded border border-border bg-surface px-2 py-1 text-sm" />
       </div>
       <div className="grid grid-cols-2 gap-3">

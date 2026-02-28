@@ -1,10 +1,11 @@
 # Empresa Bipolar — Relatório Completo do Projeto
 
-**Data**: 27/02/2026
+**Data**: 28/02/2026
 **Autor do desenvolvimento**: Julio Yamada (com Claude Code / Claude Opus 4.6)
 **Repositório**: https://github.com/yamadajulio-ai/Bipolar.git
 **Branch**: main
 **Ambiente**: localhost:3000 (dev) | PostgreSQL (produção via Neon)
+**Produção**: https://redebipolar.com | https://redebipolar.com.br (Vercel)
 
 ---
 
@@ -38,6 +39,7 @@
 | Gráficos | Recharts | 3.7.0 |
 | Markdown | remark + rehype + gray-matter | — |
 | Google API | googleapis | 171.4.0 |
+| XLSX Parser | SheetJS (xlsx) | 0.18.5 |
 | Linguagem | TypeScript | 5.x |
 | Package Manager | pnpm | — |
 | Testes | Vitest | 4.0.18 |
@@ -113,6 +115,21 @@ Redução drástica de entrada manual:
 - 2 novos campos no PlannerBlock (googleEventId, sourceType)
 - 8+ novas API routes, 4 novos componentes UI
 
+### v3.3.0 — 28/02/2026 (Hardening, Deploy Produção, XLSX)
+- **Deploy em produção** — Vercel com domínios redebipolar.com e redebipolar.com.br
+- **Google Calendar Sync Hardening** (5 correções):
+  - Filtro de eventos all-day e eventos longos (>18h) que poluíam o planejador
+  - `singleEvents: true` no sync incremental (evita receber recurring masters)
+  - Upsert com `@@unique([userId, googleEventId])` no lugar de findFirst+create (elimina duplicatas)
+  - `lastSyncAt` no GoogleAccount como watermark de push (antes usava updatedAt incorretamente)
+  - Filtro de ocorrências por semana visível antes de checar constraints (corrige "8 noites tardias")
+- **Planejador redesenhado** — grade horária estilo Google Calendar substituindo layout de cards
+- **sourceType propagado no pipeline** — campo adicionado em PlannerBlockData, ExpandedOccurrence, SerializedBlock, hydrate(), applyException()
+- **Alertas cross-source ignorados** — conflitos app↔google e noites tardias de blocos Google não geram alerta
+- **Badges de alerta condensados** — "3 Conflitos" em vez de 3 badges individuais "Conflito"
+- **Importação XLSX do Mobills** — suporte a arquivos .xlsx/.xls além de .csv (SheetJS), detecção automática de formato, parser com suporte a datas Excel serial e formato R$
+- Migration: `lastSyncAt` + unique index `PlannerBlock_userId_googleEventId_key`
+
 ---
 
 ## 4. ARQUITETURA DO PROJETO
@@ -157,7 +174,7 @@ empresa-bipolar/
 │   │   │   ├── plano-de-crise/  # Plano + edição
 │   │   │   ├── conta/           # Conta + lembretes
 │   │   │   ├── integracoes/     # Integrações (Google, Health Export)
-│   │   │   ├── financeiro/      # Dashboard financeiro + import CSV
+│   │   │   ├── financeiro/      # Dashboard financeiro + import CSV/XLSX
 │   │   │   ├── familias/        # Área para famílias
 │   │   │   ├── mais/            # Hub + templates + rotinas
 │   │   │   └── como-usar/       # Guia completo
@@ -202,7 +219,7 @@ empresa-bipolar/
 │       ├── planner/         # 10 módulos (types, categories, defaults, constraints,
 │       │                    #   quickAddParse, expandClient/Server/Recurrence,
 │       │                    #   templateApply, weekClone + testes)
-│       ├── financeiro/      # 1 módulo (parseMobillsCsv + teste)
+│       ├── financeiro/      # 2 módulos (parseMobillsCsv + parseMobillsXlsx + teste)
 │       └── integrations/    # 1 módulo (healthExport + teste)
 └── package.json
 ```
@@ -301,10 +318,10 @@ empresa-bipolar/
 | Modelos Prisma | 18 |
 | Módulos de lib | 24+ |
 | Conteúdo educacional | 4 cursos (16 aulas) + 11 artigos |
-| Dependências de produção | 14 |
+| Dependências de produção | 15 |
 | Dependências de dev | 11 |
-| Dias de desenvolvimento | 4 (24-27/02/2026) |
-| Integrações externas | 3 (Google Calendar, Health Auto Export, Mobills CSV) |
+| Dias de desenvolvimento | 5 (24-28/02/2026) |
+| Integrações externas | 3 (Google Calendar, Health Auto Export, Mobills CSV/XLSX) |
 | Uso de IA para recomendações | 0 |
 | Gamificação | 0 |
 
@@ -329,7 +346,7 @@ empresa-bipolar/
 ### Integrações Externas
 13. **Google Calendar Sync** — OAuth 2.0, sync bidirecional (push blocos → Google, pull eventos → app), sync incremental com syncToken, refresh automático de tokens
 14. **Health Auto Export** — webhook para dados de sono do iPhone, parsing de sleep_analysis, cálculo de qualidade (Deep+REM ratio), clustering de segmentos, rate limiting 60 req/h
-15. **Importação Financeira Mobills** — parser CSV inteligente (formato brasileiro), dashboard com gráficos, alerta de gastos elevados em mania, detecção de duplicatas
+15. **Importação Financeira Mobills** — parser CSV e XLSX inteligente (formato brasileiro), dashboard com gráficos, alerta de gastos elevados em mania, detecção de duplicatas
 
 ### Módulos Complementares
 16. Diário expandido (7 métricas + sinais de alerta)
@@ -415,20 +432,23 @@ empresa-bipolar/
 - `src/app/api/integrations/health-export/route.ts` — Webhook endpoint
 - `src/app/api/integrations/settings/route.ts` — CRUD de API keys
 
-### 7.3 Importação Financeira Mobills (CSV)
+### 7.3 Importação Financeira Mobills (CSV + XLSX)
 
 **Fluxo:**
-1. Usuário exporta CSV do app Mobills
+1. Usuário exporta CSV ou XLSX do app Mobills
 2. Upload via página /financeiro → POST /api/financeiro/import
-3. Parser detecta delimitador (; ou ,) e formato numérico brasileiro (1.234,56)
-4. Parse de datas dd/MM/yyyy → YYYY-MM-DD
-5. Valores negativos entre parênteses suportados
-6. Detecção de duplicatas via unique constraint (userId, date, description, amount)
-7. Dashboard mostra receitas, despesas, saldo, média diária, gráficos por categoria
+3. API detecta formato pelo nome do arquivo (.csv vs .xlsx/.xls)
+4. **CSV**: Parser detecta delimitador (; ou ,) e formato numérico brasileiro (1.234,56)
+5. **XLSX**: SheetJS lê a planilha, converte para array de arrays, detecta colunas por header
+6. Parse de datas dd/MM/yyyy → YYYY-MM-DD (também suporta serial Excel e YYYY-MM-DD)
+7. Valores negativos entre parênteses suportados, prefixo R$ removido automaticamente
+8. Detecção de duplicatas via unique constraint (userId, date, description, amount)
+9. Dashboard mostra receitas, despesas, saldo, média diária, gráficos por categoria
 
 **Arquivos:**
 - `src/lib/financeiro/parseMobillsCsv.ts` — Parser CSV
-- `src/app/api/financeiro/import/route.ts` — Endpoint de import
+- `src/lib/financeiro/parseMobillsXlsx.ts` — Parser XLSX (SheetJS)
+- `src/app/api/financeiro/import/route.ts` — Endpoint de import (detecta formato automaticamente)
 - `src/app/api/financeiro/route.ts` — CRUD transações
 - `src/app/api/financeiro/resumo/route.ts` — Resumo financeiro
 - `src/components/financeiro/` — FinanceCharts, ImportCSV, TransactionList
@@ -495,7 +515,8 @@ model PlannerBlock {
   isRoutine, startAt, endAt, notes?, energyCost (0-10),
   stimulation (0=LOW|1=MED|2=HIGH), googleEventId?, sourceType (app|google)
   → PlannerRecurrence?, PlannerException[]
-  @@index([userId, startAt]), @@index([userId, endAt])
+  @@index([userId, startAt]), @@index([userId, endAt]),
+  @@unique([userId, googleEventId])
 }
 
 model PlannerRecurrence {
@@ -529,7 +550,7 @@ model PlannerTemplateBlock {
 
 model GoogleAccount {
   id, userId (unique), accessToken, refreshToken, expiresAt,
-  calendarId (default "primary"), syncToken?
+  calendarId (default "primary"), syncToken?, lastSyncAt?
 }
 
 model IntegrationKey {
@@ -650,8 +671,10 @@ model FinancialTransaction {
 
 ## 14. BUGS CONHECIDOS / ISSUES ATUAIS
 
-1. **Conflitos duplicados no planejador** — Muitos itens "Conflito" aparecendo no calendário semanal (visível na tela, possivelmente relacionado ao sync do Google Calendar gerando duplicatas ou ao motor de regras detectando conflitos entre blocos recorrentes e importados)
-2. **8 noites tardias na semana** — Motor de regras detectando atividades após o horário limite (21:00 default), pode indicar que eventos do Google Calendar importados estão sendo avaliados pelas regras de estabilidade
+~~1. **Conflitos duplicados no planejador** — RESOLVIDO em v3.3.0 (alertas cross-source ignorados, unique constraint, badges condensados)~~
+~~2. **8 noites tardias na semana** — RESOLVIDO em v3.3.0 (filtro por semana visível, noites tardias de blocos Google ignoradas)~~
+
+Nenhum bug conhecido no momento.
 
 ---
 
@@ -660,9 +683,9 @@ model FinancialTransaction {
 O backlog planejado original (86 stories) está 100% completo. Direções futuras:
 
 ### Alta Prioridade
-- **Resolver conflitos/duplicatas no planejador** — investigar e corrigir
+- ~~**Resolver conflitos/duplicatas no planejador**~~ — CONCLUÍDO (v3.3.0)
 - **Testes automatizados** (unitários + integração) — cobertura crítica
-- **Deploy em produção** (Vercel + Neon PostgreSQL)
+- ~~**Deploy em produção**~~ — CONCLUÍDO (Vercel + Neon PostgreSQL em redebipolar.com / redebipolar.com.br)
 - **PWA** (Progressive Web App) para experiência mobile
 
 ### Média Prioridade
@@ -683,11 +706,11 @@ O backlog planejado original (86 stories) está 100% completo. Direções futura
 
 - **Ferramenta de desenvolvimento**: Claude Code (CLI) com modelo Claude Opus 4.6
 - **Metodologia**: Commits atômicos, lint + build verificados
-- **Tempo total**: ~4 dias (24-27/fev/2026)
+- **Tempo total**: ~5 dias (24-28/fev/2026)
 - **Conta de teste**: julio.yamada@teste.com / Julio2026!
 - **Repositório**: https://github.com/yamadajulio-ai/Bipolar.git
 - **Database prod**: PostgreSQL via Neon
 
 ---
 
-*Documento gerado em 27/02/2026 para análise externa do estado completo do projeto Empresa Bipolar.*
+*Documento atualizado em 28/02/2026 para análise externa do estado completo do projeto Empresa Bipolar.*

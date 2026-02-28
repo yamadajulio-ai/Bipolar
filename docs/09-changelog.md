@@ -1,5 +1,41 @@
 # Changelog — Empresa Bipolar
 
+## v3.3.0 — 2026-02-28
+
+### Hardening, Deploy Producao, XLSX
+
+#### Deploy em Producao
+- Vercel com auto-deploy do GitHub
+- Dominios: redebipolar.com e redebipolar.com.br
+- PostgreSQL via Neon
+
+#### Google Calendar Sync Hardening (5 correcoes)
+- Filtro de eventos all-day e eventos longos (>18h) que poluiam o planejador
+- `singleEvents: true` no sync incremental (evita recurring masters)
+- Upsert com `@@unique([userId, googleEventId])` (elimina duplicatas)
+- `lastSyncAt` no GoogleAccount como watermark de push (corrige push watermark)
+- Filtro de ocorrencias por semana visivel antes de checar constraints (corrige "8 noites tardias")
+
+#### Planejador Redesenhado
+- Grade horaria estilo Google Calendar substituindo layout de cards
+- sourceType propagado no pipeline (PlannerBlockData, ExpandedOccurrence, SerializedBlock)
+- Alertas cross-source ignorados (conflitos app<->google nao geram alerta)
+- Badges de alerta condensados ("3 Conflitos" em vez de badges individuais)
+
+#### Importacao XLSX do Mobills
+- Suporte a arquivos .xlsx/.xls alem de .csv (biblioteca SheetJS)
+- Deteccao automatica de formato pelo nome do arquivo
+- Parser com suporte a datas Excel serial, formato R$, numero brasileiro
+- Frontend atualizado para aceitar .csv, .xlsx e .xls
+
+#### Infraestrutura
+- Migration: `lastSyncAt` + unique index `PlannerBlock_userId_googleEventId_key`
+- 1 nova dependencia (xlsx / SheetJS 0.18.5)
+- 1 novo modulo (parseMobillsXlsx.ts)
+- 53 testes passando
+
+---
+
 ## v3.1.0 — 2026-02-26
 
 ### "Setup uma vez, roda sempre"

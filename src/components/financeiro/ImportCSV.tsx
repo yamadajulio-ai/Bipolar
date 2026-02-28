@@ -44,7 +44,7 @@ export function ImportCSV({ onImported }: { onImported: () => void }) {
       // Reset file input
       if (fileRef.current) fileRef.current.value = "";
     } catch {
-      setError("Erro de conexao ao importar CSV");
+      setError("Erro de conexao ao importar arquivo");
     } finally {
       setLoading(false);
     }
@@ -52,12 +52,12 @@ export function ImportCSV({ onImported }: { onImported: () => void }) {
 
   return (
     <div>
-      <h3 className="mb-2 text-sm font-medium">Importar CSV do Mobills</h3>
+      <h3 className="mb-2 text-sm font-medium">Importar do Mobills</h3>
       <div className="flex items-center gap-2">
         <input
           ref={fileRef}
           type="file"
-          accept=".csv"
+          accept=".csv,.xlsx,.xls"
           className="text-sm file:mr-2 file:rounded file:border-0 file:bg-primary file:px-3 file:py-1 file:text-sm file:text-white"
         />
         <button

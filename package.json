@@ -26,6 +26,7 @@
     "rehype-stringify": "^10.0.1",
     "remark": "^15.0.1",
     "remark-rehype": "^11.1.2",
+    "xlsx": "^0.18.5",
     "zod": "^4.3.6"
   },
   "pnpm": {

@@ -245,6 +245,23 @@ model IntegrationKey {
   @@unique([userId, service])
 }
 
+// ── Notícias (cache global) ──────────────────────────────────────
+
+model NewsArticle {
+  id          String   @id @default(uuid())
+  externalId  String   @unique
+  source      String   // "pubmed" | "google_news"
+  title       String
+  url         String
+  publishedAt DateTime
+  sourceName  String?
+  authors     String?
+  fetchedAt   DateTime @default(now())
+
+  @@index([source])
+  @@index([publishedAt])
+}
+
 // ── Financeiro ──────────────────────────────────────────────────
 
 model FinancialTransaction {

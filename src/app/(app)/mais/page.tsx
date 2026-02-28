@@ -11,6 +11,7 @@ const modules = [
   { href: "/rotina", label: "Rotina", description: "Rastreador de ritmo social (IPSRT)" },
   { href: "/rotina/tendencias", label: "Tendências de Rotina", description: "Regularidade de âncoras" },
   { href: "/conteudos", label: "Biblioteca", description: "Artigos educacionais sobre Transtorno Bipolar" },
+  { href: "/noticias", label: "Notícias", description: "Estudos e notícias atualizadas sobre Transtorno Bipolar" },
   { href: "/cursos", label: "Cursos", description: "Cursos estruturados com aulas" },
   { href: "/sons", label: "Sons Ambiente", description: "Ruído branco, rosa, marrom e chuva" },
   { href: "/relatorio", label: "Relatório Mensal", description: "Resumo para profissionais de saúde" },

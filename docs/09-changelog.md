@@ -1,5 +1,53 @@
 # Changelog — Rede Bipolar
 
+## v3.5.0 — 2026-02-28
+
+### Feed de Notícias, PWA, SEO, Financeiro e Cleanup
+
+#### Feed de Notícias Científicas (/noticias)
+- Nova página com feed de artigos do PubMed + notícias do Google News sobre Transtorno Bipolar
+- Abas: "Todos", "Estudos científicos" (PubMed), "Notícias" (Google News)
+- Cache em 2 camadas: ISR no Vercel CDN (1h) + banco PostgreSQL (1h TTL)
+- APIs externas chamadas no máximo 1x por hora
+- Preview de 3 artigos na página /hoje
+- Falha silenciosa: se API externa cai, serve cache stale
+- Novo model `NewsArticle` (cache global sem userId)
+
+#### PWA (Progressive Web App)
+- manifest.json com nome, ícones, standalone display
+- Service worker com offline fallback
+- Página /offline com botão de retry
+- Ícones PWA: 192x192, 512x512, apple-touch-icon
+
+#### SEO e Open Graph
+- Metadata completa: Open Graph, Twitter Cards, robots, canonical URL
+- JSON-LD structured data (schema.org WebApplication)
+- Imagem OG 1200x630 para compartilhamento social
+- Viewport com themeColor, width, initialScale
+
+#### Financeiro: Exclusão de Transações
+- Endpoint DELETE /api/financeiro/[id]
+- Botão de lixeira por transação com confirmação
+- Correção de acentos em labels
+
+#### Planejador: Somente Google Calendar
+- Sync simplificado para pull-only (removido push)
+- WeeklyView read-only com auto-sync no mount
+- Banner "Conecte seu Google Calendar" para não-conectados
+- Removidos 7 componentes e 5 API routes de criação manual
+- Removidos models PlannerTemplate e PlannerTemplateBlock
+- Limpeza de dados: DELETE blocos sourceType='app'
+- -2700 linhas de código removidas
+
+#### Infraestrutura
+- Logo real do Mobills em todas as páginas (substituiu SVG genérico)
+- Remoção de referências a "tipo 1" (app para qualquer tipo)
+- Google Sign-In (login com Google além de email/senha)
+- Landing page redesenhada com 4 pilares
+- 4 novas migrações PostgreSQL
+
+---
+
 ## v3.3.1 — 2026-02-28
 
 ### Rebrand: Empresa Bipolar → Rede Bipolar

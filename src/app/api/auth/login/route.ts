@@ -40,6 +40,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!user.passwordHash) {
+      return NextResponse.json(
+        { error: "Esta conta usa login social. Use o botão do Google para entrar." },
+        { status: 400 },
+      );
+    }
+
     const valid = await verifyPassword(senha, user.passwordHash);
     if (!valid) {
       return NextResponse.json(

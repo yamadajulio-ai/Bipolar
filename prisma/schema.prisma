@@ -10,7 +10,10 @@ datasource db {
 model User {
   id               String             @id @default(uuid())
   email            String             @unique
-  passwordHash     String
+  passwordHash     String?
+  authProvider     String             @default("email")
+  googleSub        String?            @unique
+  name             String?
   createdAt        DateTime           @default(now())
   entries          DiaryEntry[]
   views            ContentView[]

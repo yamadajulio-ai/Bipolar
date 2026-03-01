@@ -24,6 +24,7 @@ interface SleepRecord {
 interface SyncStatus {
   configured: boolean;
   enabled?: boolean;
+  lastPayload?: string | null;
   records: SleepRecord[];
 }
 
@@ -256,6 +257,17 @@ export default function IntegraçõesPage() {
           <p className="mt-2 text-xs text-muted">
             Se os valores parecem errados, clique &quot;Limpar dados&quot; e force uma nova sincronização no app.
           </p>
+
+          {syncStatus.lastPayload && (
+            <details className="mt-3">
+              <summary className="cursor-pointer text-xs text-muted hover:text-foreground">
+                Último payload recebido (debug)
+              </summary>
+              <pre className="mt-2 max-h-60 overflow-auto rounded bg-surface-alt p-2 text-xs font-mono whitespace-pre-wrap">
+                {syncStatus.lastPayload}
+              </pre>
+            </details>
+          )}
         </Card>
       )}
 

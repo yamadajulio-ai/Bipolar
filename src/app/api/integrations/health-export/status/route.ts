@@ -26,6 +26,7 @@ export async function GET() {
   return NextResponse.json({
     configured: true,
     enabled: integration.enabled,
+    lastPayload: integration.lastPayloadDebug ?? null,
     records: sleepLogs.map((l) => ({
       date: l.date,
       bedtime: l.bedtime,

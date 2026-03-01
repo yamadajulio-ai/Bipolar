@@ -75,8 +75,14 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    // Log the FULL payload structure to Vercel function logs for debugging
-    console.log("[health-export] Raw payload:", JSON.stringify(body, null, 2).slice(0, 5000));
+    // Store raw payload sample in DB for debugging (first 5KB)
+    const payloadStr = JSON.stringify(body, null, 2);
+    await prisma.integrationKey.update({
+      where: { apiKey },
+      data: { lastPayloadDebug: payloadStr.slice(0, 5000) },
+    });
+
+    console.log("[health-export] Raw payload:", payloadStr.slice(0, 5000));
 
     // Build debug info from payload
     const metrics = body?.data?.metrics ?? body?.metrics ?? [];

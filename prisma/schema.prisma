@@ -233,12 +233,13 @@ model GoogleAccount {
 }
 
 model IntegrationKey {
-  id        String   @id @default(uuid())
-  userId    String
-  service   String   // "health_auto_export"
-  apiKey    String   @unique
-  enabled   Boolean  @default(true)
-  createdAt DateTime @default(now())
+  id               String   @id @default(uuid())
+  userId           String
+  service          String   // "health_auto_export"
+  apiKey           String   @unique
+  enabled          Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  lastPayloadDebug String?  // Last raw payload sample for debugging
 
   user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

@@ -5,7 +5,7 @@ import { Alert } from "@/components/Alert";
 import { InsightsCharts } from "@/components/planner/InsightsCharts";
 import { localDateStr } from "@/lib/dateUtils";
 import { computeInsights, formatSleepDuration } from "@/lib/insights/computeInsights";
-import type { ClinicalAlert } from "@/lib/insights/computeInsights";
+import type { ClinicalAlert, PlannerBlockInput } from "@/lib/insights/computeInsights";
 import Link from "next/link";
 
 function colorToBg(color: "green" | "yellow" | "red"): string {
@@ -13,6 +13,12 @@ function colorToBg(color: "green" | "yellow" | "red"): string {
   if (color === "yellow") return "bg-amber-400";
   return "bg-red-400";
 }
+
+const SOURCE_LABELS: Record<string, string> = {
+  manual: "manual",
+  planner: "via planejador",
+  sleep: "via sono",
+};
 
 function AlertList({ alerts }: { alerts: ClinicalAlert[] }) {
   if (alerts.length === 0) return null;
@@ -35,7 +41,7 @@ export default async function InsightsPage() {
   cutoff30.setDate(cutoff30.getDate() - 30);
   const cutoff30Str = localDateStr(cutoff30);
 
-  const [sleepLogs, entries, rhythms] = await Promise.all([
+  const [sleepLogs, entries, rhythms, rawPlannerBlocks] = await Promise.all([
     prisma.sleepLog.findMany({
       where: { userId: session.userId, date: { gte: cutoff30Str } },
       orderBy: { date: "asc" },
@@ -48,9 +54,32 @@ export default async function InsightsPage() {
       where: { userId: session.userId, date: { gte: cutoff30Str } },
       orderBy: { date: "asc" },
     }),
+    prisma.plannerBlock.findMany({
+      where: {
+        userId: session.userId,
+        startAt: { gte: cutoff30 },
+        category: { in: ["social", "trabalho", "refeicao"] },
+      },
+      select: { startAt: true, category: true },
+      orderBy: { startAt: "asc" },
+    }),
   ]);
 
-  const insights = computeInsights(sleepLogs, entries, rhythms);
+  // Convert PlannerBlock DateTime to the format computeInsights expects
+  const plannerBlocks: PlannerBlockInput[] = rawPlannerBlocks.map((b) => {
+    const d = new Date(b.startAt);
+    return {
+      date: localDateStr(d),
+      timeHHMM: `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`,
+      category: b.category,
+    };
+  });
+
+  const insights = computeInsights(sleepLogs, entries, rhythms, plannerBlocks);
+
+  // Filter anchors that have data for the simplified IPSRT section
+  const anchorsWithData = Object.entries(insights.rhythm.anchors)
+    .filter(([, anchor]) => anchor.variance !== null);
 
   return (
     <div>
@@ -68,10 +97,10 @@ export default async function InsightsPage() {
           Alterações de sono frequentemente precedem mudanças de humor.
         </p>
 
-        <div className="mb-4 grid grid-cols-2 gap-3">
+        <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
           {/* Média de sono */}
           <Card>
-            <p className="text-xs text-muted">Média de sono</p>
+            <p className="text-xs text-muted">Média de sono (30 dias)</p>
             <p className="text-2xl font-bold">
               {insights.sleep.avgDuration !== null
                 ? formatSleepDuration(insights.sleep.avgDuration)
@@ -81,13 +110,13 @@ export default async function InsightsPage() {
               <div className={`mt-1 h-1.5 w-full rounded-full ${colorToBg(insights.sleep.avgDurationColor)}`} />
             )}
             <p className="mt-1 text-xs text-muted">
-              {insights.sleep.recordCount} registros (30 dias)
+              {insights.sleep.recordCount} registros
             </p>
           </Card>
 
           {/* Regularidade */}
           <Card>
-            <p className="text-xs text-muted">Regularidade do horário</p>
+            <p className="text-xs text-muted">Regularidade do horário (30 dias)</p>
             <p className="text-2xl font-bold">
               {insights.sleep.bedtimeVariance !== null
                 ? `±${insights.sleep.bedtimeVariance}min`
@@ -102,6 +131,26 @@ export default async function InsightsPage() {
                   : insights.sleep.bedtimeVariance <= 60 ? "Moderada"
                   : "Irregular — meta: ±30min"
                 : "variação do horário de dormir"}
+            </p>
+          </Card>
+
+          {/* Variabilidade da duração */}
+          <Card>
+            <p className="text-xs text-muted">Variabilidade da duração (30 dias)</p>
+            <p className="text-2xl font-bold">
+              {insights.sleep.durationVariability !== null
+                ? `±${insights.sleep.durationVariability}min`
+                : "—"}
+            </p>
+            {insights.sleep.durationVariabilityColor && (
+              <div className={`mt-1 h-1.5 w-full rounded-full ${colorToBg(insights.sleep.durationVariabilityColor)}`} />
+            )}
+            <p className="mt-1 text-xs text-muted">
+              {insights.sleep.durationVariability !== null
+                ? insights.sleep.durationVariability <= 30 ? "Consistente"
+                  : insights.sleep.durationVariability <= 60 ? "Moderada"
+                  : "Alta — meta: ±30min"
+                : "oscilação na duração noite a noite"}
             </p>
           </Card>
 
@@ -125,9 +174,32 @@ export default async function InsightsPage() {
             <p className="mt-1 text-xs text-muted">últimos 7 dias vs anteriores</p>
           </Card>
 
+          {/* Ponto médio do sono */}
+          <Card>
+            <p className="text-xs text-muted">Ponto médio do sono (30 dias)</p>
+            <p className="text-2xl font-bold">
+              {insights.sleep.midpoint ?? "—"}
+            </p>
+            {insights.sleep.midpointTrend && (
+              <div className="flex items-baseline gap-1">
+                <span className="text-sm">
+                  {insights.sleep.midpointTrend === "up" ? "↑ Atrasando"
+                    : insights.sleep.midpointTrend === "down" ? "↓ Adiantando"
+                    : "→ Estável"}
+                </span>
+                {insights.sleep.midpointDelta !== null && Math.abs(insights.sleep.midpointDelta) > 0 && (
+                  <span className="text-xs text-muted">
+                    ({insights.sleep.midpointDelta > 0 ? "+" : ""}{insights.sleep.midpointDelta}min)
+                  </span>
+                )}
+              </div>
+            )}
+            <p className="mt-1 text-xs text-muted">marcador circadiano</p>
+          </Card>
+
           {/* Qualidade */}
           <Card>
-            <p className="text-xs text-muted">Qualidade do sono</p>
+            <p className="text-xs text-muted">Qualidade do sono (30 dias)</p>
             <p className="text-2xl font-bold">
               {insights.sleep.avgQuality !== null ? `${insights.sleep.avgQuality}%` : "—"}
             </p>
@@ -165,8 +237,8 @@ export default async function InsightsPage() {
                 <p className="text-xs text-muted">Variabilidade do humor</p>
                 <p className="text-2xl font-bold">
                   {insights.mood.moodVariability !== null
-                    ? insights.mood.moodVariability <= 1 ? "Baixa"
-                      : insights.mood.moodVariability <= 1 ? "Moderada"
+                    ? insights.mood.moodVariability <= 7 ? "Baixa"
+                      : insights.mood.moodVariability <= 12 ? "Moderada"
                       : "Alta"
                     : "—"}
                 </p>
@@ -234,7 +306,7 @@ export default async function InsightsPage() {
           para atividades-chave protege contra episódios no transtorno bipolar.
         </p>
 
-        {insights.rhythm.hasEnoughData ? (
+        {anchorsWithData.length > 0 ? (
           <Card className="mb-4">
             {/* Regularidade geral */}
             {insights.rhythm.overallRegularity !== null && (
@@ -256,31 +328,36 @@ export default async function InsightsPage() {
               </div>
             )}
 
-            {/* Âncoras individuais */}
+            {/* Only show anchors that have data */}
             <div className="space-y-3">
-              {Object.entries(insights.rhythm.anchors).map(([key, anchor]) => (
+              {anchorsWithData.map(([key, anchor]) => (
                 <div key={key} className="flex items-center gap-3">
-                  <span className="w-40 text-sm">{anchor.label}</span>
-                  {anchor.variance !== null ? (
-                    <>
-                      <div className="flex-1 h-2 rounded-full bg-gray-200">
-                        <div
-                          className={`h-2 rounded-full ${colorToBg(anchor.color!)}`}
-                          style={{ width: `${Math.min(100, (anchor.variance / 120) * 100)}%` }}
-                        />
-                      </div>
-                      <span className="text-xs text-muted w-16 text-right">±{anchor.variance}min</span>
-                    </>
-                  ) : (
-                    <span className="text-xs text-muted italic">Sem dados</span>
-                  )}
+                  <div className="w-40">
+                    <span className="text-sm">{anchor.label}</span>
+                    {anchor.source && (
+                      <span className="ml-1 text-[10px] text-muted">
+                        ({SOURCE_LABELS[anchor.source]})
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex-1 h-2 rounded-full bg-gray-200">
+                    <div
+                      className={`h-2 rounded-full ${colorToBg(anchor.color!)}`}
+                      style={{ width: `${Math.min(100, (anchor.variance! / 120) * 100)}%` }}
+                    />
+                  </div>
+                  <span className="text-xs text-muted w-16 text-right">±{anchor.variance}min</span>
                 </div>
               ))}
             </div>
 
-            {insights.rhythm.usedSleepFallback && (
+            {(insights.rhythm.usedSleepFallback || insights.rhythm.usedPlannerFallback) && (
               <p className="mt-3 text-xs text-muted italic">
-                * Dados de &quot;Acordar&quot; e &quot;Dormir&quot; complementados com registros de sono.
+                {insights.rhythm.usedSleepFallback && insights.rhythm.usedPlannerFallback
+                  ? "* Dados complementados com registros de sono e eventos do planejador."
+                  : insights.rhythm.usedSleepFallback
+                    ? "* Dados de \"Acordar\" e \"Dormir\" complementados com registros de sono."
+                    : "* Dados de contato social, atividade e jantar inferidos do planejador."}
               </p>
             )}
           </Card>
@@ -292,6 +369,10 @@ export default async function InsightsPage() {
               especificamente para o transtorno bipolar. Ela monitora 5 atividades-âncora do dia:
               horário de acordar, primeiro contato social, início da atividade principal, jantar
               e horário de dormir. Quanto mais regulares essas âncoras, maior a estabilidade do humor.
+            </p>
+            <p className="mb-3 text-sm text-muted">
+              Registre blocos no planejador (categorias social, trabalho e refeição) ou preencha
+              o formulário de ritmo diário para ativar esta seção automaticamente.
             </p>
             <Link
               href="/rotina/novo"

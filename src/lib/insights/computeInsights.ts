@@ -32,6 +32,12 @@ interface DailyRhythmInput {
   bedtime: string | null;
 }
 
+export interface PlannerBlockInput {
+  date: string;      // YYYY-MM-DD
+  timeHHMM: string;  // HH:MM (extracted from startAt)
+  category: string;
+}
+
 // ── Output types ────────────────────────────────────────────
 
 type StatusColor = "green" | "yellow" | "red";
@@ -51,6 +57,11 @@ export interface SleepInsights {
   sleepTrend: TrendDirection | null;
   sleepTrendDelta: number | null;
   avgQuality: number | null;
+  midpoint: string | null;           // "HH:MM" — circadian phase marker
+  midpointTrend: TrendDirection | null;
+  midpointDelta: number | null;      // minutes
+  durationVariability: number | null; // minutes (stddev of totalHours*60)
+  durationVariabilityColor: StatusColor | null;
   recordCount: number;
   alerts: ClinicalAlert[];
 }
@@ -67,6 +78,7 @@ export interface AnchorData {
   variance: number | null;
   color: StatusColor | null;
   label: string;
+  source: "manual" | "planner" | "sleep" | null;
 }
 
 export interface RhythmInsights {
@@ -74,6 +86,7 @@ export interface RhythmInsights {
   overallRegularity: number | null;
   anchors: Record<string, AnchorData>;
   usedSleepFallback: boolean;
+  usedPlannerFallback: boolean;
   alerts: ClinicalAlert[];
 }
 
@@ -113,6 +126,13 @@ export function formatSleepDuration(hours: number): string {
   const m = Math.round((hours - h) * 60);
   if (m === 0) return `${h}h`;
   return `${h}h${String(m).padStart(2, "0")}`;
+}
+
+function minutesToTime(mins: number): string {
+  const normalized = ((mins % 1440) + 1440) % 1440;
+  const h = Math.floor(normalized / 60);
+  const m = Math.round(normalized % 60);
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
 function pearsonCorrelation(x: number[], y: number[]): number | null {
@@ -195,7 +215,48 @@ function computeSleepInsights(sleepLogs: SleepLogInput[]): SleepInsights {
     ? Math.round(qualityValues.reduce((s, v) => s + v, 0) / qualityValues.length)
     : null;
 
-  // 5. Clinical alerts
+  // 5. Sleep midpoint (circadian phase marker)
+  let midpoint: string | null = null;
+  let midpointTrend: TrendDirection | null = null;
+  let midpointDelta: number | null = null;
+
+  if (recordCount >= 3) {
+    const midpoints = sorted.map((s) => {
+      const btMin = normalizeBedtime(timeToMinutes(s.bedtime));
+      return btMin + (s.totalHours * 60) / 2;
+    });
+    const avgMid = midpoints.reduce((a, b) => a + b, 0) / midpoints.length;
+    midpoint = minutesToTime(avgMid);
+
+    // Trend: last 7d vs prev 7d midpoints
+    const mid7 = sorted.filter((s) => s.date >= str7).map((s) => {
+      const btMin = normalizeBedtime(timeToMinutes(s.bedtime));
+      return btMin + (s.totalHours * 60) / 2;
+    });
+    const midPrev = sorted.filter((s) => s.date >= str14 && s.date < str7).map((s) => {
+      const btMin = normalizeBedtime(timeToMinutes(s.bedtime));
+      return btMin + (s.totalHours * 60) / 2;
+    });
+
+    if (mid7.length >= 3 && midPrev.length >= 3) {
+      const avgMid7 = mid7.reduce((a, b) => a + b, 0) / mid7.length;
+      const avgMidPrev = midPrev.reduce((a, b) => a + b, 0) / midPrev.length;
+      midpointDelta = Math.round(avgMid7 - avgMidPrev);
+      if (midpointDelta > 30) midpointTrend = "up";       // shifting later → depression risk
+      else if (midpointDelta < -30) midpointTrend = "down"; // shifting earlier → mania risk
+      else midpointTrend = "stable";
+    }
+  }
+
+  // 6. Duration variability (night-to-night stddev)
+  const durationMinutes = sorted.map((s) => s.totalHours * 60);
+  const durationVariability = computeStdDev(durationMinutes);
+  const durationVariabilityColor: StatusColor | null = durationVariability === null ? null
+    : durationVariability <= 30 ? "green"
+    : durationVariability <= 60 ? "yellow"
+    : "red";
+
+  // 7. Clinical alerts
   const alerts: ClinicalAlert[] = [];
 
   const consecutiveShort = findConsecutiveShortNights(sorted, 6);
@@ -242,9 +303,29 @@ function computeSleepInsights(sleepLogs: SleepLogInput[]): SleepInsights {
     });
   }
 
+  if (midpointTrend === "up" && midpointDelta !== null && midpointDelta > 45) {
+    alerts.push({
+      variant: "info",
+      title: "Ponto médio do sono atrasando",
+      message: `Seu ponto médio de sono atrasou ${midpointDelta} minutos na última semana. `
+        + `Atrasos progressivos no ritmo circadiano podem estar associados a fases depressivas.`,
+    });
+  }
+  if (midpointTrend === "down" && midpointDelta !== null && Math.abs(midpointDelta) > 45) {
+    alerts.push({
+      variant: "warning",
+      title: "Ponto médio do sono adiantando",
+      message: `Seu ponto médio de sono adiantou ${Math.abs(midpointDelta)} minutos na última semana. `
+        + `Avanços do ritmo circadiano combinados com redução do sono são sinais de atenção para mania.`,
+    });
+  }
+
   return {
     avgDuration, avgDurationColor, bedtimeVariance, bedtimeVarianceColor,
-    sleepTrend, sleepTrendDelta, avgQuality, recordCount, alerts,
+    sleepTrend, sleepTrendDelta, avgQuality,
+    midpoint, midpointTrend, midpointDelta,
+    durationVariability, durationVariabilityColor,
+    recordCount, alerts,
   };
 }
 
@@ -385,20 +466,72 @@ const ANCHOR_LABELS: Record<string, string> = {
   bedtime: "Horário de dormir",
 };
 
+/** Build per-day maps from PlannerBlocks for IPSRT anchor inference. */
+function buildPlannerMaps(blocks: PlannerBlockInput[]) {
+  const socialByDay = new Map<string, number>();     // earliest social per day
+  const workByDay = new Map<string, number>();        // earliest trabalho per day
+  const dinnerByDay = new Map<string, number>();      // latest refeicao after 17:00 per day
+
+  for (const b of blocks) {
+    const mins = timeToMinutes(b.timeHHMM);
+    if (b.category === "social") {
+      const prev = socialByDay.get(b.date);
+      if (prev === undefined || mins < prev) socialByDay.set(b.date, mins);
+    } else if (b.category === "trabalho") {
+      const prev = workByDay.get(b.date);
+      if (prev === undefined || mins < prev) workByDay.set(b.date, mins);
+    } else if (b.category === "refeicao" && mins >= 1020) { // >= 17:00
+      const prev = dinnerByDay.get(b.date);
+      if (prev === undefined || mins > prev) dinnerByDay.set(b.date, mins);
+    }
+  }
+
+  return { socialByDay, workByDay, dinnerByDay };
+}
+
 function computeRhythmInsights(
   rhythms: DailyRhythmInput[],
   sleepLogs: SleepLogInput[],
+  plannerBlocks: PlannerBlockInput[],
 ): RhythmInsights {
   const anchors: Record<string, AnchorData> = {};
   let usedSleepFallback = false;
+  let usedPlannerFallback = false;
+
+  const plannerMaps = buildPlannerMaps(plannerBlocks);
+
+  // Map from anchor field to planner data source
+  const plannerFieldMap: Record<string, Map<string, number>> = {
+    firstContact: plannerMaps.socialByDay,
+    mainActivityStart: plannerMaps.workByDay,
+    dinnerTime: plannerMaps.dinnerByDay,
+  };
 
   for (const field of ANCHOR_FIELDS) {
+    let source: "manual" | "planner" | "sleep" | null = null;
+
+    // Priority 1: DailyRhythm manual data
     let values = rhythms
       .map((r) => r[field])
       .filter((v): v is string => v !== null)
       .map((v) => field === "bedtime" ? normalizeBedtime(timeToMinutes(v)) : timeToMinutes(v));
 
-    // Fallback: use SleepLog for wake/bedtime when DailyRhythm is insufficient
+    if (values.length >= 3) {
+      source = "manual";
+    }
+
+    // Priority 2: PlannerBlock inference (for firstContact, mainActivityStart, dinnerTime)
+    if (values.length < 3 && field in plannerFieldMap) {
+      const dayMap = plannerFieldMap[field];
+      const plannerValues = Array.from(dayMap.values());
+      if (plannerValues.length >= 3) {
+        values = plannerValues;
+        source = "planner";
+        usedPlannerFallback = true;
+      }
+    }
+
+    // Priority 3: SleepLog fallback (for wakeTime, bedtime)
     if (values.length < 3 && (field === "wakeTime" || field === "bedtime")) {
       const sleepField = field === "wakeTime" ? "wakeTime" : "bedtime";
       const fallback = sleepLogs.map((s) =>
@@ -408,6 +541,7 @@ function computeRhythmInsights(
       );
       if (fallback.length >= 3) {
         values = fallback;
+        source = "sleep";
         usedSleepFallback = true;
       }
     }
@@ -418,7 +552,7 @@ function computeRhythmInsights(
       : variance <= 60 ? "yellow"
       : "red";
 
-    anchors[field] = { variance, color, label: ANCHOR_LABELS[field] };
+    anchors[field] = { variance, color, label: ANCHOR_LABELS[field], source };
   }
 
   // Overall regularity score (0-100)
@@ -448,7 +582,7 @@ function computeRhythmInsights(
     });
   }
 
-  return { hasEnoughData, overallRegularity, anchors, usedSleepFallback, alerts };
+  return { hasEnoughData, overallRegularity, anchors, usedSleepFallback, usedPlannerFallback, alerts };
 }
 
 // ── Chart Insights ──────────────────────────────────────────
@@ -488,11 +622,12 @@ export function computeInsights(
   sleepLogs: SleepLogInput[],
   entries: DiaryEntryInput[],
   rhythms: DailyRhythmInput[],
+  plannerBlocks?: PlannerBlockInput[],
 ): InsightsResult {
   return {
     sleep: computeSleepInsights(sleepLogs),
     mood: computeMoodInsights(entries),
-    rhythm: computeRhythmInsights(rhythms, sleepLogs),
+    rhythm: computeRhythmInsights(rhythms, sleepLogs, plannerBlocks ?? []),
     chart: computeChartInsights(entries),
   };
 }

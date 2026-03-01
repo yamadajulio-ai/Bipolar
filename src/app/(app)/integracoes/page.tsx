@@ -42,6 +42,9 @@ export default function IntegraçõesPage() {
   const [googleConnected, setGoogleConnected] = useState(false);
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
   const [clearing, setClearing] = useState(false);
+  const [importJson, setImportJson] = useState("");
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<{ ok: boolean; message: string } | null>(null);
 
   const fetchKeys = useCallback(async () => {
     const res = await fetch("/api/integrations/settings");
@@ -107,6 +110,32 @@ export default function IntegraçõesPage() {
     await fetch("/api/integrations/health-export/status", { method: "DELETE" });
     await fetchSyncStatus();
     setClearing(false);
+  }
+
+  async function handleImportJson() {
+    if (!importJson.trim()) return;
+    setImporting(true);
+    setImportResult(null);
+    try {
+      const parsed = JSON.parse(importJson);
+      const res = await fetch("/api/integrations/health-export/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(parsed),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setImportResult({ ok: true, message: `${data.imported} noite(s) importada(s) com sucesso!` });
+        setImportJson("");
+        await fetchSyncStatus();
+      } else {
+        setImportResult({ ok: false, message: data.error || "Erro ao importar" });
+      }
+    } catch {
+      setImportResult({ ok: false, message: "JSON inválido. Verifique o formato e tente novamente." });
+    } finally {
+      setImporting(false);
+    }
   }
 
   function handleCopy(type: "key" | "bearer") {
@@ -277,6 +306,40 @@ export default function IntegraçõesPage() {
           )}
         </Card>
       )}
+
+      {/* Manual JSON Import */}
+      <Card className="mb-6">
+        <h2 className="mb-2 text-lg font-semibold">Importar histórico de sono</h2>
+        <p className="mb-2 text-sm text-muted">
+          Importe seus dados de sono <strong>anteriores</strong> ao uso da Rede Bipolar para ter insights completos desde o início.
+        </p>
+        <p className="mb-3 text-xs text-muted">
+          Cole o JSON exportado pelo Health Auto Export. No app, vá em <strong>Export</strong> e escolha o período desejado (ex: últimos 3 meses).
+          Para o dia a dia, use a sincronização automática configurada acima.
+        </p>
+
+        {importResult && (
+          <div className={`mb-3 rounded px-3 py-2 text-sm ${importResult.ok ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
+            {importResult.message}
+          </div>
+        )}
+
+        <textarea
+          value={importJson}
+          onChange={(e) => setImportJson(e.target.value)}
+          placeholder='Cole aqui o JSON do Health Auto Export (formato: {"data":{"metrics":[...]}})'
+          rows={6}
+          className="w-full rounded border border-border bg-surface px-3 py-2 text-xs font-mono placeholder:text-muted/50 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+        />
+
+        <button
+          onClick={handleImportJson}
+          disabled={importing || !importJson.trim()}
+          className="mt-2 rounded bg-primary px-4 py-2 text-sm text-white disabled:opacity-50"
+        >
+          {importing ? "Importando..." : "Importar JSON"}
+        </button>
+      </Card>
 
       {/* Google Calendar */}
       <Card className="mb-6">

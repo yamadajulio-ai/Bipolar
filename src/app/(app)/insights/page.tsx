@@ -3,8 +3,30 @@ import { prisma } from "@/lib/db";
 import { Card } from "@/components/Card";
 import { Alert } from "@/components/Alert";
 import { InsightsCharts } from "@/components/planner/InsightsCharts";
-import { localDateStr, startOfDay } from "@/lib/dateUtils";
-import { expandPrismaBlocks } from "@/lib/planner/expandServer";
+import { localDateStr } from "@/lib/dateUtils";
+import { computeInsights, formatSleepDuration } from "@/lib/insights/computeInsights";
+import type { ClinicalAlert } from "@/lib/insights/computeInsights";
+import Link from "next/link";
+
+function colorToBg(color: "green" | "yellow" | "red"): string {
+  if (color === "green") return "bg-green-400";
+  if (color === "yellow") return "bg-amber-400";
+  return "bg-red-400";
+}
+
+function AlertList({ alerts }: { alerts: ClinicalAlert[] }) {
+  if (alerts.length === 0) return null;
+  return (
+    <div className="mt-4 space-y-2">
+      {alerts.map((alert, i) => (
+        <Alert key={i} variant={alert.variant}>
+          <p className="font-medium text-sm">{alert.title}</p>
+          <p className="mt-1 text-xs opacity-90">{alert.message}</p>
+        </Alert>
+      ))}
+    </div>
+  );
+}
 
 export default async function InsightsPage() {
   const session = await getSession();
@@ -12,222 +34,296 @@ export default async function InsightsPage() {
   const cutoff30 = new Date(now);
   cutoff30.setDate(cutoff30.getDate() - 30);
   const cutoff30Str = localDateStr(cutoff30);
-  // Use startOfDay for a clean 7-day window (avoids partial-day distortions)
-  const cutoff7 = startOfDay(localDateStr(new Date(now.getTime() - 7 * 86400000)));
 
-  // Fetch last 30 days of sleep logs
-  const sleepLogs = await prisma.sleepLog.findMany({
-    where: { userId: session.userId, date: { gte: cutoff30Str } },
-    orderBy: { date: "asc" },
-  });
+  const [sleepLogs, entries, rhythms] = await Promise.all([
+    prisma.sleepLog.findMany({
+      where: { userId: session.userId, date: { gte: cutoff30Str } },
+      orderBy: { date: "asc" },
+    }),
+    prisma.diaryEntry.findMany({
+      where: { userId: session.userId, date: { gte: cutoff30Str } },
+      orderBy: { date: "asc" },
+    }),
+    prisma.dailyRhythm.findMany({
+      where: { userId: session.userId, date: { gte: cutoff30Str } },
+      orderBy: { date: "asc" },
+    }),
+  ]);
 
-  // Fetch last 30 days of daily rhythms
-  const rhythms = await prisma.dailyRhythm.findMany({
-    where: { userId: session.userId, date: { gte: cutoff30Str } },
-    orderBy: { date: "asc" },
-  });
-
-  // Fetch last 30 days of diary entries
-  const entries = await prisma.diaryEntry.findMany({
-    where: { userId: session.userId, date: { gte: cutoff30Str } },
-    orderBy: { date: "asc" },
-  });
-
-  // Fetch planner blocks for last 7 days (using overlap + recurring expansion)
-  const rawBlocks = await prisma.plannerBlock.findMany({
-    where: {
-      userId: session.userId,
-      OR: [
-        { startAt: { lte: now }, endAt: { gte: cutoff7 } },
-        { recurrence: { isNot: null }, startAt: { lte: now } },
-      ],
-    },
-    include: { recurrence: true, exceptions: true },
-    orderBy: { startAt: "asc" },
-  });
-  const expandedBlocks = expandPrismaBlocks(rawBlocks, cutoff7, now);
-
-  // Fetch stability rules
-  const rules = await prisma.stabilityRule.findUnique({
-    where: { userId: session.userId },
-  });
-
-  // ── Compute insights ─────────────────────────────────────────────
-
-  // 1. Sleep regularity
-  const sleepBedtimes = sleepLogs.map((s) => {
-    const [h, m] = s.bedtime.split(":").map(Number);
-    return h * 60 + m;
-  });
-  const sleepWakeTimes = sleepLogs.map((s) => {
-    const [h, m] = s.wakeTime.split(":").map(Number);
-    return h * 60 + m;
-  });
-  const bedtimeVariance = computeStdDev(sleepBedtimes);
-  const wakeVariance = computeStdDev(sleepWakeTimes);
-  const avgSleepHours = sleepLogs.length > 0
-    ? Math.round((sleepLogs.reduce((s, l) => s + l.totalHours, 0) / sleepLogs.length) * 10) / 10
-    : null;
-
-  // 2. Anchor regularity (IPSRT)
-  const anchorFields = ["wakeTime", "firstContact", "mainActivityStart", "dinnerTime", "bedtime"] as const;
-  const anchorVariances: Record<string, number | null> = {};
-  for (const field of anchorFields) {
-    const values = rhythms
-      .map((r) => r[field])
-      .filter((v): v is string => v !== null)
-      .map((v) => {
-        const [h, m] = v.split(":").map(Number);
-        return h * 60 + m;
-      });
-    anchorVariances[field] = values.length >= 3 ? computeStdDev(values) : null;
-  }
-
-  // 3. Weekly energy load from planner (using expanded occurrences)
-  const weeklyEnergy = expandedBlocks.reduce((sum, b) => sum + b.energyCost, 0);
-
-  // 4. Late nights — consistent with constraints.ts (includes post-midnight)
-  const lateEventCutoffMin = rules?.lateEventCutoffMin ?? 1260;
-  const lateNights = expandedBlocks.filter((b) => {
-    const endMin = b.endAt.getHours() * 60 + b.endAt.getMinutes();
-    const isLate = endMin > lateEventCutoffMin || (endMin < 360 && endMin > 0);
-    return isLate && b.kind !== "ANCHOR";
-  }).length;
-
-  // 5. Mood-sleep data for chart
-  const chartData = entries.map((e) => ({
-    date: e.date,
-    mood: e.mood,
-    sleepHours: e.sleepHours,
-    energy: e.energyLevel,
-  }));
-
-  // Generate observations (not alerts — softer language)
-  const observations: string[] = [];
-  if (bedtimeVariance !== null && bedtimeVariance > 90) {
-    observations.push("Variação no horário de dormir está acima de 90 minutos. Regularidade do sono é importante para estabilidade.");
-  }
-  if (wakeVariance !== null && wakeVariance > 90) {
-    observations.push("Variação no horário de acordar está acima de 90 minutos.");
-  }
-  if (avgSleepHours !== null && avgSleepHours < 6) {
-    observations.push(`Média de sono: ${formatSleepDuration(avgSleepHours)}. Poucas horas de sono podem afetar o humor.`);
-  }
-  if (lateNights > 3) {
-    observations.push(`${lateNights} blocos com atividade tardia nos últimos 7 dias. Atividades noturnas podem afetar seu ritmo.`);
-  }
-  if (weeklyEnergy > 60) {
-    observations.push(`Carga de energia semanal alta (${weeklyEnergy}). Considere equilibrar com períodos de descanso.`);
-  }
-
-  const anchorLabels: Record<string, string> = {
-    wakeTime: "Acordar",
-    firstContact: "Primeiro contato",
-    mainActivityStart: "Atividade principal",
-    dinnerTime: "Jantar",
-    bedtime: "Dormir",
-  };
+  const insights = computeInsights(sleepLogs, entries, rhythms);
 
   return (
     <div>
       <h1 className="mb-2 text-2xl font-bold">Insights</h1>
       <p className="mb-6 text-sm text-muted">
-        Tendências e observações sobre sua estabilidade. Não substitui avaliação profissional.
+        Análises baseadas em pesquisas do PROMAN/USP e protocolos IPSRT.
+        Não substitui avaliação profissional.
       </p>
 
-      {/* Observations */}
-      {observations.length > 0 && (
-        <div className="mb-6 space-y-2">
-          {observations.map((obs, i) => (
-            <Alert key={i} variant="info">
-              {obs}
-            </Alert>
-          ))}
-        </div>
-      )}
-
-      {/* Key metrics */}
-      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Card>
-          <p className="text-xs text-muted">Média de sono</p>
-          <p className="text-2xl font-bold">{avgSleepHours !== null ? formatSleepDuration(avgSleepHours) : "—"}</p>
-          <p className="text-xs text-muted">{sleepLogs.length} registros</p>
-        </Card>
-        <Card>
-          <p className="text-xs text-muted">Variação sono</p>
-          <p className="text-2xl font-bold">{bedtimeVariance !== null ? `${bedtimeVariance}min` : "—"}</p>
-          <p className="text-xs text-muted">horário de dormir</p>
-        </Card>
-        <Card>
-          <p className="text-xs text-muted">Carga semanal</p>
-          <p className="text-2xl font-bold">{weeklyEnergy}</p>
-          <p className="text-xs text-muted">energia total</p>
-        </Card>
-        <Card>
-          <p className="text-xs text-muted">Noites tardias</p>
-          <p className="text-2xl font-bold">{lateNights}</p>
-          <p className="text-xs text-muted">últimos 7 dias</p>
-        </Card>
-      </div>
-
-      {/* Anchor regularity */}
-      <Card className="mb-6">
-        <h2 className="mb-3 text-lg font-semibold">Regularidade de Âncoras (IPSRT)</h2>
-        <p className="mb-3 text-xs text-muted">
-          Variação em minutos — menor = mais regular. Baseado nos últimos 30 dias.
+      {/* ── Seção 1: Seu Sono ───────────────────────────────────── */}
+      <section className="mb-8">
+        <h2 className="mb-1 text-lg font-semibold">Seu Sono</h2>
+        <p className="mb-4 text-xs text-muted">
+          O sono é o marcador biológico mais importante no transtorno bipolar.
+          Alterações de sono frequentemente precedem mudanças de humor.
         </p>
-        <div className="space-y-2">
-          {anchorFields.map((field) => {
-            const variance = anchorVariances[field];
-            return (
-              <div key={field} className="flex items-center gap-3">
-                <span className="w-36 text-sm text-foreground">{anchorLabels[field]}</span>
-                {variance !== null ? (
-                  <>
-                    <div className="flex-1 h-2 rounded-full bg-gray-200">
-                      <div
-                        className={`h-2 rounded-full ${
-                          variance <= 30 ? "bg-green-400" : variance <= 60 ? "bg-amber-400" : "bg-red-400"
-                        }`}
-                        style={{ width: `${Math.min(100, (variance / 120) * 100)}%` }}
-                      />
-                    </div>
-                    <span className="text-xs text-muted w-16 text-right">{variance} min</span>
-                  </>
-                ) : (
-                  <span className="text-xs text-muted">Dados insuficientes</span>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </Card>
 
-      {/* Mood/Sleep chart */}
-      {chartData.length >= 3 && (
-        <Card className="mb-6">
-          <h2 className="mb-3 text-lg font-semibold">Humor e Sono</h2>
-          <InsightsCharts data={chartData} />
-        </Card>
+        <div className="mb-4 grid grid-cols-2 gap-3">
+          {/* Média de sono */}
+          <Card>
+            <p className="text-xs text-muted">Média de sono</p>
+            <p className="text-2xl font-bold">
+              {insights.sleep.avgDuration !== null
+                ? formatSleepDuration(insights.sleep.avgDuration)
+                : "—"}
+            </p>
+            {insights.sleep.avgDurationColor && (
+              <div className={`mt-1 h-1.5 w-full rounded-full ${colorToBg(insights.sleep.avgDurationColor)}`} />
+            )}
+            <p className="mt-1 text-xs text-muted">
+              {insights.sleep.recordCount} registros (30 dias)
+            </p>
+          </Card>
+
+          {/* Regularidade */}
+          <Card>
+            <p className="text-xs text-muted">Regularidade do horário</p>
+            <p className="text-2xl font-bold">
+              {insights.sleep.bedtimeVariance !== null
+                ? `±${insights.sleep.bedtimeVariance}min`
+                : "—"}
+            </p>
+            {insights.sleep.bedtimeVarianceColor && (
+              <div className={`mt-1 h-1.5 w-full rounded-full ${colorToBg(insights.sleep.bedtimeVarianceColor)}`} />
+            )}
+            <p className="mt-1 text-xs text-muted">
+              {insights.sleep.bedtimeVariance !== null
+                ? insights.sleep.bedtimeVariance <= 30 ? "Excelente"
+                  : insights.sleep.bedtimeVariance <= 60 ? "Moderada"
+                  : "Irregular — meta: ±30min"
+                : "variação do horário de dormir"}
+            </p>
+          </Card>
+
+          {/* Tendência */}
+          <Card>
+            <p className="text-xs text-muted">Tendência de sono</p>
+            <div className="flex items-baseline gap-1">
+              <p className="text-2xl font-bold">
+                {insights.sleep.sleepTrend === "up" ? "↑"
+                  : insights.sleep.sleepTrend === "down" ? "↓"
+                  : insights.sleep.sleepTrend === "stable" ? "→"
+                  : "—"}
+              </p>
+              {insights.sleep.sleepTrendDelta !== null && (
+                <span className="text-sm text-muted">
+                  {insights.sleep.sleepTrendDelta > 0 ? "+" : ""}
+                  {formatSleepDuration(Math.abs(insights.sleep.sleepTrendDelta))}
+                </span>
+              )}
+            </div>
+            <p className="mt-1 text-xs text-muted">últimos 7 dias vs anteriores</p>
+          </Card>
+
+          {/* Qualidade */}
+          <Card>
+            <p className="text-xs text-muted">Qualidade do sono</p>
+            <p className="text-2xl font-bold">
+              {insights.sleep.avgQuality !== null ? `${insights.sleep.avgQuality}%` : "—"}
+            </p>
+            <p className="mt-1 text-xs text-muted">média (0-100)</p>
+          </Card>
+        </div>
+
+        <AlertList alerts={insights.sleep.alerts} />
+      </section>
+
+      {/* ── Seção 2: Seu Humor ──────────────────────────────────── */}
+      <section className="mb-8">
+        <h2 className="mb-1 text-lg font-semibold">Seu Humor</h2>
+        <p className="mb-4 text-xs text-muted">
+          Acompanhar padrões de humor ajuda a identificar fases do transtorno
+          bipolar antes que se intensifiquem.
+        </p>
+
+        {entries.length > 0 ? (
+          <>
+            <div className="mb-4 grid grid-cols-2 gap-3">
+              {/* Tendência */}
+              <Card>
+                <p className="text-xs text-muted">Tendência (7 dias)</p>
+                <p className="text-2xl font-bold">
+                  {insights.mood.moodTrend === "up" ? "↑ Subindo"
+                    : insights.mood.moodTrend === "down" ? "↓ Caindo"
+                    : insights.mood.moodTrend === "stable" ? "→ Estável"
+                    : "—"}
+                </p>
+              </Card>
+
+              {/* Variabilidade */}
+              <Card>
+                <p className="text-xs text-muted">Variabilidade do humor</p>
+                <p className="text-2xl font-bold">
+                  {insights.mood.moodVariability !== null
+                    ? insights.mood.moodVariability <= 1 ? "Baixa"
+                      : insights.mood.moodVariability <= 1 ? "Moderada"
+                      : "Alta"
+                    : "—"}
+                </p>
+                {insights.mood.moodVariability !== null && (
+                  <p className="mt-1 text-xs text-muted">
+                    oscilação: ±{(insights.mood.moodVariability / 10).toFixed(1)} pontos
+                  </p>
+                )}
+              </Card>
+
+              {/* Adesão medicação */}
+              <Card>
+                <p className="text-xs text-muted">Adesão à medicação</p>
+                <p className={`text-2xl font-bold ${
+                  insights.mood.medicationAdherence !== null && insights.mood.medicationAdherence < 80
+                    ? "text-amber-600" : ""
+                }`}>
+                  {insights.mood.medicationAdherence !== null
+                    ? `${insights.mood.medicationAdherence}%`
+                    : "—"}
+                </p>
+                <p className="mt-1 text-xs text-muted">últimos 30 dias</p>
+              </Card>
+
+              {/* Sinais de alerta */}
+              <Card>
+                <p className="text-xs text-muted">Sinais de alerta frequentes</p>
+                {insights.mood.topWarningSigns.length > 0 ? (
+                  <ul className="mt-1 space-y-0.5">
+                    {insights.mood.topWarningSigns.map((sign) => (
+                      <li key={sign.key} className="text-xs">
+                        {sign.label} <span className="text-muted">({sign.count}x)</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-1 text-sm font-bold">—</p>
+                )}
+              </Card>
+            </div>
+
+            <AlertList alerts={insights.mood.alerts} />
+          </>
+        ) : (
+          <Card>
+            <p className="text-sm text-muted">
+              Nenhum registro de humor nos últimos 30 dias.
+              Faça check-ins diários para ver tendências e alertas aqui.
+            </p>
+            <Link
+              href="/diario/novo"
+              className="mt-3 inline-block rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white"
+            >
+              Fazer check-in
+            </Link>
+          </Card>
+        )}
+      </section>
+
+      {/* ── Seção 3: Seu Ritmo Social (IPSRT) ──────────────────── */}
+      <section className="mb-8">
+        <h2 className="mb-1 text-lg font-semibold">Seu Ritmo Social</h2>
+        <p className="mb-4 text-xs text-muted">
+          A Terapia de Ritmos Sociais (IPSRT) mostra que manter horários regulares
+          para atividades-chave protege contra episódios no transtorno bipolar.
+        </p>
+
+        {insights.rhythm.hasEnoughData ? (
+          <Card className="mb-4">
+            {/* Regularidade geral */}
+            {insights.rhythm.overallRegularity !== null && (
+              <div className="mb-4">
+                <div className="mb-1 flex items-center justify-between">
+                  <span className="text-sm font-medium">Regularidade geral</span>
+                  <span className="text-sm font-bold">{insights.rhythm.overallRegularity}%</span>
+                </div>
+                <div className="h-2 w-full rounded-full bg-gray-200">
+                  <div
+                    className={`h-2 rounded-full transition-all ${
+                      insights.rhythm.overallRegularity >= 70 ? "bg-green-400"
+                        : insights.rhythm.overallRegularity >= 40 ? "bg-amber-400"
+                        : "bg-red-400"
+                    }`}
+                    style={{ width: `${insights.rhythm.overallRegularity}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Âncoras individuais */}
+            <div className="space-y-3">
+              {Object.entries(insights.rhythm.anchors).map(([key, anchor]) => (
+                <div key={key} className="flex items-center gap-3">
+                  <span className="w-40 text-sm">{anchor.label}</span>
+                  {anchor.variance !== null ? (
+                    <>
+                      <div className="flex-1 h-2 rounded-full bg-gray-200">
+                        <div
+                          className={`h-2 rounded-full ${colorToBg(anchor.color!)}`}
+                          style={{ width: `${Math.min(100, (anchor.variance / 120) * 100)}%` }}
+                        />
+                      </div>
+                      <span className="text-xs text-muted w-16 text-right">±{anchor.variance}min</span>
+                    </>
+                  ) : (
+                    <span className="text-xs text-muted italic">Sem dados</span>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {insights.rhythm.usedSleepFallback && (
+              <p className="mt-3 text-xs text-muted italic">
+                * Dados de &quot;Acordar&quot; e &quot;Dormir&quot; complementados com registros de sono.
+              </p>
+            )}
+          </Card>
+        ) : (
+          <Card className="mb-4">
+            <h3 className="mb-2 text-sm font-semibold">O que é o Ritmo Social?</h3>
+            <p className="mb-3 text-sm text-muted">
+              A Terapia Interpessoal de Ritmos Sociais (IPSRT) é uma abordagem desenvolvida
+              especificamente para o transtorno bipolar. Ela monitora 5 atividades-âncora do dia:
+              horário de acordar, primeiro contato social, início da atividade principal, jantar
+              e horário de dormir. Quanto mais regulares essas âncoras, maior a estabilidade do humor.
+            </p>
+            <Link
+              href="/rotina/novo"
+              className="inline-block rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white"
+            >
+              Registrar meu ritmo de hoje
+            </Link>
+          </Card>
+        )}
+
+        <AlertList alerts={insights.rhythm.alerts} />
+      </section>
+
+      {/* ── Seção 4: Humor e Sono (gráfico) ─────────────────────── */}
+      {insights.chart.chartData.length >= 3 && (
+        <section className="mb-8">
+          <Card>
+            <h2 className="mb-3 text-lg font-semibold">Humor e Sono</h2>
+            <InsightsCharts data={insights.chart.chartData} />
+            {insights.chart.correlationNote && (
+              <p className="mt-3 text-xs text-muted italic">
+                {insights.chart.correlationNote}
+              </p>
+            )}
+          </Card>
+        </section>
       )}
 
       <p className="text-center text-xs text-muted mt-4">
-        Estas observações são baseadas em padrões dos seus registros. Não substituem avaliação profissional.
+        Baseado em pesquisas do PROMAN/USP (Prof. Beny Lafer), protocolos IPSRT e critérios do DSM-5.
+        Não substitui avaliação profissional.
       </p>
     </div>
   );
-}
-
-function formatSleepDuration(hours: number): string {
-  const h = Math.floor(hours);
-  const m = Math.round((hours - h) * 60);
-  if (m === 0) return `${h}h`;
-  return `${h}h${String(m).padStart(2, "0")}`;
-}
-
-function computeStdDev(values: number[]): number | null {
-  if (values.length < 3) return null;
-  const mean = values.reduce((s, v) => s + v, 0) / values.length;
-  const variance = values.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / values.length;
-  return Math.round(Math.sqrt(variance));
 }

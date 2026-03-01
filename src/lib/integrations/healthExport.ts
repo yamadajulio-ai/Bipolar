@@ -13,14 +13,12 @@ interface HAEMetricEntry {
   endDate?: string;
   value?: string;
   qty?: number;
-  // Summarized data fields (when "Resumir Dados" is enabled)
   avg?: number;
   min?: number;
   max?: number;
   sum?: number;
   count?: number;
   source?: string;
-  // Additional v2 fields
   inBed?: string;
   asleep?: string;
 }
@@ -31,13 +29,11 @@ interface HAEMetric {
   data: HAEMetricEntry[];
 }
 
-// Support both top-level and nested data formats
 interface HAEPayload {
   data?: {
     metrics: HAEMetric[];
     workouts?: unknown[];
   };
-  // Some versions put metrics at top level
   metrics?: HAEMetric[];
 }
 
@@ -46,25 +42,16 @@ export interface ProcessedSleepNight {
   bedtime: string;    // HH:MM
   wakeTime: string;   // HH:MM
   totalHours: number;
-  quality: number;    // 1-5
+  quality: number;    // 0-100
   awakenings: number;
 }
 
 // ── Parse Health Auto Export date string ─────────────────────────
 
-/**
- * Parse date strings in various formats:
- * - "2025-06-15 07:00:00 -0300"
- * - "2025-06-15T07:00:00-0300"
- * - "2025-06-15T07:00:00.000Z"
- * - ISO 8601 formats
- */
 function parseHAEDate(dateStr: string): Date {
-  // Format: "YYYY-MM-DD HH:MM:SS ±HHMM"
   const cleaned = dateStr.replace(/^(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2}:\d{2})\s+([+-]\d{4})$/, "$1T$2$3");
   const d = new Date(cleaned);
   if (isNaN(d.getTime())) {
-    // Fallback: try direct parse
     return new Date(dateStr);
   }
   return d;
@@ -78,10 +65,33 @@ function toYMD(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-// ── Sleep stage categorization ──────────────────────────────────
+// ── Sleep stage normalization ───────────────────────────────────
+// Apple Health and Health Auto Export use various names for sleep stages
+// across different iOS versions and HAE versions. Normalize them all.
 
-const SLEEP_STAGES = new Set(["Asleep", "Core", "REM", "Deep"]);
-const DEEP_REM_STAGES = new Set(["Deep", "REM"]);
+type NormalizedStage = "core" | "deep" | "rem" | "asleep" | "inbed" | "awake" | "unknown";
+
+function normalizeStage(value: string): NormalizedStage {
+  const v = value.toLowerCase().replace(/[\s_-]/g, "");
+
+  // Deep sleep
+  if (v.includes("deep")) return "deep";
+  // REM sleep
+  if (v.includes("rem")) return "rem";
+  // Core / Light sleep
+  if (v.includes("core") || v.includes("light")) return "core";
+  // In bed (not sleeping)
+  if (v.includes("inbed") || v.includes("bed")) return "inbed";
+  // Awake
+  if (v.includes("awake") || v.includes("wake")) return "awake";
+  // Generic asleep (no stage breakdown)
+  if (v.includes("asleep") || v.includes("sleep")) return "asleep";
+
+  return "unknown";
+}
+
+const ACTUAL_SLEEP_STAGES: Set<NormalizedStage> = new Set(["core", "deep", "rem", "asleep"]);
+const DEEP_REM_STAGES: Set<NormalizedStage> = new Set(["deep", "rem"]);
 
 // Accept various sleep metric names from different HAE versions
 const SLEEP_METRIC_NAMES = new Set([
@@ -94,45 +104,28 @@ const SLEEP_METRIC_NAMES = new Set([
 interface SleepSegment {
   start: Date;
   end: Date;
-  value: string;
+  stage: NormalizedStage;
+  rawValue: string;
 }
 
 // ── Main parser ─────────────────────────────────────────────────
 
-/**
- * Parse Health Auto Export JSON payload and extract sleep data.
- * Supports:
- * - Detailed mode (individual sleep stage segments with startDate/endDate/value)
- * - Summarized mode ("Resumir Dados" enabled — single entry per night with date + qty)
- * - Both v1 and v2 payload formats
- */
 export function parseHealthExportPayload(body: unknown): ProcessedSleepNight[] {
   if (!body || typeof body !== "object") return [];
 
   const payload = body as HAEPayload;
-
-  // Support both nested (data.metrics) and flat (metrics) formats
   const metrics = payload.data?.metrics ?? payload.metrics;
   if (!metrics || !Array.isArray(metrics)) return [];
 
-  // Find sleep_analysis metric (accept multiple name variants)
-  const sleepMetric = metrics.find(
-    (m) => SLEEP_METRIC_NAMES.has(m.name),
-  );
+  const sleepMetric = metrics.find((m) => SLEEP_METRIC_NAMES.has(m.name));
   if (!sleepMetric || !Array.isArray(sleepMetric.data)) return [];
 
-  // Try detailed parsing first (individual segments with startDate/endDate)
   const detailedResult = parseDetailedSegments(sleepMetric.data);
   if (detailedResult.length > 0) return detailedResult;
 
-  // Fallback: try summarized data parsing (date + qty for total hours)
   return parseSummarizedData(sleepMetric.data);
 }
 
-/**
- * Parse detailed sleep segments (when "Resumir Dados" is OFF).
- * Each entry has startDate, endDate, and value (sleep stage).
- */
 function parseDetailedSegments(data: HAEMetricEntry[]): ProcessedSleepNight[] {
   const segments: SleepSegment[] = [];
   for (const entry of data) {
@@ -141,17 +134,14 @@ function parseDetailedSegments(data: HAEMetricEntry[]): ProcessedSleepNight[] {
     const end = parseHAEDate(entry.endDate);
     if (isNaN(start.getTime()) || isNaN(end.getTime())) continue;
 
-    segments.push({
-      start,
-      end,
-      value: entry.value || "Asleep",
-    });
+    const rawValue = entry.value || "Asleep";
+    const stage = normalizeStage(rawValue);
+
+    segments.push({ start, end, stage, rawValue });
   }
 
   if (segments.length === 0) return [];
 
-  // Group segments into nights by clustering:
-  // Sort by start time, group segments that are within 12h of each other
   segments.sort((a, b) => a.start.getTime() - b.start.getTime());
 
   const nights: SleepSegment[][] = [];
@@ -171,23 +161,16 @@ function parseDetailedSegments(data: HAEMetricEntry[]): ProcessedSleepNight[] {
   return nights.map((nightSegments) => processNight(nightSegments)).filter(Boolean) as ProcessedSleepNight[];
 }
 
-/**
- * Parse summarized sleep data (when "Resumir Dados" is ON).
- * Each entry has a date and qty/value representing total sleep hours.
- * No individual stage breakdown available.
- */
 function parseSummarizedData(data: HAEMetricEntry[]): ProcessedSleepNight[] {
   const results: ProcessedSleepNight[] = [];
 
   for (const entry of data) {
-    // Summarized entries typically have date + qty or date + value
     const dateStr = entry.date || entry.startDate || entry.endDate;
     if (!dateStr) continue;
 
     const d = parseHAEDate(dateStr);
     if (isNaN(d.getTime())) continue;
 
-    // Total hours from qty (number) or value (string like "7.5")
     let totalHours = 0;
     if (typeof entry.qty === "number" && entry.qty > 0) {
       totalHours = Math.round(entry.qty * 10) / 10;
@@ -197,10 +180,8 @@ function parseSummarizedData(data: HAEMetricEntry[]): ProcessedSleepNight[] {
       totalHours = Math.round(entry.avg * 10) / 10;
     }
 
-    // Skip entries with no meaningful sleep data
     if (totalHours <= 0 || totalHours > 24) continue;
 
-    // For summarized data, estimate bedtime/wake time from date and total hours
     const wakeTime = d;
     const bedtime = new Date(d.getTime() - totalHours * 60 * 60 * 1000);
 
@@ -209,7 +190,7 @@ function parseSummarizedData(data: HAEMetricEntry[]): ProcessedSleepNight[] {
       bedtime: formatHHMM(bedtime),
       wakeTime: formatHHMM(wakeTime),
       totalHours,
-      quality: 3, // Default quality — no stage breakdown in summarized mode
+      quality: 50, // Default — no stage breakdown in summarized mode
       awakenings: 0,
     });
   }
@@ -218,31 +199,28 @@ function parseSummarizedData(data: HAEMetricEntry[]): ProcessedSleepNight[] {
 }
 
 function processNight(segments: SleepSegment[]): ProcessedSleepNight | null {
-  // Filter to actual sleep stages (exclude "In Bed", "Awake", "Unspecified")
-  const sleepSegments = segments.filter((s) => SLEEP_STAGES.has(s.value));
+  // Filter to actual sleep stages (exclude "inbed", "awake", "unknown")
+  const sleepSegments = segments.filter((s) => ACTUAL_SLEEP_STAGES.has(s.stage));
   if (sleepSegments.length === 0) return null;
 
-  // Bedtime = earliest start of any sleep segment
   const bedtime = new Date(Math.min(...sleepSegments.map((s) => s.start.getTime())));
-  // Wake time = latest end of any sleep segment
   const wakeTime = new Date(Math.max(...sleepSegments.map((s) => s.end.getTime())));
 
-  // Total sleep hours (sum of sleep segment durations)
+  // Total sleep hours (sum of actual sleep stage durations)
   const totalMs = sleepSegments.reduce((sum, s) => sum + (s.end.getTime() - s.start.getTime()), 0);
-  const totalHours = Math.round((totalMs / (1000 * 60 * 60)) * 10) / 10;
+  const totalHours = Math.round((totalMs / (1000 * 60 * 60)) * 100) / 100;
 
-  // Deep + REM hours
+  // Deep + REM time
   const deepRemMs = segments
-    .filter((s) => DEEP_REM_STAGES.has(s.value))
+    .filter((s) => DEEP_REM_STAGES.has(s.stage))
     .reduce((sum, s) => sum + (s.end.getTime() - s.start.getTime()), 0);
 
-  // Quality estimation from deep+REM ratio
+  // Quality on 0-100 scale
   const quality = estimateQuality(deepRemMs, totalMs, segments);
 
-  // Awakenings = number of "Awake" segments
-  const awakenings = segments.filter((s) => s.value === "Awake").length;
+  // Awakenings = number of "awake" segments
+  const awakenings = segments.filter((s) => s.stage === "awake").length;
 
-  // Date = wake date (morning)
   const date = toYMD(wakeTime);
 
   return {
@@ -256,15 +234,32 @@ function processNight(segments: SleepSegment[]): ProcessedSleepNight | null {
 }
 
 function estimateQuality(deepRemMs: number, totalMs: number, segments: SleepSegment[]): number {
-  // If no stage breakdown (only "Asleep"), default to 3
-  const hasStageBreakdown = segments.some((s) => s.value === "Core" || s.value === "Deep" || s.value === "REM");
-  if (!hasStageBreakdown) return 3;
+  // If no stage breakdown (only generic "asleep"), default to 50
+  const hasStageBreakdown = segments.some(
+    (s) => s.stage === "core" || s.stage === "deep" || s.stage === "rem",
+  );
+  if (!hasStageBreakdown) return 50;
 
-  if (totalMs === 0) return 1;
-  const ratio = deepRemMs / totalMs;
-  if (ratio >= 0.35) return 5;
-  if (ratio >= 0.25) return 4;
-  if (ratio >= 0.15) return 3;
-  if (ratio >= 0.08) return 2;
-  return 1;
+  if (totalMs === 0) return 0;
+
+  const deepRemRatio = deepRemMs / totalMs;
+  // Awakenings penalty
+  const awakeCount = segments.filter((s) => s.stage === "awake").length;
+  const awakenPenalty = Math.min(awakeCount * 5, 25);
+
+  // Base score from deep+REM ratio (0-100 continuous scale)
+  // Ideal: 30-40% deep+REM → score 85-100
+  // Good: 20-30% → 65-85
+  // Ok: 10-20% → 40-65
+  // Poor: <10% → 0-40
+  let score = Math.round(Math.min(100, deepRemRatio * 280));
+
+  // Total sleep bonus/penalty
+  const totalHours = totalMs / (1000 * 60 * 60);
+  if (totalHours >= 7) score = Math.min(100, score + 5);
+  else if (totalHours < 5) score = Math.max(0, score - 10);
+
+  score = Math.max(0, score - awakenPenalty);
+
+  return score;
 }

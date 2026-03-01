@@ -111,7 +111,7 @@ export default async function InsightsPage() {
     observations.push("Variação no horário de acordar está acima de 90 minutos.");
   }
   if (avgSleepHours !== null && avgSleepHours < 6) {
-    observations.push(`Média de sono: ${avgSleepHours}h. Poucas horas de sono podem afetar o humor.`);
+    observations.push(`Média de sono: ${formatSleepDuration(avgSleepHours)}. Poucas horas de sono podem afetar o humor.`);
   }
   if (lateNights > 3) {
     observations.push(`${lateNights} blocos com atividade tardia nos últimos 7 dias. Atividades noturnas podem afetar seu ritmo.`);
@@ -150,7 +150,7 @@ export default async function InsightsPage() {
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Card>
           <p className="text-xs text-muted">Média de sono</p>
-          <p className="text-2xl font-bold">{avgSleepHours !== null ? `${avgSleepHours}h` : "—"}</p>
+          <p className="text-2xl font-bold">{avgSleepHours !== null ? formatSleepDuration(avgSleepHours) : "—"}</p>
           <p className="text-xs text-muted">{sleepLogs.length} registros</p>
         </Card>
         <Card>
@@ -216,6 +216,13 @@ export default async function InsightsPage() {
       </p>
     </div>
   );
+}
+
+function formatSleepDuration(hours: number): string {
+  const h = Math.floor(hours);
+  const m = Math.round((hours - h) * 60);
+  if (m === 0) return `${h}h`;
+  return `${h}h${String(m).padStart(2, "0")}`;
 }
 
 function computeStdDev(values: number[]): number | null {

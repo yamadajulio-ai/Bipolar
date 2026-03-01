@@ -8,6 +8,13 @@ import { getNews } from "@/lib/news";
 import Image from "next/image";
 import Link from "next/link";
 
+function formatSleepDuration(hours: number): string {
+  const h = Math.floor(hours);
+  const m = Math.round((hours - h) * 60);
+  if (m === 0) return `${h}h`;
+  return `${h}h${String(m).padStart(2, "0")}`;
+}
+
 export default async function HojePage() {
   const session = await getSession();
   const today = localToday();
@@ -100,7 +107,7 @@ export default async function HojePage() {
         </Card>
         <Card>
           <p className="text-xs text-muted">Sono</p>
-          <p className="text-lg font-bold">{todaySleep ? `${todaySleep.totalHours}h` : "—"}</p>
+          <p className="text-lg font-bold">{todaySleep ? formatSleepDuration(todaySleep.totalHours) : "—"}</p>
         </Card>
         <Card>
           <p className="text-xs text-muted">Energia</p>

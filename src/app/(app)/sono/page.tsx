@@ -4,16 +4,24 @@ import { prisma } from "@/lib/db";
 import { Card } from "@/components/Card";
 import { localDateStr } from "@/lib/dateUtils";
 
-const qualityLabels: Record<number, string> = {
-  1: "Pessima",
-  2: "Ruim",
-  3: "Regular",
-  4: "Boa",
-  5: "Otima",
-};
+function qualityPct(quality: number): number {
+  // Normalize: old manual entries are 1-5, health export entries are 0-100
+  return quality <= 5 ? quality * 20 : quality;
+}
 
-function qualityStars(quality: number): string {
-  return "\u2605".repeat(quality) + "\u2606".repeat(5 - quality);
+function qualityLabel(pct: number): string {
+  if (pct >= 80) return "Ótima";
+  if (pct >= 60) return "Boa";
+  if (pct >= 40) return "Regular";
+  if (pct >= 20) return "Ruim";
+  return "Péssima";
+}
+
+function formatSleepDuration(hours: number): string {
+  const h = Math.floor(hours);
+  const m = Math.round((hours - h) * 60);
+  if (m === 0) return `${h}h`;
+  return `${h}h${String(m).padStart(2, "0")}`;
 }
 
 export default async function SonoPage() {
@@ -75,10 +83,10 @@ export default async function SonoPage() {
                     })}
                   </p>
                   <p className="text-xs text-muted mt-1">
-                    {log.bedtime} &rarr; {log.wakeTime} | {log.totalHours}h de sono
+                    {log.bedtime} &rarr; {log.wakeTime} | {formatSleepDuration(log.totalHours)} de sono
                   </p>
                   <p className="text-xs text-muted">
-                    Qualidade: {qualityStars(log.quality)} ({qualityLabels[log.quality]})
+                    Qualidade: {qualityPct(log.quality)}% ({qualityLabel(qualityPct(log.quality))})
                     {log.awakenings > 0 && (
                       <span> | {log.awakenings} despertar{log.awakenings > 1 ? "es" : ""}</span>
                     )}

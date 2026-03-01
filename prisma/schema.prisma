@@ -67,7 +67,7 @@ model SleepLog {
   bedtime    String   // HH:MM
   wakeTime   String   // HH:MM
   totalHours Float
-  quality    Int      // 1..5
+  quality    Int      // 0..100
   awakenings Int      @default(0)
   preRoutine String?  // JSON array of routine keys
   notes      String?  // max 280 chars

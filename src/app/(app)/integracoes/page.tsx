@@ -28,6 +28,13 @@ interface SyncStatus {
   records: SleepRecord[];
 }
 
+function formatSleepDuration(hours: number): string {
+  const h = Math.floor(hours);
+  const m = Math.round((hours - h) * 60);
+  if (m === 0) return `${h}h`;
+  return `${h}h${String(m).padStart(2, "0")}`;
+}
+
 export default function IntegraçõesPage() {
   const [keys, setKeys] = useState<IntegrationKeyData[]>([]);
   const [loading, setLoading] = useState(false);
@@ -246,8 +253,8 @@ export default function IntegraçõesPage() {
                     <td className="py-1.5 pr-3">{r.date}</td>
                     <td className="py-1.5 pr-3">{r.bedtime}</td>
                     <td className="py-1.5 pr-3">{r.wakeTime}</td>
-                    <td className="py-1.5 pr-3">{r.totalHours}h</td>
-                    <td className="py-1.5 pr-3">{r.quality}/5</td>
+                    <td className="py-1.5 pr-3">{formatSleepDuration(r.totalHours)}</td>
+                    <td className="py-1.5 pr-3">{r.quality}%</td>
                     <td className="py-1.5">{r.awakenings}</td>
                   </tr>
                 ))}

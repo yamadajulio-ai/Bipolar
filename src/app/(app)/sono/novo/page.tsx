@@ -9,12 +9,19 @@ import { Card } from "@/components/Card";
 import { SleepRoutineChecklist } from "@/components/SleepRoutineChecklist";
 
 const qualityOptions = [
-  { value: 1, label: "Pessima" },
-  { value: 2, label: "Ruim" },
-  { value: 3, label: "Regular" },
-  { value: 4, label: "Boa" },
-  { value: 5, label: "Otima" },
+  { value: 20, label: "Péssima" },
+  { value: 40, label: "Ruim" },
+  { value: 60, label: "Regular" },
+  { value: 80, label: "Boa" },
+  { value: 100, label: "Ótima" },
 ];
+
+function formatDuration(hours: number): string {
+  const h = Math.floor(hours);
+  const m = Math.round((hours - h) * 60);
+  if (m === 0) return `${h}h`;
+  return `${h}h${String(m).padStart(2, "0")}`;
+}
 
 function calculateTotalHours(bedtime: string, wakeTime: string): number {
   if (!bedtime || !wakeTime) return 0;
@@ -33,7 +40,7 @@ export default function NovoSonoPage() {
   const router = useRouter();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [quality, setQuality] = useState(3);
+  const [quality, setQuality] = useState(60);
   const [bedtime, setBedtime] = useState("23:00");
   const [wakeTime, setWakeTime] = useState("07:00");
   const [selectedRoutines, setSelectedRoutines] = useState<string[]>([]);
@@ -134,7 +141,7 @@ export default function NovoSonoPage() {
 
           <div className="mb-4 rounded-lg border border-border bg-surface-alt px-3 py-2">
             <p className="text-sm text-muted">
-              Total calculado: <span className="font-semibold text-foreground">{totalHours}h</span>
+              Total calculado: <span className="font-semibold text-foreground">{formatDuration(totalHours)}</span>
             </p>
           </div>
 

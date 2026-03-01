@@ -74,18 +74,18 @@ type NormalizedStage = "core" | "deep" | "rem" | "asleep" | "inbed" | "awake" | 
 function normalizeStage(value: string): NormalizedStage {
   const v = value.toLowerCase().replace(/[\s_-]/g, "");
 
-  // Deep sleep
-  if (v.includes("deep")) return "deep";
-  // REM sleep
+  // Deep sleep (EN: deep, PT: profundo)
+  if (v.includes("deep") || v.includes("profundo")) return "deep";
+  // REM sleep (same in all languages)
   if (v.includes("rem")) return "rem";
-  // Core / Light sleep
-  if (v.includes("core") || v.includes("light")) return "core";
-  // In bed (not sleeping)
-  if (v.includes("inbed") || v.includes("bed")) return "inbed";
-  // Awake
-  if (v.includes("awake") || v.includes("wake")) return "awake";
-  // Generic asleep (no stage breakdown)
-  if (v.includes("asleep") || v.includes("sleep")) return "asleep";
+  // Core / Light sleep (EN: core/light, PT: núcleo/essencial)
+  if (v.includes("core") || v.includes("light") || v.includes("nucleo") || v.includes("núcleo") || v.includes("essencial")) return "core";
+  // In bed (EN: inbed/bed, PT: na cama/cama)
+  if (v.includes("inbed") || v.includes("bed") || v.includes("cama")) return "inbed";
+  // Awake (EN: awake/wake, PT: acordado/desperto)
+  if (v.includes("awake") || v.includes("wake") || v.includes("acordado") || v.includes("desperto")) return "awake";
+  // Generic asleep (EN: asleep/sleep, PT: dormindo/adormecido)
+  if (v.includes("asleep") || v.includes("sleep") || v.includes("dormindo") || v.includes("adormecido")) return "asleep";
 
   return "unknown";
 }

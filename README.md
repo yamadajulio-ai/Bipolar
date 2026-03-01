@@ -23,9 +23,9 @@ O Rede Bipolar oferece:
 - **Plano de Crise Personalizado** — Contatos, profissional, medicamentos (só nomes), hospital, estratégias
 - **Sons Ambiente** — Ruído branco/rosa/marrom, chuva (Web Audio API), timer de sono
 - **Dashboard Inteligente** — Status do dia, mini-gráfico, sugestões contextuais, ações rápidas
-- **Insights de Estabilidade** — Regularidade de sono/âncoras, carga de energia semanal, noites de risco
+- **Insights Clínicos** — 6 métricas de sono (média, regularidade, variabilidade, tendência, ponto médio circadiano, qualidade), humor (tendência, variabilidade, adesão medicação, sinais de alerta), ritmo social IPSRT com automação via PlannerBlock, correlação sono×humor (Pearson), alertas clínicos baseados em PROMAN/USP, DSM-5 e IPSRT
 - **Relatório Mensal** — Resumo imprimível para compartilhar com profissionais de saúde
-- **Notícias e Estudos** — Feed atualizado do PubMed (artigos científicos) e Google News (notícias PT-BR) sobre Transtorno Bipolar, cache de 1h
+- **Notícias e Estudos** — Feed atualizado do PubMed (artigos científicos, traduzidos automaticamente EN→PT-BR) e Google News (notícias PT-BR) sobre Transtorno Bipolar, cache de 1h
 - **Cursos Estruturados** — 4 cursos com aulas sequenciais
 - **Biblioteca Educacional** — 11+ artigos em pt-BR
 - **Controle Financeiro** — Importação Mobills (CSV/XLSX), gráficos por categoria, correlação humor × gastos
@@ -41,8 +41,9 @@ O Rede Bipolar oferece:
 | **Google Calendar** | Sync pull-only — eventos do Google aparecem automaticamente no planejador |
 | **Google Sign-In** | Login com conta Google (OAuth 2.0) |
 | **Mobills** | Importação CSV/XLSX de transações financeiras |
-| **Apple Health** | Dados de sono via Health Auto Export (webhook) |
-| **PubMed** | Artigos científicos sobre Transtorno Bipolar (API E-utilities) |
+| **Apple Health** | Dados de sono via Health Auto Export (webhook + importação manual JSON) |
+| **PubMed** | Artigos científicos sobre Transtorno Bipolar (API E-utilities, tradução automática EN→PT-BR) |
+| **Google Translate** | Tradução automática de títulos PubMed (EN→PT-BR, fallback gracioso) |
 | **Google News** | Notícias PT-BR sobre Transtorno Bipolar (RSS) |
 
 ## Stack
@@ -136,7 +137,8 @@ O app estará disponível em [http://localhost:3000](http://localhost:3000).
     /google/             → OAuth, Calendar API, sync pull-only
     /financeiro/         → Parsers Mobills (CSV + XLSX)
     /planner/            → Motor de regras, recorrência, categorias
-    /integrations/       → Health Auto Export webhook
+    /integrations/       → Health Auto Export webhook + importação manual
+    /insights/           → Motor de insights clínicos (sono, humor, IPSRT)
   /components/           → 50+ componentes reutilizáveis
 ```
 

@@ -1,5 +1,55 @@
 # Changelog — Rede Bipolar
 
+## v3.6.0 — 2026-03-01
+
+### Insights Clínicos Avançados, Automação IPSRT e Tradução PubMed
+
+#### Insights de Sono — Grid 3x2 (6 métricas)
+- **Média de sono (30 dias)** — Duração média com cor (verde ≥7h, amarelo ≥6h, vermelho <6h)
+- **Regularidade do horário (30 dias)** — Desvio padrão do horário de dormir (com normalização pós-meia-noite)
+- **Variabilidade da duração (30 dias)** — Desvio padrão noite-a-noite da duração total (Oxford/Michigan: preditor #1 de recaída)
+- **Tendência de sono (7 dias)** — Comparação últimos 7d vs 7d anteriores
+- **Ponto médio do sono (30 dias)** — Marcador circadiano HH:MM com tendência (npj Digital Medicine 2024, AUC 0.98 para mania). Atrasando → risco depressivo. Adiantando → risco maníaco
+- **Qualidade do sono (30 dias)** — Média da qualidade 0-100%
+- Labels explícitos "(30 dias)" em todos os cards relevantes
+
+#### Alertas Clínicos Novos
+- Ponto médio atrasando (>45min) → alerta de fase depressiva
+- Ponto médio adiantando (>45min) → alerta de atenção para mania
+
+#### Automação IPSRT via PlannerBlock
+- 3 âncoras centrais inferidas automaticamente dos blocos do planejador:
+  - `social` → primeiro contato social (bloco mais cedo do dia)
+  - `trabalho` → atividade principal (bloco mais cedo do dia)
+  - `refeicao` após 17h → jantar (bloco mais tardio)
+- Cascata de prioridade: DailyRhythm manual > PlannerBlock inferido > SleepLog (wake/bedtime)
+- Indicador de fonte por âncora: "manual" / "via planejador" / "via sono"
+- Âncoras sem dados de nenhuma fonte ficam ocultas (seção simplificada)
+
+#### Tradução Automática PubMed (EN→PT-BR)
+- Títulos de artigos científicos traduzidos automaticamente via Google Translate
+- Tradução em batches paralelos (5 concurrent) com fallback gracioso
+- Terminologia médica preservada (Google Translate lida bem com termos psiquiátricos)
+- Cache no banco: tradução persiste, não retraduz a cada visita
+
+#### Health Auto Export — Correções Acumuladas
+- Parser de estágios de sono com suporte a nomes em português (Apple Health PT-BR): Núcleo, Profundo, Acordado
+- Deduplicação de segmentos "Asleep" genéricos quando estágios detalhados existem
+- Deduplicação por fonte (AutoSleep vs Apple Watch nativo)
+- Importação manual de histórico via JSON (textarea na página de integrações)
+
+#### Correções
+- Fix: variabilidade de humor mostrava "Baixa" e "Moderada" ambos com threshold ≤1 (bug)
+- Fix: seção IPSRT mostrava "Sem dados" mesmo com dados no planejador
+
+#### Infraestrutura
+- Novo módulo `src/lib/insights/computeInsights.ts` — motor de insights clínicos (funções puras)
+- Novo tipo `PlannerBlockInput` para inferência de âncoras IPSRT
+- Novo endpoint `POST /api/integrations/health-export/import` (importação manual)
+- Query de PlannerBlocks adicionada ao `/insights` (categorias social, trabalho, refeicao)
+
+---
+
 ## v3.5.0 — 2026-02-28
 
 ### Feed de Notícias, PWA, SEO, Financeiro e Cleanup

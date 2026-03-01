@@ -15,7 +15,7 @@ interface IntegrationKeyData {
 export default function IntegraçõesPage() {
   const [keys, setKeys] = useState<IntegrationKeyData[]>([]);
   const [loading, setLoading] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<"key" | "bearer" | false>(false);
   const [googleConnected, setGoogleConnected] = useState(false);
 
   const fetchKeys = useCallback(async () => {
@@ -70,10 +70,11 @@ export default function IntegraçõesPage() {
     await fetchKeys();
   }
 
-  function handleCopy() {
+  function handleCopy(type: "key" | "bearer") {
     if (!healthKey) return;
-    navigator.clipboard.writeText(healthKey.apiKey);
-    setCopied(true);
+    const text = type === "bearer" ? `Bearer ${healthKey.apiKey}` : healthKey.apiKey;
+    navigator.clipboard.writeText(text);
+    setCopied(type);
     setTimeout(() => setCopied(false), 2000);
   }
 
@@ -115,22 +116,43 @@ export default function IntegraçõesPage() {
                   {healthKey.apiKey}
                 </div>
                 <button
-                  onClick={handleCopy}
+                  onClick={() => handleCopy("key")}
                   className="rounded bg-primary px-3 py-2 text-xs text-white"
                 >
-                  {copied ? "Copiado!" : "Copiar"}
+                  {copied === "key" ? "Copiado!" : "Copiar"}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs text-muted">Header de autenticação (para colar no app)</label>
+              <div className="mt-1 flex items-center gap-2">
+                <div className="flex-1 rounded bg-surface-alt px-3 py-2 text-xs font-mono break-all">
+                  Bearer {healthKey.apiKey}
+                </div>
+                <button
+                  onClick={() => handleCopy("bearer")}
+                  className="rounded bg-primary px-3 py-2 text-xs text-white"
+                >
+                  {copied === "bearer" ? "Copiado!" : "Copiar"}
                 </button>
               </div>
             </div>
 
             <div className="mt-4 rounded bg-surface-alt p-3 text-xs text-muted">
-              <p className="font-medium text-foreground mb-1">Como configurar:</p>
+              <p className="font-medium text-foreground mb-1">Como configurar no Health Auto Export:</p>
               <ol className="list-decimal list-inside space-y-1">
                 <li>Abra o Health Auto Export no iPhone</li>
                 <li>Vá em Automations → REST API</li>
-                <li>Cole a URL acima no campo endpoint</li>
-                <li>Em Headers, adicione: Authorization: Bearer [sua key]</li>
+                <li>Cole a URL acima no campo de endpoint</li>
+                <li>Em &quot;Adicionar Cabeçalhos&quot;:
+                  <ul className="list-disc list-inside ml-4 mt-1 space-y-0.5">
+                    <li><strong>Chave:</strong> Authorization</li>
+                    <li><strong>Valor:</strong> Bearer [sua key] (use o botão &quot;Copiar&quot; acima)</li>
+                  </ul>
+                </li>
                 <li>Selecione &quot;Sleep Analysis&quot; nas métricas</li>
+                <li>Desative &quot;Resumir Dados&quot; (precisamos dos dados detalhados)</li>
                 <li>Configure frequência (recomendado: diário)</li>
               </ol>
             </div>

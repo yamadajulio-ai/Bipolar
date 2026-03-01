@@ -9,7 +9,7 @@ interface Props {
 export function GoogleCalendarSync({ isConnected: initialConnected }: Props) {
   const [connected, setConnected] = useState(initialConnected);
   const [syncing, setSyncing] = useState(false);
-  const [syncResult, setSyncResult] = useState<{ pushed: number; pulled: number; errors: number } | null>(null);
+  const [syncResult, setSyncResult] = useState<{ pulled: number; errors: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function handleSync() {
@@ -21,19 +21,19 @@ export function GoogleCalendarSync({ isConnected: initialConnected }: Props) {
       const res = await fetch("/api/google/sync", { method: "POST" });
       if (!res.ok) {
         const data = await res.json();
-        setError(data.error || "Erro na sincronizacao");
+        setError(data.error || "Erro na sincronização");
         return;
       }
       setSyncResult(await res.json());
     } catch {
-      setError("Erro de conexao");
+      setError("Erro de conexão");
     } finally {
       setSyncing(false);
     }
   }
 
   async function handleDisconnect() {
-    if (!confirm("Desconectar Google Calendar? Blocos importados do Google serao removidos.")) return;
+    if (!confirm("Desconectar Google Calendar? Blocos importados do Google serão removidos.")) return;
 
     try {
       const res = await fetch("/api/auth/google/disconnect", { method: "DELETE" });
@@ -56,7 +56,7 @@ export function GoogleCalendarSync({ isConnected: initialConnected }: Props) {
           Conectar Google Agenda
         </a>
         <p className="mt-2 text-xs text-muted">
-          Voce sera redirecionado para o Google para autorizar o acesso.
+          Você será redirecionado para o Google para autorizar o acesso.
         </p>
       </div>
     );
@@ -87,7 +87,7 @@ export function GoogleCalendarSync({ isConnected: initialConnected }: Props) {
 
       {syncResult && (
         <p className="text-sm text-green-600">
-          Sincronizado: {syncResult.pushed} enviados, {syncResult.pulled} recebidos
+          Sincronizado: {syncResult.pulled} eventos importados
           {syncResult.errors > 0 && `, ${syncResult.errors} erros`}
         </p>
       )}
@@ -96,10 +96,10 @@ export function GoogleCalendarSync({ isConnected: initialConnected }: Props) {
       <div className="rounded bg-surface-alt p-3 text-xs text-muted">
         <p className="font-medium text-foreground mb-1">Como funciona:</p>
         <ul className="list-disc list-inside space-y-1">
-          <li>Blocos criados aqui aparecem no Google Calendar</li>
-          <li>Eventos do Google Calendar aparecem no planejador</li>
-          <li>Clique "Sincronizar agora" para atualizar</li>
-          <li>Blocos tambem sincronizam ao criar/editar/deletar</li>
+          <li>Eventos do Google Calendar aparecem automaticamente no planejador</li>
+          <li>Crie e edite eventos diretamente no Google Calendar</li>
+          <li>A sincronização acontece ao abrir o planejador</li>
+          <li>Clique &quot;Sincronizar agora&quot; para atualizar manualmente</li>
         </ul>
       </div>
     </div>

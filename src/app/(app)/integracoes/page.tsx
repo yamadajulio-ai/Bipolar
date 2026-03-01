@@ -90,8 +90,8 @@ export default function IntegraçõesPage() {
       <Card className="mb-6">
         <h2 className="mb-2 text-lg font-semibold">Health Auto Export (Sono)</h2>
         <p className="mb-4 text-sm text-muted">
-          O app Health Auto Export no iPhone envia dados do Apple Health para ca automaticamente.
-          Voce precisa do app instalado (premium) no iPhone.
+          O app Health Auto Export no iPhone envia dados do Apple Health para cá automaticamente.
+          Você precisa do app instalado (premium) no iPhone.
         </p>
 
         {healthKey ? (
@@ -127,11 +127,11 @@ export default function IntegraçõesPage() {
               <p className="font-medium text-foreground mb-1">Como configurar:</p>
               <ol className="list-decimal list-inside space-y-1">
                 <li>Abra o Health Auto Export no iPhone</li>
-                <li>Va em Automations → REST API</li>
+                <li>Vá em Automations → REST API</li>
                 <li>Cole a URL acima no campo endpoint</li>
                 <li>Em Headers, adicione: Authorization: Bearer [sua key]</li>
-                <li>Selecione "Sleep Analysis" nos metricas</li>
-                <li>Configure frequencia (recomendado: diario)</li>
+                <li>Selecione &quot;Sleep Analysis&quot; nas métricas</li>
+                <li>Configure frequência (recomendado: diário)</li>
               </ol>
             </div>
 
@@ -165,7 +165,7 @@ export default function IntegraçõesPage() {
       <Card className="mb-6">
         <h2 className="mb-2 text-lg font-semibold">Google Agenda</h2>
         <p className="mb-4 text-sm text-muted">
-          Sincronize blocos do planejador com o Google Calendar. Bidirecional.
+          Seus eventos do Google Calendar aparecem automaticamente no planejador.
         </p>
         <GoogleCalendarSync isConnected={googleConnected} />
       </Card>

@@ -105,19 +105,19 @@ export default async function InsightsPage() {
   // Generate observations (not alerts — softer language)
   const observations: string[] = [];
   if (bedtimeVariance !== null && bedtimeVariance > 90) {
-    observations.push("Variacao no horario de dormir esta acima de 90 minutos. Regularidade do sono e importante para estabilidade.");
+    observations.push("Variação no horário de dormir está acima de 90 minutos. Regularidade do sono é importante para estabilidade.");
   }
   if (wakeVariance !== null && wakeVariance > 90) {
-    observations.push("Variacao no horario de acordar esta acima de 90 minutos.");
+    observations.push("Variação no horário de acordar está acima de 90 minutos.");
   }
   if (avgSleepHours !== null && avgSleepHours < 6) {
-    observations.push(`Media de sono: ${avgSleepHours}h. Poucas horas de sono podem afetar o humor.`);
+    observations.push(`Média de sono: ${avgSleepHours}h. Poucas horas de sono podem afetar o humor.`);
   }
   if (lateNights > 3) {
-    observations.push(`${lateNights} blocos com atividade tardia nos ultimos 7 dias. Atividades noturnas podem afetar seu ritmo.`);
+    observations.push(`${lateNights} blocos com atividade tardia nos últimos 7 dias. Atividades noturnas podem afetar seu ritmo.`);
   }
   if (weeklyEnergy > 60) {
-    observations.push(`Carga de energia semanal alta (${weeklyEnergy}). Considere equilibrar com periodos de descanso.`);
+    observations.push(`Carga de energia semanal alta (${weeklyEnergy}). Considere equilibrar com períodos de descanso.`);
   }
 
   const anchorLabels: Record<string, string> = {
@@ -132,7 +132,7 @@ export default async function InsightsPage() {
     <div>
       <h1 className="mb-2 text-2xl font-bold">Insights</h1>
       <p className="mb-6 text-sm text-muted">
-        Tendencias e observacoes sobre sua estabilidade. Nao substitui avaliacao profissional.
+        Tendências e observações sobre sua estabilidade. Não substitui avaliação profissional.
       </p>
 
       {/* Observations */}
@@ -149,14 +149,14 @@ export default async function InsightsPage() {
       {/* Key metrics */}
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Card>
-          <p className="text-xs text-muted">Media de sono</p>
+          <p className="text-xs text-muted">Média de sono</p>
           <p className="text-2xl font-bold">{avgSleepHours !== null ? `${avgSleepHours}h` : "—"}</p>
           <p className="text-xs text-muted">{sleepLogs.length} registros</p>
         </Card>
         <Card>
-          <p className="text-xs text-muted">Variacao sono</p>
+          <p className="text-xs text-muted">Variação sono</p>
           <p className="text-2xl font-bold">{bedtimeVariance !== null ? `${bedtimeVariance}min` : "—"}</p>
-          <p className="text-xs text-muted">horario de dormir</p>
+          <p className="text-xs text-muted">horário de dormir</p>
         </Card>
         <Card>
           <p className="text-xs text-muted">Carga semanal</p>
@@ -166,15 +166,15 @@ export default async function InsightsPage() {
         <Card>
           <p className="text-xs text-muted">Noites tardias</p>
           <p className="text-2xl font-bold">{lateNights}</p>
-          <p className="text-xs text-muted">ultimos 7 dias</p>
+          <p className="text-xs text-muted">últimos 7 dias</p>
         </Card>
       </div>
 
       {/* Anchor regularity */}
       <Card className="mb-6">
-        <h2 className="mb-3 text-lg font-semibold">Regularidade de Ancoras (IPSRT)</h2>
+        <h2 className="mb-3 text-lg font-semibold">Regularidade de Âncoras (IPSRT)</h2>
         <p className="mb-3 text-xs text-muted">
-          Variacao em minutos — menor = mais regular. Baseado nos ultimos 30 dias.
+          Variação em minutos — menor = mais regular. Baseado nos últimos 30 dias.
         </p>
         <div className="space-y-2">
           {anchorFields.map((field) => {
@@ -212,7 +212,7 @@ export default async function InsightsPage() {
       )}
 
       <p className="text-center text-xs text-muted mt-4">
-        Estas observacoes sao baseadas em padroes dos seus registros. Nao substituem avaliacao profissional.
+        Estas observações são baseadas em padrões dos seus registros. Não substituem avaliação profissional.
       </p>
     </div>
   );

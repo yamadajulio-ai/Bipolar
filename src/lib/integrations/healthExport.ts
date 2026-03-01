@@ -200,8 +200,18 @@ function parseSummarizedData(data: HAEMetricEntry[]): ProcessedSleepNight[] {
 
 function processNight(segments: SleepSegment[]): ProcessedSleepNight | null {
   // Filter to actual sleep stages (exclude "inbed", "awake", "unknown")
-  const sleepSegments = segments.filter((s) => ACTUAL_SLEEP_STAGES.has(s.stage));
+  let sleepSegments = segments.filter((s) => ACTUAL_SLEEP_STAGES.has(s.stage));
   if (sleepSegments.length === 0) return null;
+
+  // If we have detailed stage breakdown (core/deep/rem), exclude generic "asleep"
+  // segments — Apple Health sends both summary "Asleep" and individual stages,
+  // which would double-count sleep time.
+  const hasStageBreakdown = sleepSegments.some(
+    (s) => s.stage === "core" || s.stage === "deep" || s.stage === "rem",
+  );
+  if (hasStageBreakdown) {
+    sleepSegments = sleepSegments.filter((s) => s.stage !== "asleep");
+  }
 
   const bedtime = new Date(Math.min(...sleepSegments.map((s) => s.start.getTime())));
   const wakeTime = new Date(Math.max(...sleepSegments.map((s) => s.end.getTime())));

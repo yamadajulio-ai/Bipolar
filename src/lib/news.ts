@@ -3,6 +3,50 @@ import { prisma } from "@/lib/db";
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 const FETCH_TIMEOUT_MS = 10_000;
 
+// ── Translation (EN → PT-BR) ─────────────────────────────────────
+
+async function translateText(text: string): Promise<string> {
+  try {
+    const url = new URL("https://translate.googleapis.com/translate_a/single");
+    url.searchParams.set("client", "gtx");
+    url.searchParams.set("sl", "en");
+    url.searchParams.set("tl", "pt-BR");
+    url.searchParams.set("dt", "t");
+    url.searchParams.set("q", text);
+
+    const res = await fetch(url.toString(), {
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) return text;
+
+    const data = await res.json();
+    // Response: [[[translated, original, ...], ...], ...]
+    const translated = (data[0] as [string, string][] | undefined)
+      ?.map((part) => part[0])
+      .join("");
+    return translated || text;
+  } catch {
+    return text; // fallback to original English
+  }
+}
+
+/** Translate an array of texts EN→PT-BR in parallel (max 5 concurrent). */
+async function translateBatch(texts: string[]): Promise<string[]> {
+  if (texts.length === 0) return [];
+  const results: string[] = new Array(texts.length);
+  const CONCURRENCY = 5;
+
+  for (let i = 0; i < texts.length; i += CONCURRENCY) {
+    const batch = texts.slice(i, i + CONCURRENCY);
+    const translated = await Promise.all(batch.map((t) => translateText(t)));
+    for (let j = 0; j < translated.length; j++) {
+      results[i + j] = translated[j];
+    }
+  }
+
+  return results;
+}
+
 // ── PubMed ────────────────────────────────────────────────────────
 
 interface PubMedSearchResult {
@@ -62,7 +106,7 @@ async function fetchPubMedArticles(): Promise<
   const summaryData: PubMedSummaryResult = await summaryRes.json();
   const results = summaryData.result;
 
-  return ids
+  const articles = ids
     .filter((id) => results[id]?.title)
     .map((id) => {
       const item = results[id];
@@ -80,6 +124,14 @@ async function fetchPubMedArticles(): Promise<
         authors: authorNames.join(", "),
       };
     });
+
+  // Translate titles from English to PT-BR
+  const translatedTitles = await translateBatch(articles.map((a) => a.title));
+  for (let i = 0; i < articles.length; i++) {
+    articles[i].title = translatedTitles[i];
+  }
+
+  return articles;
 }
 
 // ── Google News RSS ───────────────────────────────────────────────

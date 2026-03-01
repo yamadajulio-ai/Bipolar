@@ -266,11 +266,11 @@ export default function IntegraçõesPage() {
           </p>
 
           {syncStatus.lastPayload && (
-            <details className="mt-3">
-              <summary className="cursor-pointer text-xs text-muted hover:text-foreground">
+            <details className="mt-3" open>
+              <summary className="cursor-pointer text-sm font-medium text-foreground">
                 Último payload recebido (debug)
               </summary>
-              <pre className="mt-2 max-h-60 overflow-auto rounded bg-surface-alt p-2 text-xs font-mono whitespace-pre-wrap">
+              <pre className="mt-2 max-h-96 overflow-auto rounded bg-surface-alt p-3 text-xs font-mono whitespace-pre-wrap break-all">
                 {syncStatus.lastPayload}
               </pre>
             </details>

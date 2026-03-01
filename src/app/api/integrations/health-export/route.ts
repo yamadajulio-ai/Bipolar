@@ -4,8 +4,9 @@ import { checkRateLimit } from "@/lib/security";
 import { parseHealthExportPayload } from "@/lib/integrations/healthExport";
 
 /**
- * GET — Test endpoint connectivity. Returns OK if API key is valid.
- * Useful for debugging from a browser or the Health Auto Export app.
+ * GET — Test endpoint connectivity and show imported sleep records.
+ * If called with Bearer token: validates key and shows last sleep records.
+ * If called without auth (from browser via session): shows user's sleep records.
  */
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
@@ -28,11 +29,19 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  // Show last imported sleep records for this user
+  const recentLogs = await prisma.sleepLog.findMany({
+    where: { userId: integration.userId },
+    orderBy: { date: "desc" },
+    take: 10,
+  });
+
   return NextResponse.json({
     status: "ok",
-    message: "Conexão válida! O endpoint está pronto para receber dados.",
+    message: "Conexão válida!",
     service: integration.service,
     enabled: integration.enabled,
+    recentSleepLogs: recentLogs,
   });
 }
 
@@ -66,15 +75,33 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    // Log payload structure for debugging
+    // Log the FULL payload structure to Vercel function logs for debugging
+    console.log("[health-export] Raw payload:", JSON.stringify(body, null, 2).slice(0, 5000));
+
+    // Build debug info from payload
+    const metrics = body?.data?.metrics ?? body?.metrics ?? [];
+    const sleepMetric = Array.isArray(metrics)
+      ? metrics.find((m: { name: string }) =>
+          ["sleep_analysis", "Sleep Analysis", "sleepAnalysis", "sleep"].includes(m.name))
+      : null;
+
     const debugInfo = {
+      topLevelKeys: Object.keys(body || {}),
       hasData: !!body?.data,
       hasMetrics: !!body?.data?.metrics,
-      metricsCount: body?.data?.metrics?.length ?? 0,
-      metricNames: body?.data?.metrics?.map((m: { name: string }) => m.name) ?? [],
+      hasTopLevelMetrics: !!body?.metrics,
+      metricsCount: Array.isArray(metrics) ? metrics.length : 0,
+      metricNames: Array.isArray(metrics) ? metrics.map((m: { name: string }) => m.name) : [],
+      sleepMetricFound: !!sleepMetric,
+      sleepDataCount: sleepMetric?.data?.length ?? 0,
+      sleepDataSample: sleepMetric?.data?.slice(0, 3) ?? [],
     };
 
+    console.log("[health-export] Debug info:", JSON.stringify(debugInfo));
+
     const sleepNights = parseHealthExportPayload(body);
+
+    console.log("[health-export] Parsed nights:", JSON.stringify(sleepNights));
 
     if (sleepNights.length === 0) {
       return NextResponse.json({
@@ -110,9 +137,10 @@ export async function POST(request: NextRequest) {
       imported++;
     }
 
-    return NextResponse.json({ imported, nights: sleepNights });
+    return NextResponse.json({ imported, nights: sleepNights, debug: debugInfo });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erro desconhecido";
+    console.error("[health-export] Error:", message, err);
     return NextResponse.json(
       { error: "Erro ao processar dados de sono", detail: message },
       { status: 500 },

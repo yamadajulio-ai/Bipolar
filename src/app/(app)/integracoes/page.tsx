@@ -12,19 +12,42 @@ interface IntegrationKeyData {
   createdAt: string;
 }
 
+interface SleepRecord {
+  date: string;
+  bedtime: string;
+  wakeTime: string;
+  totalHours: number;
+  quality: number;
+  awakenings: number;
+}
+
+interface SyncStatus {
+  configured: boolean;
+  enabled?: boolean;
+  records: SleepRecord[];
+}
+
 export default function IntegraçõesPage() {
   const [keys, setKeys] = useState<IntegrationKeyData[]>([]);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState<"key" | "bearer" | false>(false);
   const [googleConnected, setGoogleConnected] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
+  const [clearing, setClearing] = useState(false);
 
   const fetchKeys = useCallback(async () => {
     const res = await fetch("/api/integrations/settings");
     if (res.ok) setKeys(await res.json());
   }, []);
 
+  const fetchSyncStatus = useCallback(async () => {
+    const res = await fetch("/api/integrations/health-export/status");
+    if (res.ok) setSyncStatus(await res.json());
+  }, []);
+
   useEffect(() => {
     fetchKeys();
+    fetchSyncStatus();
     // Check Google Calendar connection status
     fetch("/api/google/sync")
       .then((r) => r.json())
@@ -35,7 +58,7 @@ export default function IntegraçõesPage() {
       const params = new URLSearchParams(window.location.search);
       if (params.get("google") === "connected") setGoogleConnected(true);
     }
-  }, [fetchKeys]);
+  }, [fetchKeys, fetchSyncStatus]);
 
   const healthKey = keys.find((k) => k.service === "health_auto_export");
 
@@ -68,6 +91,14 @@ export default function IntegraçõesPage() {
       body: JSON.stringify({ service: "health_auto_export" }),
     });
     await fetchKeys();
+  }
+
+  async function handleClearSleepData() {
+    if (!confirm("Limpar todos os registros de sono importados? Isso permite re-sincronizar com dados corretos.")) return;
+    setClearing(true);
+    await fetch("/api/integrations/health-export/status", { method: "DELETE" });
+    await fetchSyncStatus();
+    setClearing(false);
   }
 
   function handleCopy(type: "key" | "bearer") {
@@ -182,6 +213,51 @@ export default function IntegraçõesPage() {
           </button>
         )}
       </Card>
+
+      {/* Sleep Data Status */}
+      {syncStatus && syncStatus.records.length > 0 && (
+        <Card className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold">Dados de sono importados</h2>
+            <button
+              onClick={handleClearSleepData}
+              disabled={clearing}
+              className="rounded border border-red-300 px-3 py-1 text-xs text-red-600 disabled:opacity-50"
+            >
+              {clearing ? "Limpando..." : "Limpar dados"}
+            </button>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-border text-left text-muted">
+                  <th className="pb-2 pr-3">Data</th>
+                  <th className="pb-2 pr-3">Dormiu</th>
+                  <th className="pb-2 pr-3">Acordou</th>
+                  <th className="pb-2 pr-3">Total</th>
+                  <th className="pb-2 pr-3">Qualidade</th>
+                  <th className="pb-2">Despertares</th>
+                </tr>
+              </thead>
+              <tbody>
+                {syncStatus.records.map((r) => (
+                  <tr key={r.date} className="border-b border-border/50">
+                    <td className="py-1.5 pr-3">{r.date}</td>
+                    <td className="py-1.5 pr-3">{r.bedtime}</td>
+                    <td className="py-1.5 pr-3">{r.wakeTime}</td>
+                    <td className="py-1.5 pr-3">{r.totalHours}h</td>
+                    <td className="py-1.5 pr-3">{r.quality}/5</td>
+                    <td className="py-1.5">{r.awakenings}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-2 text-xs text-muted">
+            Se os valores parecem errados, clique &quot;Limpar dados&quot; e force uma nova sincronização no app.
+          </p>
+        </Card>
+      )}
 
       {/* Google Calendar */}
       <Card className="mb-6">

@@ -106,6 +106,7 @@ interface SleepSegment {
   end: Date;
   stage: NormalizedStage;
   rawValue: string;
+  source: string;
 }
 
 // ── Main parser ─────────────────────────────────────────────────
@@ -137,7 +138,7 @@ function parseDetailedSegments(data: HAEMetricEntry[]): ProcessedSleepNight[] {
     const rawValue = entry.value || "Asleep";
     const stage = normalizeStage(rawValue);
 
-    segments.push({ start, end, stage, rawValue });
+    segments.push({ start, end, stage, rawValue, source: entry.source || "unknown" });
   }
 
   if (segments.length === 0) return [];
@@ -199,13 +200,31 @@ function parseSummarizedData(data: HAEMetricEntry[]): ProcessedSleepNight[] {
 }
 
 function processNight(segments: SleepSegment[]): ProcessedSleepNight | null {
+  // When multiple sources exist (e.g. Apple Watch + AutoSleep), pick only the
+  // best one to avoid double-counting the same sleep period.
+  const sources = new Set(segments.map((s) => s.source));
+  if (sources.size > 1) {
+    // Pick the source with the most detailed stage segments (core/deep/rem)
+    let bestSource = "";
+    let bestCount = -1;
+    for (const src of sources) {
+      const detailed = segments.filter(
+        (s) => s.source === src && (s.stage === "core" || s.stage === "deep" || s.stage === "rem"),
+      ).length;
+      if (detailed > bestCount) {
+        bestCount = detailed;
+        bestSource = src;
+      }
+    }
+    segments = segments.filter((s) => s.source === bestSource);
+  }
+
   // Filter to actual sleep stages (exclude "inbed", "awake", "unknown")
   let sleepSegments = segments.filter((s) => ACTUAL_SLEEP_STAGES.has(s.stage));
   if (sleepSegments.length === 0) return null;
 
   // If we have detailed stage breakdown (core/deep/rem), exclude generic "asleep"
-  // segments — Apple Health sends both summary "Asleep" and individual stages,
-  // which would double-count sleep time.
+  // segments — Apple Health may send both summary and individual stages.
   const hasStageBreakdown = sleepSegments.some(
     (s) => s.stage === "core" || s.stage === "deep" || s.stage === "rem",
   );
@@ -220,7 +239,7 @@ function processNight(segments: SleepSegment[]): ProcessedSleepNight | null {
   const totalMs = sleepSegments.reduce((sum, s) => sum + (s.end.getTime() - s.start.getTime()), 0);
   const totalHours = Math.round((totalMs / (1000 * 60 * 60)) * 100) / 100;
 
-  // Deep + REM time
+  // Deep + REM time (from selected source only)
   const deepRemMs = segments
     .filter((s) => DEEP_REM_STAGES.has(s.stage))
     .reduce((sum, s) => sum + (s.end.getTime() - s.start.getTime()), 0);

@@ -1,5 +1,6 @@
 import { google } from "googleapis";
 import { prisma } from "@/lib/db";
+import { encrypt, decrypt } from "@/lib/crypto";
 
 export function getOAuth2Client() {
   return new google.auth.OAuth2(
@@ -30,8 +31,8 @@ export async function getAuthenticatedClient(userId: string) {
 
   const oauth2Client = getOAuth2Client();
   oauth2Client.setCredentials({
-    access_token: account.accessToken,
-    refresh_token: account.refreshToken,
+    access_token: decrypt(account.accessToken),
+    refresh_token: decrypt(account.refreshToken),
     expiry_date: account.expiresAt.getTime(),
   });
 
@@ -41,7 +42,7 @@ export async function getAuthenticatedClient(userId: string) {
     await prisma.googleAccount.update({
       where: { userId },
       data: {
-        accessToken: credentials.access_token!,
+        accessToken: encrypt(credentials.access_token!),
         expiresAt: new Date(credentials.expiry_date!),
       },
     });

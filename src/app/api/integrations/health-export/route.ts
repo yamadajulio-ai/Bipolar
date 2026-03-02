@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Rate limit: 60 requests per hour per key
-  if (!checkRateLimit(apiKey, 60, 3600000)) {
+  if (!(await checkRateLimit(apiKey, 60, 3600000))) {
     return NextResponse.json({ error: "Limite de requisições atingido" }, { status: 429 });
   }
 

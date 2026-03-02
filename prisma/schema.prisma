@@ -263,6 +263,17 @@ model NewsArticle {
   @@index([publishedAt])
 }
 
+// ── Rate Limiting ───────────────────────────────────────────────────
+
+model RateLimit {
+  id        String   @id @default(uuid())
+  key       String   // e.g. "login:192.168.1.1"
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([key, expiresAt])
+}
+
 // ── Financeiro ──────────────────────────────────────────────────
 
 model FinancialTransaction {

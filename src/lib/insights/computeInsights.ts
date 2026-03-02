@@ -136,7 +136,7 @@ function minutesToTime(mins: number): string {
 }
 
 function pearsonCorrelation(x: number[], y: number[]): number | null {
-  if (x.length !== y.length || x.length < 5) return null;
+  if (x.length !== y.length || x.length < 14) return null;
   const n = x.length;
   const sumX = x.reduce((a, b) => a + b, 0);
   const sumY = y.reduce((a, b) => a + b, 0);
@@ -265,8 +265,8 @@ function computeSleepInsights(sleepLogs: SleepLogInput[]): SleepInsights {
       variant: "warning",
       title: "Noites curtas consecutivas",
       message: `Você dormiu menos de 6 horas por ${consecutiveShort} noites seguidas. `
-        + `Pesquisas do PROMAN/USP mostram que redução persistente do sono é um dos sinais `
-        + `prodrômicos mais confiáveis de episódios de mania. Considere conversar com seu profissional de saúde.`,
+        + `Reduções persistentes de sono são um padrão que merece atenção. `
+        + `Considere conversar com seu profissional de saúde sobre isso.`,
     });
   }
 
@@ -278,8 +278,8 @@ function computeSleepInsights(sleepLogs: SleepLogInput[]): SleepInsights {
         variant: "warning",
         title: "Redução significativa do sono",
         message: `Sua média de sono dos últimos 7 dias caiu ${Math.abs(Math.round(pctChange))}% `
-          + `em relação à sua média de 30 dias. No transtorno bipolar, reduções de sono acima de 25% `
-          + `podem preceder episódios maníacos. Fique atento a outros sinais como energia excessiva.`,
+          + `em relação à sua média de 30 dias. Mudanças significativas no padrão de sono `
+          + `merecem atenção. Observe se há outros sinais como mudança de energia ou humor.`,
       });
     }
     if (pctChange >= 25) {
@@ -298,8 +298,8 @@ function computeSleepInsights(sleepLogs: SleepLogInput[]): SleepInsights {
       variant: "warning",
       title: "Irregularidade circadiana",
       message: `A variação do seu horário de dormir está em ±${bedtimeVariance} minutos. `
-        + `Ritmos circadianos irregulares estão diretamente ligados à instabilidade do humor `
-        + `no transtorno bipolar. A meta é manter variação menor que 30 minutos.`,
+        + `Manter horários regulares de sono ajuda na estabilidade do humor. `
+        + `A meta recomendada é manter variação menor que 30 minutos.`,
     });
   }
 
@@ -308,7 +308,7 @@ function computeSleepInsights(sleepLogs: SleepLogInput[]): SleepInsights {
       variant: "info",
       title: "Ponto médio do sono atrasando",
       message: `Seu ponto médio de sono atrasou ${midpointDelta} minutos na última semana. `
-        + `Atrasos progressivos no ritmo circadiano podem estar associados a fases depressivas.`,
+        + `Mudanças no ritmo de sono são um padrão que vale acompanhar com seu profissional.`,
     });
   }
   if (midpointTrend === "down" && midpointDelta !== null && Math.abs(midpointDelta) > 45) {
@@ -316,7 +316,7 @@ function computeSleepInsights(sleepLogs: SleepLogInput[]): SleepInsights {
       variant: "warning",
       title: "Ponto médio do sono adiantando",
       message: `Seu ponto médio de sono adiantou ${Math.abs(midpointDelta)} minutos na última semana. `
-        + `Avanços do ritmo circadiano combinados com redução do sono são sinais de atenção para mania.`,
+        + `Mudanças no ritmo de sono merecem atenção, especialmente se combinadas com outros sinais.`,
     });
   }
 
@@ -394,8 +394,8 @@ function computeMoodInsights(entries: DiaryEntryInput[]): MoodInsights {
         variant: "warning",
         title: "Humor em elevação",
         message: `Seu humor está elevado (4 ou 5) há ${upStreak + 1} dias seguidos. `
-          + `No transtorno bipolar, humor persistentemente elevado pode indicar o início `
-          + `de um episódio hipomaníaco. Observe se há redução da necessidade de sono ou impulsividade.`,
+          + `Humor persistentemente elevado é um padrão que vale observar. `
+          + `Fique atento a mudanças no sono, impulsividade ou energia excessiva.`,
       });
     }
   }
@@ -427,27 +427,26 @@ function computeMoodInsights(entries: DiaryEntryInput[]): MoodInsights {
       variant: "warning",
       title: "Adesão à medicação abaixo do ideal",
       message: `Sua adesão à medicação nos últimos 30 dias está em ${medicationAdherence}%. `
-        + `Estudos mostram que a adesão regular à medicação é o fator mais importante para prevenir `
-        + `recaídas no transtorno bipolar.`,
+        + `A regularidade na medicação é um dos pilares para manter a estabilidade. `
+        + `Converse com seu profissional de saúde se estiver com dificuldades.`,
     });
   }
 
-  // Mania signature: sono_reduzido + energia_excessiva
-  const maniaSignature = entries.filter((e) => {
+  // Combined pattern: sono_reduzido + energia_excessiva
+  const combinedPattern = entries.filter((e) => {
     if (!e.warningSigns) return false;
     try {
       const signs: string[] = JSON.parse(e.warningSigns);
       return signs.includes("sono_reduzido") && signs.includes("energia_excessiva");
     } catch { return false; }
   });
-  if (maniaSignature.length >= 2) {
+  if (combinedPattern.length >= 2) {
     alerts.push({
       variant: "danger",
-      title: "Padrão compatível com pródromo maníaco",
+      title: "Padrão que merece atenção",
       message: `Você relatou "sono reduzido" e "energia excessiva" juntos em `
-        + `${maniaSignature.length} dias nos últimos 30 dias. Esta combinação é uma das assinaturas `
-        + `prodrômicas mais estudadas para episódios maníacos (DSM-5). `
-        + `Considere entrar em contato com seu profissional de saúde.`,
+        + `${combinedPattern.length} dias nos últimos 30 dias. Esta combinação de sinais `
+        + `é importante de acompanhar. Considere entrar em contato com seu profissional de saúde.`,
     });
   }
 
@@ -576,9 +575,9 @@ function computeRhythmInsights(
     alerts.push({
       variant: "info",
       title: "Ritmo social irregular",
-      message: `Sua regularidade geral está em ${overallRegularity}%. A Terapia de Ritmos Sociais (IPSRT) `
-        + `mostra que manter horários regulares para atividades-chave reduz significativamente o risco `
-        + `de episódios no transtorno bipolar. Comece estabilizando uma âncora por vez.`,
+      message: `Sua regularidade geral está em ${overallRegularity}%. Manter horários regulares `
+        + `para atividades-chave ajuda na estabilidade do humor. `
+        + `Comece estabilizando uma âncora por vez — pequenas mudanças fazem diferença.`,
     });
   }
 
@@ -596,19 +595,19 @@ function computeChartInsights(entries: DiaryEntryInput[]): ChartInsights {
   }));
 
   let correlationNote: string | null = null;
-  if (entries.length >= 7) {
+  if (entries.length >= 14) {
     const r = pearsonCorrelation(
       entries.map((e) => e.sleepHours),
       entries.map((e) => e.mood),
     );
     if (r !== null) {
+      const caveat = " (baseado nos seus registros — converse com seu profissional para interpretar)";
       if (r > 0.4) {
-        correlationNote = "Seus dados mostram uma correlação positiva entre sono e humor: "
-          + "nos dias que você dorme mais, seu humor tende a ser melhor.";
+        correlationNote = "Seus dados sugerem uma tendência positiva entre sono e humor: "
+          + "nos dias que você dorme mais, seu humor tende a ser melhor." + caveat;
       } else if (r < -0.4) {
-        correlationNote = "Seus dados mostram uma correlação inversa entre sono e humor: "
-          + "nos dias que você dorme mais, seu humor tende a ser mais baixo. "
-          + "Isso pode estar relacionado a fases depressivas.";
+        correlationNote = "Seus dados sugerem uma tendência inversa entre sono e humor: "
+          + "nos dias que você dorme mais, seu humor tende a ser mais baixo." + caveat;
       }
     }
   }

@@ -17,6 +17,20 @@ export default async function ContaPage() {
       </Card>
 
       <Card className="mb-6">
+        <h2 className="mb-2 font-semibold">Seus dados (LGPD)</h2>
+        <p className="mb-3 text-sm text-muted">
+          Conforme a LGPD (Art. 18), você pode exportar todos os seus dados a qualquer momento.
+        </p>
+        <a
+          href="/api/auth/export"
+          download
+          className="inline-block rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90"
+        >
+          Exportar meus dados (JSON)
+        </a>
+      </Card>
+
+      <Card className="mb-6">
         <h2 className="mb-2 font-semibold">Excluir conta</h2>
         <p className="mb-3 text-sm text-muted">
           Ao excluir sua conta, todos os seus dados (registros de diário,

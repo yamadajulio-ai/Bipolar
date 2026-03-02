@@ -1,20 +1,39 @@
-const attempts = new Map<string, number[]>();
+import { prisma } from "@/lib/db";
 
-export function checkRateLimit(
+/**
+ * Database-backed rate limiting (serverless-safe).
+ * Each attempt creates a row that expires after windowMs.
+ * Returns true if allowed, false if blocked.
+ */
+export async function checkRateLimit(
   key: string,
   limit: number = 5,
   windowMs: number = 15 * 60 * 1000,
-): boolean {
-  const now = Date.now();
-  const windowStart = now - windowMs;
-  const timestamps = (attempts.get(key) || []).filter((t) => t > windowStart);
+): Promise<boolean> {
+  const now = new Date();
 
-  if (timestamps.length >= limit) {
+  // Clean expired entries for this key
+  await prisma.rateLimit.deleteMany({
+    where: { key, expiresAt: { lt: now } },
+  });
+
+  // Count active entries
+  const count = await prisma.rateLimit.count({
+    where: { key, expiresAt: { gte: now } },
+  });
+
+  if (count >= limit) {
     return false; // bloqueado
   }
 
-  timestamps.push(now);
-  attempts.set(key, timestamps);
+  // Record this attempt
+  await prisma.rateLimit.create({
+    data: {
+      key,
+      expiresAt: new Date(now.getTime() + windowMs),
+    },
+  });
+
   return true; // permitido
 }
 

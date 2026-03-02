@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
   try {
     const ip = request.headers.get("x-forwarded-for") || "unknown";
 
-    if (!checkRateLimit(`login:${ip}`, 5, 15 * 60 * 1000)) {
+    if (!(await checkRateLimit(`login:${ip}`, 5, 15 * 60 * 1000))) {
       return NextResponse.json(
         { error: "Muitas tentativas de login. Aguarde 15 minutos." },
         { status: 429 },

@@ -23,7 +23,7 @@ O Rede Bipolar oferece:
 - **Plano de Crise Personalizado** — Contatos, profissional, medicamentos (só nomes), hospital, estratégias
 - **Sons Ambiente** — Ruído branco/rosa/marrom, chuva (Web Audio API), timer de sono
 - **Dashboard Inteligente** — Status do dia, mini-gráfico, sugestões contextuais, ações rápidas
-- **Insights Clínicos** — 6 métricas de sono (média, regularidade, variabilidade, tendência, ponto médio circadiano, qualidade), humor (tendência, variabilidade, adesão medicação, sinais de alerta), ritmo social IPSRT com automação via PlannerBlock, correlação sono×humor (Pearson), alertas clínicos baseados em PROMAN/USP, DSM-5 e IPSRT
+- **Insights Clínicos** — 6 métricas de sono (média, regularidade, variabilidade, tendência, ponto médio circadiano, qualidade), humor (tendência, variabilidade, adesão medicação, sinais de alerta), ritmo social IPSRT com automação via PlannerBlock, correlação sono×humor (Pearson n≥14), alertas observacionais com encaminhamento profissional
 - **Relatório Mensal** — Resumo imprimível para compartilhar com profissionais de saúde
 - **Notícias e Estudos** — Feed atualizado do PubMed (artigos científicos, traduzidos automaticamente EN→PT-BR) e Google News (notícias PT-BR) sobre Transtorno Bipolar, cache de 1h
 - **Cursos Estruturados** — 4 cursos com aulas sequenciais
@@ -32,7 +32,7 @@ O Rede Bipolar oferece:
 - **Lembretes Gentis** — Notification API para rotina e registros
 - **Área para Famílias** — Checklist e guia para familiares
 - **PWA** — Instalável como app, offline fallback, service worker
-- **Privacidade** — Dados de saúde tratados com cuidado (LGPD)
+- **Privacidade** — Dados de saúde tratados com cuidado (LGPD), exportação de dados (Art. 18)
 
 ## Integrações
 
@@ -168,12 +168,14 @@ O app estará disponível em [http://localhost:3000](http://localhost:3000).
 
 - Senhas hasheadas com bcrypt (custo 12)
 - Sessões em cookies HttpOnly, Secure, SameSite=Lax
-- Rate limiting no login (5 tentativas / 15 min)
+- Rate limiting persistente no banco de dados (serverless-safe)
+- Tokens OAuth Google criptografados em repouso (AES-256-GCM)
 - Validação com zod em todas as APIs
 - SQL injection prevenido via Prisma ORM
 - Security headers (CSP, X-Frame-Options, etc.)
 - HTML sanitizado no markdown (rehype-sanitize)
 - Sem dados sensíveis em logs
+- Exportação LGPD (Art. 18) — download JSON de todos os dados do usuário
 
 ## Princípios éticos
 
@@ -184,7 +186,7 @@ O app estará disponível em [http://localhost:3000](http://localhost:3000).
 - Sem IA para recomendações clínicas
 - Sempre incentivamos acompanhamento profissional
 - Dados de saúde são sensíveis e tratados com cuidado (LGPD)
-- Alertas automáticos sempre incluem disclaimer profissional
+- Alertas são observacionais (sem termos diagnósticos) com encaminhamento profissional
 - Exercícios incluem aviso para parar se sentir desconforto
 
 ## Documentação

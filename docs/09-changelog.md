@@ -1,5 +1,49 @@
 # Changelog — Rede Bipolar
 
+## v3.6.1 — 2026-03-02
+
+### Segurança, LGPD e Linguagem Clínica
+
+#### Linguagem Clínica Suavizada
+- Removidas todas as referências a DSM-5 e termos diagnósticos dos alertas
+- Alertas reformulados como padrões observacionais (ex: "Padrão que merece atenção" em vez de "Padrão compatível com pródromo maníaco")
+- Todos os alertas agora incluem encaminhamento profissional em vez de sugerir diagnósticos
+- Reduz risco legal de interpretação como ferramenta diagnóstica
+
+#### Correlação Sono×Humor — Rigor Estatístico
+- Mínimo de amostras Pearson aumentado de 5 para 14 (2 semanas de dados)
+- Gráfico de correlação exige 14 registros para ser exibido
+- Notas de correlação incluem caveat: "converse com seu profissional para interpretar"
+- Linguagem alterada de "mostram correlação" para "sugerem tendência"
+
+#### Criptografia de Tokens OAuth
+- Tokens Google Calendar (access_token e refresh_token) agora criptografados em repouso
+- Algoritmo: AES-256-GCM com IV aleatório e authentication tag
+- Nova variável de ambiente: `TOKEN_ENCRYPTION_KEY` (32 bytes hex)
+- Novo módulo: `src/lib/crypto.ts` (encrypt/decrypt)
+- Tokens decriptados apenas em memória no momento do uso
+
+#### Rate Limiting Persistente (Serverless-Safe)
+- Substituído `Map` em memória (perdido a cada cold start) por tabela PostgreSQL
+- Novo model: `RateLimit` (key, expiresAt, createdAt) com índice composto
+- Limpeza automática de entradas expiradas a cada verificação
+- Funciona corretamente em ambientes serverless (Vercel Functions)
+
+#### Exportação de Dados LGPD (Art. 18)
+- Novo endpoint: `GET /api/auth/export` — download JSON de todos os dados do usuário
+- Inclui: diário, sono, ritmo social, planejador, exercícios, cursos, plano de crise, finanças
+- Header `Content-Disposition` para download automático
+- Botão "Exportar meus dados (JSON)" adicionado à página /conta
+- Referência legal: LGPD Art. 18, V — Portabilidade de dados
+
+#### Infraestrutura
+- Nova migration: `add_rate_limit_table`
+- Novo arquivo: `src/lib/crypto.ts` (AES-256-GCM encrypt/decrypt)
+- Novo endpoint: `src/app/api/auth/export/route.ts`
+- `checkRateLimit()` agora é async (callers atualizados)
+
+---
+
 ## v3.6.0 — 2026-03-01
 
 ### Insights Clínicos Avançados, Automação IPSRT e Tradução PubMed

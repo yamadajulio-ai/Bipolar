@@ -44,6 +44,8 @@ export interface ProcessedSleepNight {
   totalHours: number;
   quality: number;    // 0-100
   awakenings: number;
+  hrv?: number;       // Heart Rate Variability SDNN (ms)
+  heartRate?: number; // Resting heart rate (bpm)
 }
 
 // ── Parse Health Auto Export date string ─────────────────────────
@@ -109,6 +111,105 @@ interface SleepSegment {
   source: string;
 }
 
+// ── HRV and Heart Rate metric names ─────────────────────────────
+
+const HRV_METRIC_NAMES = new Set([
+  "heart_rate_variability",
+  "Heart Rate Variability",
+  "heartRateVariability",
+  "heart_rate_variability_sdnn",
+]);
+
+const HR_METRIC_NAMES = new Set([
+  "resting_heart_rate",
+  "Resting Heart Rate",
+  "restingHeartRate",
+  "heart_rate",
+  "Heart Rate",
+  "heartRate",
+]);
+
+/** Build a map of date → average value from a HAE metric. */
+function buildDailyAvgMap(metric: HAEMetric | undefined): Map<string, number> {
+  const map = new Map<string, number>();
+  if (!metric?.data) return map;
+
+  const dayValues = new Map<string, number[]>();
+
+  for (const entry of metric.data) {
+    const dateStr = entry.date || entry.startDate || entry.endDate;
+    if (!dateStr) continue;
+
+    let val: number | undefined;
+    if (typeof entry.avg === "number" && entry.avg > 0) val = entry.avg;
+    else if (typeof entry.qty === "number" && entry.qty > 0) val = entry.qty;
+    else if (entry.value && !isNaN(Number(entry.value)) && Number(entry.value) > 0) val = Number(entry.value);
+
+    if (val === undefined) continue;
+
+    const d = parseHAEDate(dateStr);
+    if (isNaN(d.getTime())) continue;
+    const ymd = toYMD(d);
+
+    const arr = dayValues.get(ymd) ?? [];
+    arr.push(val);
+    dayValues.set(ymd, arr);
+  }
+
+  for (const [ymd, values] of dayValues) {
+    map.set(ymd, Math.round(values.reduce((a, b) => a + b, 0) / values.length));
+  }
+
+  return map;
+}
+
+// ── Metric detection helpers ────────────────────────────────────
+// Health Auto Export may omit the `name` field when exporting all
+// data types. Detect metrics by inspecting entry content as fallback.
+
+const SLEEP_STAGE_KEYWORDS = new Set([
+  "core", "deep", "rem", "asleep", "awake", "inbed",
+  "núcleo", "profundo", "acordado", "adormecido", "na cama", "essencial",
+]);
+
+function looksLikeSleepMetric(m: HAEMetric): boolean {
+  if (SLEEP_METRIC_NAMES.has(m.name)) return true;
+  if (!Array.isArray(m.data) || m.data.length === 0) return false;
+  // Check first few entries for sleep stage values
+  const sample = m.data.slice(0, 10);
+  return sample.some((e) => {
+    if (!e.value) return false;
+    const v = e.value.toLowerCase().replace(/[\s_-]/g, "");
+    return SLEEP_STAGE_KEYWORDS.has(e.value.toLowerCase()) ||
+      [...SLEEP_STAGE_KEYWORDS].some((kw) => v.includes(kw.replace(/[\s_-]/g, "")));
+  });
+}
+
+const HRV_UNITS = new Set(["ms", "milliseconds"]);
+const HR_UNITS = new Set(["bpm", "count/min"]);
+
+function looksLikeHRVMetric(m: HAEMetric): boolean {
+  if (HRV_METRIC_NAMES.has(m.name)) return true;
+  // HRV metrics have units "ms" and numeric values typically 10-200
+  if (!m.units || !HRV_UNITS.has(m.units)) return false;
+  const sample = m.data?.slice(0, 5) ?? [];
+  return sample.some((e) => {
+    const v = e.qty ?? e.avg ?? (e.value ? Number(e.value) : NaN);
+    return typeof v === "number" && v >= 5 && v <= 300;
+  });
+}
+
+function looksLikeHRMetric(m: HAEMetric): boolean {
+  if (HR_METRIC_NAMES.has(m.name)) return true;
+  // HR metrics have units "bpm" or "count/min" and values typically 40-120
+  if (!m.units || !HR_UNITS.has(m.units)) return false;
+  const sample = m.data?.slice(0, 5) ?? [];
+  return sample.some((e) => {
+    const v = e.qty ?? e.avg ?? (e.value ? Number(e.value) : NaN);
+    return typeof v === "number" && v >= 30 && v <= 200;
+  });
+}
+
 // ── Main parser ─────────────────────────────────────────────────
 
 export function parseHealthExportPayload(body: unknown): ProcessedSleepNight[] {
@@ -118,13 +219,26 @@ export function parseHealthExportPayload(body: unknown): ProcessedSleepNight[] {
   const metrics = payload.data?.metrics ?? payload.metrics;
   if (!metrics || !Array.isArray(metrics)) return [];
 
-  const sleepMetric = metrics.find((m) => SLEEP_METRIC_NAMES.has(m.name));
+  const sleepMetric = metrics.find((m) => looksLikeSleepMetric(m));
   if (!sleepMetric || !Array.isArray(sleepMetric.data)) return [];
 
   const detailedResult = parseDetailedSegments(sleepMetric.data);
-  if (detailedResult.length > 0) return detailedResult;
+  const nights = detailedResult.length > 0 ? detailedResult : parseSummarizedData(sleepMetric.data);
 
-  return parseSummarizedData(sleepMetric.data);
+  // Enrich with HRV and heart rate data
+  const hrvMetric = metrics.find((m) => looksLikeHRVMetric(m));
+  const hrMetric = metrics.find((m) => looksLikeHRMetric(m));
+  const hrvMap = buildDailyAvgMap(hrvMetric);
+  const hrMap = buildDailyAvgMap(hrMetric);
+
+  for (const night of nights) {
+    const hrv = hrvMap.get(night.date);
+    const hr = hrMap.get(night.date);
+    if (hrv !== undefined && hrv >= 1 && hrv <= 300) night.hrv = hrv;
+    if (hr !== undefined && hr >= 20 && hr <= 250) night.heartRate = hr;
+  }
+
+  return nights;
 }
 
 function parseDetailedSegments(data: HAEMetricEntry[]): ProcessedSleepNight[] {

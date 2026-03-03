@@ -81,6 +81,9 @@ export default async function InsightsPage() {
   const anchorsWithData = Object.entries(insights.rhythm.anchors)
     .filter(([, anchor]) => anchor.variance !== null);
 
+  // Last 15 sleep logs (newest first) for the detail table
+  const last15 = sleepLogs.slice(-15).reverse();
+
   return (
     <div>
       <h1 className="mb-2 text-2xl font-bold">Insights</h1>
@@ -208,6 +211,44 @@ export default async function InsightsPage() {
         </div>
 
         <AlertList alerts={insights.sleep.alerts} />
+
+        {/* Tabela: últimos 15 dias de sono */}
+        {last15.length > 0 && (
+          <div className="mt-6">
+            <h3 className="mb-2 text-sm font-semibold">Últimos 15 dias</h3>
+            <div className="overflow-x-auto rounded-lg border border-border">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="bg-surface-alt text-left text-muted">
+                    <th className="px-3 py-2 font-medium">Data</th>
+                    <th className="px-3 py-2 font-medium">Dormir</th>
+                    <th className="px-3 py-2 font-medium">Acordar</th>
+                    <th className="px-3 py-2 font-medium">Duração</th>
+                    <th className="px-3 py-2 font-medium">HRV</th>
+                    <th className="px-3 py-2 font-medium">FC</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {last15.map((log) => (
+                    <tr key={log.id} className="border-t border-border">
+                      <td className="px-3 py-2 whitespace-nowrap">
+                        {new Date(log.date + "T12:00:00").toLocaleDateString("pt-BR", {
+                          day: "2-digit",
+                          month: "2-digit",
+                        })}
+                      </td>
+                      <td className="px-3 py-2">{log.bedtime}</td>
+                      <td className="px-3 py-2">{log.wakeTime}</td>
+                      <td className="px-3 py-2">{formatSleepDuration(log.totalHours)}</td>
+                      <td className="px-3 py-2">{log.hrv != null ? `${log.hrv}ms` : "—"}</td>
+                      <td className="px-3 py-2">{log.heartRate != null ? `${log.heartRate}bpm` : "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* ── Seção 2: Seu Humor ──────────────────────────────────── */}

@@ -90,6 +90,8 @@ export default async function SonoPage() {
                     {log.awakenings > 0 && (
                       <span> | {log.awakenings} despertar{log.awakenings > 1 ? "es" : ""}</span>
                     )}
+                    {log.hrv != null && <span> | HRV: {log.hrv}ms</span>}
+                    {log.heartRate != null && <span> | FC: {log.heartRate}bpm</span>}
                   </p>
                 </div>
                 {log.notes && (

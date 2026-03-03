@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
     const payloadStr = JSON.stringify(body, null, 2);
     await prisma.integrationKey.update({
       where: { apiKey },
-      data: { lastPayloadDebug: payloadStr.slice(0, 5000) },
+      data: { lastPayloadDebug: payloadStr.slice(0, 50000) },
     });
 
     console.log("[health-export] Raw payload:", payloadStr.slice(0, 5000));
@@ -119,26 +119,21 @@ export async function POST(request: NextRequest) {
 
     let imported = 0;
     for (const night of sleepNights) {
+      const data = {
+        bedtime: night.bedtime,
+        wakeTime: night.wakeTime,
+        totalHours: night.totalHours,
+        quality: night.quality,
+        awakenings: night.awakenings,
+        hrv: night.hrv ?? null,
+        heartRate: night.heartRate ?? null,
+      };
       await prisma.sleepLog.upsert({
         where: {
           userId_date: { userId: integration.userId, date: night.date },
         },
-        update: {
-          bedtime: night.bedtime,
-          wakeTime: night.wakeTime,
-          totalHours: night.totalHours,
-          quality: night.quality,
-          awakenings: night.awakenings,
-        },
-        create: {
-          userId: integration.userId,
-          date: night.date,
-          bedtime: night.bedtime,
-          wakeTime: night.wakeTime,
-          totalHours: night.totalHours,
-          quality: night.quality,
-          awakenings: night.awakenings,
-        },
+        update: data,
+        create: { userId: integration.userId, date: night.date, ...data },
       });
       imported++;
     }

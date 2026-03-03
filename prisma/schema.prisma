@@ -69,6 +69,8 @@ model SleepLog {
   totalHours Float
   quality    Int      // 0..100
   awakenings Int      @default(0)
+  hrv        Int?     // Heart Rate Variability (ms) — ex: RMSSD from wearable
+  heartRate  Int?     // Resting heart rate (bpm) during sleep
   preRoutine String?  // JSON array of routine keys
   notes      String?  // max 280 chars
   createdAt  DateTime @default(now())

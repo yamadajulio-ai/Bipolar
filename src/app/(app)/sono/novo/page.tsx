@@ -58,6 +58,9 @@ export default function NovoSonoPage() {
     setError("");
 
     const formData = new FormData(e.currentTarget);
+    const hrvRaw = formData.get("hrv") as string;
+    const heartRateRaw = formData.get("heartRate") as string;
+
     const data = {
       date: formData.get("date") as string,
       bedtime,
@@ -65,6 +68,8 @@ export default function NovoSonoPage() {
       totalHours,
       quality,
       awakenings: parseInt(formData.get("awakenings") as string, 10) || 0,
+      hrv: hrvRaw ? parseInt(hrvRaw, 10) : undefined,
+      heartRate: heartRateRaw ? parseInt(heartRateRaw, 10) : undefined,
       preRoutine: selectedRoutines.length > 0 ? JSON.stringify(selectedRoutines) : undefined,
       notes: (formData.get("notes") as string) || undefined,
     };
@@ -176,6 +181,25 @@ export default function NovoSonoPage() {
             value={0}
             placeholder="0"
           />
+
+          <div className="mb-4 grid grid-cols-2 gap-3">
+            <FormField
+              label="HRV (ms) — opcional"
+              name="hrv"
+              type="number"
+              min={1}
+              max={300}
+              placeholder="Ex: 45"
+            />
+            <FormField
+              label="FC repouso (bpm) — opcional"
+              name="heartRate"
+              type="number"
+              min={20}
+              max={250}
+              placeholder="Ex: 62"
+            />
+          </div>
 
           <SleepRoutineChecklist
             selected={selectedRoutines}

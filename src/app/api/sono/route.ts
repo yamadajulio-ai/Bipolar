@@ -9,8 +9,10 @@ const sleepLogSchema = z.object({
   bedtime: z.string().regex(/^\d{2}:\d{2}$/, "Horário deve ser HH:MM"),
   wakeTime: z.string().regex(/^\d{2}:\d{2}$/, "Horário deve ser HH:MM"),
   totalHours: z.number().min(0).max(24),
-  quality: z.number().int().min(1).max(5),
+  quality: z.number().int().min(0).max(100),
   awakenings: z.number().int().min(0).max(10).optional(),
+  hrv: z.number().int().min(1).max(300).optional(),
+  heartRate: z.number().int().min(20).max(250).optional(),
   preRoutine: z.string().optional(),
   notes: z.string().max(280).optional(),
 });
@@ -58,6 +60,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ errors: fieldErrors }, { status: 400 });
     }
 
+    const data = {
+      bedtime: parsed.data.bedtime,
+      wakeTime: parsed.data.wakeTime,
+      totalHours: parsed.data.totalHours,
+      quality: parsed.data.quality,
+      awakenings: parsed.data.awakenings ?? 0,
+      hrv: parsed.data.hrv ?? null,
+      heartRate: parsed.data.heartRate ?? null,
+      preRoutine: parsed.data.preRoutine || null,
+      notes: parsed.data.notes || null,
+    };
+
     const log = await prisma.sleepLog.upsert({
       where: {
         userId_date: {
@@ -65,26 +79,8 @@ export async function POST(request: NextRequest) {
           date: parsed.data.date,
         },
       },
-      update: {
-        bedtime: parsed.data.bedtime,
-        wakeTime: parsed.data.wakeTime,
-        totalHours: parsed.data.totalHours,
-        quality: parsed.data.quality,
-        awakenings: parsed.data.awakenings ?? 0,
-        preRoutine: parsed.data.preRoutine || null,
-        notes: parsed.data.notes || null,
-      },
-      create: {
-        userId: session.userId,
-        date: parsed.data.date,
-        bedtime: parsed.data.bedtime,
-        wakeTime: parsed.data.wakeTime,
-        totalHours: parsed.data.totalHours,
-        quality: parsed.data.quality,
-        awakenings: parsed.data.awakenings ?? 0,
-        preRoutine: parsed.data.preRoutine || null,
-        notes: parsed.data.notes || null,
-      },
+      update: data,
+      create: { userId: session.userId, date: parsed.data.date, ...data },
     });
 
     return NextResponse.json(log, { status: 201 });

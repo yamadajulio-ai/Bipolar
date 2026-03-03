@@ -54,7 +54,7 @@ function formatSleepDuration(hours: number): string {
 export default function IntegraçõesPage() {
   const [keys, setKeys] = useState<IntegrationKeyData[]>([]);
   const [loading, setLoading] = useState(false);
-  const [copied, setCopied] = useState<"key" | "bearer" | false>(false);
+  const [copied, setCopied] = useState<"key" | "bearer" | "url" | false>(false);
   const [googleConnected, setGoogleConnected] = useState(false);
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
   const [clearing, setClearing] = useState(false);
@@ -258,10 +258,24 @@ export default function IntegraçõesPage() {
             </div>
 
             <div>
-              <label className="text-xs text-muted">URL do endpoint</label>
-              <div className="mt-1 rounded bg-surface-alt px-3 py-2 text-xs font-mono break-all">
-                {baseUrl}/api/integrations/health-export
+              <label className="text-xs text-muted">URL do endpoint (proxy Cloudflare)</label>
+              <div className="mt-1 flex items-center gap-2">
+                <div className="flex-1 rounded bg-surface-alt px-3 py-2 text-xs font-mono break-all">
+                  https://hae-proxy.rede-bipolar.workers.dev
+                </div>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText("https://hae-proxy.rede-bipolar.workers.dev");
+                    setCopied("url"); setTimeout(() => setCopied(false), 2000);
+                  }}
+                  className="rounded bg-primary px-3 py-2 text-xs text-white whitespace-nowrap"
+                >
+                  {copied === "url" ? "Copiado!" : "Copiar"}
+                </button>
               </div>
+              <p className="mt-1 text-xs text-muted">
+                Este proxy aceita payloads grandes e divide automaticamente antes de enviar ao servidor.
+              </p>
             </div>
 
             <div>
@@ -299,7 +313,7 @@ export default function IntegraçõesPage() {
               <ol className="list-decimal list-inside space-y-1">
                 <li>Abra o Health Auto Export no iPhone</li>
                 <li>Vá em Automations → REST API</li>
-                <li>Cole a URL acima no campo de endpoint</li>
+                <li>Cole a URL do proxy acima no campo de endpoint</li>
                 <li>Em &quot;Adicionar Cabeçalhos&quot;:
                   <ul className="list-disc list-inside ml-4 mt-1 space-y-0.5">
                     <li><strong>Chave:</strong> Authorization</li>

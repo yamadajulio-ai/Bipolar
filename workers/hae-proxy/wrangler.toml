@@ -1,0 +1,6 @@
+name = "hae-proxy"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+
+[vars]
+TARGET_URL = "https://rede-bipolar.vercel.app/api/integrations/health-export"

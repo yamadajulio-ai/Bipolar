@@ -235,15 +235,9 @@ export default function IntegraçõesPage() {
                     <li><strong>Valor:</strong> Bearer [sua key] (use o botão &quot;Copiar&quot; acima)</li>
                   </ul>
                 </li>
-                <li>Configure <strong>2 automações</strong> (para evitar erro de payload grande):
-                  <ul className="list-disc list-inside ml-4 mt-1 space-y-0.5">
-                    <li><strong>Automação 1:</strong> Sleep Analysis + Heart Rate Variability + Resting Heart Rate</li>
-                    <li><strong>Automação 2:</strong> Step Count + Active Energy + Blood Oxygen</li>
-                  </ul>
-                </li>
-                <li>Ambas usam a mesma URL e API Key acima</li>
-                <li>Desative &quot;Resumir Dados&quot; na automação de sono</li>
-                <li>Configure frequência (recomendado: diário)</li>
+                <li>Selecione as métricas desejadas (pode selecionar todas)</li>
+                <li>Desative &quot;Resumir Dados&quot;</li>
+                <li>Configure frequência <strong>diária</strong></li>
               </ol>
             </div>
 

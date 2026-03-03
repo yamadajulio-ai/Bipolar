@@ -19,6 +19,15 @@ interface SleepRecord {
   totalHours: number;
   quality: number;
   awakenings: number;
+  hrv?: number | null;
+  heartRate?: number | null;
+}
+
+interface HealthMetricRecord {
+  date: string;
+  metric: string;
+  value: number;
+  unit: string;
 }
 
 interface SyncStatus {
@@ -26,7 +35,14 @@ interface SyncStatus {
   enabled?: boolean;
   lastPayload?: string | null;
   records: SleepRecord[];
+  healthMetrics?: HealthMetricRecord[];
 }
+
+const METRIC_LABELS: Record<string, string> = {
+  steps: "Passos",
+  active_calories: "Calorias ativas",
+  blood_oxygen: "SpO2",
+};
 
 function formatSleepDuration(hours: number): string {
   const h = Math.floor(hours);
@@ -157,7 +173,7 @@ export default function IntegraçõesPage() {
 
       {/* Health Auto Export */}
       <Card className="mb-6">
-        <h2 className="mb-2 text-lg font-semibold">Health Auto Export (Sono)</h2>
+        <h2 className="mb-2 text-lg font-semibold">Health Auto Export</h2>
         <p className="mb-4 text-sm text-muted">
           O app Health Auto Export no iPhone envia dados do Apple Health para cá automaticamente.
           Você precisa do app instalado (premium) no iPhone.
@@ -219,8 +235,14 @@ export default function IntegraçõesPage() {
                     <li><strong>Valor:</strong> Bearer [sua key] (use o botão &quot;Copiar&quot; acima)</li>
                   </ul>
                 </li>
-                <li>Selecione &quot;Sleep Analysis&quot; nas métricas</li>
-                <li>Desative &quot;Resumir Dados&quot; (precisamos dos dados detalhados)</li>
+                <li>Configure <strong>2 automações</strong> (para evitar erro de payload grande):
+                  <ul className="list-disc list-inside ml-4 mt-1 space-y-0.5">
+                    <li><strong>Automação 1:</strong> Sleep Analysis + Heart Rate Variability + Resting Heart Rate</li>
+                    <li><strong>Automação 2:</strong> Step Count + Active Energy + Blood Oxygen</li>
+                  </ul>
+                </li>
+                <li>Ambas usam a mesma URL e API Key acima</li>
+                <li>Desative &quot;Resumir Dados&quot; na automação de sono</li>
                 <li>Configure frequência (recomendado: diário)</li>
               </ol>
             </div>
@@ -273,6 +295,8 @@ export default function IntegraçõesPage() {
                   <th className="pb-2 pr-3">Acordou</th>
                   <th className="pb-2 pr-3">Total</th>
                   <th className="pb-2 pr-3">Qualidade</th>
+                  <th className="pb-2 pr-3">HRV</th>
+                  <th className="pb-2 pr-3">FC</th>
                   <th className="pb-2">Despertares</th>
                 </tr>
               </thead>
@@ -284,6 +308,8 @@ export default function IntegraçõesPage() {
                     <td className="py-1.5 pr-3">{r.wakeTime}</td>
                     <td className="py-1.5 pr-3">{formatSleepDuration(r.totalHours)}</td>
                     <td className="py-1.5 pr-3">{r.quality}%</td>
+                    <td className="py-1.5 pr-3">{r.hrv != null ? `${r.hrv}ms` : "\u2014"}</td>
+                    <td className="py-1.5 pr-3">{r.heartRate != null ? `${r.heartRate}bpm` : "\u2014"}</td>
                     <td className="py-1.5">{r.awakenings}</td>
                   </tr>
                 ))}
@@ -304,6 +330,35 @@ export default function IntegraçõesPage() {
               </pre>
             </details>
           )}
+        </Card>
+      )}
+
+      {/* Health Metrics */}
+      {syncStatus?.healthMetrics && syncStatus.healthMetrics.length > 0 && (
+        <Card className="mb-6">
+          <h2 className="mb-3 text-lg font-semibold">Metricas de saude importadas</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-border text-left text-muted">
+                  <th className="pb-2 pr-3">Data</th>
+                  <th className="pb-2 pr-3">Metrica</th>
+                  <th className="pb-2 pr-3">Valor</th>
+                  <th className="pb-2">Unidade</th>
+                </tr>
+              </thead>
+              <tbody>
+                {syncStatus.healthMetrics.map((m) => (
+                  <tr key={`${m.date}-${m.metric}`} className="border-b border-border/50">
+                    <td className="py-1.5 pr-3">{m.date}</td>
+                    <td className="py-1.5 pr-3">{METRIC_LABELS[m.metric] || m.metric}</td>
+                    <td className="py-1.5 pr-3">{m.value.toLocaleString("pt-BR")}</td>
+                    <td className="py-1.5">{m.unit}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </Card>
       )}
 

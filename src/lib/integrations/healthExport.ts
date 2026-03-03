@@ -48,6 +48,19 @@ export interface ProcessedSleepNight {
   heartRate?: number; // Resting heart rate (bpm)
 }
 
+export interface ProcessedGenericMetric {
+  date: string;       // YYYY-MM-DD
+  metric: string;     // "steps", "active_calories", "blood_oxygen"
+  value: number;
+  unit: string;       // "count", "kcal", "%"
+}
+
+export interface HealthExportResult {
+  sleepNights: ProcessedSleepNight[];
+  hrvHrData: { hrvByDate: Map<string, number>; hrByDate: Map<string, number> };
+  genericMetrics: ProcessedGenericMetric[];
+}
+
 // ── Parse Health Auto Export date string ─────────────────────────
 
 function parseHAEDate(dateStr: string): Date {
@@ -210,35 +223,159 @@ function looksLikeHRMetric(m: HAEMetric): boolean {
   });
 }
 
+// ── Generic metric detection (table-driven) ─────────────────────
+
+interface GenericMetricDef {
+  names: Set<string>;
+  units: Set<string>;
+  metricKey: string;
+  canonicalUnit: string;
+  minValue: number;
+  maxValue: number;
+  aggregation: "sum" | "avg";
+}
+
+const GENERIC_METRIC_DEFS: GenericMetricDef[] = [
+  {
+    names: new Set(["step_count", "Step Count", "stepCount", "steps"]),
+    units: new Set(["count", "steps"]),
+    metricKey: "steps",
+    canonicalUnit: "count",
+    minValue: 0,
+    maxValue: 200000,
+    aggregation: "sum",
+  },
+  {
+    names: new Set(["active_energy", "Active Energy", "activeEnergy", "active_calories"]),
+    units: new Set(["kcal", "Cal", "kCal"]),
+    metricKey: "active_calories",
+    canonicalUnit: "kcal",
+    minValue: 0,
+    maxValue: 10000,
+    aggregation: "sum",
+  },
+  {
+    names: new Set(["blood_oxygen", "Blood Oxygen", "bloodOxygen", "oxygen_saturation"]),
+    units: new Set(["%"]),
+    metricKey: "blood_oxygen",
+    canonicalUnit: "%",
+    minValue: 50,
+    maxValue: 100,
+    aggregation: "avg",
+  },
+];
+
+function matchGenericMetric(m: HAEMetric): GenericMetricDef | null {
+  for (const def of GENERIC_METRIC_DEFS) {
+    if (def.names.has(m.name)) return def;
+  }
+  if (!m.units) return null;
+  for (const def of GENERIC_METRIC_DEFS) {
+    if (!def.units.has(m.units)) continue;
+    const sample = m.data?.slice(0, 5) ?? [];
+    const hasValidValue = sample.some((e) => {
+      const v = e.qty ?? e.sum ?? e.avg ?? (e.value ? Number(e.value) : NaN);
+      return typeof v === "number" && v >= def.minValue && v <= def.maxValue;
+    });
+    if (hasValidValue) return def;
+  }
+  return null;
+}
+
+function extractGenericMetrics(metric: HAEMetric, def: GenericMetricDef): ProcessedGenericMetric[] {
+  const dayValues = new Map<string, number[]>();
+
+  for (const entry of metric.data) {
+    const dateStr = entry.date || entry.startDate || entry.endDate;
+    if (!dateStr) continue;
+
+    let val: number | undefined;
+    if (def.aggregation === "avg") {
+      if (typeof entry.avg === "number" && entry.avg > 0) val = entry.avg;
+      else if (typeof entry.qty === "number" && entry.qty > 0) val = entry.qty;
+      else if (entry.value && !isNaN(Number(entry.value))) val = Number(entry.value);
+    } else {
+      if (typeof entry.sum === "number" && entry.sum > 0) val = entry.sum;
+      else if (typeof entry.qty === "number" && entry.qty > 0) val = entry.qty;
+      else if (entry.value && !isNaN(Number(entry.value))) val = Number(entry.value);
+    }
+
+    if (val === undefined || val < def.minValue || val > def.maxValue) continue;
+
+    const d = parseHAEDate(dateStr);
+    if (isNaN(d.getTime())) continue;
+    const ymd = toYMD(d);
+
+    const arr = dayValues.get(ymd) ?? [];
+    arr.push(val);
+    dayValues.set(ymd, arr);
+  }
+
+  const results: ProcessedGenericMetric[] = [];
+  for (const [ymd, values] of dayValues) {
+    const aggregated = def.aggregation === "avg"
+      ? Math.round((values.reduce((a, b) => a + b, 0) / values.length) * 10) / 10
+      : Math.round(values.reduce((a, b) => a + b, 0));
+    results.push({ date: ymd, metric: def.metricKey, value: aggregated, unit: def.canonicalUnit });
+  }
+
+  return results;
+}
+
 // ── Main parser ─────────────────────────────────────────────────
 
-export function parseHealthExportPayload(body: unknown): ProcessedSleepNight[] {
-  if (!body || typeof body !== "object") return [];
+export function parseHealthExportPayloadV2(body: unknown): HealthExportResult {
+  const empty: HealthExportResult = {
+    sleepNights: [],
+    hrvHrData: { hrvByDate: new Map(), hrByDate: new Map() },
+    genericMetrics: [],
+  };
+
+  if (!body || typeof body !== "object") return empty;
 
   const payload = body as HAEPayload;
   const metrics = payload.data?.metrics ?? payload.metrics;
-  if (!metrics || !Array.isArray(metrics)) return [];
+  if (!metrics || !Array.isArray(metrics)) return empty;
 
+  // 1. Sleep (existing logic)
   const sleepMetric = metrics.find((m) => looksLikeSleepMetric(m));
-  if (!sleepMetric || !Array.isArray(sleepMetric.data)) return [];
+  let sleepNights: ProcessedSleepNight[] = [];
+  if (sleepMetric && Array.isArray(sleepMetric.data)) {
+    const detailedResult = parseDetailedSegments(sleepMetric.data);
+    sleepNights = detailedResult.length > 0 ? detailedResult : parseSummarizedData(sleepMetric.data);
+  }
 
-  const detailedResult = parseDetailedSegments(sleepMetric.data);
-  const nights = detailedResult.length > 0 ? detailedResult : parseSummarizedData(sleepMetric.data);
-
-  // Enrich with HRV and heart rate data
+  // 2. HRV and HR (always extracted, even without sleep)
   const hrvMetric = metrics.find((m) => looksLikeHRVMetric(m));
   const hrMetric = metrics.find((m) => looksLikeHRMetric(m));
-  const hrvMap = buildDailyAvgMap(hrvMetric);
-  const hrMap = buildDailyAvgMap(hrMetric);
+  const hrvByDate = buildDailyAvgMap(hrvMetric);
+  const hrByDate = buildDailyAvgMap(hrMetric);
 
-  for (const night of nights) {
-    const hrv = hrvMap.get(night.date);
-    const hr = hrMap.get(night.date);
+  // Enrich sleep nights if both present in same payload
+  for (const night of sleepNights) {
+    const hrv = hrvByDate.get(night.date);
+    const hr = hrByDate.get(night.date);
     if (hrv !== undefined && hrv >= 1 && hrv <= 300) night.hrv = hrv;
     if (hr !== undefined && hr >= 20 && hr <= 250) night.heartRate = hr;
   }
 
-  return nights;
+  // 3. Generic metrics (steps, calories, blood oxygen)
+  const genericMetrics: ProcessedGenericMetric[] = [];
+  for (const m of metrics) {
+    // Skip metrics already handled above
+    if (looksLikeSleepMetric(m) || looksLikeHRVMetric(m) || looksLikeHRMetric(m)) continue;
+    const def = matchGenericMetric(m);
+    if (def) {
+      genericMetrics.push(...extractGenericMetrics(m, def));
+    }
+  }
+
+  return { sleepNights, hrvHrData: { hrvByDate, hrByDate }, genericMetrics };
+}
+
+/** Backward-compatible wrapper — returns only sleep nights. */
+export function parseHealthExportPayload(body: unknown): ProcessedSleepNight[] {
+  return parseHealthExportPayloadV2(body).sleepNights;
 }
 
 function parseDetailedSegments(data: HAEMetricEntry[]): ProcessedSleepNight[] {

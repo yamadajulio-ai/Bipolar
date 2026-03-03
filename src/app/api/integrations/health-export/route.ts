@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { checkRateLimit } from "@/lib/security";
-import { parseHealthExportPayload } from "@/lib/integrations/healthExport";
+import { parseHealthExportPayloadV2 } from "@/lib/integrations/healthExport";
 
 /**
  * GET — Test endpoint connectivity and show imported sleep records.
  * If called with Bearer token: validates key and shows last sleep records.
- * If called without auth (from browser via session): shows user's sleep records.
  */
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
@@ -29,11 +28,14 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Show last imported sleep records for this user
   const recentLogs = await prisma.sleepLog.findMany({
     where: { userId: integration.userId },
     orderBy: { date: "desc" },
     take: 10,
+  });
+
+  const metricsCount = await prisma.healthMetric.count({
+    where: { userId: integration.userId },
   });
 
   return NextResponse.json({
@@ -42,6 +44,7 @@ export async function GET(request: NextRequest) {
     service: integration.service,
     enabled: integration.enabled,
     recentSleepLogs: recentLogs,
+    totalHealthMetrics: metricsCount,
   });
 }
 
@@ -75,50 +78,29 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    // Store raw payload sample in DB for debugging (first 5KB)
+    // Store raw payload sample in DB for debugging (first 50KB)
     const payloadStr = JSON.stringify(body, null, 2);
     await prisma.integrationKey.update({
       where: { apiKey },
       data: { lastPayloadDebug: payloadStr.slice(0, 50000) },
     });
 
-    console.log("[health-export] Raw payload:", payloadStr.slice(0, 5000));
-
-    // Build debug info from payload
     const metrics = body?.data?.metrics ?? body?.metrics ?? [];
-    const sleepMetric = Array.isArray(metrics)
-      ? metrics.find((m: { name: string }) =>
-          ["sleep_analysis", "Sleep Analysis", "sleepAnalysis", "sleep"].includes(m.name))
-      : null;
-
     const debugInfo = {
       topLevelKeys: Object.keys(body || {}),
-      hasData: !!body?.data,
-      hasMetrics: !!body?.data?.metrics,
-      hasTopLevelMetrics: !!body?.metrics,
       metricsCount: Array.isArray(metrics) ? metrics.length : 0,
-      metricNames: Array.isArray(metrics) ? metrics.map((m: { name: string }) => m.name) : [],
-      sleepMetricFound: !!sleepMetric,
-      sleepDataCount: sleepMetric?.data?.length ?? 0,
-      sleepDataSample: sleepMetric?.data?.slice(0, 3) ?? [],
+      metricNames: Array.isArray(metrics)
+        ? metrics.map((m: { name?: string; units?: string }) => m.name || `(unnamed, units=${m.units})`)
+        : [],
     };
 
     console.log("[health-export] Debug info:", JSON.stringify(debugInfo));
 
-    const sleepNights = parseHealthExportPayload(body);
+    const result = parseHealthExportPayloadV2(body);
 
-    console.log("[health-export] Parsed nights:", JSON.stringify(sleepNights));
-
-    if (sleepNights.length === 0) {
-      return NextResponse.json({
-        imported: 0,
-        message: "Nenhum dado de sono encontrado no payload",
-        debug: debugInfo,
-      });
-    }
-
-    let imported = 0;
-    for (const night of sleepNights) {
+    // ── 1. Upsert sleep nights ──
+    let sleepImported = 0;
+    for (const night of result.sleepNights) {
       const data = {
         bedtime: night.bedtime,
         wakeTime: night.wakeTime,
@@ -135,15 +117,82 @@ export async function POST(request: NextRequest) {
         update: data,
         create: { userId: integration.userId, date: night.date, ...data },
       });
-      imported++;
+      sleepImported++;
     }
 
-    return NextResponse.json({ imported, nights: sleepNights, debug: debugInfo });
+    // ── 2. Enrich existing SleepLogs with standalone HRV/HR ──
+    // When a separate automation sends only HRV/HR (no sleep), update
+    // any existing SleepLog records for those dates.
+    let hrvHrEnriched = 0;
+    if (result.sleepNights.length === 0) {
+      const { hrvByDate, hrByDate } = result.hrvHrData;
+      const allDates = new Set([...hrvByDate.keys(), ...hrByDate.keys()]);
+
+      for (const date of allDates) {
+        const hrv = hrvByDate.get(date);
+        const hr = hrByDate.get(date);
+        if (hrv === undefined && hr === undefined) continue;
+
+        const existing = await prisma.sleepLog.findUnique({
+          where: { userId_date: { userId: integration.userId, date } },
+        });
+        if (!existing) continue;
+
+        const updateData: Record<string, number> = {};
+        if (hrv !== undefined && hrv >= 1 && hrv <= 300) updateData.hrv = hrv;
+        if (hr !== undefined && hr >= 20 && hr <= 250) updateData.heartRate = hr;
+
+        if (Object.keys(updateData).length > 0) {
+          await prisma.sleepLog.update({
+            where: { userId_date: { userId: integration.userId, date } },
+            data: updateData,
+          });
+          hrvHrEnriched++;
+        }
+      }
+    }
+
+    // ── 3. Upsert generic health metrics ──
+    let metricsImported = 0;
+    for (const gm of result.genericMetrics) {
+      await prisma.healthMetric.upsert({
+        where: {
+          userId_date_metric: {
+            userId: integration.userId,
+            date: gm.date,
+            metric: gm.metric,
+          },
+        },
+        update: { value: gm.value, unit: gm.unit },
+        create: {
+          userId: integration.userId,
+          date: gm.date,
+          metric: gm.metric,
+          value: gm.value,
+          unit: gm.unit,
+        },
+      });
+      metricsImported++;
+    }
+
+    const hasAnyData = sleepImported > 0 || hrvHrEnriched > 0 || metricsImported > 0;
+
+    return NextResponse.json({
+      imported: sleepImported,
+      sleepNights: sleepImported,
+      hrvHrEnriched,
+      metricsImported,
+      metricTypes: [...new Set(result.genericMetrics.map((m) => m.metric))],
+      message: hasAnyData
+        ? `Importado: ${sleepImported} noite(s), ${hrvHrEnriched} enriquecimento(s) HRV/HR, ${metricsImported} metrica(s)`
+        : "Nenhum dado reconhecido no payload",
+      debug: debugInfo,
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erro desconhecido";
     console.error("[health-export] Error:", message, err);
     return NextResponse.json(
-      { error: "Erro ao processar dados de sono", detail: message },
+      { error: "Erro ao processar dados de saude", detail: message },
       { status: 500 },
     );
   }

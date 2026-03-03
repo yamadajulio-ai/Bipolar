@@ -27,6 +27,7 @@ model User {
   stabilityRule    StabilityRule?
   googleAccount         GoogleAccount?
   integrationKeys       IntegrationKey[]
+  healthMetrics         HealthMetric[]
   financialTransactions FinancialTransaction[]
 }
 
@@ -246,6 +247,23 @@ model IntegrationKey {
   user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, service])
+}
+
+// ── Métricas genéricas de saúde (Health Auto Export) ─────────────
+
+model HealthMetric {
+  id        String   @id @default(uuid())
+  userId    String
+  date      String   // YYYY-MM-DD
+  metric    String   // "steps", "active_calories", "blood_oxygen"
+  value     Float
+  unit      String   // "count", "kcal", "%"
+  createdAt DateTime @default(now())
+
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date, metric])
+  @@index([userId, date])
 }
 
 // ── Notícias (cache global) ──────────────────────────────────────

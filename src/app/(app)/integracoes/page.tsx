@@ -58,8 +58,8 @@ export default function IntegraçõesPage() {
   const [googleConnected, setGoogleConnected] = useState(false);
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
   const [clearing, setClearing] = useState(false);
-  const [importJson, setImportJson] = useState("");
   const [importing, setImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState<{ current: number; total: number } | null>(null);
   const [importResult, setImportResult] = useState<{ ok: boolean; message: string } | null>(null);
 
   const fetchKeys = useCallback(async () => {
@@ -128,29 +128,100 @@ export default function IntegraçõesPage() {
     setClearing(false);
   }
 
-  async function handleImportJson() {
-    if (!importJson.trim()) return;
+  async function handleFileImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
     setImporting(true);
     setImportResult(null);
+    setImportProgress(null);
+
     try {
-      const parsed = JSON.parse(importJson);
-      const res = await fetch("/api/integrations/health-export/import", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(parsed),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setImportResult({ ok: true, message: `${data.imported} noite(s) importada(s) com sucesso!` });
-        setImportJson("");
-        await fetchSyncStatus();
-      } else {
-        setImportResult({ ok: false, message: data.error || "Erro ao importar" });
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      const metrics = parsed?.data?.metrics ?? parsed?.metrics ?? [];
+
+      if (!Array.isArray(metrics) || metrics.length === 0) {
+        setImportResult({ ok: false, message: "Nenhuma metrica encontrada no arquivo." });
+        setImporting(false);
+        return;
       }
+
+      // Split metrics into chunks of ~3 per request to stay under 4.5MB
+      const MAX_METRICS_PER_CHUNK = 3;
+      const chunks: unknown[][] = [];
+      for (let i = 0; i < metrics.length; i += MAX_METRICS_PER_CHUNK) {
+        chunks.push(metrics.slice(i, i + MAX_METRICS_PER_CHUNK));
+      }
+
+      let totalSleep = 0;
+      let totalHrvHr = 0;
+      let totalMetrics = 0;
+      const allMetricTypes = new Set<string>();
+
+      for (let i = 0; i < chunks.length; i++) {
+        setImportProgress({ current: i + 1, total: chunks.length });
+
+        const chunkPayload = parsed?.data
+          ? { data: { metrics: chunks[i] } }
+          : { metrics: chunks[i] };
+
+        const chunkJson = JSON.stringify(chunkPayload);
+
+        // If a single chunk is still too large, split its metrics individually
+        if (chunkJson.length > 3_500_000 && chunks[i].length > 1) {
+          for (const metric of chunks[i]) {
+            const singlePayload = parsed?.data
+              ? { data: { metrics: [metric] } }
+              : { metrics: [metric] };
+
+            const res = await fetch("/api/integrations/health-export/import", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(singlePayload),
+            });
+            if (res.ok) {
+              const data = await res.json();
+              totalSleep += data.imported ?? 0;
+              totalHrvHr += data.hrvHrEnriched ?? 0;
+              totalMetrics += data.metricsImported ?? 0;
+              (data.metricTypes ?? []).forEach((t: string) => allMetricTypes.add(t));
+            }
+          }
+          continue;
+        }
+
+        const res = await fetch("/api/integrations/health-export/import", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: chunkJson,
+        });
+        if (res.ok) {
+          const data = await res.json();
+          totalSleep += data.imported ?? 0;
+          totalHrvHr += data.hrvHrEnriched ?? 0;
+          totalMetrics += data.metricsImported ?? 0;
+          (data.metricTypes ?? []).forEach((t: string) => allMetricTypes.add(t));
+        }
+      }
+
+      const parts: string[] = [];
+      if (totalSleep > 0) parts.push(`${totalSleep} noite(s) de sono`);
+      if (totalHrvHr > 0) parts.push(`${totalHrvHr} enriquecimento(s) HRV/FC`);
+      if (totalMetrics > 0) parts.push(`${totalMetrics} metrica(s) (${[...allMetricTypes].join(", ")})`);
+
+      setImportResult({
+        ok: parts.length > 0,
+        message: parts.length > 0
+          ? `Importado: ${parts.join(", ")}`
+          : "Nenhum dado reconhecido no arquivo.",
+      });
+      await fetchSyncStatus();
     } catch {
-      setImportResult({ ok: false, message: "JSON inválido. Verifique o formato e tente novamente." });
+      setImportResult({ ok: false, message: "Arquivo invalido. Verifique se e um JSON do Health Auto Export." });
     } finally {
       setImporting(false);
+      setImportProgress(null);
+      e.target.value = "";
     }
   }
 
@@ -356,15 +427,15 @@ export default function IntegraçõesPage() {
         </Card>
       )}
 
-      {/* Manual JSON Import */}
+      {/* Manual File Import */}
       <Card className="mb-6">
-        <h2 className="mb-2 text-lg font-semibold">Importar histórico de sono</h2>
+        <h2 className="mb-2 text-lg font-semibold">Importar historico completo</h2>
         <p className="mb-2 text-sm text-muted">
-          Importe seus dados de sono <strong>anteriores</strong> ao uso da Rede Bipolar para ter insights completos desde o início.
+          Importe seus dados <strong>anteriores</strong> do Apple Health para ter insights completos desde o inicio.
         </p>
         <p className="mb-3 text-xs text-muted">
-          Cole o JSON exportado pelo Health Auto Export. No app, vá em <strong>Export</strong> e escolha o período desejado (ex: últimos 3 meses).
-          Para o dia a dia, use a sincronização automática configurada acima.
+          No Health Auto Export, va em <strong>Exportacao Manual</strong>, selecione o periodo desejado,
+          exporte como JSON, e envie o arquivo aqui. Arquivos grandes sao divididos automaticamente.
         </p>
 
         {importResult && (
@@ -373,21 +444,31 @@ export default function IntegraçõesPage() {
           </div>
         )}
 
-        <textarea
-          value={importJson}
-          onChange={(e) => setImportJson(e.target.value)}
-          placeholder='Cole aqui o JSON do Health Auto Export (formato: {"data":{"metrics":[...]}})'
-          rows={6}
-          className="w-full rounded border border-border bg-surface px-3 py-2 text-xs font-mono placeholder:text-muted/50 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-        />
+        {importing && importProgress && (
+          <div className="mb-3">
+            <div className="mb-1 flex justify-between text-xs text-muted">
+              <span>Importando...</span>
+              <span>{importProgress.current}/{importProgress.total} partes</span>
+            </div>
+            <div className="h-2 w-full rounded-full bg-surface-alt">
+              <div
+                className="h-2 rounded-full bg-primary transition-all"
+                style={{ width: `${(importProgress.current / importProgress.total) * 100}%` }}
+              />
+            </div>
+          </div>
+        )}
 
-        <button
-          onClick={handleImportJson}
-          disabled={importing || !importJson.trim()}
-          className="mt-2 rounded bg-primary px-4 py-2 text-sm text-white disabled:opacity-50"
-        >
-          {importing ? "Importando..." : "Importar JSON"}
-        </button>
+        <label className={`flex cursor-pointer items-center justify-center gap-2 rounded border-2 border-dashed border-border px-4 py-6 text-sm transition-colors hover:border-primary hover:bg-surface-alt ${importing ? "pointer-events-none opacity-50" : ""}`}>
+          <input
+            type="file"
+            accept=".json"
+            onChange={handleFileImport}
+            disabled={importing}
+            className="hidden"
+          />
+          {importing ? "Importando..." : "Selecionar arquivo JSON"}
+        </label>
       </Card>
 
       {/* Google Calendar */}

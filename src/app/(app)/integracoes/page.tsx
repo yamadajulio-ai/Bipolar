@@ -233,8 +233,6 @@ export default function IntegraçõesPage() {
     setTimeout(() => setCopied(false), 2000);
   }
 
-  const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
-
   return (
     <div>
       <h1 className="mb-2 text-2xl font-bold">Integrações</h1>
@@ -261,11 +259,11 @@ export default function IntegraçõesPage() {
               <label className="text-xs text-muted">URL do endpoint</label>
               <div className="mt-1 flex items-center gap-2">
                 <div className="flex-1 rounded bg-surface-alt px-3 py-2 text-xs font-mono break-all">
-                  https://www.redebipolar.com.br/api/integrations/health-export
+                  https://hae-proxy.rede-bipolar.workers.dev
                 </div>
                 <button
                   onClick={() => {
-                    navigator.clipboard.writeText("https://www.redebipolar.com.br/api/integrations/health-export");
+                    navigator.clipboard.writeText("https://hae-proxy.rede-bipolar.workers.dev");
                     setCopied("url"); setTimeout(() => setCopied(false), 2000);
                   }}
                   className="rounded bg-primary px-3 py-2 text-xs text-white whitespace-nowrap"
@@ -273,6 +271,9 @@ export default function IntegraçõesPage() {
                   {copied === "url" ? "Copiado!" : "Copiar"}
                 </button>
               </div>
+              <p className="mt-1 text-xs text-muted">
+                (Proxy inteligente — divide payloads grandes automaticamente)
+              </p>
             </div>
 
             <div>
@@ -307,11 +308,11 @@ export default function IntegraçõesPage() {
 
             <div className="mt-4 rounded bg-surface-alt p-3 text-xs text-muted">
               <p className="font-medium text-foreground mb-1">Como configurar no Health Auto Export:</p>
-              <ol className="list-decimal list-inside space-y-1">
+              <ol className="list-decimal list-inside space-y-1.5">
                 <li>Abra o Health Auto Export no iPhone</li>
                 <li>Vá em <strong>Automations</strong> &rarr; crie uma nova <strong>REST API</strong></li>
                 <li>Cole a <strong>URL</strong> acima no campo de endpoint</li>
-                <li>Tempo limite: <strong>60</strong></li>
+                <li>Tempo limite: <strong>120</strong></li>
                 <li>Em &quot;Adicionar Cabeçalhos&quot;:
                   <ul className="list-disc list-inside ml-4 mt-1 space-y-0.5">
                     <li><strong>Chave:</strong> Authorization</li>
@@ -319,9 +320,18 @@ export default function IntegraçõesPage() {
                   </ul>
                 </li>
                 <li>Tipo de Dados: <strong>Métricas de Saúde</strong></li>
-                <li>Selecionar Métricas: <strong>Todos Selecionados</strong></li>
+                <li>Selecionar Métricas &mdash; marque <strong>apenas estas</strong>:
+                  <ul className="list-disc list-inside ml-4 mt-1 space-y-0.5">
+                    <li>Análise do Sono (Sleep Analysis)</li>
+                    <li>Variabilidade da Frequência Cardíaca (Heart Rate Variability)</li>
+                    <li>Frequência Cardíaca em Repouso (Resting Heart Rate)</li>
+                    <li>Contagem de Passos (Step Count)</li>
+                    <li>Energia Ativa (Active Energy)</li>
+                    <li>Oxigênio no Sangue (Blood Oxygen)</li>
+                  </ul>
+                  <p className="ml-4 mt-1 italic">Não selecione &quot;Todos&quot; — métricas extras (ex: Frequência Cardíaca contínua) geram payloads enormes sem necessidade.</p>
+                </li>
                 <li>Formato de Exportação: <strong>JSON</strong></li>
-                <li>Ative <strong>&quot;Requisições em Lote&quot;</strong> (essencial!)</li>
                 <li>Desative &quot;Resumir Dados&quot;</li>
                 <li>Sincronizar Cadência: <strong>5 minutos</strong></li>
               </ol>

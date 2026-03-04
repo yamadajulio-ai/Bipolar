@@ -1,66 +1,55 @@
 /**
  * Cloudflare Worker — HAE Proxy
  *
- * With HAE "Batch Requests" enabled, each request contains a single
- * metric and is small enough for Vercel's 4.5MB limit.
+ * Receives Health Auto Export payloads and forwards to Vercel.
+ * If the payload exceeds Vercel's 4.5MB limit, automatically splits
+ * by metric and sends each one individually.
  *
- * This Worker simply streams the request body to Vercel without
- * parsing JSON, using minimal CPU to stay within free tier limits.
- *
- * If Vercel returns 413 (too large), falls back to chunked mode.
+ * Requires Workers Paid plan ($5/month) for Standard usage model (30s CPU).
  */
 
 interface Env {
   TARGET_URL: string;
 }
 
+const MAX_DIRECT_SIZE = 3_500_000; // 3.5MB threshold (Vercel limit is 4.5MB)
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     if (request.method !== "POST") {
-      return new Response(JSON.stringify({ error: "Method not allowed" }), {
-        status: 405,
-        headers: { "Content-Type": "application/json" },
-      });
+      return json({ error: "Method not allowed" }, 405);
     }
 
     const authHeader = request.headers.get("Authorization");
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Authorization header missing" }), {
-        status: 401,
-        headers: { "Content-Type": "application/json" },
-      });
+      return json({ error: "Authorization header missing" }, 401);
     }
 
-    // Stream-forward without JSON parsing (minimal CPU usage)
     const bodyBytes = await request.arrayBuffer();
 
-    const res = await fetch(env.TARGET_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": authHeader,
-      },
-      body: bodyBytes,
-    });
-
-    // If Vercel accepted it, return response as-is
-    if (res.status !== 413) {
+    // Small payload → forward directly to Vercel
+    if (bodyBytes.byteLength < MAX_DIRECT_SIZE) {
+      const res = await fetch(env.TARGET_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: authHeader,
+        },
+        body: bodyBytes,
+      });
       return new Response(res.body, {
         status: res.status,
         headers: { "Content-Type": "application/json" },
       });
     }
 
-    // Payload too large for Vercel — parse and chunk
+    // Large payload → parse JSON and split by metric
     const text = new TextDecoder().decode(bodyBytes);
     let body: Record<string, unknown>;
     try {
       body = JSON.parse(text);
     } catch {
-      return new Response(JSON.stringify({ error: "Invalid JSON" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
+      return json({ error: "Invalid JSON" }, 400);
     }
 
     const data = body?.data as Record<string, unknown> | undefined;
@@ -68,45 +57,64 @@ export default {
     const hasDataWrapper = !!data?.metrics;
 
     if (!Array.isArray(metrics) || metrics.length === 0) {
-      return new Response(JSON.stringify({ error: "No metrics to chunk" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
+      return json({ error: "No metrics found in payload" }, 400);
     }
 
-    // Send metrics one by one
+    // Forward each metric individually
     let successCount = 0;
+    let totalSleep = 0;
+    let totalHrvHr = 0;
+    let totalMetrics = 0;
+
     for (const metric of metrics) {
-      const payload = hasDataWrapper
+      const chunk = hasDataWrapper
         ? { data: { metrics: [metric] } }
         : { metrics: [metric] };
 
       try {
-        const chunkRes = await fetch(env.TARGET_URL, {
+        const res = await fetch(env.TARGET_URL, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": authHeader,
+            Authorization: authHeader,
           },
-          body: JSON.stringify(payload),
+          body: JSON.stringify(chunk),
         });
-        if (chunkRes.ok) successCount++;
+
+        if (res.ok) {
+          successCount++;
+          try {
+            const r = (await res.json()) as Record<string, number>;
+            totalSleep += r.sleepNights ?? 0;
+            totalHrvHr += r.hrvHrEnriched ?? 0;
+            totalMetrics += r.metricsImported ?? 0;
+          } catch {
+            // ignore
+          }
+        }
       } catch {
         // continue with next metric
       }
     }
 
-    return new Response(
-      JSON.stringify({
+    return json(
+      {
         proxy: true,
         chunked: true,
         totalMetrics: metrics.length,
         successCount,
-      }),
-      {
-        status: successCount > 0 ? 200 : 502,
-        headers: { "Content-Type": "application/json" },
+        sleepNights: totalSleep,
+        hrvHrEnriched: totalHrvHr,
+        metricsImported: totalMetrics,
       },
+      successCount > 0 ? 200 : 502,
     );
   },
 };
+
+function json(data: unknown, status: number): Response {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
+}

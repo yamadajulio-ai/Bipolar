@@ -320,16 +320,8 @@ export default function IntegraçõesPage() {
                   </ul>
                 </li>
                 <li>Tipo de Dados: <strong>Métricas de Saúde</strong></li>
-                <li>Selecionar Métricas &mdash; marque <strong>apenas estas</strong>:
-                  <ul className="list-disc list-inside ml-4 mt-1 space-y-0.5">
-                    <li>Análise do Sono (Sleep Analysis)</li>
-                    <li>Variabilidade da Frequência Cardíaca (Heart Rate Variability)</li>
-                    <li>Frequência Cardíaca em Repouso (Resting Heart Rate)</li>
-                    <li>Contagem de Passos (Step Count)</li>
-                    <li>Energia Ativa (Active Energy)</li>
-                    <li>Oxigênio no Sangue (Blood Oxygen)</li>
-                  </ul>
-                  <p className="ml-4 mt-1 italic">Não selecione &quot;Todos&quot; — métricas extras (ex: Frequência Cardíaca contínua) geram payloads enormes sem necessidade.</p>
+                <li>Selecionar Métricas: <strong>Todos Selecionados</strong>
+                  <p className="ml-4 mt-1 italic">O proxy divide payloads grandes automaticamente — pode selecionar tudo sem problema.</p>
                 </li>
                 <li>Formato de Exportação: <strong>JSON</strong></li>
                 <li>Desative &quot;Resumir Dados&quot;</li>

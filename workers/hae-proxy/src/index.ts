@@ -2,17 +2,16 @@
  * Cloudflare Worker — HAE Proxy
  *
  * Receives Health Auto Export payloads and forwards to Vercel.
- * If the payload exceeds Vercel's 4.5MB limit, automatically splits
- * by metric and sends each one individually.
- *
- * Requires Workers Paid plan ($5/month) for Standard usage model (30s CPU).
+ * Small payloads (<3.5MB) are forwarded directly.
+ * Large payloads are split by metric using memory-efficient text scanning
+ * (NO JSON.parse) to stay within the 128MB Worker memory limit.
  */
 
 interface Env {
   TARGET_URL: string;
 }
 
-const MAX_DIRECT_SIZE = 3_500_000; // 3.5MB threshold (Vercel limit is 4.5MB)
+const MAX_DIRECT_SIZE = 3_500_000;
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -25,17 +24,18 @@ export default {
       return json({ error: "Authorization header missing" }, 401);
     }
 
-    const bodyBytes = await request.arrayBuffer();
+    // Read body as text — single allocation, no ArrayBuffer + decode overhead
+    const text = await request.text();
 
     // Small payload → forward directly to Vercel
-    if (bodyBytes.byteLength < MAX_DIRECT_SIZE) {
+    if (text.length < MAX_DIRECT_SIZE) {
       const res = await fetch(env.TARGET_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: authHeader,
         },
-        body: bodyBytes,
+        body: text,
       });
       return new Response(res.body, {
         status: res.status,
@@ -43,57 +43,97 @@ export default {
       });
     }
 
-    // Large payload → parse JSON and split by metric
-    const text = new TextDecoder().decode(bodyBytes);
-    let body: Record<string, unknown>;
-    try {
-      body = JSON.parse(text);
-    } catch {
-      return json({ error: "Invalid JSON" }, 400);
+    // ── Large payload → split by metric WITHOUT JSON.parse ──
+    // Scans the raw text to find metric object boundaries using bracket
+    // depth tracking. This uses ~1/3 the memory of JSON.parse.
+
+    const metricsIdx = text.indexOf('"metrics"');
+    if (metricsIdx === -1) {
+      return json({ error: "No metrics key found in payload" }, 400);
     }
 
-    const data = body?.data as Record<string, unknown> | undefined;
-    const metrics = (data?.metrics ?? body?.metrics ?? []) as unknown[];
-    const hasDataWrapper = !!data?.metrics;
+    // Detect {"data":{"metrics":[...]}} vs {"metrics":[...]}
+    const hasDataWrapper = text.substring(0, metricsIdx).includes('"data"');
 
-    if (!Array.isArray(metrics) || metrics.length === 0) {
-      return json({ error: "No metrics found in payload" }, 400);
+    const arrayStart = text.indexOf("[", metricsIdx);
+    if (arrayStart === -1) {
+      return json({ error: "No metrics array found" }, 400);
     }
 
-    // Forward each metric individually
+    // Scan character by character, tracking depth and string boundaries
+    let depth = 0;
+    let metricStart = -1;
+    let inString = false;
+    let escaped = false;
+
     let successCount = 0;
+    let totalMetrics = 0;
     let totalSleep = 0;
     let totalHrvHr = 0;
-    let totalMetrics = 0;
+    let totalHealthMetrics = 0;
 
-    for (const metric of metrics) {
-      const chunk = hasDataWrapper
-        ? { data: { metrics: [metric] } }
-        : { metrics: [metric] };
+    for (let i = arrayStart; i < text.length; i++) {
+      const ch = text[i];
 
-      try {
-        const res = await fetch(env.TARGET_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: authHeader,
-          },
-          body: JSON.stringify(chunk),
-        });
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+      if (ch === "\\") {
+        escaped = true;
+        continue;
+      }
+      if (ch === '"') {
+        inString = !inString;
+        continue;
+      }
+      if (inString) continue;
 
-        if (res.ok) {
-          successCount++;
+      if (ch === "[") {
+        depth++;
+      } else if (ch === "]") {
+        depth--;
+        if (depth === 0) break; // End of metrics array
+      } else if (ch === "{") {
+        if (depth === 1) metricStart = i; // Top-level metric object
+        depth++;
+      } else if (ch === "}") {
+        depth--;
+        if (depth === 1 && metricStart !== -1) {
+          // Found complete metric object — extract and forward
+          totalMetrics++;
+          const metricJson = text.substring(metricStart, i + 1);
+          metricStart = -1;
+
+          const payload = hasDataWrapper
+            ? `{"data":{"metrics":[${metricJson}]}}`
+            : `{"metrics":[${metricJson}]}`;
+
           try {
-            const r = (await res.json()) as Record<string, number>;
-            totalSleep += r.sleepNights ?? 0;
-            totalHrvHr += r.hrvHrEnriched ?? 0;
-            totalMetrics += r.metricsImported ?? 0;
+            const res = await fetch(env.TARGET_URL, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: authHeader,
+              },
+              body: payload,
+            });
+
+            if (res.ok) {
+              successCount++;
+              try {
+                const r = (await res.json()) as Record<string, number>;
+                totalSleep += r.sleepNights ?? 0;
+                totalHrvHr += r.hrvHrEnriched ?? 0;
+                totalHealthMetrics += r.metricsImported ?? 0;
+              } catch {
+                // ignore
+              }
+            }
           } catch {
-            // ignore
+            // continue with next metric
           }
         }
-      } catch {
-        // continue with next metric
       }
     }
 
@@ -101,11 +141,11 @@ export default {
       {
         proxy: true,
         chunked: true,
-        totalMetrics: metrics.length,
+        totalMetrics,
         successCount,
         sleepNights: totalSleep,
         hrvHrEnriched: totalHrvHr,
-        metricsImported: totalMetrics,
+        metricsImported: totalHealthMetrics,
       },
       successCount > 0 ? 200 : 502,
     );

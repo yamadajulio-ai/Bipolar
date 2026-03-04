@@ -96,6 +96,18 @@ export async function POST(request: NextRequest) {
 
     console.log("[health-export] Debug info:", JSON.stringify(debugInfo));
 
+    // Log first metric's first data entry for format diagnosis
+    if (Array.isArray(metrics) && metrics.length > 0) {
+      const m0 = metrics[0];
+      const sample = Array.isArray(m0.data) ? m0.data.slice(0, 2) : [];
+      console.log("[health-export] First metric sample:", JSON.stringify({
+        name: m0.name,
+        units: m0.units,
+        dataCount: m0.data?.length,
+        sample,
+      }));
+    }
+
     const result = parseHealthExportPayloadV2(body);
 
     // ── 1. Upsert sleep nights ──
@@ -176,6 +188,13 @@ export async function POST(request: NextRequest) {
     }
 
     const hasAnyData = sleepImported > 0 || hrvHrEnriched > 0 || metricsImported > 0;
+    console.log("[health-export] Result:", JSON.stringify({
+      sleepImported, hrvHrEnriched, metricsImported,
+      sleepNightsFound: result.sleepNights.length,
+      hrvDates: result.hrvHrData.hrvByDate.size,
+      hrDates: result.hrvHrData.hrByDate.size,
+      genericMetricsFound: result.genericMetrics.length,
+    }));
 
     return NextResponse.json({
       imported: sleepImported,

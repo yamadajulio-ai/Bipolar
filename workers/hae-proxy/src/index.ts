@@ -2,11 +2,10 @@
  * Cloudflare Worker — HAE Proxy
  *
  * Receives large Health Auto Export payloads (up to 100MB),
- * splits metrics into small chunks (~3 per request),
- * and forwards each chunk to the Vercel API endpoint.
+ * responds IMMEDIATELY to avoid HAE timeout, then processes
+ * chunks in background using ctx.waitUntil().
  *
- * This bypasses Vercel's 4.5MB request body limit while keeping
- * the HAE automation config simple (single URL, single API key).
+ * Chunks are sent in parallel batches of 5 for speed.
  */
 
 interface Env {
@@ -15,9 +14,10 @@ interface Env {
 
 const MAX_METRICS_PER_CHUNK = 3;
 const MAX_CHUNK_BYTES = 3_500_000; // 3.5MB safety margin
+const PARALLEL_BATCH_SIZE = 5;
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     // Only accept POST
     if (request.method !== "POST") {
       return new Response(JSON.stringify({ error: "Method not allowed" }), {
@@ -61,25 +61,52 @@ export default {
       return forwardRequest(env.TARGET_URL, authHeader, body);
     }
 
-    // Split metrics into chunks
-    const chunks: unknown[][] = [];
-    for (let i = 0; i < metrics.length; i += MAX_METRICS_PER_CHUNK) {
-      chunks.push(metrics.slice(i, i + MAX_METRICS_PER_CHUNK));
-    }
+    // Large payload — respond immediately, process in background
+    const totalMetrics = metrics.length;
 
-    let totalImported = 0;
-    let totalHrvHr = 0;
-    let totalMetrics = 0;
-    const allMetricTypes = new Set<string>();
-    let lastError: string | null = null;
-    let successCount = 0;
+    // Use ctx.waitUntil to process chunks after responding
+    ctx.waitUntil(
+      processChunksInBackground(env.TARGET_URL, authHeader, metrics, hasDataWrapper)
+    );
 
-    for (const chunk of chunks) {
+    // Return immediately so HAE doesn't timeout
+    return new Response(
+      JSON.stringify({
+        proxy: true,
+        accepted: true,
+        totalMetrics,
+        message: `Recebido ${totalMetrics} metricas. Processando em background...`,
+      }),
+      {
+        status: 202, // Accepted
+        headers: { "Content-Type": "application/json" },
+      },
+    );
+  },
+};
+
+async function processChunksInBackground(
+  targetUrl: string,
+  authHeader: string,
+  metrics: unknown[],
+  hasDataWrapper: boolean,
+): Promise<void> {
+  // Split metrics into chunks
+  const chunks: unknown[][] = [];
+  for (let i = 0; i < metrics.length; i += MAX_METRICS_PER_CHUNK) {
+    chunks.push(metrics.slice(i, i + MAX_METRICS_PER_CHUNK));
+  }
+
+  // Process chunks in parallel batches
+  for (let batchStart = 0; batchStart < chunks.length; batchStart += PARALLEL_BATCH_SIZE) {
+    const batch = chunks.slice(batchStart, batchStart + PARALLEL_BATCH_SIZE);
+
+    const promises = batch.map(async (chunk) => {
       const chunkPayload = hasDataWrapper
         ? { data: { metrics: chunk } }
         : { metrics: chunk };
 
-      let chunkJson = JSON.stringify(chunkPayload);
+      const chunkJson = JSON.stringify(chunkPayload);
 
       // If chunk is still too large, send metrics individually
       if (chunkJson.length > MAX_CHUNK_BYTES && chunk.length > 1) {
@@ -87,51 +114,17 @@ export default {
           const singlePayload = hasDataWrapper
             ? { data: { metrics: [metric] } }
             : { metrics: [metric] };
-
-          const res = await forwardAndParse(env.TARGET_URL, authHeader, singlePayload);
-          if (res.ok) {
-            totalImported += res.data.imported ?? 0;
-            totalHrvHr += res.data.hrvHrEnriched ?? 0;
-            totalMetrics += res.data.metricsImported ?? 0;
-            for (const t of res.data.metricTypes ?? []) allMetricTypes.add(t);
-            successCount++;
-          } else {
-            lastError = res.error;
-          }
+          await forwardAndParse(targetUrl, authHeader, singlePayload);
         }
-        continue;
+        return;
       }
 
-      const res = await forwardAndParse(env.TARGET_URL, authHeader, chunkPayload);
-      if (res.ok) {
-        totalImported += res.data.imported ?? 0;
-        totalHrvHr += res.data.hrvHrEnriched ?? 0;
-        totalMetrics += res.data.metricsImported ?? 0;
-        for (const t of res.data.metricTypes ?? []) allMetricTypes.add(t);
-        successCount++;
-      } else {
-        lastError = res.error;
-      }
-    }
+      await forwardAndParse(targetUrl, authHeader, chunkPayload);
+    });
 
-    return new Response(
-      JSON.stringify({
-        proxy: true,
-        chunks: chunks.length,
-        successCount,
-        imported: totalImported,
-        hrvHrEnriched: totalHrvHr,
-        metricsImported: totalMetrics,
-        metricTypes: [...allMetricTypes],
-        lastError,
-      }),
-      {
-        status: successCount > 0 ? 200 : 502,
-        headers: { "Content-Type": "application/json" },
-      },
-    );
-  },
-};
+    await Promise.all(promises);
+  }
+}
 
 async function forwardRequest(
   url: string,
@@ -153,17 +146,11 @@ async function forwardRequest(
   });
 }
 
-interface ForwardResult {
-  ok: boolean;
-  data: Record<string, unknown>;
-  error?: string;
-}
-
 async function forwardAndParse(
   url: string,
   auth: string,
   body: unknown,
-): Promise<ForwardResult> {
+): Promise<{ ok: boolean; data: Record<string, unknown> }> {
   try {
     const res = await fetch(url, {
       method: "POST",
@@ -175,11 +162,7 @@ async function forwardAndParse(
     });
     const data = (await res.json()) as Record<string, unknown>;
     return { ok: res.ok, data };
-  } catch (err) {
-    return {
-      ok: false,
-      data: {},
-      error: err instanceof Error ? err.message : "Unknown error",
-    };
+  } catch {
+    return { ok: false, data: {} };
   }
 }

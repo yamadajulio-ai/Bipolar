@@ -1,24 +1,21 @@
 /**
  * Cloudflare Worker — HAE Proxy
  *
- * Receives large Health Auto Export payloads (up to 100MB),
- * responds IMMEDIATELY to avoid HAE timeout, then processes
- * chunks in background using ctx.waitUntil().
+ * With HAE "Batch Requests" enabled, each request contains a single
+ * metric and is small enough for Vercel's 4.5MB limit.
  *
- * Chunks are sent in parallel batches of 5 for speed.
+ * This Worker simply streams the request body to Vercel without
+ * parsing JSON, using minimal CPU to stay within free tier limits.
+ *
+ * If Vercel returns 413 (too large), falls back to chunked mode.
  */
 
 interface Env {
   TARGET_URL: string;
 }
 
-const MAX_METRICS_PER_CHUNK = 3;
-const MAX_CHUNK_BYTES = 3_500_000; // 3.5MB safety margin
-const PARALLEL_BATCH_SIZE = 5;
-
 export default {
-  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    // Only accept POST
+  async fetch(request: Request, env: Env): Promise<Response> {
     if (request.method !== "POST") {
       return new Response(JSON.stringify({ error: "Method not allowed" }), {
         status: 405,
@@ -26,7 +23,6 @@ export default {
       });
     }
 
-    // Forward the Authorization header as-is
     const authHeader = request.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Authorization header missing" }), {
@@ -35,9 +31,31 @@ export default {
       });
     }
 
+    // Stream-forward without JSON parsing (minimal CPU usage)
+    const bodyBytes = await request.arrayBuffer();
+
+    const res = await fetch(env.TARGET_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": authHeader,
+      },
+      body: bodyBytes,
+    });
+
+    // If Vercel accepted it, return response as-is
+    if (res.status !== 413) {
+      return new Response(res.body, {
+        status: res.status,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // Payload too large for Vercel — parse and chunk
+    const text = new TextDecoder().decode(bodyBytes);
     let body: Record<string, unknown>;
     try {
-      body = await request.json() as Record<string, unknown>;
+      body = JSON.parse(text);
     } catch {
       return new Response(JSON.stringify({ error: "Invalid JSON" }), {
         status: 400,
@@ -45,124 +63,50 @@ export default {
       });
     }
 
-    // Extract metrics array
     const data = body?.data as Record<string, unknown> | undefined;
     const metrics = (data?.metrics ?? body?.metrics ?? []) as unknown[];
     const hasDataWrapper = !!data?.metrics;
 
     if (!Array.isArray(metrics) || metrics.length === 0) {
-      // No metrics to split — forward as-is (small payload)
-      return forwardRequest(env.TARGET_URL, authHeader, body);
+      return new Response(JSON.stringify({ error: "No metrics to chunk" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
-    // If payload is small enough, forward directly
-    const fullJson = JSON.stringify(body);
-    if (fullJson.length < MAX_CHUNK_BYTES) {
-      return forwardRequest(env.TARGET_URL, authHeader, body);
+    // Send metrics one by one
+    let successCount = 0;
+    for (const metric of metrics) {
+      const payload = hasDataWrapper
+        ? { data: { metrics: [metric] } }
+        : { metrics: [metric] };
+
+      try {
+        const chunkRes = await fetch(env.TARGET_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": authHeader,
+          },
+          body: JSON.stringify(payload),
+        });
+        if (chunkRes.ok) successCount++;
+      } catch {
+        // continue with next metric
+      }
     }
 
-    // Large payload — respond immediately, process in background
-    const totalMetrics = metrics.length;
-
-    // Use ctx.waitUntil to process chunks after responding
-    ctx.waitUntil(
-      processChunksInBackground(env.TARGET_URL, authHeader, metrics, hasDataWrapper)
-    );
-
-    // Return immediately so HAE doesn't timeout
     return new Response(
       JSON.stringify({
         proxy: true,
-        accepted: true,
-        totalMetrics,
-        message: `Recebido ${totalMetrics} metricas. Processando em background...`,
+        chunked: true,
+        totalMetrics: metrics.length,
+        successCount,
       }),
       {
-        status: 202, // Accepted
+        status: successCount > 0 ? 200 : 502,
         headers: { "Content-Type": "application/json" },
       },
     );
   },
 };
-
-async function processChunksInBackground(
-  targetUrl: string,
-  authHeader: string,
-  metrics: unknown[],
-  hasDataWrapper: boolean,
-): Promise<void> {
-  // Split metrics into chunks
-  const chunks: unknown[][] = [];
-  for (let i = 0; i < metrics.length; i += MAX_METRICS_PER_CHUNK) {
-    chunks.push(metrics.slice(i, i + MAX_METRICS_PER_CHUNK));
-  }
-
-  // Process chunks in parallel batches
-  for (let batchStart = 0; batchStart < chunks.length; batchStart += PARALLEL_BATCH_SIZE) {
-    const batch = chunks.slice(batchStart, batchStart + PARALLEL_BATCH_SIZE);
-
-    const promises = batch.map(async (chunk) => {
-      const chunkPayload = hasDataWrapper
-        ? { data: { metrics: chunk } }
-        : { metrics: chunk };
-
-      const chunkJson = JSON.stringify(chunkPayload);
-
-      // If chunk is still too large, send metrics individually
-      if (chunkJson.length > MAX_CHUNK_BYTES && chunk.length > 1) {
-        for (const metric of chunk) {
-          const singlePayload = hasDataWrapper
-            ? { data: { metrics: [metric] } }
-            : { metrics: [metric] };
-          await forwardAndParse(targetUrl, authHeader, singlePayload);
-        }
-        return;
-      }
-
-      await forwardAndParse(targetUrl, authHeader, chunkPayload);
-    });
-
-    await Promise.all(promises);
-  }
-}
-
-async function forwardRequest(
-  url: string,
-  auth: string,
-  body: unknown,
-): Promise<Response> {
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: auth,
-    },
-    body: JSON.stringify(body),
-  });
-  const text = await res.text();
-  return new Response(text, {
-    status: res.status,
-    headers: { "Content-Type": "application/json" },
-  });
-}
-
-async function forwardAndParse(
-  url: string,
-  auth: string,
-  body: unknown,
-): Promise<{ ok: boolean; data: Record<string, unknown> }> {
-  try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: auth,
-      },
-      body: JSON.stringify(body),
-    });
-    const data = (await res.json()) as Record<string, unknown>;
-    return { ok: res.ok, data };
-  } catch {
-    return { ok: false, data: {} };
-  }
-}

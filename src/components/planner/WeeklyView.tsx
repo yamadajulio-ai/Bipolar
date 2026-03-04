@@ -203,6 +203,19 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
     setWeekStart(getMonday(localToday()));
   }
 
+  async function handleManualSync() {
+    if (syncing) return;
+    setSyncing(true);
+    try {
+      await fetch("/api/google/sync", { method: "POST" });
+      await fetchData(weekStart);
+    } catch {
+      // silent
+    } finally {
+      setSyncing(false);
+    }
+  }
+
   function getOccsForDay(dayStr: string): ExpandedOccurrence[] {
     return occurrences.filter((o) => o.occurrenceDate === dayStr);
   }
@@ -264,6 +277,16 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
           >
             Hoje
           </button>
+          {googleConnected && (
+            <button
+              onClick={handleManualSync}
+              disabled={syncing}
+              className="rounded-lg border border-border px-2 py-1 text-xs font-medium text-muted hover:border-primary/50 disabled:opacity-50"
+              title="Sincronizar Google Calendar"
+            >
+              {syncing ? "..." : "\u21BB"}
+            </button>
+          )}
         </div>
         <button
           onClick={() => navigateWeek(1)}

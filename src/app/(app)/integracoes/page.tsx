@@ -258,14 +258,14 @@ export default function IntegraçõesPage() {
             </div>
 
             <div>
-              <label className="text-xs text-muted">URL do endpoint (proxy Cloudflare)</label>
+              <label className="text-xs text-muted">URL do endpoint</label>
               <div className="mt-1 flex items-center gap-2">
                 <div className="flex-1 rounded bg-surface-alt px-3 py-2 text-xs font-mono break-all">
-                  https://hae-proxy.rede-bipolar.workers.dev
+                  https://www.redebipolar.com.br/api/integrations/health-export
                 </div>
                 <button
                   onClick={() => {
-                    navigator.clipboard.writeText("https://hae-proxy.rede-bipolar.workers.dev");
+                    navigator.clipboard.writeText("https://www.redebipolar.com.br/api/integrations/health-export");
                     setCopied("url"); setTimeout(() => setCopied(false), 2000);
                   }}
                   className="rounded bg-primary px-3 py-2 text-xs text-white whitespace-nowrap"
@@ -273,9 +273,6 @@ export default function IntegraçõesPage() {
                   {copied === "url" ? "Copiado!" : "Copiar"}
                 </button>
               </div>
-              <p className="mt-1 text-xs text-muted">
-                Este proxy aceita payloads grandes e divide automaticamente antes de enviar ao servidor.
-              </p>
             </div>
 
             <div>
@@ -312,18 +309,24 @@ export default function IntegraçõesPage() {
               <p className="font-medium text-foreground mb-1">Como configurar no Health Auto Export:</p>
               <ol className="list-decimal list-inside space-y-1">
                 <li>Abra o Health Auto Export no iPhone</li>
-                <li>Vá em Automations → REST API</li>
-                <li>Cole a URL do proxy acima no campo de endpoint</li>
+                <li>Vá em <strong>Automations</strong> &rarr; crie uma nova <strong>REST API</strong></li>
+                <li>Cole a <strong>URL</strong> acima no campo de endpoint</li>
+                <li>Tempo limite: <strong>60</strong></li>
                 <li>Em &quot;Adicionar Cabeçalhos&quot;:
                   <ul className="list-disc list-inside ml-4 mt-1 space-y-0.5">
                     <li><strong>Chave:</strong> Authorization</li>
-                    <li><strong>Valor:</strong> Bearer [sua key] (use o botão &quot;Copiar&quot; acima)</li>
+                    <li><strong>Valor:</strong> cole o header acima (Bearer + key)</li>
                   </ul>
                 </li>
-                <li>Selecione as métricas desejadas (pode selecionar todas)</li>
+                <li>Tipo de Dados: <strong>Métricas de Saúde</strong></li>
+                <li>Selecionar Métricas: <strong>Todos Selecionados</strong></li>
+                <li>Formato de Exportação: <strong>JSON</strong></li>
+                <li>Ative <strong>&quot;Requisições em Lote&quot;</strong> (essencial!)</li>
                 <li>Desative &quot;Resumir Dados&quot;</li>
-                <li>Configure frequência <strong>diária</strong></li>
+                <li>Sincronizar Cadência: <strong>5 minutos</strong></li>
               </ol>
+              <p className="mt-2 font-medium text-foreground">Para importar histórico:</p>
+              <p className="mt-1">Use &quot;Exportação Manual&quot; dentro da automação. Selecione o período desejado e clique &quot;Iniciar Exportação&quot;.</p>
             </div>
 
             <div className="flex gap-2">

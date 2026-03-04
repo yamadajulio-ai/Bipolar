@@ -70,8 +70,8 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Rate limit: 60 requests per hour per key
-  if (!(await checkRateLimit(apiKey, 60, 3600000))) {
+  // Rate limit: 500 requests per hour per key (high to support HAE batch mode)
+  if (!(await checkRateLimit(apiKey, 500, 3600000))) {
     return NextResponse.json({ error: "Limite de requisições atingido" }, { status: 429 });
   }
 

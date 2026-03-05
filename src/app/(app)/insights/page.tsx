@@ -3,9 +3,11 @@ import { prisma } from "@/lib/db";
 import { Card } from "@/components/Card";
 import { Alert } from "@/components/Alert";
 import { InsightsCharts } from "@/components/planner/InsightsCharts";
+import { NightHistorySelector } from "@/components/insights/NightHistorySelector";
 import { computeInsights, formatSleepDuration, regularityScoreFromVariance } from "@/lib/insights/computeInsights";
 import type { ClinicalAlert, PlannerBlockInput, CombinedPattern, RiskScore } from "@/lib/insights/computeInsights";
 import Link from "next/link";
+import { Suspense } from "react";
 
 const TZ = "America/Sao_Paulo";
 
@@ -80,17 +82,28 @@ function RiskBadge({ risk }: { risk: RiskScore }) {
   );
 }
 
-export default async function InsightsPage() {
+export default async function InsightsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ noites?: string }>;
+}) {
   const session = await getSession();
   const now = new Date();
+  const params = await searchParams;
+  const nightsToShow = Math.min(90, Math.max(7, Number(params.noites) || 15));
+
+  // Fetch 90 days of sleep for history, 30 days for insights computation
+  const cutoff90 = new Date(now);
+  cutoff90.setDate(cutoff90.getDate() - 90);
+  const cutoff90Str = cutoff90.toLocaleDateString("sv-SE", { timeZone: TZ });
+
   const cutoff30 = new Date(now);
   cutoff30.setDate(cutoff30.getDate() - 30);
-  // Use timezone-aware date string
-  const cutoff30Str = new Date(cutoff30).toLocaleDateString("sv-SE", { timeZone: TZ });
+  const cutoff30Str = cutoff30.toLocaleDateString("sv-SE", { timeZone: TZ });
 
-  const [rawSleepLogs, entries, rhythms, rawPlannerBlocks] = await Promise.all([
+  const [allSleepLogs, entries, rhythms, rawPlannerBlocks] = await Promise.all([
     prisma.sleepLog.findMany({
-      where: { userId: session.userId, date: { gte: cutoff30Str } },
+      where: { userId: session.userId, date: { gte: cutoff90Str } },
       orderBy: { date: "asc" },
     }),
     prisma.diaryEntry.findMany({
@@ -112,8 +125,10 @@ export default async function InsightsPage() {
     }),
   ]);
 
-  // Filter out naps and garbage data (<3h) — these pollute all metrics
-  const sleepLogs = rawSleepLogs.filter((l) => l.totalHours >= 3);
+  // For insights computation: only last 30 days, filter out naps (<3h)
+  const sleepLogsForInsights = allSleepLogs.filter(
+    (l) => l.date >= cutoff30Str && l.totalHours >= 3,
+  );
 
   // Convert PlannerBlock DateTime with correct timezone
   const plannerBlocks: PlannerBlockInput[] = rawPlannerBlocks.map((b) => {
@@ -125,16 +140,14 @@ export default async function InsightsPage() {
     };
   });
 
-  const insights = computeInsights(sleepLogs, entries, rhythms, plannerBlocks, now, TZ);
+  const insights = computeInsights(sleepLogsForInsights, entries, rhythms, plannerBlocks, now, TZ);
 
   // Filter anchors that have data for the IPSRT section
   const anchorsWithData = Object.entries(insights.rhythm.anchors)
     .filter(([, anchor]) => anchor.variance !== null);
 
-  // Sleep logs for detail table
-  const lastNights = sleepLogs.slice(-15).reverse();
-  // Also keep naps/short entries separately to show with label
-  const recentNaps = rawSleepLogs.filter((l) => l.totalHours < 3 && l.totalHours > 0).slice(-5).reverse();
+  // Sleep logs for history — show ALL entries (including short ones) up to selected period
+  const lastNights = allSleepLogs.filter((l) => l.totalHours > 0).slice(-nightsToShow).reverse();
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -295,14 +308,20 @@ export default async function InsightsPage() {
         {/* Histórico de noites */}
         {lastNights.length > 0 && (
           <div className="mt-6">
-            <h3 className="mb-3 text-sm font-semibold">
-              Histórico de noites
-              <span className="ml-2 text-xs font-normal text-muted">
-                ({lastNights.length} {lastNights.length === 1 ? "noite" : "noites"})
-              </span>
-            </h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold">
+                Histórico
+                <span className="ml-1.5 text-xs font-normal text-muted">
+                  ({lastNights.length} {lastNights.length === 1 ? "registro" : "registros"})
+                </span>
+              </h3>
+              <Suspense>
+                <NightHistorySelector />
+              </Suspense>
+            </div>
             <div className="space-y-2">
               {lastNights.map((log) => {
+                const isNap = log.totalHours < 3;
                 const isShort = log.totalHours < 6;
                 const isGood = log.totalHours >= 7;
                 const durationPct = Math.min(100, Math.max(8, (log.totalHours / 10) * 100));
@@ -314,20 +333,28 @@ export default async function InsightsPage() {
                   <div
                     key={log.id}
                     className={`rounded-lg border p-3 ${
-                      isShort
-                        ? "border-red-200 bg-red-50/50 dark:border-red-900/30 dark:bg-red-950/20"
-                        : isGood
-                          ? "border-green-200/50 bg-green-50/30 dark:border-green-900/20 dark:bg-green-950/10"
-                          : "border-border bg-surface"
+                      isNap
+                        ? "border-purple-200 bg-purple-50/40 dark:border-purple-900/30 dark:bg-purple-950/20"
+                        : isShort
+                          ? "border-red-200 bg-red-50/50 dark:border-red-900/30 dark:bg-red-950/20"
+                          : isGood
+                            ? "border-green-200/50 bg-green-50/30 dark:border-green-900/20 dark:bg-green-950/10"
+                            : "border-border bg-surface"
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1.5">
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-medium capitalize">{weekday}</span>
                         <span className="text-xs text-muted">{dateLabel}</span>
+                        {isNap && (
+                          <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-medium text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">
+                            cochilo
+                          </span>
+                        )}
                       </div>
                       <span className={`text-sm font-bold tabular-nums ${
-                        isShort ? "text-red-600 dark:text-red-400"
+                        isNap ? "text-purple-600 dark:text-purple-400"
+                          : isShort ? "text-red-600 dark:text-red-400"
                           : isGood ? "text-green-700 dark:text-green-400"
                           : "text-foreground"
                       }`}>
@@ -339,7 +366,7 @@ export default async function InsightsPage() {
                     <div className="h-1.5 w-full rounded-full bg-black/5 dark:bg-white/5 mb-1.5">
                       <div
                         className={`h-1.5 rounded-full transition-all ${
-                          isShort ? "bg-red-400" : isGood ? "bg-green-400" : "bg-amber-400"
+                          isNap ? "bg-purple-400" : isShort ? "bg-red-400" : isGood ? "bg-green-400" : "bg-amber-400"
                         }`}
                         style={{ width: `${durationPct}%` }}
                       />
@@ -360,24 +387,6 @@ export default async function InsightsPage() {
                 );
               })}
             </div>
-
-            {/* Naps/short entries excluded */}
-            {recentNaps.length > 0 && (
-              <details className="mt-3">
-                <summary className="text-xs text-muted cursor-pointer hover:text-foreground">
-                  {recentNaps.length} {recentNaps.length === 1 ? "registro curto excluído" : "registros curtos excluídos"} (&lt;3h)
-                </summary>
-                <div className="mt-2 space-y-1">
-                  {recentNaps.map((log) => (
-                    <div key={log.id} className="flex items-center justify-between rounded border border-border/50 bg-surface/50 px-3 py-1.5 text-xs text-muted">
-                      <span>{new Date(log.date + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}</span>
-                      <span>{log.bedtime} → {log.wakeTime}</span>
-                      <span>{formatSleepDuration(log.totalHours)}</span>
-                    </div>
-                  ))}
-                </div>
-              </details>
-            )}
           </div>
         )}
       </section>

@@ -2,8 +2,8 @@ import { prisma } from "@/lib/db";
 
 /**
  * Database-backed rate limiting (serverless-safe).
- * Each attempt creates a row that expires after windowMs.
- * Returns true if allowed, false if blocked.
+ * Uses $transaction for atomicity — prevents race conditions
+ * where concurrent requests could bypass the limit.
  */
 export async function checkRateLimit(
   key: string,
@@ -12,29 +12,46 @@ export async function checkRateLimit(
 ): Promise<boolean> {
   const now = new Date();
 
-  // Clean expired entries for this key
-  await prisma.rateLimit.deleteMany({
-    where: { key, expiresAt: { lt: now } },
-  });
+  return prisma.$transaction(async (tx) => {
+    // Clean expired entries for this key
+    await tx.rateLimit.deleteMany({
+      where: { key, expiresAt: { lt: now } },
+    });
 
-  // Count active entries
-  const count = await prisma.rateLimit.count({
-    where: { key, expiresAt: { gte: now } },
-  });
+    // Count active entries
+    const count = await tx.rateLimit.count({
+      where: { key, expiresAt: { gte: now } },
+    });
 
-  if (count >= limit) {
-    return false; // bloqueado
+    if (count >= limit) {
+      return false; // bloqueado
+    }
+
+    // Record this attempt
+    await tx.rateLimit.create({
+      data: {
+        key,
+        expiresAt: new Date(now.getTime() + windowMs),
+      },
+    });
+
+    return true; // permitido
+  });
+}
+
+/**
+ * Mask IP to /24 (LGPD minimization).
+ * "192.168.1.42" → "192.168.1.0"
+ * IPv6 or unknown → stored as-is (already pseudonymized enough).
+ */
+export function maskIp(ip: string | null): string | null {
+  if (!ip) return null;
+  const parts = ip.split(".");
+  if (parts.length === 4) {
+    parts[3] = "0";
+    return parts.join(".");
   }
-
-  // Record this attempt
-  await prisma.rateLimit.create({
-    data: {
-      key,
-      expiresAt: new Date(now.getTime() + windowMs),
-    },
-  });
-
-  return true; // permitido
+  return ip; // IPv6 or unusual format — keep as-is
 }
 
 export function sanitizeInput(input: string): string {

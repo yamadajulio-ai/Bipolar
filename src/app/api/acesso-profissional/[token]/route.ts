@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
+import { maskIp } from "@/lib/security";
 import { computeInsights } from "@/lib/insights/computeInsights";
 import type { PlannerBlockInput } from "@/lib/insights/computeInsights";
 
 const TZ = "America/Sao_Paulo";
 
-/** Sanitize x-forwarded-for: take only the first (client) IP. */
+/** Sanitize x-forwarded-for: take only the first (client) IP, masked to /24. */
 function sanitizeIp(request: NextRequest): string | null {
   const xff = request.headers.get("x-forwarded-for");
-  if (xff) return xff.split(",")[0].trim();
-  return request.headers.get("x-real-ip") ?? null;
+  const raw = xff ? xff.split(",")[0].trim() : request.headers.get("x-real-ip");
+  return maskIp(raw ?? null);
 }
 
 // POST: Validate PIN and return patient data

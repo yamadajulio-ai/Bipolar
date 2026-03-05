@@ -19,10 +19,22 @@ export default function CadastroPage() {
     setErrors({});
 
     const formData = new FormData(e.currentTarget);
+
+    if (!formData.get("ageGate")) {
+      setError("Você precisa confirmar que tem 18 anos ou mais.");
+      return;
+    }
+    if (!formData.get("healthConsent")) {
+      setError("Você precisa consentir com o tratamento de dados de saúde.");
+      return;
+    }
+
     const data = {
       email: formData.get("email") as string,
       senha: formData.get("senha") as string,
       confirmarSenha: formData.get("confirmarSenha") as string,
+      ageGate: true,
+      healthConsent: true,
     };
 
     try {
@@ -98,6 +110,34 @@ export default function CadastroPage() {
               placeholder="Repita a senha"
               error={errors.confirmarSenha?.[0]}
             />
+            <label className="mb-3 flex items-start gap-2 text-sm text-muted">
+              <input
+                type="checkbox"
+                name="ageGate"
+                value="true"
+                required
+                className="mt-0.5 rounded border-border"
+              />
+              <span>
+                Declaro que tenho 18 anos ou mais.
+              </span>
+            </label>
+
+            <label className="mb-4 flex items-start gap-2 text-sm text-muted">
+              <input
+                type="checkbox"
+                name="healthConsent"
+                value="true"
+                required
+                className="mt-0.5 rounded border-border"
+              />
+              <span>
+                Consinto com o tratamento de meus dados de saúde para fins de
+                acompanhamento pessoal, conforme a LGPD (Art. 11, II, &quot;a&quot;).
+                Posso revogar este consentimento a qualquer momento na página Minha Conta.
+              </span>
+            </label>
+
             <button
               type="submit"
               disabled={loading}

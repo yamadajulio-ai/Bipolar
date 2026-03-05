@@ -21,6 +21,15 @@ export function QuickBreathing({ onClose }: QuickBreathingProps) {
   const [phaseIndex, setPhaseIndex] = useState(0);
   const [countdown, setCountdown] = useState(phases[0].duration);
   const [finished, setFinished] = useState(false);
+  const [reducedMotion, setReducedMotion] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReducedMotion(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setReducedMotion(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
 
   const currentPhase = phases[phaseIndex];
 
@@ -94,9 +103,9 @@ export function QuickBreathing({ onClose }: QuickBreathingProps) {
 
           <div className="relative mb-8 flex h-48 w-48 items-center justify-center">
             <div
-              className="absolute inset-0 rounded-full border-2 border-white/30 transition-transform duration-1000 ease-in-out"
+              className={`absolute inset-0 rounded-full border-2 border-white/30 ${reducedMotion ? "" : "transition-transform duration-1000 ease-in-out"}`}
               style={{
-                transform: `scale(${circleScale})`,
+                transform: reducedMotion ? undefined : `scale(${circleScale})`,
                 backgroundColor:
                   currentPhase.phase === "inhale"
                     ? "rgba(59, 130, 246, 0.2)"
@@ -117,7 +126,7 @@ export function QuickBreathing({ onClose }: QuickBreathingProps) {
 
           <button
             onClick={onClose}
-            className="mt-8 text-sm text-gray-500 hover:text-gray-300"
+            className="mt-8 text-sm text-gray-400 hover:text-gray-300"
           >
             Fechar
           </button>

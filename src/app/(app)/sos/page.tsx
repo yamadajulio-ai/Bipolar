@@ -1,10 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { QuickBreathing } from "@/components/sos/QuickBreathing";
 
 type View = "main" | "breathing" | "grounding";
+
+const VIEW_LABELS: Record<View, string> = {
+  main: "Tela principal de emergência",
+  breathing: "Exercício de respiração guiada",
+  grounding: "Exercício de aterramento",
+};
 
 interface TrustedContact {
   name: string;
@@ -25,6 +31,14 @@ export default function SOSPage() {
   const [professionalPhone, setProfessionalPhone] = useState<string | null>(
     null,
   );
+  const announceRef = useRef<HTMLDivElement>(null);
+
+  // Announce view changes to screen readers
+  useEffect(() => {
+    if (announceRef.current) {
+      announceRef.current.textContent = VIEW_LABELS[view];
+    }
+  }, [view]);
 
   useEffect(() => {
     logSOS("opened");
@@ -45,21 +59,32 @@ export default function SOSPage() {
       .catch(() => {});
   }, []);
 
+  const liveRegion = (
+    <div ref={announceRef} className="sr-only" aria-live="assertive" role="status" />
+  );
+
   if (view === "breathing") {
     return (
       <div className="mx-auto max-w-lg">
+        {liveRegion}
         <QuickBreathing onClose={() => setView("main")} />
       </div>
     );
   }
 
   if (view === "grounding") {
-    return <StepByStepGrounding onClose={() => setView("main")} />;
+    return (
+      <>
+        {liveRegion}
+        <StepByStepGrounding onClose={() => setView("main")} />
+      </>
+    );
   }
 
   // Main view — emergency numbers immediately visible (no intermediate menu)
   return (
     <div className="mx-auto max-w-lg rounded-2xl bg-gray-900 p-8 text-white">
+      {liveRegion}
       <h1 className="mb-2 text-center text-3xl font-bold">SOS</h1>
       <p className="mb-1 text-center text-gray-400">
         Você não precisa passar por isso sozinho(a).

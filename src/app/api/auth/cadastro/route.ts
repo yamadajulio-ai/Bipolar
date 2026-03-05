@@ -2,11 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod/v4";
 import { prisma } from "@/lib/db";
 import { getSession, hashPassword } from "@/lib/auth";
+import { maskIp } from "@/lib/security";
 
 const cadastroSchema = z.object({
   email: z.email("E-mail inválido"),
   senha: z.string().min(8, "Senha deve ter no mínimo 8 caracteres"),
   confirmarSenha: z.string(),
+  ageGate: z.literal(true, "Você deve ter 18 anos ou mais"),
+  healthConsent: z.literal(true, "Consentimento de dados de saúde obrigatório"),
 }).check(
   (ctx) => {
     if (ctx.value.senha !== ctx.value.confirmarSenha) {
@@ -45,9 +48,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const xff = request.headers.get("x-forwarded-for");
+    const rawIp = xff ? xff.split(",")[0].trim() : request.headers.get("x-real-ip");
+    const ip = maskIp(rawIp ?? null);
+
     const passwordHash = await hashPassword(senha);
     const user = await prisma.user.create({
-      data: { email, passwordHash },
+      data: {
+        email,
+        passwordHash,
+        consents: {
+          createMany: {
+            data: [
+              { scope: "health_data", ipAddress: ip },
+              { scope: "terms_of_use", ipAddress: ip },
+            ],
+          },
+        },
+      },
     });
 
     const session = await getSession();

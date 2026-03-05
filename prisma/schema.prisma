@@ -32,6 +32,7 @@ model User {
   sosEvents             SOSEvent[]
   socioeconomicProfile  SocioeconomicProfile?
   professionalAccesses  ProfessionalAccess[]
+  consents              Consent[]
 }
 
 model DiaryEntry {
@@ -372,4 +373,19 @@ model FinancialTransaction {
 
   @@index([userId, date])
   @@unique([userId, date, description, amount])
+}
+
+// ── LGPD — Consentimentos ─────────────────────────────────────────
+
+model Consent {
+  id        String   @id @default(uuid())
+  userId    String
+  scope     String   // "health_data" | "terms_of_use"
+  grantedAt DateTime @default(now())
+  revokedAt DateTime?
+  ipAddress String?  // masked /24
+
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, scope])
 }

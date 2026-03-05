@@ -1,6 +1,7 @@
 import { getSession } from "@/lib/auth";
 import { Card } from "@/components/Card";
 import { Alert } from "@/components/Alert";
+import { DeleteAccountButton } from "@/components/conta/DeleteAccountButton";
 
 export default async function ContaPage() {
   const session = await getSession();
@@ -19,7 +20,7 @@ export default async function ContaPage() {
       <Card className="mb-6">
         <h2 className="mb-2 font-semibold">Seus dados (LGPD)</h2>
         <p className="mb-3 text-sm text-muted">
-          Conforme a LGPD (Art. 18), você pode exportar todos os seus dados a qualquer momento.
+          Conforme a LGPD (Art. 18), você pode exportar ou excluir todos os seus dados a qualquer momento.
         </p>
         <a
           href="/api/auth/export"
@@ -40,14 +41,7 @@ export default async function ContaPage() {
         <Alert variant="danger" className="mb-3">
           Esta ação é irreversível. Todos os seus dados serão excluídos permanentemente.
         </Alert>
-        <form action="/api/auth/excluir-conta" method="POST">
-          <button
-            type="submit"
-            className="rounded-lg border border-danger bg-white px-4 py-2 text-sm font-medium text-danger hover:bg-danger/5"
-          >
-            Excluir minha conta
-          </button>
-        </form>
+        <DeleteAccountButton />
       </Card>
     </div>
   );

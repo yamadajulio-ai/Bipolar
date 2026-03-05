@@ -20,3 +20,17 @@
 - Baseado em protocolos IPSRT e pesquisas do PROMAN/USP
 - Linguagem clínica cuidadosa — nunca fazer afirmações diagnósticas diretas
 - "Não substitui avaliação profissional" em toda comunicação clínica
+
+## Regras de Dados — Sono
+- **Cochilo**: registro < 1h → exibido no histórico (tag "cochilo", roxo) mas **excluído** das métricas
+- **Sono real**: registro >= 1h → incluído em todas as métricas (média, regularidade, variabilidade, alertas, correlações)
+- Todos os registros aparecem no histórico para revisão clínica
+- Histórico configurável pelo usuário: 7, 15, 30 noites ou 3 meses (via `?noites=N`)
+
+## Insights — Arquitetura
+- Página: `src/app/(app)/insights/page.tsx` (Server Component)
+- Motor de cálculo: `src/lib/insights/computeInsights.ts`
+- Gráfico: `src/components/planner/InsightsCharts.tsx` (Client Component)
+- Seletor de período: `src/components/insights/NightHistorySelector.tsx` (Client Component)
+- Dados buscados: 90 dias de sono (histórico), 30 dias de humor/ritmos/planner (insights)
+- Timezone: America/Sao_Paulo

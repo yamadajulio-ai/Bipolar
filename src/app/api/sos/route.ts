@@ -8,9 +8,14 @@ const sosLogSchema = z.object({
     "opened",
     "called_188",
     "called_192",
+    "called_190",
+    "called_193",
+    "called_180",
+    "called_100",
     "called_contact",
     "breathing",
     "grounding",
+    "open_maps_upa",
   ]),
 });
 

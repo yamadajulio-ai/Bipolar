@@ -330,7 +330,7 @@ model AccessLog {
 
   access    ProfessionalAccess @relation(fields: [accessId], references: [id], onDelete: Cascade)
 
-  @@index([accessId])
+  @@index([accessId, createdAt])
 }
 
 model SocioeconomicProfile {

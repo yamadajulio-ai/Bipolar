@@ -64,7 +64,7 @@ export default function SOSPage() {
       <p className="mb-1 text-center text-gray-400">
         Você não precisa passar por isso sozinho(a).
       </p>
-      <p className="mb-6 text-center text-sm text-gray-500">
+      <p className="mb-6 text-center text-sm text-gray-400">
         Se houver risco imediato, ligue 192. Se precisar conversar agora, ligue 188.
       </p>
 
@@ -162,7 +162,7 @@ export default function SOSPage() {
 
         {/* Other emergency numbers */}
         <details className="rounded-xl bg-gray-800 p-4">
-          <summary className="cursor-pointer text-center text-sm font-medium text-gray-300 hover:text-white">
+          <summary className="cursor-pointer text-center text-sm font-medium text-gray-300 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 rounded-lg">
             Outros números de emergência
           </summary>
           <div className="mt-3 space-y-2">
@@ -217,7 +217,7 @@ export default function SOSPage() {
 
       {/* Coping tools below emergency numbers */}
       <div className="border-t border-gray-700 pt-6">
-        <p className="mb-3 text-center text-sm text-gray-500">
+        <p className="mb-3 text-center text-sm text-gray-400">
           Ferramentas rápidas (1–3 min)
         </p>
         <div className="space-y-3">
@@ -266,7 +266,7 @@ export default function SOSPage() {
 
       <Link
         href="/hoje"
-        className="mt-8 block text-center text-sm text-gray-500 no-underline hover:text-gray-300"
+        className="mt-8 block text-center text-sm text-gray-400 no-underline hover:text-gray-300"
       >
         Voltar para o app
       </Link>
@@ -328,7 +328,7 @@ function StepByStepGrounding({ onClose }: { onClose: () => void }) {
         <p className="mb-2 text-lg text-gray-400">
           Esse pico de sofrimento costuma diminuir. Você atravessou esses minutos.
         </p>
-        <p className="mb-8 text-sm text-gray-500">
+        <p className="mb-8 text-sm text-gray-400">
           Se precisar, repita o exercício ou faça a respiração 4-7-8.
           Se houver risco imediato, ligue 192 (SAMU) ou 188 (CVV).
         </p>
@@ -365,7 +365,7 @@ function StepByStepGrounding({ onClose }: { onClose: () => void }) {
         {current.instruction}
       </p>
 
-      <p className="mb-6 text-center text-sm text-gray-500">
+      <p className="mb-6 text-center text-sm text-gray-400">
         Tome o tempo que precisar. Quando estiver pronto(a), avance.
       </p>
 
@@ -388,7 +388,7 @@ function StepByStepGrounding({ onClose }: { onClose: () => void }) {
 
       <button
         onClick={onClose}
-        className="mt-6 text-sm text-gray-500 hover:text-gray-300"
+        className="mt-6 text-sm text-gray-400 hover:text-gray-300"
       >
         Fechar
       </button>

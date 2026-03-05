@@ -159,6 +159,51 @@ export default function SOSPage() {
             Abrir no mapa
           </a>
         </div>
+
+        {/* Other emergency numbers */}
+        <details className="rounded-xl bg-gray-800 p-4">
+          <summary className="cursor-pointer text-center text-sm font-medium text-gray-300 hover:text-white">
+            Outros números de emergência
+          </summary>
+          <div className="mt-3 space-y-2">
+            <a
+              href="tel:190"
+              onClick={() => logSOS("called_190")}
+              aria-label="Ligar para a Polícia Militar 190"
+              className="block rounded-lg bg-gray-700 p-3 text-center no-underline transition-colors hover:bg-gray-600"
+            >
+              <span className="text-lg font-bold text-white">190</span>
+              <span className="ml-2 text-sm text-gray-300">Polícia Militar</span>
+            </a>
+            <a
+              href="tel:193"
+              onClick={() => logSOS("called_193")}
+              aria-label="Ligar para o Corpo de Bombeiros 193"
+              className="block rounded-lg bg-gray-700 p-3 text-center no-underline transition-colors hover:bg-gray-600"
+            >
+              <span className="text-lg font-bold text-white">193</span>
+              <span className="ml-2 text-sm text-gray-300">Corpo de Bombeiros</span>
+            </a>
+            <a
+              href="tel:180"
+              onClick={() => logSOS("called_180")}
+              aria-label="Ligar para a Central de Atendimento à Mulher 180"
+              className="block rounded-lg bg-gray-700 p-3 text-center no-underline transition-colors hover:bg-gray-600"
+            >
+              <span className="text-lg font-bold text-white">180</span>
+              <span className="ml-2 text-sm text-gray-300">Central da Mulher</span>
+            </a>
+            <a
+              href="tel:100"
+              onClick={() => logSOS("called_100")}
+              aria-label="Ligar para o Disque Direitos Humanos 100"
+              className="block rounded-lg bg-gray-700 p-3 text-center no-underline transition-colors hover:bg-gray-600"
+            >
+              <span className="text-lg font-bold text-white">100</span>
+              <span className="ml-2 text-sm text-gray-300">Disque Direitos Humanos</span>
+            </a>
+          </div>
+        </details>
       </div>
 
       {contacts.length === 0 && !professionalPhone && (

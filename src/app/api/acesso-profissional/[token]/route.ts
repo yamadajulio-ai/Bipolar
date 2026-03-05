@@ -92,20 +92,18 @@ export async function POST(
           });
           return { status: 403, error: "Acesso revogado por excesso de tentativas. O paciente precisará gerar um novo link." } as const;
         } else if (attempts >= 10) {
-          const lockUntil = new Date(Date.now() + 24 * 60 * 60 * 1000);
           await tx.professionalAccess.update({
             where: { id: fresh.id },
-            data: { lockedUntil },
+            data: { lockedUntil: new Date(Date.now() + 24 * 60 * 60 * 1000) },
           });
           await tx.accessLog.create({
             data: { accessId: fresh.id, action: "locked_24h", ip },
           });
           return { status: 429, error: "Muitas tentativas incorretas. Acesso bloqueado por 24 horas." } as const;
         } else if (attempts >= 5) {
-          const lockUntil = new Date(Date.now() + 15 * 60 * 1000);
           await tx.professionalAccess.update({
             where: { id: fresh.id },
-            data: { lockedUntil },
+            data: { lockedUntil: new Date(Date.now() + 15 * 60 * 1000) },
           });
           await tx.accessLog.create({
             data: { accessId: fresh.id, action: "locked", ip },

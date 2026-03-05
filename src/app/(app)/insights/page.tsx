@@ -161,11 +161,14 @@ export default async function InsightsPage({
       </p>
 
       {/* ── Termômetro de Humor (Espectro Bipolar) ─────────────── */}
-      {insights.thermometer && (
-        <div className="mb-6">
-          <MoodThermometer data={insights.thermometer} />
-        </div>
-      )}
+      {insights.thermometer && (() => {
+        const { maniaScore: _, depressionScore: __, ...safeThermometer } = insights.thermometer;
+        return (
+          <div className="mb-6">
+            <MoodThermometer data={safeThermometer} />
+          </div>
+        );
+      })()}
 
       {/* ── Status Geral (Risk Heuristic) ─────────────────────────── */}
       {insights.risk && <RiskBadge risk={insights.risk} />}

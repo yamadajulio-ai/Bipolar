@@ -132,6 +132,8 @@ export interface MoodThermometer {
   factors: string[];
   /** Number of days of data used */
   daysUsed: number;
+  /** Whether a personal sleep baseline was available for scoring */
+  baselineAvailable: boolean;
 }
 
 export interface InsightsResult {
@@ -1176,11 +1178,19 @@ function computeMoodThermometer(
 
   const mixedFeatures = strongMixed || probableMixed;
 
-  // Instability: mood amplitude in recent days
+  // Instability: combines mood amplitude + position amplitude for fuller picture
   const moods = recent.map((e) => e.mood);
-  const amplitude = Math.max(...moods) - Math.min(...moods);
+  const moodAmplitude = Math.max(...moods) - Math.min(...moods);
+  const positions = dayScores.map((d) => {
+    const p = 50 + 0.5 * (d.M - d.D);
+    return Math.max(0, Math.min(100, p));
+  });
+  const posAmplitude = Math.max(...positions) - Math.min(...positions);
+  // Normalize position amplitude (0-100) to same 0-4 scale as mood amplitude
+  const normalizedPosAmp = posAmplitude / 25;
+  const combinedAmplitude = Math.max(moodAmplitude, normalizedPosAmp);
   const instability: MoodThermometer["instability"] =
-    amplitude <= 1 ? "baixa" : amplitude <= 2 ? "moderada" : "alta";
+    combinedAmplitude <= 1 ? "baixa" : combinedAmplitude <= 2 ? "moderada" : "alta";
 
   // Collect unique factors from the most recent 3 days
   const recentFactors = new Set<string>();
@@ -1198,6 +1208,7 @@ function computeMoodThermometer(
     instability,
     factors: Array.from(recentFactors),
     daysUsed: recent.length,
+    baselineAvailable: baselineSleep !== null,
   };
 }
 

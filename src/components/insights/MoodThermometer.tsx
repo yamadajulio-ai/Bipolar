@@ -3,8 +3,11 @@
 import { useState } from "react";
 import type { MoodThermometer as MoodThermometerType } from "@/lib/insights/computeInsights";
 
+/** Patient-facing props: raw scores (maniaScore/depressionScore) are omitted */
+type ThermometerDisplayData = Omit<MoodThermometerType, "maniaScore" | "depressionScore">;
+
 interface Props {
-  data: MoodThermometerType;
+  data: ThermometerDisplayData;
 }
 
 const ZONE_COLORS: Record<string, { bg: string; text: string; bar: string }> = {
@@ -117,6 +120,11 @@ export function MoodThermometer({ data }: Props) {
       <p className="mt-3 text-center text-[10px] text-muted">
         Indicador baseado nos seus registros recentes. Não substitui avaliação profissional.
       </p>
+      {!data.baselineAvailable && (
+        <p className="mt-1 text-center text-[10px] text-amber-400/80">
+          Usando referências gerais de sono. Com mais registros, o cálculo se ajustará ao seu padrão pessoal.
+        </p>
+      )}
     </div>
   );
 }

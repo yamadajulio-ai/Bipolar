@@ -19,10 +19,10 @@ const CARE_OPTIONS = [
 ];
 
 const MEDICATION_OPTIONS = [
-  { value: "sus", label: "SUS (Farmácia Popular / UBS)" },
+  { value: "sus", label: "SUS (UBS / CAPS)" },
   { value: "plano", label: "Plano de saúde" },
   { value: "particular", label: "Particular" },
-  { value: "nao_toma", label: "Não tomo medicação" },
+  { value: "nao_toma", label: "Não tomo medicação no momento" },
 ];
 
 const CONSULT_OPTIONS = [
@@ -37,6 +37,7 @@ const LIVING_OPTIONS = [
   { value: "estavel", label: "Estável (moradia fixa)" },
   { value: "instavel", label: "Instável (mudanças frequentes)" },
   { value: "situacao_rua", label: "Em situação de rua" },
+  { value: "prefiro_nao_responder", label: "Prefiro não responder" },
 ];
 
 function getRecommendations(profile: ProfileData): string[] {
@@ -44,25 +45,25 @@ function getRecommendations(profile: ProfileData): string[] {
 
   if (profile.medicationSource === "sus") {
     recs.push(
-      "Procure o CAPS (Centro de Atenção Psicossocial) mais próximo para acompanhamento especializado gratuito.",
+      "O CAPS (Centro de Atenção Psicossocial) pode acolher e acompanhar. A retirada de medicamentos pelo SUS varia por cidade (UBS, farmácia municipal, CAPS ou policlínica). Pergunte no serviço onde é a dispensação na sua região.",
     );
     recs.push(
-      "A Farmácia Popular oferece medicamentos psiquiátricos gratuitos ou com desconto. Leve sua receita.",
+      "Leve sua receita, documento e Cartão SUS (CNS) para retirar medicamentos.",
     );
   }
 
   if (profile.careAccess === "sem_acesso") {
     recs.push(
-      "Você pode agendar consulta pelo SUS na UBS (Unidade Básica de Saúde) do seu bairro. Peça encaminhamento para psiquiatria.",
+      "A UBS (Unidade Básica de Saúde) é a porta de entrada do SUS. Lá você pode agendar consulta e pedir encaminhamento para psiquiatria.",
     );
     recs.push(
-      "O CAPS oferece atendimento multidisciplinar gratuito para saúde mental. Busque o mais próximo em caps.saude.gov.br.",
+      "Se você está em sofrimento intenso, o CAPS atende sem encaminhamento e oferece acompanhamento multidisciplinar gratuito.",
     );
   }
 
   if (profile.careAccess === "irregular") {
     recs.push(
-      "Tente manter a regularidade das consultas. Acompanhamento contínuo é mais eficaz que consultas pontuais.",
+      "A regularidade do acompanhamento faz diferença. Se houver dificuldade de acesso, converse com sua equipe de saúde sobre alternativas.",
     );
   }
 
@@ -71,7 +72,7 @@ function getRecommendations(profile: ProfileData): string[] {
     profile.consultFrequency === "nunca"
   ) {
     recs.push(
-      "A telepsiquiatria pode ser uma alternativa acessível. Algumas plataformas oferecem preços sociais.",
+      "Pergunte na UBS ou CAPS se existe telessaúde ou teleconsulta disponível na sua região. A oferta depende do município e da rede local.",
     );
   }
 
@@ -81,15 +82,34 @@ function getRecommendations(profile: ProfileData): string[] {
     );
   }
 
-  if (profile.livingSituation === "instavel" || profile.livingSituation === "situacao_rua") {
+  if (profile.livingSituation === "instavel") {
     recs.push(
-      "O CRAS (Centro de Referência de Assistência Social) pode ajudar com questões de moradia e benefícios sociais.",
+      "O CRAS (Centro de Referência de Assistência Social) pode ajudar com questões de moradia e acesso a benefícios sociais.",
+    );
+  }
+
+  if (profile.livingSituation === "situacao_rua") {
+    recs.push(
+      "O Centro POP e o Consultório na Rua oferecem atendimento de saúde e assistência social para pessoas em situação de rua.",
+    );
+    recs.push(
+      "O CRAS (Centro de Referência de Assistência Social) pode ajudar com acesso a benefícios e acolhimento.",
     );
   }
 
   if (profile.medicationSource === "nao_toma") {
     recs.push(
-      "Converse com um profissional sobre as opções de tratamento disponíveis para você. A medicação é um pilar importante no manejo do transtorno bipolar.",
+      "Se quiser, converse com um profissional sobre opções de tratamento e sobre o que faz sentido para você.",
+    );
+  }
+
+  if (
+    profile.livingSituation === "situacao_rua" ||
+    profile.livingSituation === "instavel" ||
+    profile.careAccess === "sem_acesso"
+  ) {
+    recs.push(
+      "Se você enfrenta dificuldades financeiras ou de saúde que limitam sua capacidade de trabalho, pode valer consultar o CRAS sobre o BPC (Benefício de Prestação Continuada). A elegibilidade depende de critérios avaliados pelo INSS.",
     );
   }
 

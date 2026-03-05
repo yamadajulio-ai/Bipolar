@@ -965,15 +965,27 @@ const DEPRESSION_SIGNS = new Set([
   "desinteresse",
   "desesperanca",
   "apetite_alterado",
+  "dificuldade_concentracao",
 ]);
 
-const ZONE_LABELS: Record<string, string> = {
-  depressao: "Fase depressiva",
-  depressao_leve: "Humor rebaixado",
-  eutimia: "Eutimia",
-  hipomania: "Traços hipomaníacos",
-  mania: "Traços maníacos",
-};
+function getZoneLabel(zone: string, position: number): string {
+  switch (zone) {
+    case "depressao":
+      return "Tendência forte de rebaixamento";
+    case "depressao_leve":
+      return "Tendência de rebaixamento";
+    case "eutimia":
+      if (position >= 56) return "Mais próximo do seu padrão (leve tendência de ativação)";
+      if (position <= 44) return "Mais próximo do seu padrão (leve tendência de rebaixamento)";
+      return "Mais próximo do seu padrão";
+    case "hipomania":
+      return "Tendência de ativação";
+    case "mania":
+      return "Ativação intensa";
+    default:
+      return "Mais próximo do seu padrão";
+  }
+}
 
 function computeDayScores(entry: DiaryEntryInput, sleepHours: number | null) {
   let M = 0;
@@ -1026,10 +1038,6 @@ function computeDayScores(entry: DiaryEntryInput, sleepHours: number | null) {
   // Anxiety
   if (entry.anxietyLevel !== null && entry.anxietyLevel >= 4) {
     D += 5;
-    // Anxiety can also be present in mixed states
-    if (entry.energyLevel !== null && entry.energyLevel >= 4) {
-      M += 3;
-    }
   }
 
   // Warning signs
@@ -1089,16 +1097,10 @@ function computeMoodThermometer(
   const maniaScore = Math.round(ewmaM);
   const depressionScore = Math.round(ewmaD);
 
-  // Map to 0-100 position
-  let position: number;
-  if (maniaScore <= 5 && depressionScore <= 5) {
-    position = 50; // euthymia
-  } else if (maniaScore > depressionScore) {
-    position = 50 + Math.min(50, maniaScore * 0.5);
-  } else {
-    position = 50 - Math.min(50, depressionScore * 0.5);
-  }
-  position = Math.round(Math.max(0, Math.min(100, position)));
+  // Map to 0-100 position using M-D difference
+  const position = Math.round(
+    Math.max(0, Math.min(100, 50 + 0.5 * (maniaScore - depressionScore))),
+  );
 
   // Zone classification
   let zone: MoodThermometer["zone"];
@@ -1108,8 +1110,23 @@ function computeMoodThermometer(
   else if (position <= 80) zone = "hipomania";
   else zone = "mania";
 
-  // Mixed features: both M and D significantly elevated
-  const mixedFeatures = maniaScore >= 20 && depressionScore >= 20;
+  // Mixed features detection
+  // Strong mixed: both scores high and close
+  const strongMixed =
+    maniaScore >= 30 && depressionScore >= 30 && Math.abs(maniaScore - depressionScore) <= 20;
+
+  // Probable mixed: cross-pattern detection (low mood + high energy, etc.)
+  const lastEntry = recent[recent.length - 1];
+  const probableMixed = !strongMixed && (
+    (lastEntry.mood <= 2 && lastEntry.energyLevel !== null && lastEntry.energyLevel >= 4) ||
+    (lastEntry.mood <= 2 && lastEntry.irritability !== null && lastEntry.irritability >= 4 &&
+      sleepByDate.get(lastEntry.date) !== null && (sleepByDate.get(lastEntry.date) ?? 8) < 6) ||
+    (lastEntry.anxietyLevel !== null && lastEntry.anxietyLevel >= 4 &&
+      lastEntry.energyLevel !== null && lastEntry.energyLevel >= 4 &&
+      (sleepByDate.get(lastEntry.date) ?? 8) < 6)
+  );
+
+  const mixedFeatures = strongMixed || probableMixed;
 
   // Instability: mood amplitude in recent days
   const moods = recent.map((e) => e.mood);
@@ -1128,7 +1145,7 @@ function computeMoodThermometer(
     maniaScore,
     depressionScore,
     zone,
-    zoneLabel: ZONE_LABELS[zone],
+    zoneLabel: getZoneLabel(zone, position),
     mixedFeatures,
     instability,
     factors: Array.from(recentFactors),

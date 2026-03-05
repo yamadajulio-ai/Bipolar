@@ -4,6 +4,10 @@ import { useEffect, useState, useCallback } from "react";
 import { Card } from "@/components/Card";
 import { Alert } from "@/components/Alert";
 
+interface AccessLog {
+  createdAt: string;
+}
+
 interface AccessLink {
   id: string;
   token: string;
@@ -11,6 +15,7 @@ interface AccessLink {
   expiresAt: string;
   lastAccessedAt: string | null;
   createdAt: string;
+  accessLogs?: AccessLog[];
 }
 
 interface NewAccess {
@@ -29,6 +34,7 @@ export default function AcessoProfissionalPage() {
   const [expiresInDays, setExpiresInDays] = useState(30);
   const [error, setError] = useState<string | null>(null);
   const [consentChecked, setConsentChecked] = useState(false);
+  const [shareSosEvents, setShareSosEvents] = useState(false);
 
   const loadAccesses = useCallback(async () => {
     try {
@@ -63,6 +69,7 @@ export default function AcessoProfissionalPage() {
         body: JSON.stringify({
           label: label.trim() || undefined,
           expiresInDays,
+          shareSosEvents,
         }),
       });
       if (res.ok) {
@@ -204,7 +211,21 @@ export default function AcessoProfissionalPage() {
             Autorizo o compartilhamento dos meus dados de humor, sono,
             medicação, sinais de alerta e métricas de saúde com o profissional
             indicado, de forma somente leitura, pelo período selecionado. Posso
-            revogar este acesso a qualquer momento. (LGPD Art. 7, I)
+            revogar este acesso a qualquer momento. (LGPD Art. 11, I — dados
+            sensíveis de saúde com consentimento específico do titular)
+          </span>
+        </label>
+
+        <label className="mb-4 flex items-start gap-2">
+          <input
+            type="checkbox"
+            checked={shareSosEvents}
+            onChange={(e) => setShareSosEvents(e.target.checked)}
+            className="mt-1 accent-primary"
+          />
+          <span className="text-xs text-muted">
+            Também compartilhar registros de uso do botão SOS (opcional — ajuda
+            o profissional a entender momentos de crise)
           </span>
         </label>
 
@@ -251,6 +272,25 @@ export default function AcessoProfissionalPage() {
                         <p className="text-xs text-muted">
                           Último acesso: {formatDate(acc.lastAccessedAt)}
                         </p>
+                      )}
+                      {acc.accessLogs && acc.accessLogs.length > 0 && (
+                        <details className="mt-1">
+                          <summary className="cursor-pointer text-xs text-muted hover:text-foreground">
+                            Histórico de acessos ({acc.accessLogs.length})
+                          </summary>
+                          <ul className="mt-1 space-y-0.5">
+                            {acc.accessLogs.map((log, i) => (
+                              <li key={i} className="text-xs text-muted">
+                                {new Date(log.createdAt).toLocaleDateString("pt-BR", {
+                                  day: "2-digit",
+                                  month: "2-digit",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </li>
+                            ))}
+                          </ul>
+                        </details>
                       )}
                     </div>
                     {!expired && (

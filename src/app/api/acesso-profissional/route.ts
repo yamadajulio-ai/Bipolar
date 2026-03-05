@@ -8,6 +8,7 @@ import { getSession } from "@/lib/auth";
 const createSchema = z.object({
   label: z.string().max(100).optional(),
   expiresInDays: z.number().int().min(1).max(90).default(30),
+  shareSosEvents: z.boolean().optional().default(false),
 });
 
 function generateToken(): string {
@@ -34,6 +35,12 @@ export async function GET() {
       expiresAt: true,
       lastAccessedAt: true,
       createdAt: true,
+      accessLogs: {
+        where: { action: "pin_validated" },
+        select: { createdAt: true },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+      },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -79,6 +86,7 @@ export async function POST(request: NextRequest) {
         pinHash,
         label: parsed.data.label ?? null,
         expiresAt,
+        shareSosEvents: parsed.data.shareSosEvents ?? false,
       },
     });
 

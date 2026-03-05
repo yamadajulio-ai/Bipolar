@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { MoodThermometer as MoodThermometerType } from "@/lib/insights/computeInsights";
 
 interface Props {
@@ -15,14 +16,15 @@ const ZONE_COLORS: Record<string, { bg: string; text: string; bar: string }> = {
 };
 
 const INSTABILITY_LABELS: Record<string, { label: string; color: string }> = {
-  baixa: { label: "Estável", color: "text-green-400" },
+  baixa: { label: "Baixa", color: "text-green-400" },
   moderada: { label: "Moderada", color: "text-amber-400" },
-  alta: { label: "Instável", color: "text-red-400" },
+  alta: { label: "Alta", color: "text-red-400" },
 };
 
 export function MoodThermometer({ data }: Props) {
   const colors = ZONE_COLORS[data.zone] || ZONE_COLORS.eutimia;
   const instab = INSTABILITY_LABELS[data.instability] || INSTABILITY_LABELS.baixa;
+  const [showMixedInfo, setShowMixedInfo] = useState(false);
 
   return (
     <div className={`rounded-xl p-5 ${colors.bg}`}>
@@ -41,11 +43,23 @@ export function MoodThermometer({ data }: Props) {
           {data.zoneLabel}
         </span>
         {data.mixedFeatures && (
-          <span className="ml-2 rounded-full bg-purple-800/50 px-2 py-0.5 text-xs text-purple-300">
-            Misto
-          </span>
+          <button
+            onClick={() => setShowMixedInfo(!showMixedInfo)}
+            className="ml-2 rounded-full bg-purple-800/50 px-2 py-0.5 text-xs text-purple-300 hover:bg-purple-800/70"
+          >
+            Sinais mistos ⓘ
+          </button>
         )}
       </div>
+
+      {/* Mixed features explanation */}
+      {data.mixedFeatures && showMixedInfo && (
+        <div className="mb-4 rounded-lg bg-purple-900/30 p-3 text-xs text-purple-200">
+          Sinais mistos = alguns sinais de rebaixamento e de ativação ao mesmo
+          tempo. Isso pode indicar instabilidade. Se estiver difícil, considere
+          buscar apoio profissional.
+        </div>
+      )}
 
       {/* Spectrum bar */}
       <div className="relative mb-2">
@@ -66,29 +80,17 @@ export function MoodThermometer({ data }: Props) {
         </div>
       </div>
       <div className="mb-4 flex justify-between text-[10px] text-muted">
-        <span>Depressão</span>
-        <span>Eutimia</span>
-        <span>(Hipo)mania</span>
+        <span>Rebaixamento</span>
+        <span>Padrão</span>
+        <span>Ativação</span>
       </div>
 
       {/* Stats row */}
-      <div className="mb-3 grid grid-cols-3 gap-2 text-center">
+      <div className="mb-3 grid grid-cols-1 gap-2 text-center">
         <div>
-          <div className="text-xs text-muted">Oscilação</div>
+          <div className="text-xs text-muted">Oscilação do humor</div>
           <div className={`text-sm font-semibold ${instab.color}`}>
             {instab.label}
-          </div>
-        </div>
-        <div>
-          <div className="text-xs text-muted">Score D</div>
-          <div className="text-sm font-semibold text-blue-300">
-            {data.depressionScore}
-          </div>
-        </div>
-        <div>
-          <div className="text-xs text-muted">Score M</div>
-          <div className="text-sm font-semibold text-amber-300">
-            {data.maniaScore}
           </div>
         </div>
       </div>

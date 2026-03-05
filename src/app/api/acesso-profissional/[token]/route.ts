@@ -33,16 +33,89 @@ export async function POST(
       return NextResponse.json({ error: "Acesso expirado" }, { status: 410 });
     }
 
-    const pinValid = await bcrypt.compare(pin, access.pinHash);
-    if (!pinValid) {
-      return NextResponse.json({ error: "PIN incorreto" }, { status: 401 });
+    // Rate limiting: check if locked
+    if (access.lockedUntil && access.lockedUntil > new Date()) {
+      const minutesLeft = Math.ceil(
+        (access.lockedUntil.getTime() - Date.now()) / 60000,
+      );
+      return NextResponse.json(
+        { error: `Acesso bloqueado. Tente novamente em ${minutesLeft} minutos.` },
+        { status: 429 },
+      );
     }
 
-    // Update lastAccessedAt
-    await prisma.professionalAccess.update({
-      where: { id: access.id },
-      data: { lastAccessedAt: new Date() },
-    });
+    const pinValid = await bcrypt.compare(pin, access.pinHash);
+    if (!pinValid) {
+      const newAttempts = access.failedPinAttempts + 1;
+      const ip = request.headers.get("x-forwarded-for") ?? request.headers.get("x-real-ip") ?? null;
+
+      if (newAttempts >= 20) {
+        // 20+ failures → revoke access entirely
+        await prisma.professionalAccess.update({
+          where: { id: access.id },
+          data: { failedPinAttempts: newAttempts, revokedAt: new Date() },
+        });
+        await prisma.accessLog.create({
+          data: { accessId: access.id, action: "revoked_too_many_attempts", ip },
+        });
+        return NextResponse.json(
+          { error: "Acesso revogado por excesso de tentativas. O paciente precisará gerar um novo link." },
+          { status: 403 },
+        );
+      } else if (newAttempts >= 10) {
+        // 10-19 failures → lock for 24 hours
+        const lockUntil = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        await prisma.professionalAccess.update({
+          where: { id: access.id },
+          data: { failedPinAttempts: newAttempts, lockedUntil: lockUntil },
+        });
+        await prisma.accessLog.create({
+          data: { accessId: access.id, action: "locked_24h", ip },
+        });
+        return NextResponse.json(
+          { error: "Muitas tentativas incorretas. Acesso bloqueado por 24 horas." },
+          { status: 429 },
+        );
+      } else if (newAttempts >= 5) {
+        // 5-9 failures → lock for 15 minutes
+        const lockUntil = new Date(Date.now() + 15 * 60 * 1000);
+        await prisma.professionalAccess.update({
+          where: { id: access.id },
+          data: { failedPinAttempts: newAttempts, lockedUntil: lockUntil },
+        });
+        await prisma.accessLog.create({
+          data: { accessId: access.id, action: "locked", ip },
+        });
+        return NextResponse.json(
+          { error: "Muitas tentativas incorretas. Acesso bloqueado por 15 minutos." },
+          { status: 429 },
+        );
+      } else {
+        await prisma.professionalAccess.update({
+          where: { id: access.id },
+          data: { failedPinAttempts: newAttempts },
+        });
+        await prisma.accessLog.create({
+          data: { accessId: access.id, action: "pin_failed", ip },
+        });
+        return NextResponse.json(
+          { error: `PIN incorreto. ${5 - newAttempts} tentativas restantes antes do bloqueio.` },
+          { status: 401 },
+        );
+      }
+    }
+
+    // PIN correct — reset failed attempts and log access
+    const ip = request.headers.get("x-forwarded-for") ?? request.headers.get("x-real-ip") ?? null;
+    await Promise.all([
+      prisma.professionalAccess.update({
+        where: { id: access.id },
+        data: { lastAccessedAt: new Date(), failedPinAttempts: 0, lockedUntil: null },
+      }),
+      prisma.accessLog.create({
+        data: { accessId: access.id, action: "pin_validated", ip },
+      }),
+    ]);
 
     // Fetch patient data (last 30 days)
     const now = new Date();
@@ -53,46 +126,51 @@ export async function POST(
     cutoff90.setDate(cutoff90.getDate() - 90);
     const cutoff90Str = cutoff90.toLocaleDateString("sv-SE", { timeZone: TZ });
 
+    const queries: Promise<unknown>[] = [
+      prisma.user.findUnique({
+        where: { id: access.userId },
+        select: { name: true, createdAt: true },
+      }),
+      prisma.sleepLog.findMany({
+        where: { userId: access.userId, date: { gte: cutoff90Str } },
+        orderBy: { date: "asc" },
+      }),
+      prisma.diaryEntry.findMany({
+        where: { userId: access.userId, date: { gte: cutoff30Str } },
+        orderBy: { date: "asc" },
+      }),
+      prisma.dailyRhythm.findMany({
+        where: { userId: access.userId, date: { gte: cutoff30Str } },
+        orderBy: { date: "asc" },
+      }),
+      prisma.plannerBlock.findMany({
+        where: {
+          userId: access.userId,
+          startAt: { gte: cutoff30 },
+          category: { in: ["social", "trabalho", "refeicao"] },
+        },
+        select: { startAt: true, category: true },
+        orderBy: { startAt: "asc" },
+      }),
+      prisma.crisisPlan.findUnique({
+        where: { userId: access.userId },
+        select: {
+          medications: true,
+          professionalName: true,
+        },
+      }),
+      // Only fetch SOS events if patient opted in
+      access.shareSosEvents
+        ? prisma.sOSEvent.findMany({
+            where: { userId: access.userId, createdAt: { gte: cutoff30 } },
+            orderBy: { createdAt: "desc" },
+            select: { action: true, createdAt: true },
+          })
+        : Promise.resolve([]),
+    ];
+
     const [user, sleepLogs, entries, rhythms, rawPlannerBlocks, crisisPlan, sosEvents] =
-      await Promise.all([
-        prisma.user.findUnique({
-          where: { id: access.userId },
-          select: { name: true, createdAt: true },
-        }),
-        prisma.sleepLog.findMany({
-          where: { userId: access.userId, date: { gte: cutoff90Str } },
-          orderBy: { date: "asc" },
-        }),
-        prisma.diaryEntry.findMany({
-          where: { userId: access.userId, date: { gte: cutoff30Str } },
-          orderBy: { date: "asc" },
-        }),
-        prisma.dailyRhythm.findMany({
-          where: { userId: access.userId, date: { gte: cutoff30Str } },
-          orderBy: { date: "asc" },
-        }),
-        prisma.plannerBlock.findMany({
-          where: {
-            userId: access.userId,
-            startAt: { gte: cutoff30 },
-            category: { in: ["social", "trabalho", "refeicao"] },
-          },
-          select: { startAt: true, category: true },
-          orderBy: { startAt: "asc" },
-        }),
-        prisma.crisisPlan.findUnique({
-          where: { userId: access.userId },
-          select: {
-            medications: true,
-            professionalName: true,
-          },
-        }),
-        prisma.sOSEvent.findMany({
-          where: { userId: access.userId, createdAt: { gte: cutoff30 } },
-          orderBy: { createdAt: "desc" },
-          select: { action: true, createdAt: true },
-        }),
-      ]);
+      await Promise.all(queries) as [any, any[], any[], any[], any[], any, any[]];
 
     // Compute insights
     const sleepForInsights = sleepLogs.filter(

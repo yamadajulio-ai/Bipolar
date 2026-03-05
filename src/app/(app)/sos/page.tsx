@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { QuickBreathing } from "@/components/sos/QuickBreathing";
 
-type View = "menu" | "emergency" | "breathing" | "grounding";
+type View = "main" | "breathing" | "grounding";
 
 interface TrustedContact {
   name: string;
@@ -20,12 +20,11 @@ function logSOS(action: string) {
 }
 
 export default function SOSPage() {
-  const [view, setView] = useState<View>("menu");
+  const [view, setView] = useState<View>("main");
   const [contacts, setContacts] = useState<TrustedContact[]>([]);
   const [professionalPhone, setProfessionalPhone] = useState<string | null>(
     null,
   );
-  const [groundingStep, setGroundingStep] = useState(0);
 
   useEffect(() => {
     logSOS("opened");
@@ -46,192 +45,161 @@ export default function SOSPage() {
       .catch(() => {});
   }, []);
 
-  const goTo = useCallback((v: View) => {
-    setView(v);
-    if (v === "breathing") logSOS("breathing");
-    if (v === "grounding") logSOS("grounding");
-    if (v === "emergency") {
-      // logged individually when calling
-    }
-  }, []);
-
   if (view === "breathing") {
     return (
       <div className="mx-auto max-w-lg">
-        <QuickBreathing onClose={() => setView("menu")} />
-      </div>
-    );
-  }
-
-  if (view === "emergency") {
-    return (
-      <div className="mx-auto max-w-lg rounded-2xl bg-gray-900 p-8 text-white">
-        <h1 className="mb-6 text-center text-2xl font-bold">
-          Voce nao esta sozinho(a)
-        </h1>
-        <p className="mb-8 text-center text-lg text-gray-300">
-          Ligue agora. Todas as linhas sao gratuitas e funcionam 24 horas.
-        </p>
-
-        <div className="space-y-4">
-          <a
-            href="tel:188"
-            onClick={() => logSOS("called_188")}
-            className="block rounded-xl bg-red-700 p-6 text-center no-underline transition-colors hover:bg-red-600"
-          >
-            <span className="text-4xl font-bold text-white">188</span>
-            <br />
-            <span className="text-lg text-red-100">
-              CVV - Centro de Valorizacao da Vida
-            </span>
-            <br />
-            <span className="text-sm text-red-200">
-              24h, gratuito, sigilo garantido
-            </span>
-          </a>
-
-          <a
-            href="tel:192"
-            onClick={() => logSOS("called_192")}
-            className="block rounded-xl bg-red-800 p-6 text-center no-underline transition-colors hover:bg-red-700"
-          >
-            <span className="text-4xl font-bold text-white">192</span>
-            <br />
-            <span className="text-lg text-red-100">SAMU</span>
-            <br />
-            <span className="text-sm text-red-200">
-              Servico de Atendimento Movel de Urgencia
-            </span>
-          </a>
-
-          {/* Emergency contacts from crisis plan */}
-          {contacts.map((c, i) => (
-            <a
-              key={i}
-              href={`tel:${c.phone}`}
-              onClick={() => logSOS("called_contact")}
-              className="block rounded-xl bg-amber-700 p-6 text-center no-underline transition-colors hover:bg-amber-600"
-            >
-              <span className="text-2xl font-bold text-white">{c.name}</span>
-              <br />
-              <span className="text-lg text-amber-100">{c.phone}</span>
-              <br />
-              <span className="text-sm text-amber-200">
-                Contato de confianca
-              </span>
-            </a>
-          ))}
-
-          {professionalPhone && (
-            <a
-              href={`tel:${professionalPhone}`}
-              onClick={() => logSOS("called_contact")}
-              className="block rounded-xl bg-green-800 p-6 text-center no-underline transition-colors hover:bg-green-700"
-            >
-              <span className="text-2xl font-bold text-white">
-                Meu profissional
-              </span>
-              <br />
-              <span className="text-lg text-green-100">
-                {professionalPhone}
-              </span>
-              <br />
-              <span className="text-sm text-green-200">
-                Profissional de saude
-              </span>
-            </a>
-          )}
-
-          <div className="rounded-xl bg-red-900 p-6 text-center">
-            <span className="text-3xl font-bold text-white">UPA 24h</span>
-            <br />
-            <span className="text-lg text-red-100">
-              Va a UPA mais proxima
-            </span>
-            <br />
-            <span className="text-sm text-red-200">
-              Atendimento presencial 24 horas
-            </span>
-          </div>
-        </div>
-
-        {contacts.length === 0 && !professionalPhone && (
-          <Link
-            href="/plano-de-crise/editar"
-            className="mt-4 block text-center text-sm text-amber-400 no-underline hover:text-amber-300"
-          >
-            Cadastre seus contatos de emergencia no Plano de Crise
-          </Link>
-        )}
-
-        <button
-          onClick={() => setView("menu")}
-          className="mt-8 w-full rounded-lg border border-gray-600 px-4 py-3 text-gray-400 hover:bg-gray-800"
-        >
-          Voltar
-        </button>
+        <QuickBreathing onClose={() => setView("main")} />
       </div>
     );
   }
 
   if (view === "grounding") {
-    return <StepByStepGrounding onClose={() => setView("menu")} />;
+    return <StepByStepGrounding onClose={() => setView("main")} />;
   }
 
-  // Menu principal
+  // Main view — emergency numbers immediately visible (no intermediate menu)
   return (
     <div className="mx-auto max-w-lg rounded-2xl bg-gray-900 p-8 text-white">
       <h1 className="mb-2 text-center text-3xl font-bold">SOS</h1>
-      <p className="mb-8 text-center text-gray-400">
-        O que voce precisa agora?
+      <p className="mb-6 text-center text-gray-400">
+        Voce nao precisa passar por isso sozinho(a). Use os botoes abaixo para acionar ajuda.
       </p>
 
-      <div className="space-y-4">
-        <button
-          onClick={() => goTo("emergency")}
-          className="w-full rounded-xl bg-red-700 p-6 text-left transition-colors hover:bg-red-600"
+      {/* Emergency numbers — always visible, zero clicks to reach */}
+      <div className="mb-6 space-y-3">
+        <a
+          href="tel:188"
+          onClick={() => logSOS("called_188")}
+          className="block rounded-xl bg-red-700 p-6 text-center no-underline transition-colors hover:bg-red-600"
         >
-          <span className="text-xl font-bold">Preciso de ajuda agora</span>
+          <span className="text-4xl font-bold text-white">188</span>
+          <br />
+          <span className="text-lg text-red-100">
+            CVV — Centro de Valorizacao da Vida
+          </span>
           <br />
           <span className="text-sm text-red-200">
-            Numeros de emergencia e contatos de confianca
+            24h, gratuito, sigilo garantido
           </span>
-        </button>
+        </a>
 
-        <button
-          onClick={() => goTo("breathing")}
-          className="w-full rounded-xl bg-blue-800 p-6 text-left transition-colors hover:bg-blue-700"
+        <a
+          href="tel:192"
+          onClick={() => logSOS("called_192")}
+          className="block rounded-xl bg-red-800 p-5 text-center no-underline transition-colors hover:bg-red-700"
         >
-          <span className="text-xl font-bold">Preciso me acalmar</span>
+          <span className="text-3xl font-bold text-white">192</span>
           <br />
-          <span className="text-sm text-blue-200">
-            Exercicio de respiracao guiado (4-7-8)
-          </span>
-        </button>
-
-        <button
-          onClick={() => goTo("grounding")}
-          className="w-full rounded-xl bg-indigo-800 p-6 text-left transition-colors hover:bg-indigo-700"
-        >
-          <span className="text-xl font-bold">Nao consigo dormir</span>
+          <span className="text-base text-red-100">SAMU</span>
           <br />
-          <span className="text-sm text-indigo-200">
-            Exercicio de aterramento guiado passo a passo
+          <span className="text-sm text-red-200">
+            Servico de Atendimento Movel de Urgencia
           </span>
-        </button>
+        </a>
 
+        {/* Trusted contacts from crisis plan */}
+        {contacts.map((c, i) => (
+          <a
+            key={i}
+            href={`tel:${c.phone}`}
+            onClick={() => logSOS("called_contact")}
+            className="block rounded-xl bg-amber-700 p-5 text-center no-underline transition-colors hover:bg-amber-600"
+          >
+            <span className="text-2xl font-bold text-white">{c.name}</span>
+            <br />
+            <span className="text-lg text-amber-100">{c.phone}</span>
+            <br />
+            <span className="text-sm text-amber-200">
+              Contato de confianca
+            </span>
+          </a>
+        ))}
+
+        {professionalPhone && (
+          <a
+            href={`tel:${professionalPhone}`}
+            onClick={() => logSOS("called_contact")}
+            className="block rounded-xl bg-green-800 p-5 text-center no-underline transition-colors hover:bg-green-700"
+          >
+            <span className="text-2xl font-bold text-white">
+              Meu profissional
+            </span>
+            <br />
+            <span className="text-lg text-green-100">
+              {professionalPhone}
+            </span>
+          </a>
+        )}
+
+        <div className="rounded-xl bg-red-900 p-5 text-center">
+          <span className="text-2xl font-bold text-white">UPA 24h</span>
+          <br />
+          <span className="text-base text-red-100">
+            Va a UPA mais proxima
+          </span>
+          <br />
+          <span className="text-sm text-red-200">
+            Atendimento presencial 24 horas
+          </span>
+        </div>
+      </div>
+
+      {contacts.length === 0 && !professionalPhone && (
         <Link
-          href="/plano-de-crise"
-          className="block w-full rounded-xl border border-gray-600 p-6 text-left no-underline transition-colors hover:bg-gray-800"
+          href="/plano-de-crise/editar"
+          className="mb-4 block text-center text-sm text-amber-400 no-underline hover:text-amber-300"
         >
-          <span className="text-xl font-bold text-white">
-            Meu plano de crise
-          </span>
-          <br />
-          <span className="text-sm text-gray-400">
-            Contatos, medicacoes e estrategias pessoais
-          </span>
+          Cadastre seus contatos de emergencia no Plano de Crise
         </Link>
+      )}
+
+      {/* Coping tools below emergency numbers */}
+      <div className="border-t border-gray-700 pt-6">
+        <p className="mb-3 text-center text-sm text-gray-500">
+          Ferramentas rapidas (1–3 min)
+        </p>
+        <div className="space-y-3">
+          <button
+            onClick={() => {
+              setView("breathing");
+              logSOS("breathing");
+            }}
+            className="w-full rounded-xl bg-blue-800 p-5 text-left transition-colors hover:bg-blue-700"
+          >
+            <span className="text-lg font-bold">Preciso me acalmar</span>
+            <br />
+            <span className="text-sm text-blue-200">
+              Respiracao guiada 4-7-8
+            </span>
+          </button>
+
+          <button
+            onClick={() => {
+              setView("grounding");
+              logSOS("grounding");
+            }}
+            className="w-full rounded-xl bg-indigo-800 p-5 text-left transition-colors hover:bg-indigo-700"
+          >
+            <span className="text-lg font-bold">Nao consigo dormir</span>
+            <br />
+            <span className="text-sm text-indigo-200">
+              Aterramento guiado passo a passo
+            </span>
+          </button>
+
+          <Link
+            href="/plano-de-crise"
+            className="block w-full rounded-xl border border-gray-600 p-5 text-left no-underline transition-colors hover:bg-gray-800"
+          >
+            <span className="text-lg font-bold text-white">
+              Meu plano de crise
+            </span>
+            <br />
+            <span className="text-sm text-gray-400">
+              Contatos, medicacoes e estrategias pessoais
+            </span>
+          </Link>
+        </div>
       </div>
 
       <Link
@@ -296,10 +264,11 @@ function StepByStepGrounding({ onClose }: { onClose: () => void }) {
       <div className="mx-auto flex min-h-[60vh] max-w-lg flex-col items-center justify-center rounded-2xl bg-gray-900 p-8 text-white">
         <p className="mb-4 text-2xl font-light">Exercicio concluido.</p>
         <p className="mb-2 text-lg text-gray-400">
-          Voce esta presente. Voce esta seguro(a).
+          Esse pico de sofrimento costuma diminuir. Voce atravessou esses minutos.
         </p>
         <p className="mb-8 text-sm text-gray-500">
           Se precisar, repita o exercicio ou faca a respiracao 4-7-8.
+          Se houver risco imediato, ligue 192 (SAMU) ou 188 (CVV).
         </p>
         <button
           onClick={onClose}

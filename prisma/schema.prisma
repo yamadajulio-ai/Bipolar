@@ -300,21 +300,37 @@ model RateLimit {
 // ── Financeiro ──────────────────────────────────────────────────
 
 model ProfessionalAccess {
-  id              String    @id @default(uuid())
-  userId          String
-  token           String    @unique     // URL-safe random token
-  pinHash         String                // bcrypt hash of 6-digit PIN
-  label           String?               // e.g. "Dr. Silva"
-  expiresAt       DateTime
-  consentGivenAt  DateTime  @default(now())
-  revokedAt       DateTime?
-  lastAccessedAt  DateTime?
-  createdAt       DateTime  @default(now())
+  id                String    @id @default(uuid())
+  userId            String
+  token             String    @unique     // URL-safe random token
+  pinHash           String                // bcrypt hash of 6-digit PIN
+  label             String?               // e.g. "Dr. Silva"
+  expiresAt         DateTime
+  consentGivenAt    DateTime  @default(now())
+  revokedAt         DateTime?
+  lastAccessedAt    DateTime?
+  failedPinAttempts Int       @default(0)
+  lockedUntil       DateTime?
+  shareSosEvents    Boolean   @default(false)
+  createdAt         DateTime  @default(now())
 
-  user            User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessLogs        AccessLog[]
 
   @@index([userId])
   @@index([token])
+}
+
+model AccessLog {
+  id        String   @id @default(uuid())
+  accessId  String
+  action    String   // "pin_validated" | "data_viewed" | "pin_failed" | "locked"
+  ip        String?
+  createdAt DateTime @default(now())
+
+  access    ProfessionalAccess @relation(fields: [accessId], references: [id], onDelete: Cascade)
+
+  @@index([accessId])
 }
 
 model SocioeconomicProfile {

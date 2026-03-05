@@ -6,6 +6,13 @@ import type { PlannerBlockInput } from "@/lib/insights/computeInsights";
 
 const TZ = "America/Sao_Paulo";
 
+/** Sanitize x-forwarded-for: take only the first (client) IP. */
+function sanitizeIp(request: NextRequest): string | null {
+  const xff = request.headers.get("x-forwarded-for");
+  if (xff) return xff.split(",")[0].trim();
+  return request.headers.get("x-real-ip") ?? null;
+}
+
 // POST: Validate PIN and return patient data
 export async function POST(
   request: NextRequest,
@@ -21,6 +28,7 @@ export async function POST(
       return NextResponse.json({ error: "PIN inválido" }, { status: 400 });
     }
 
+    // Initial read (non-transactional) for early exits
     const access = await prisma.professionalAccess.findUnique({
       where: { token },
     });
@@ -33,7 +41,6 @@ export async function POST(
       return NextResponse.json({ error: "Acesso expirado" }, { status: 410 });
     }
 
-    // Rate limiting: check if locked
     if (access.lockedUntil && access.lockedUntil > new Date()) {
       const minutesLeft = Math.ceil(
         (access.lockedUntil.getTime() - Date.now()) / 60000,
@@ -44,78 +51,91 @@ export async function POST(
       );
     }
 
+    // bcrypt comparison before transaction (CPU-bound, safe to do outside)
     const pinValid = await bcrypt.compare(pin, access.pinHash);
-    if (!pinValid) {
-      const newAttempts = access.failedPinAttempts + 1;
-      const ip = request.headers.get("x-forwarded-for") ?? request.headers.get("x-real-ip") ?? null;
+    const ip = sanitizeIp(request);
 
-      if (newAttempts >= 20) {
-        // 20+ failures → revoke access entirely
-        await prisma.professionalAccess.update({
-          where: { id: access.id },
-          data: { failedPinAttempts: newAttempts, revokedAt: new Date() },
-        });
-        await prisma.accessLog.create({
-          data: { accessId: access.id, action: "revoked_too_many_attempts", ip },
-        });
-        return NextResponse.json(
-          { error: "Acesso revogado por excesso de tentativas. O paciente precisará gerar um novo link." },
-          { status: 403 },
-        );
-      } else if (newAttempts >= 10) {
-        // 10-19 failures → lock for 24 hours
-        const lockUntil = new Date(Date.now() + 24 * 60 * 60 * 1000);
-        await prisma.professionalAccess.update({
-          where: { id: access.id },
-          data: { failedPinAttempts: newAttempts, lockedUntil: lockUntil },
-        });
-        await prisma.accessLog.create({
-          data: { accessId: access.id, action: "locked_24h", ip },
-        });
-        return NextResponse.json(
-          { error: "Muitas tentativas incorretas. Acesso bloqueado por 24 horas." },
-          { status: 429 },
-        );
-      } else if (newAttempts >= 5) {
-        // 5-9 failures → lock for 15 minutes
-        const lockUntil = new Date(Date.now() + 15 * 60 * 1000);
-        await prisma.professionalAccess.update({
-          where: { id: access.id },
-          data: { failedPinAttempts: newAttempts, lockedUntil: lockUntil },
-        });
-        await prisma.accessLog.create({
-          data: { accessId: access.id, action: "locked", ip },
-        });
-        return NextResponse.json(
-          { error: "Muitas tentativas incorretas. Acesso bloqueado por 15 minutos." },
-          { status: 429 },
-        );
-      } else {
-        await prisma.professionalAccess.update({
-          where: { id: access.id },
-          data: { failedPinAttempts: newAttempts },
-        });
-        await prisma.accessLog.create({
-          data: { accessId: access.id, action: "pin_failed", ip },
-        });
-        return NextResponse.json(
-          { error: `PIN incorreto. ${5 - newAttempts} tentativas restantes antes do bloqueio.` },
-          { status: 401 },
-        );
+    // Atomic transaction to prevent race conditions on concurrent PIN attempts
+    const result = await prisma.$transaction(async (tx) => {
+      // Re-read inside transaction for consistency
+      const fresh = await tx.professionalAccess.findUnique({
+        where: { token },
+      });
+
+      if (!fresh || fresh.revokedAt || fresh.expiresAt < new Date()) {
+        return { status: 404, error: "Acesso não encontrado ou revogado" } as const;
       }
+
+      if (fresh.lockedUntil && fresh.lockedUntil > new Date()) {
+        const minutesLeft = Math.ceil(
+          (fresh.lockedUntil.getTime() - Date.now()) / 60000,
+        );
+        return { status: 429, error: `Acesso bloqueado. Tente novamente em ${minutesLeft} minutos.` } as const;
+      }
+
+      if (!pinValid) {
+        // Atomic increment — prevents race condition with parallel requests
+        const updated = await tx.professionalAccess.update({
+          where: { id: fresh.id },
+          data: { failedPinAttempts: { increment: 1 } },
+          select: { failedPinAttempts: true },
+        });
+        const attempts = updated.failedPinAttempts;
+
+        if (attempts >= 20) {
+          await tx.professionalAccess.update({
+            where: { id: fresh.id },
+            data: { revokedAt: new Date() },
+          });
+          await tx.accessLog.create({
+            data: { accessId: fresh.id, action: "revoked_too_many_attempts", ip },
+          });
+          return { status: 403, error: "Acesso revogado por excesso de tentativas. O paciente precisará gerar um novo link." } as const;
+        } else if (attempts >= 10) {
+          const lockUntil = new Date(Date.now() + 24 * 60 * 60 * 1000);
+          await tx.professionalAccess.update({
+            where: { id: fresh.id },
+            data: { lockedUntil },
+          });
+          await tx.accessLog.create({
+            data: { accessId: fresh.id, action: "locked_24h", ip },
+          });
+          return { status: 429, error: "Muitas tentativas incorretas. Acesso bloqueado por 24 horas." } as const;
+        } else if (attempts >= 5) {
+          const lockUntil = new Date(Date.now() + 15 * 60 * 1000);
+          await tx.professionalAccess.update({
+            where: { id: fresh.id },
+            data: { lockedUntil },
+          });
+          await tx.accessLog.create({
+            data: { accessId: fresh.id, action: "locked", ip },
+          });
+          return { status: 429, error: "Muitas tentativas incorretas. Acesso bloqueado por 15 minutos." } as const;
+        } else {
+          await tx.accessLog.create({
+            data: { accessId: fresh.id, action: "pin_failed", ip },
+          });
+          return { status: 401, error: `PIN incorreto. ${5 - attempts} tentativas restantes antes do bloqueio.` } as const;
+        }
+      }
+
+      // PIN correct — atomic reset
+      await tx.professionalAccess.update({
+        where: { id: fresh.id },
+        data: { lastAccessedAt: new Date(), failedPinAttempts: 0, lockedUntil: null },
+      });
+      await tx.accessLog.create({
+        data: { accessId: fresh.id, action: "pin_validated", ip },
+      });
+
+      return { status: 200, accessData: fresh } as const;
+    });
+
+    if (result.status !== 200) {
+      return NextResponse.json({ error: result.error }, { status: result.status });
     }
 
-    // PIN correct — reset failed attempts and log access
-    const ip = request.headers.get("x-forwarded-for") ?? request.headers.get("x-real-ip") ?? null;
-    await Promise.all([
-      prisma.professionalAccess.update({
-        where: { id: access.id },
-        data: { lastAccessedAt: new Date(), failedPinAttempts: 0, lockedUntil: null },
-      }),
-      prisma.accessLog.create({
-        data: { accessId: access.id, action: "pin_validated", ip },
-      }),
-    ]);
+    const validAccess = result.accessData;
 
     // Fetch patient data (last 30 days)
     const now = new Date();
@@ -128,24 +148,24 @@ export async function POST(
 
     const queries: Promise<unknown>[] = [
       prisma.user.findUnique({
-        where: { id: access.userId },
+        where: { id: validAccess.userId },
         select: { name: true, createdAt: true },
       }),
       prisma.sleepLog.findMany({
-        where: { userId: access.userId, date: { gte: cutoff90Str } },
+        where: { userId: validAccess.userId, date: { gte: cutoff90Str } },
         orderBy: { date: "asc" },
       }),
       prisma.diaryEntry.findMany({
-        where: { userId: access.userId, date: { gte: cutoff30Str } },
+        where: { userId: validAccess.userId, date: { gte: cutoff30Str } },
         orderBy: { date: "asc" },
       }),
       prisma.dailyRhythm.findMany({
-        where: { userId: access.userId, date: { gte: cutoff30Str } },
+        where: { userId: validAccess.userId, date: { gte: cutoff30Str } },
         orderBy: { date: "asc" },
       }),
       prisma.plannerBlock.findMany({
         where: {
-          userId: access.userId,
+          userId: validAccess.userId,
           startAt: { gte: cutoff30 },
           category: { in: ["social", "trabalho", "refeicao"] },
         },
@@ -153,16 +173,16 @@ export async function POST(
         orderBy: { startAt: "asc" },
       }),
       prisma.crisisPlan.findUnique({
-        where: { userId: access.userId },
+        where: { userId: validAccess.userId },
         select: {
           medications: true,
           professionalName: true,
         },
       }),
       // Only fetch SOS events if patient opted in
-      access.shareSosEvents
+      validAccess.shareSosEvents
         ? prisma.sOSEvent.findMany({
-            where: { userId: access.userId, createdAt: { gte: cutoff30 } },
+            where: { userId: validAccess.userId, createdAt: { gte: cutoff30 } },
             orderBy: { createdAt: "desc" },
             select: { action: true, createdAt: true },
           })

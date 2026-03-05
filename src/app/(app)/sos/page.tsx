@@ -61,39 +61,44 @@ export default function SOSPage() {
   return (
     <div className="mx-auto max-w-lg rounded-2xl bg-gray-900 p-8 text-white">
       <h1 className="mb-2 text-center text-3xl font-bold">SOS</h1>
-      <p className="mb-6 text-center text-gray-400">
-        Voce nao precisa passar por isso sozinho(a). Use os botoes abaixo para acionar ajuda.
+      <p className="mb-1 text-center text-gray-400">
+        Você não precisa passar por isso sozinho(a).
+      </p>
+      <p className="mb-6 text-center text-sm text-gray-500">
+        Se houver risco imediato, ligue 192. Se precisar conversar agora, ligue 188.
       </p>
 
       {/* Emergency numbers — always visible, zero clicks to reach */}
       <div className="mb-6 space-y-3">
         <a
-          href="tel:188"
-          onClick={() => logSOS("called_188")}
+          href="tel:192"
+          onClick={() => logSOS("called_192")}
+          aria-label="Ligar para o SAMU 192"
           className="block rounded-xl bg-red-700 p-6 text-center no-underline transition-colors hover:bg-red-600"
         >
-          <span className="text-4xl font-bold text-white">188</span>
+          <span className="text-4xl font-bold text-white">192</span>
           <br />
-          <span className="text-lg text-red-100">
-            CVV — Centro de Valorizacao da Vida
-          </span>
+          <span className="text-lg text-red-100">SAMU</span>
           <br />
           <span className="text-sm text-red-200">
-            24h, gratuito, sigilo garantido
+            Risco imediato · 24h · gratuito
           </span>
         </a>
 
         <a
-          href="tel:192"
-          onClick={() => logSOS("called_192")}
-          className="block rounded-xl bg-red-800 p-5 text-center no-underline transition-colors hover:bg-red-700"
+          href="tel:188"
+          onClick={() => logSOS("called_188")}
+          aria-label="Ligar para o CVV 188"
+          className="block rounded-xl bg-red-800 p-6 text-center no-underline transition-colors hover:bg-red-700"
         >
-          <span className="text-3xl font-bold text-white">192</span>
+          <span className="text-4xl font-bold text-white">188</span>
           <br />
-          <span className="text-base text-red-100">SAMU</span>
+          <span className="text-lg text-red-100">
+            CVV — Centro de Valorização da Vida
+          </span>
           <br />
           <span className="text-sm text-red-200">
-            Servico de Atendimento Movel de Urgencia
+            Preciso conversar agora · 24h · gratuito · sigilo garantido
           </span>
         </a>
 
@@ -103,6 +108,7 @@ export default function SOSPage() {
             key={i}
             href={`tel:${c.phone}`}
             onClick={() => logSOS("called_contact")}
+            aria-label={`Ligar para ${c.name}`}
             className="block rounded-xl bg-amber-700 p-5 text-center no-underline transition-colors hover:bg-amber-600"
           >
             <span className="text-2xl font-bold text-white">{c.name}</span>
@@ -110,7 +116,7 @@ export default function SOSPage() {
             <span className="text-lg text-amber-100">{c.phone}</span>
             <br />
             <span className="text-sm text-amber-200">
-              Contato de confianca
+              Contato de confiança
             </span>
           </a>
         ))}
@@ -119,6 +125,7 @@ export default function SOSPage() {
           <a
             href={`tel:${professionalPhone}`}
             onClick={() => logSOS("called_contact")}
+            aria-label="Ligar para meu profissional de saúde"
             className="block rounded-xl bg-green-800 p-5 text-center no-underline transition-colors hover:bg-green-700"
           >
             <span className="text-2xl font-bold text-white">
@@ -135,12 +142,22 @@ export default function SOSPage() {
           <span className="text-2xl font-bold text-white">UPA 24h</span>
           <br />
           <span className="text-base text-red-100">
-            Va a UPA mais proxima
+            Vá à UPA mais próxima
           </span>
           <br />
           <span className="text-sm text-red-200">
             Atendimento presencial 24 horas
           </span>
+          <a
+            href="https://www.google.com/maps/search/?api=1&query=UPA+24h+perto+de+mim"
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => logSOS("open_maps_upa")}
+            aria-label="Abrir mapa para encontrar UPA 24h próxima"
+            className="mt-2 inline-block rounded-lg bg-red-800/60 px-4 py-2 text-sm text-red-100 no-underline hover:bg-red-800"
+          >
+            Abrir no mapa
+          </a>
         </div>
       </div>
 
@@ -149,14 +166,14 @@ export default function SOSPage() {
           href="/plano-de-crise/editar"
           className="mb-4 block text-center text-sm text-amber-400 no-underline hover:text-amber-300"
         >
-          Cadastre seus contatos de emergencia no Plano de Crise
+          Cadastre seus contatos de emergência no Plano de Crise
         </Link>
       )}
 
       {/* Coping tools below emergency numbers */}
       <div className="border-t border-gray-700 pt-6">
         <p className="mb-3 text-center text-sm text-gray-500">
-          Ferramentas rapidas (1–3 min)
+          Ferramentas rápidas (1–3 min)
         </p>
         <div className="space-y-3">
           <button
@@ -169,7 +186,7 @@ export default function SOSPage() {
             <span className="text-lg font-bold">Preciso me acalmar</span>
             <br />
             <span className="text-sm text-blue-200">
-              Respiracao guiada 4-7-8
+              Respiração guiada 4-7-8
             </span>
           </button>
 
@@ -180,7 +197,7 @@ export default function SOSPage() {
             }}
             className="w-full rounded-xl bg-indigo-800 p-5 text-left transition-colors hover:bg-indigo-700"
           >
-            <span className="text-lg font-bold">Nao consigo dormir</span>
+            <span className="text-lg font-bold">Não consigo dormir</span>
             <br />
             <span className="text-sm text-indigo-200">
               Aterramento guiado passo a passo
@@ -196,7 +213,7 @@ export default function SOSPage() {
             </span>
             <br />
             <span className="text-sm text-gray-400">
-              Contatos, medicacoes e estrategias pessoais
+              Contatos, medicações e estratégias pessoais
             </span>
           </Link>
         </div>
@@ -218,7 +235,7 @@ const GROUNDING_STEPS = [
   {
     count: 5,
     sense: "ver",
-    instruction: "Olhe ao redor e identifique 5 coisas que voce pode ver.",
+    instruction: "Olhe ao redor e identifique 5 coisas que você pode ver.",
     color: "text-blue-400",
     bg: "bg-blue-900/30",
   },
@@ -233,7 +250,7 @@ const GROUNDING_STEPS = [
   {
     count: 3,
     sense: "ouvir",
-    instruction: "Fique em silencio e identifique 3 sons ao seu redor.",
+    instruction: "Fique em silêncio e identifique 3 sons ao seu redor.",
     color: "text-purple-400",
     bg: "bg-purple-900/30",
   },
@@ -262,12 +279,12 @@ function StepByStepGrounding({ onClose }: { onClose: () => void }) {
   if (finished) {
     return (
       <div className="mx-auto flex min-h-[60vh] max-w-lg flex-col items-center justify-center rounded-2xl bg-gray-900 p-8 text-white">
-        <p className="mb-4 text-2xl font-light">Exercicio concluido.</p>
+        <p className="mb-4 text-2xl font-light">Exercício concluído.</p>
         <p className="mb-2 text-lg text-gray-400">
-          Esse pico de sofrimento costuma diminuir. Voce atravessou esses minutos.
+          Esse pico de sofrimento costuma diminuir. Você atravessou esses minutos.
         </p>
         <p className="mb-8 text-sm text-gray-500">
-          Se precisar, repita o exercicio ou faca a respiracao 4-7-8.
+          Se precisar, repita o exercício ou faça a respiração 4-7-8.
           Se houver risco imediato, ligue 192 (SAMU) ou 188 (CVV).
         </p>
         <button
@@ -295,7 +312,7 @@ function StepByStepGrounding({ onClose }: { onClose: () => void }) {
       </div>
 
       <p className={`mb-2 text-xl font-semibold ${current.color}`}>
-        {current.count} coisa{current.count > 1 ? "s" : ""} que voce pode{" "}
+        {current.count} coisa{current.count > 1 ? "s" : ""} que você pode{" "}
         {current.sense}
       </p>
 
@@ -320,7 +337,7 @@ function StepByStepGrounding({ onClose }: { onClose: () => void }) {
           onClick={() => setStep(step + 1)}
           className="flex-1 rounded-lg bg-white px-4 py-3 text-lg font-medium text-gray-900 hover:bg-gray-200"
         >
-          {step < GROUNDING_STEPS.length - 1 ? "Proximo" : "Concluir"}
+          {step < GROUNDING_STEPS.length - 1 ? "Próximo" : "Concluir"}
         </button>
       </div>
 

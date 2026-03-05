@@ -1019,13 +1019,13 @@ function computeDayScores(
 
   // Sleep contribution — relative to baseline when available, with absolute guardrails
   if (sleepHours !== null) {
-    // Absolute guardrails always apply
-    if (sleepHours < 4) {
+    // Absolute guardrails always apply (inclusive thresholds)
+    if (sleepHours <= 4) {
       M += 15;
       factors.push("sono muito curto");
     } else if (sleepHours > 11) {
       D += 12;
-      factors.push("hipersonia");
+      factors.push("sono muito longo");
     } else if (baselineSleep !== null) {
       // Relative to personal baseline (median of last 21-30 days)
       const delta = sleepHours - baselineSleep;
@@ -1052,7 +1052,7 @@ function computeDayScores(
         factors.push("sono curto");
       } else if (sleepHours > 10) {
         D += 12;
-        factors.push("hipersonia");
+        factors.push("sono muito longo");
       } else if (sleepHours > 9) {
         D += 6;
         factors.push("sono longo");
@@ -1084,8 +1084,8 @@ function computeDayScores(
       }
       M += maniaSigns * 5;
       D += depSigns * 5;
-      if (maniaSigns > 0) factors.push(`${maniaSigns} sinais maníacos`);
-      if (depSigns > 0) factors.push(`${depSigns} sinais depressivos`);
+      if (maniaSigns > 0) factors.push(`${maniaSigns} sinais de ativação`);
+      if (depSigns > 0) factors.push(`${depSigns} sinais de rebaixamento`);
     } catch { /* ignore */ }
   }
 
@@ -1111,13 +1111,15 @@ function computeMoodThermometer(
 
   const sleepByDate = new Map(sleepLogs.map((s) => [s.date, s.totalHours]));
 
-  // Compute personal sleep baseline: median of last 21-30 days (excluding extremes <1h and >14h)
+  // Compute personal sleep baseline: median of last 30 days (excluding extremes <1h and >14h)
+  // Uses objective (wearable) data when available, fills gaps with self-reported sleep
   const baselineCutoff = new Date(today);
   baselineCutoff.setDate(baselineCutoff.getDate() - 30);
   const baselineCutoffStr = dateStr(baselineCutoff, tz);
-  const baselineSleepValues = sleepLogs
-    .filter((s) => s.date >= baselineCutoffStr && s.totalHours >= 1 && s.totalHours <= 14)
-    .map((s) => s.totalHours);
+  const baselineEntries = sorted.filter((e) => e.date >= baselineCutoffStr);
+  const baselineSleepValues = baselineEntries
+    .map((e) => sleepByDate.get(e.date) ?? (e.sleepHours > 0 ? e.sleepHours : null))
+    .filter((h): h is number => h !== null && h >= 1 && h <= 14);
   const baselineSleep = baselineSleepValues.length >= 7 ? median(baselineSleepValues) : null;
 
   // Compute per-day M/D scores
@@ -1156,16 +1158,21 @@ function computeMoodThermometer(
   const strongMixed =
     maniaScore >= 30 && depressionScore >= 30 && Math.abs(maniaScore - depressionScore) <= 20;
 
-  // Probable mixed: cross-pattern detection (low mood + high energy, etc.)
-  const lastEntry = recent[recent.length - 1];
-  const probableMixed = !strongMixed && (
-    (lastEntry.mood <= 2 && lastEntry.energyLevel !== null && lastEntry.energyLevel >= 4) ||
-    (lastEntry.mood <= 2 && lastEntry.irritability !== null && lastEntry.irritability >= 4 &&
-      sleepByDate.get(lastEntry.date) !== null && (sleepByDate.get(lastEntry.date) ?? 8) < 6) ||
-    (lastEntry.anxietyLevel !== null && lastEntry.anxietyLevel >= 4 &&
-      lastEntry.energyLevel !== null && lastEntry.energyLevel >= 4 &&
-      (sleepByDate.get(lastEntry.date) ?? 8) < 6)
-  );
+  // Probable mixed: cross-pattern detection over last 3 days (not just last day)
+  // Requires 2+ days with mixed pattern to reduce false positives
+  const last3 = recent.slice(-3);
+  function dayLooksMixed(e: DiaryEntryInput): boolean {
+    const sleep = sleepByDate.get(e.date) ?? (e.sleepHours > 0 ? e.sleepHours : null);
+    const shortSleep = sleep !== null && sleep < 6;
+    return (
+      (e.mood <= 2 && e.energyLevel !== null && e.energyLevel >= 4) ||
+      (e.mood <= 2 && e.irritability !== null && e.irritability >= 4 && shortSleep) ||
+      (e.anxietyLevel !== null && e.anxietyLevel >= 4 &&
+        e.energyLevel !== null && e.energyLevel >= 4 && shortSleep)
+    );
+  }
+  const mixedDayCount = last3.filter(dayLooksMixed).length;
+  const probableMixed = !strongMixed && mixedDayCount >= 2;
 
   const mixedFeatures = strongMixed || probableMixed;
 

@@ -250,6 +250,14 @@ export default function AcessoProfissionalPage() {
               para dados sensíveis de saúde (LGPD Art. 11, I). Você pode revogar
               este consentimento a qualquer momento sem prejuízo.
             </p>
+            <p>
+              <strong>Encarregado:</strong> Dispensado conforme Resolução
+              CD/ANPD nº 2/2022 (agente de tratamento de pequeno porte). Canal
+              para exercer seus direitos de titular:{" "}
+              <a href="mailto:privacidade@redebipolar.com.br" className="underline">
+                privacidade@redebipolar.com.br
+              </a>.
+            </p>
           </div>
         </details>
 

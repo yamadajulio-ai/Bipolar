@@ -67,12 +67,15 @@ function RiskBadge({ risk }: { risk: RiskScore }) {
       </div>
       {risk.factors.length > 0 && (
         <ul className="space-y-1">
-          {risk.factors.map((f, i) => (
-            <li key={i} className="text-xs text-muted flex items-start gap-1.5">
-              <span className="mt-0.5 block h-1.5 w-1.5 rounded-full bg-current flex-shrink-0" />
-              {f}
-            </li>
-          ))}
+          {risk.factors.map((f, i) => {
+            const isProtective = f.toLowerCase().includes("protetor") || f.toLowerCase().includes("boa adesão");
+            return (
+              <li key={i} className={`text-xs flex items-start gap-1.5 ${isProtective ? "text-green-700 dark:text-green-400" : "text-muted"}`}>
+                <span className="mt-0.5 flex-shrink-0">{isProtective ? "✅" : "⚠️"}</span>
+                {f}
+              </li>
+            );
+          })}
         </ul>
       )}
       <p className="mt-2 text-[10px] text-muted italic">

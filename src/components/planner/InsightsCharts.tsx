@@ -37,10 +37,10 @@ export function InsightsCharts({ data }: InsightsChartsProps) {
           dataKey="date"
           tick={{ fontSize: 10 }}
           tickFormatter={formatDatePtBR}
-          interval="preserveStartEnd"
+          minTickGap={18}
         />
-        <YAxis yAxisId="mood" domain={[1, 5]} tick={{ fontSize: 10 }} width={30} label={{ value: "Humor", angle: -90, position: "insideLeft", style: { fontSize: 9, fill: "#999" } }} />
-        <YAxis yAxisId="sleep" orientation="right" domain={[0, 14]} tick={{ fontSize: 10 }} width={30} label={{ value: "Sono (h)", angle: 90, position: "insideRight", style: { fontSize: 9, fill: "#999" } }} />
+        <YAxis yAxisId="mood" domain={[1, 5]} tick={{ fontSize: 10 }} width={30} label={{ value: "Humor", angle: -90, position: "insideLeft", style: { fontSize: 9, fill: "var(--color-muted, #999)" } }} />
+        <YAxis yAxisId="sleep" orientation="right" domain={[0, 14]} tick={{ fontSize: 10 }} width={30} label={{ value: "Sono (h)", angle: 90, position: "insideRight", style: { fontSize: 9, fill: "var(--color-muted, #999)" } }} />
         <Tooltip
           labelFormatter={(label) => formatDateWithWeekday(String(label))}
           formatter={(value: number | undefined, name: string | undefined) => {

@@ -137,6 +137,13 @@ function normalizeBedtime(mins: number): number {
   return mins < 720 ? mins + 1440 : mins;
 }
 
+function median(values: number[]): number | null {
+  if (values.length === 0) return null;
+  const v = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(v.length / 2);
+  return v.length % 2 ? v[mid] : (v[mid - 1] + v[mid]) / 2;
+}
+
 /** Sample standard deviation (n-1 denominator for small samples). */
 function computeStdDev(values: number[]): number | null {
   if (values.length < 3) return null;
@@ -154,9 +161,9 @@ export function formatSleepDuration(hours: number): string {
 }
 
 function minutesToTime(mins: number): string {
-  const normalized = ((mins % 1440) + 1440) % 1440;
-  const h = Math.floor(normalized / 60);
-  const m = Math.round(normalized % 60);
+  const total = Math.round(((mins % 1440) + 1440) % 1440); // integer 0..1439
+  const h = Math.floor(total / 60);
+  const m = total % 60;
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
@@ -285,9 +292,9 @@ function computeSleepInsights(sleepLogs: SleepLogInput[], today: Date, tz: strin
     : bedtimeVariance <= 60 ? "yellow"
     : "red";
 
-  // 3. Sleep trend: last 7d vs previous 7d
-  const sevenAgo = new Date(today); sevenAgo.setDate(sevenAgo.getDate() - 7);
-  const fourteenAgo = new Date(today); fourteenAgo.setDate(fourteenAgo.getDate() - 14);
+  // 3. Sleep trend: last 7d (including today) vs previous 7d
+  const sevenAgo = new Date(today); sevenAgo.setDate(sevenAgo.getDate() - 6);
+  const fourteenAgo = new Date(today); fourteenAgo.setDate(fourteenAgo.getDate() - 13);
   const str7 = dateStr(sevenAgo, tz);
   const str14 = dateStr(fourteenAgo, tz);
 
@@ -363,27 +370,29 @@ function computeSleepInsights(sleepLogs: SleepLogInput[], today: Date, tz: strin
   // 7. Clinical alerts
   const alerts: ClinicalAlert[] = [];
 
-  const consecutiveShort = findConsecutiveShortNights(sorted, 6);
-  if (consecutiveShort >= 2) {
+  // Use currentStreak (active state) for alerts, not longestStreak (historical max)
+  const consecutiveShortNow = currentStreak(sorted, (log) => log.totalHours < 6);
+  if (consecutiveShortNow >= 2) {
     alerts.push({
       variant: "warning",
       title: "Noites curtas consecutivas",
-      message: `Você dormiu menos de 6 horas por ${consecutiveShort} noites seguidas. `
+      message: `Você dormiu menos de 6 horas por ${consecutiveShortNow} noites seguidas. `
         + `Reduções persistentes de sono são um padrão que merece atenção. `
         + `Considere conversar com seu profissional de saúde sobre isso.`,
     });
   }
 
-  // Baseline deviation alerts (vs personal median)
-  if (avgDuration !== null && last7.length >= 3) {
+  // Baseline deviation alerts (vs personal median — robust against outliers)
+  const baselineMedian = median(sorted.map((s) => s.totalHours));
+  if (baselineMedian !== null && last7.length >= 3) {
     const avgLast7 = last7.reduce((s, l) => s + l.totalHours, 0) / last7.length;
-    const deviationMin = Math.round((avgLast7 - avgDuration) * 60);
+    const deviationMin = Math.round((avgLast7 - baselineMedian) * 60);
 
     if (deviationMin <= -60) {
       alerts.push({
         variant: "warning",
         title: "Sono abaixo do seu padrão",
-        message: `Sua média dos últimos 7 dias está ${Math.abs(deviationMin)} minutos abaixo do seu padrão de 30 dias. `
+        message: `Sua média dos últimos 7 dias está ${Math.abs(deviationMin)} minutos abaixo da sua mediana de 30 dias. `
           + `Mudanças significativas no sono merecem atenção, especialmente se combinadas com outros sinais.`,
       });
     }
@@ -391,7 +400,7 @@ function computeSleepInsights(sleepLogs: SleepLogInput[], today: Date, tz: strin
       alerts.push({
         variant: "info",
         title: "Sono acima do seu padrão",
-        message: `Sua média dos últimos 7 dias está ${deviationMin} minutos acima do seu padrão de 30 dias. `
+        message: `Sua média dos últimos 7 dias está ${deviationMin} minutos acima da sua mediana de 30 dias. `
           + `Observe se está sentindo menos energia ou motivação.`,
       });
     }
@@ -424,7 +433,7 @@ function computeSleepInsights(sleepLogs: SleepLogInput[], today: Date, tz: strin
     if (avgDuration !== null && avgDuration < 6) issues.push("duração abaixo do ideal");
     if (bedtimeVariance !== null && bedtimeVariance > 60) issues.push("horários irregulares");
     if (durationVariability !== null && durationVariability > 60) issues.push("duração instável");
-    if (consecutiveShort >= 2) issues.push(`${consecutiveShort} noites curtas seguidas`);
+    if (consecutiveShortNow >= 2) issues.push(`${consecutiveShortNow} noites curtas seguidas`);
 
     if (issues.length === 0) {
       sleepHeadline = "Seu sono está dentro dos parâmetros esperados.";
@@ -447,9 +456,9 @@ function computeSleepInsights(sleepLogs: SleepLogInput[], today: Date, tz: strin
 function computeMoodInsights(entries: DiaryEntryInput[], today: Date, tz: string): MoodInsights {
   const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date));
 
-  // Last 7 calendar days (not last 7 check-ins)
+  // Last 7 calendar days including today (not last 7 check-ins)
   const sevenAgo = new Date(today);
-  sevenAgo.setDate(sevenAgo.getDate() - 7);
+  sevenAgo.setDate(sevenAgo.getDate() - 6);
   const str7 = dateStr(sevenAgo, tz);
   const last7 = sorted.filter((e) => e.date >= str7);
 
@@ -690,12 +699,11 @@ function computeRhythmInsights(
     anchors[field] = { variance, regularityScore, color, label: ANCHOR_LABELS[field], source, daysCount };
   }
 
-  const regularities = Object.values(anchors)
-    .filter((a) => a.regularityScore !== null)
-    .map((a) => a.regularityScore!);
-
-  const overallRegularity = regularities.length > 0
-    ? Math.round(regularities.reduce((a, b) => a + b, 0) / regularities.length)
+  // Weighted average by daysCount (anchors with more data weigh more)
+  const scored = Object.values(anchors).filter((a) => a.regularityScore !== null && a.daysCount > 0);
+  const totalDays = scored.reduce((s, a) => s + a.daysCount, 0);
+  const overallRegularity = totalDays > 0
+    ? Math.round(scored.reduce((s, a) => s + a.regularityScore! * a.daysCount, 0) / totalDays)
     : null;
 
   const hasEnoughData = Object.values(anchors).some((a) => a.variance !== null);
@@ -729,14 +737,14 @@ function computeChartInsights(entries: DiaryEntryInput[], sleepLogs: SleepLogInp
     energy: e.energyLevel,
   }));
 
-  const sleepValues = chartData.map((d) => d.sleepHours);
-  const moodValues = chartData.map((d) => d.mood);
+  // Sanitize: filter out sleep=0 (likely "skip") and unrealistic values
+  const validPairs = chartData.filter((d) => d.sleepHours >= 1 && d.sleepHours <= 14);
 
   let correlationNote: string | null = null;
-  if (chartData.length >= 14) {
-    const r = spearmanCorrelation(sleepValues, moodValues);
+  if (validPairs.length >= 14) {
+    const r = spearmanCorrelation(validPairs.map((d) => d.sleepHours), validPairs.map((d) => d.mood));
     if (r !== null) {
-      const caveat = " (baseado nos seus registros — converse com seu profissional para interpretar)";
+      const caveat = ` (n=${validPairs.length}, converse com seu profissional para interpretar)`;
       if (r > 0.4) {
         correlationNote = "Seus dados sugerem uma associação positiva entre sono e humor: "
           + "nos dias que você dorme mais, seu humor tende a ser melhor." + caveat;
@@ -747,10 +755,10 @@ function computeChartInsights(entries: DiaryEntryInput[], sleepLogs: SleepLogInp
     }
   }
 
-  // Lag-1 correlation: sleep(day N) → mood(day N+1)
+  // Lag-1 correlation: sleep(day N) → mood(day N+1) — sanitized
   let lagCorrelationNote: string | null = null;
-  if (chartData.length >= 15) {
-    const sortedChart = [...chartData].sort((a, b) => a.date.localeCompare(b.date));
+  if (validPairs.length >= 15) {
+    const sortedChart = [...validPairs].sort((a, b) => a.date.localeCompare(b.date));
     const lagSleep: number[] = [];
     const lagMood: number[] = [];
     for (let i = 0; i < sortedChart.length - 1; i++) {
@@ -762,7 +770,7 @@ function computeChartInsights(entries: DiaryEntryInput[], sleepLogs: SleepLogInp
     if (lagSleep.length >= 14) {
       const rLag = spearmanCorrelation(lagSleep, lagMood);
       if (rLag !== null) {
-        const caveat = " (converse com seu profissional para interpretar)";
+        const caveat = ` (n=${lagSleep.length}, converse com seu profissional para interpretar)`;
         if (rLag > 0.4) {
           lagCorrelationNote = "Padrão observado: quando você dorme mais, seu humor no dia seguinte tende a ser melhor." + caveat;
         } else if (rLag < -0.4) {
@@ -836,6 +844,8 @@ function computeRiskScore(
   mood: MoodInsights,
   entries: DiaryEntryInput[],
   sleepLogs: SleepLogInput[],
+  today: Date,
+  tz: string,
 ): RiskScore | null {
   if (sleep.recordCount < 7 || entries.length < 7) return null;
 
@@ -854,38 +864,40 @@ function computeRiskScore(
     factors.push("Variação horário >90min");
   }
 
-  // Consecutive short nights
-  const sorted = [...sleepLogs].sort((a, b) => a.date.localeCompare(b.date));
-  const consec = findConsecutiveShortNights(sorted, 6);
-  if (consec >= 3) {
+  // Consecutive short nights — use currentStreak (active state)
+  const sortedSleep = [...sleepLogs].sort((a, b) => a.date.localeCompare(b.date));
+  const shortNow = currentStreak(sortedSleep, (s) => s.totalHours < 6);
+  if (shortNow >= 3) {
     score += 2;
-    factors.push(`${consec} noites curtas seguidas`);
+    factors.push(`${shortNow} noites curtas seguidas`);
   }
 
-  // Elevated mood streak
+  // Mood streaks — use currentStreak (active state)
   const sortedEntries = [...entries].sort((a, b) => a.date.localeCompare(b.date));
-  const upStreak = longestStreak(sortedEntries, (e) => e.mood >= 4);
-  if (upStreak >= 3) {
+  const upNow = currentStreak(sortedEntries, (e) => e.mood >= 4);
+  if (upNow >= 3) {
     score += 1;
-    factors.push(`Humor ≥4 por ${upStreak} dias`);
+    factors.push(`Humor ≥4 por ${upNow} dias`);
   }
 
-  // Low mood streak
-  const downStreak = longestStreak(sortedEntries, (e) => e.mood <= 2);
-  if (downStreak >= 3) {
+  const downNow = currentStreak(sortedEntries, (e) => e.mood <= 2);
+  if (downNow >= 3) {
     score += 1;
-    factors.push(`Humor ≤2 por ${downStreak} dias`);
+    factors.push(`Humor ≤2 por ${downNow} dias`);
   }
 
-  // High energy recent entries
-  const last7Entries = sortedEntries.slice(-7);
+  // High energy — calendar-based last 7 days
+  const sevenAgo = new Date(today); sevenAgo.setDate(sevenAgo.getDate() - 6);
+  const str7 = dateStr(sevenAgo, tz);
+  const last7Entries = sortedEntries.filter((e) => e.date >= str7);
+
   const highEnergy = last7Entries.filter((e) => e.energyLevel !== null && e.energyLevel >= 4).length;
   if (highEnergy >= 3) {
     score += 1;
     factors.push("Energia elevada frequente");
   }
 
-  // Key warning signs
+  // Key warning signs (calendar-based last 7 days)
   const recentSigns = new Set<string>();
   for (const e of last7Entries) {
     if (!e.warningSigns) continue;
@@ -930,7 +942,7 @@ export function computeInsights(
   const rhythm = computeRhythmInsights(rhythms, sleepLogs, plannerBlocks ?? []);
   const chart = computeChartInsights(entries, sleepLogs);
   const combinedPatterns = computeCombinedPatterns(sleepLogs, entries);
-  const risk = computeRiskScore(sleep, mood, entries, sleepLogs);
+  const risk = computeRiskScore(sleep, mood, entries, sleepLogs, today, tz);
 
   return { sleep, mood, rhythm, chart, combinedPatterns, risk };
 }

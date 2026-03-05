@@ -3,6 +3,16 @@ import { prisma } from "@/lib/db";
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 const FETCH_TIMEOUT_MS = 10_000;
 
+/** Only keep articles whose title mentions bipolar disorder. */
+function isBipolarRelated(title: string): boolean {
+  const t = title.toLowerCase();
+  // "bipolar" covers: bipolar disorder, transtorno bipolar, bipolaridade, transtorno afetivo bipolar
+  if (t.includes("bipolar")) return true;
+  // TAB = Transtorno Afetivo Bipolar (word boundary to avoid "table", "tablet", etc.)
+  if (/\btab\b/.test(t)) return true;
+  return false;
+}
+
 // ── Translation (EN → PT-BR) ─────────────────────────────────────
 
 async function translateText(text: string): Promise<string> {
@@ -131,7 +141,7 @@ async function fetchPubMedArticles(): Promise<
     articles[i].title = translatedTitles[i];
   }
 
-  return articles;
+  return articles.filter((a) => isBipolarRelated(a.title));
 }
 
 // ── Google News RSS ───────────────────────────────────────────────
@@ -176,7 +186,7 @@ async function fetchGoogleNewsArticles(): Promise<
   const xml = await res.text();
   const items = parseRssItems(xml);
 
-  return items.slice(0, 20).map((item) => {
+  return items.filter((item) => isBipolarRelated(item.title)).slice(0, 20).map((item) => {
     const parsed = new Date(item.pubDate);
     const publishedAt = isNaN(parsed.getTime()) ? new Date() : parsed;
 
@@ -261,9 +271,18 @@ export async function getNews(source?: "pubmed" | "google_news") {
     }),
   );
 
-  // Return from DB
+  // Return from DB — only articles with bipolar-related titles
+  const bipolarFilter = {
+    OR: [
+      { title: { contains: "bipolar", mode: "insensitive" as const } },
+      { title: { contains: " TAB ", mode: "insensitive" as const } },
+      { title: { startsWith: "TAB ", mode: "insensitive" as const } },
+      { title: { endsWith: " TAB", mode: "insensitive" as const } },
+    ],
+  };
+
   return prisma.newsArticle.findMany({
-    where: source ? { source } : undefined,
+    where: source ? { source, ...bipolarFilter } : bipolarFilter,
     orderBy: { publishedAt: "desc" },
     take: 40,
   });

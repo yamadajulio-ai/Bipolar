@@ -401,7 +401,8 @@ function parseDetailedSegments(data: HAEMetricEntry[]): ProcessedSleepNight[] {
 
   for (let i = 1; i < segments.length; i++) {
     const gap = segments[i].start.getTime() - currentNight[currentNight.length - 1].end.getTime();
-    if (gap < 12 * 60 * 60 * 1000) {
+    // 6h gap — prevents grouping naps with night sleep (was 12h)
+    if (gap < 6 * 60 * 60 * 1000) {
       currentNight.push(segments[i]);
     } else {
       nights.push(currentNight);

@@ -14,9 +14,11 @@ const variantStyles = {
 };
 
 export function Alert({ children, variant = "info", className }: AlertProps) {
+  const isUrgent = variant === "danger";
   return (
     <div
-      role="alert"
+      role={isUrgent ? "alert" : "status"}
+      aria-live={isUrgent ? "assertive" : "polite"}
       className={clsx(
         "rounded-lg border p-3 text-sm",
         variantStyles[variant],

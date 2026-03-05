@@ -216,6 +216,43 @@ export default function AcessoProfissionalPage() {
           </span>
         </label>
 
+        <details className="mb-4 rounded-lg bg-muted/10 p-3">
+          <summary className="cursor-pointer text-xs font-medium text-muted hover:text-foreground">
+            Saiba mais sobre privacidade e seus direitos (LGPD)
+          </summary>
+          <div className="mt-2 space-y-2 text-xs text-muted">
+            <p>
+              <strong>Controlador:</strong> Rede Bipolar. Para exercer seus
+              direitos de titular (acesso, correção, exclusão, portabilidade),
+              entre em contato pelo e-mail{" "}
+              <a href="mailto:privacidade@redebipolar.com.br" className="underline">
+                privacidade@redebipolar.com.br
+              </a>.
+            </p>
+            <p>
+              <strong>Finalidade:</strong> Permitir que o profissional de saúde
+              indicado por você visualize seus dados clínicos de forma somente
+              leitura, para apoiar seu acompanhamento terapêutico.
+            </p>
+            <p>
+              <strong>Dados compartilhados:</strong> Registros de humor, sono,
+              energia, medicação, sinais de alerta, ritmos sociais e métricas
+              calculadas (insights). Eventos SOS somente se você optar acima.
+            </p>
+            <p>
+              <strong>Retenção:</strong> O acesso expira automaticamente no prazo
+              selecionado. Após expiração ou revogação, o profissional não terá
+              mais acesso aos dados. Logs de auditoria são mantidos por 90 dias
+              para sua segurança.
+            </p>
+            <p>
+              <strong>Base legal:</strong> Consentimento específico do titular
+              para dados sensíveis de saúde (LGPD Art. 11, I). Você pode revogar
+              este consentimento a qualquer momento sem prejuízo.
+            </p>
+          </div>
+        </details>
+
         <label className="mb-4 flex items-start gap-2">
           <input
             type="checkbox"

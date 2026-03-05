@@ -987,10 +987,15 @@ function getZoneLabel(zone: string, position: number): string {
   }
 }
 
-function computeDayScores(entry: DiaryEntryInput, sleepHours: number | null) {
+function computeDayScores(
+  entry: DiaryEntryInput,
+  sleepHours: number | null,
+  baselineSleep: number | null,
+) {
   let M = 0;
   let D = 0;
   const factors: string[] = [];
+  const hasObjectiveSleep = sleepHours !== null;
 
   // Mood contribution
   if (entry.mood >= 4) {
@@ -1012,20 +1017,46 @@ function computeDayScores(entry: DiaryEntryInput, sleepHours: number | null) {
     }
   }
 
-  // Sleep contribution
+  // Sleep contribution — relative to baseline when available, with absolute guardrails
   if (sleepHours !== null) {
-    if (sleepHours < 5) {
+    // Absolute guardrails always apply
+    if (sleepHours < 4) {
       M += 15;
       factors.push("sono muito curto");
-    } else if (sleepHours < 6) {
-      M += 8;
-      factors.push("sono curto");
-    } else if (sleepHours > 10) {
+    } else if (sleepHours > 11) {
       D += 12;
       factors.push("hipersonia");
-    } else if (sleepHours > 9) {
-      D += 6;
-      factors.push("sono longo");
+    } else if (baselineSleep !== null) {
+      // Relative to personal baseline (median of last 21-30 days)
+      const delta = sleepHours - baselineSleep;
+      if (delta <= -2) {
+        M += 15;
+        factors.push("sono bem abaixo do seu padrão");
+      } else if (delta <= -1) {
+        M += 8;
+        factors.push("sono abaixo do seu padrão");
+      } else if (delta >= 2) {
+        D += 12;
+        factors.push("sono bem acima do seu padrão");
+      } else if (delta >= 1) {
+        D += 6;
+        factors.push("sono acima do seu padrão");
+      }
+    } else {
+      // Fallback to absolute thresholds when no baseline available
+      if (sleepHours < 5) {
+        M += 15;
+        factors.push("sono muito curto");
+      } else if (sleepHours < 6) {
+        M += 8;
+        factors.push("sono curto");
+      } else if (sleepHours > 10) {
+        D += 12;
+        factors.push("hipersonia");
+      } else if (sleepHours > 9) {
+        D += 6;
+        factors.push("sono longo");
+      }
     }
   }
 
@@ -1040,13 +1071,14 @@ function computeDayScores(entry: DiaryEntryInput, sleepHours: number | null) {
     D += 5;
   }
 
-  // Warning signs
+  // Warning signs — skip "sono_reduzido" when we have objective sleep data (avoid double counting)
   if (entry.warningSigns) {
     try {
       const signs: string[] = JSON.parse(entry.warningSigns);
       let maniaSigns = 0;
       let depSigns = 0;
       for (const s of signs) {
+        if (s === "sono_reduzido" && hasObjectiveSleep) continue;
         if (MANIA_SIGNS.has(s)) maniaSigns++;
         if (DEPRESSION_SIGNS.has(s)) depSigns++;
       }
@@ -1079,10 +1111,19 @@ function computeMoodThermometer(
 
   const sleepByDate = new Map(sleepLogs.map((s) => [s.date, s.totalHours]));
 
+  // Compute personal sleep baseline: median of last 21-30 days (excluding extremes <1h and >14h)
+  const baselineCutoff = new Date(today);
+  baselineCutoff.setDate(baselineCutoff.getDate() - 30);
+  const baselineCutoffStr = dateStr(baselineCutoff, tz);
+  const baselineSleepValues = sleepLogs
+    .filter((s) => s.date >= baselineCutoffStr && s.totalHours >= 1 && s.totalHours <= 14)
+    .map((s) => s.totalHours);
+  const baselineSleep = baselineSleepValues.length >= 7 ? median(baselineSleepValues) : null;
+
   // Compute per-day M/D scores
   const dayScores = recent.map((e) => {
     const sleep = sleepByDate.get(e.date) ?? (e.sleepHours > 0 ? e.sleepHours : null);
-    return computeDayScores(e, sleep);
+    return computeDayScores(e, sleep, baselineSleep);
   });
 
   // EWMA smoothing (alpha=0.4 — recent days have higher weight)

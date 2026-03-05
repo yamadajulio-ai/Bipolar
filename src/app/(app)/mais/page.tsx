@@ -19,6 +19,8 @@ const modules = [
   { href: "/familias", label: "Famílias", description: "Guia para familiares e cuidadores" },
   { href: "/integracoes", label: "Integrações", description: "Health Auto Export, Google Calendar" },
   { href: "/financeiro", label: "Financeiro", description: "Transações, importação Mobills" },
+  { href: "/perfil", label: "Perfil de Saúde", description: "Acesso a recursos e recomendações personalizadas" },
+  { href: "/acesso-profissional", label: "Acesso Profissional", description: "Compartilhe dados com seu psiquiatra" },
   { href: "/conta", label: "Conta", description: "Configurações e lembretes" },
 ];
 

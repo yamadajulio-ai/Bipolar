@@ -5,6 +5,7 @@ import { Alert } from "@/components/Alert";
 import { InsightsCharts } from "@/components/planner/InsightsCharts";
 import { NightHistorySelector } from "@/components/insights/NightHistorySelector";
 import { computeInsights, formatSleepDuration, regularityScoreFromVariance } from "@/lib/insights/computeInsights";
+import { MoodThermometer } from "@/components/insights/MoodThermometer";
 import type { ClinicalAlert, PlannerBlockInput, CombinedPattern, RiskScore } from "@/lib/insights/computeInsights";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -158,6 +159,13 @@ export default async function InsightsPage({
       <p className="mb-6 text-xs text-muted">
         Baseado em protocolos IPSRT e pesquisas PROMAN/USP · Não substitui avaliação profissional
       </p>
+
+      {/* ── Termômetro de Humor (Espectro Bipolar) ─────────────── */}
+      {insights.thermometer && (
+        <div className="mb-6">
+          <MoodThermometer data={insights.thermometer} />
+        </div>
+      )}
 
       {/* ── Status Geral (Risk Heuristic) ─────────────────────────── */}
       {insights.risk && <RiskBadge risk={insights.risk} />}

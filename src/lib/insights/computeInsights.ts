@@ -113,6 +113,27 @@ export interface RiskScore {
   factors: string[];
 }
 
+export interface MoodThermometer {
+  /** 0-100 position: 0=depression, 50=euthymia, 100=mania */
+  position: number;
+  /** Raw mania-like score 0-100 */
+  maniaScore: number;
+  /** Raw depression-like score 0-100 */
+  depressionScore: number;
+  /** Zone label */
+  zone: "depressao" | "depressao_leve" | "eutimia" | "hipomania" | "mania";
+  /** Human-readable zone label */
+  zoneLabel: string;
+  /** Whether both M and D are elevated (mixed features) */
+  mixedFeatures: boolean;
+  /** Instability indicator based on mood amplitude */
+  instability: "baixa" | "moderada" | "alta";
+  /** Factors contributing to current position */
+  factors: string[];
+  /** Number of days of data used */
+  daysUsed: number;
+}
+
 export interface InsightsResult {
   sleep: SleepInsights;
   mood: MoodInsights;
@@ -120,6 +141,7 @@ export interface InsightsResult {
   chart: ChartInsights;
   combinedPatterns: CombinedPattern[];
   risk: RiskScore | null;
+  thermometer: MoodThermometer | null;
 }
 
 // ── Helpers ─────────────────────────────────────────────────
@@ -927,6 +949,193 @@ function computeRiskScore(
   return { score, level, factors };
 }
 
+// ── Mood Thermometer (Bipolar Spectrum) ─────────────────────
+
+const MANIA_SIGNS = new Set([
+  "pensamentos_acelerados",
+  "gastos_impulsivos",
+  "energia_excessiva",
+  "planos_grandiosos",
+  "fala_rapida",
+  "sono_reduzido",
+]);
+
+const DEPRESSION_SIGNS = new Set([
+  "isolamento",
+  "desinteresse",
+  "desesperanca",
+  "apetite_alterado",
+]);
+
+const ZONE_LABELS: Record<string, string> = {
+  depressao: "Fase depressiva",
+  depressao_leve: "Humor rebaixado",
+  eutimia: "Eutimia",
+  hipomania: "Traços hipomaníacos",
+  mania: "Traços maníacos",
+};
+
+function computeDayScores(entry: DiaryEntryInput, sleepHours: number | null) {
+  let M = 0;
+  let D = 0;
+  const factors: string[] = [];
+
+  // Mood contribution
+  if (entry.mood >= 4) {
+    M += entry.mood === 5 ? 25 : 15;
+    factors.push(entry.mood === 5 ? "humor muito elevado" : "humor elevado");
+  } else if (entry.mood <= 2) {
+    D += entry.mood === 1 ? 25 : 15;
+    factors.push(entry.mood === 1 ? "humor muito baixo" : "humor baixo");
+  }
+
+  // Energy contribution
+  if (entry.energyLevel !== null) {
+    if (entry.energyLevel >= 4) {
+      M += entry.energyLevel === 5 ? 20 : 12;
+      factors.push("energia elevada");
+    } else if (entry.energyLevel <= 2) {
+      D += entry.energyLevel === 1 ? 20 : 12;
+      factors.push("energia baixa");
+    }
+  }
+
+  // Sleep contribution
+  if (sleepHours !== null) {
+    if (sleepHours < 5) {
+      M += 15;
+      factors.push("sono muito curto");
+    } else if (sleepHours < 6) {
+      M += 8;
+      factors.push("sono curto");
+    } else if (sleepHours > 10) {
+      D += 12;
+      factors.push("hipersonia");
+    } else if (sleepHours > 9) {
+      D += 6;
+      factors.push("sono longo");
+    }
+  }
+
+  // Irritability
+  if (entry.irritability !== null && entry.irritability >= 4) {
+    M += 8;
+    factors.push("irritabilidade alta");
+  }
+
+  // Anxiety
+  if (entry.anxietyLevel !== null && entry.anxietyLevel >= 4) {
+    D += 5;
+    // Anxiety can also be present in mixed states
+    if (entry.energyLevel !== null && entry.energyLevel >= 4) {
+      M += 3;
+    }
+  }
+
+  // Warning signs
+  if (entry.warningSigns) {
+    try {
+      const signs: string[] = JSON.parse(entry.warningSigns);
+      let maniaSigns = 0;
+      let depSigns = 0;
+      for (const s of signs) {
+        if (MANIA_SIGNS.has(s)) maniaSigns++;
+        if (DEPRESSION_SIGNS.has(s)) depSigns++;
+      }
+      M += maniaSigns * 5;
+      D += depSigns * 5;
+      if (maniaSigns > 0) factors.push(`${maniaSigns} sinais maníacos`);
+      if (depSigns > 0) factors.push(`${depSigns} sinais depressivos`);
+    } catch { /* ignore */ }
+  }
+
+  return { M: Math.min(100, M), D: Math.min(100, D), factors };
+}
+
+function computeMoodThermometer(
+  entries: DiaryEntryInput[],
+  sleepLogs: SleepLogInput[],
+  today: Date,
+  tz: string,
+): MoodThermometer | null {
+  // Need at least 3 days of data
+  const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date));
+  if (sorted.length < 3) return null;
+
+  // Use last 7 calendar days with EWMA (alpha=0.4, recent days weigh more)
+  const sevenAgo = new Date(today);
+  sevenAgo.setDate(sevenAgo.getDate() - 6);
+  const str7 = dateStr(sevenAgo, tz);
+  const recent = sorted.filter((e) => e.date >= str7);
+  if (recent.length < 2) return null;
+
+  const sleepByDate = new Map(sleepLogs.map((s) => [s.date, s.totalHours]));
+
+  // Compute per-day M/D scores
+  const dayScores = recent.map((e) => {
+    const sleep = sleepByDate.get(e.date) ?? (e.sleepHours > 0 ? e.sleepHours : null);
+    return computeDayScores(e, sleep);
+  });
+
+  // EWMA smoothing (alpha=0.4 — recent days have higher weight)
+  const alpha = 0.4;
+  let ewmaM = dayScores[0].M;
+  let ewmaD = dayScores[0].D;
+  for (let i = 1; i < dayScores.length; i++) {
+    ewmaM = alpha * dayScores[i].M + (1 - alpha) * ewmaM;
+    ewmaD = alpha * dayScores[i].D + (1 - alpha) * ewmaD;
+  }
+
+  const maniaScore = Math.round(ewmaM);
+  const depressionScore = Math.round(ewmaD);
+
+  // Map to 0-100 position
+  let position: number;
+  if (maniaScore <= 5 && depressionScore <= 5) {
+    position = 50; // euthymia
+  } else if (maniaScore > depressionScore) {
+    position = 50 + Math.min(50, maniaScore * 0.5);
+  } else {
+    position = 50 - Math.min(50, depressionScore * 0.5);
+  }
+  position = Math.round(Math.max(0, Math.min(100, position)));
+
+  // Zone classification
+  let zone: MoodThermometer["zone"];
+  if (position <= 20) zone = "depressao";
+  else if (position <= 38) zone = "depressao_leve";
+  else if (position <= 62) zone = "eutimia";
+  else if (position <= 80) zone = "hipomania";
+  else zone = "mania";
+
+  // Mixed features: both M and D significantly elevated
+  const mixedFeatures = maniaScore >= 20 && depressionScore >= 20;
+
+  // Instability: mood amplitude in recent days
+  const moods = recent.map((e) => e.mood);
+  const amplitude = Math.max(...moods) - Math.min(...moods);
+  const instability: MoodThermometer["instability"] =
+    amplitude <= 1 ? "baixa" : amplitude <= 2 ? "moderada" : "alta";
+
+  // Collect unique factors from the most recent 3 days
+  const recentFactors = new Set<string>();
+  for (let i = Math.max(0, dayScores.length - 3); i < dayScores.length; i++) {
+    for (const f of dayScores[i].factors) recentFactors.add(f);
+  }
+
+  return {
+    position,
+    maniaScore,
+    depressionScore,
+    zone,
+    zoneLabel: ZONE_LABELS[zone],
+    mixedFeatures,
+    instability,
+    factors: Array.from(recentFactors),
+    daysUsed: recent.length,
+  };
+}
+
 // ── Main Export ─────────────────────────────────────────────
 
 export function computeInsights(
@@ -943,6 +1152,7 @@ export function computeInsights(
   const chart = computeChartInsights(entries, sleepLogs);
   const combinedPatterns = computeCombinedPatterns(sleepLogs, entries);
   const risk = computeRiskScore(sleep, mood, entries, sleepLogs, today, tz);
+  const thermometer = computeMoodThermometer(entries, sleepLogs, today, tz);
 
-  return { sleep, mood, rhythm, chart, combinedPatterns, risk };
+  return { sleep, mood, rhythm, chart, combinedPatterns, risk, thermometer };
 }

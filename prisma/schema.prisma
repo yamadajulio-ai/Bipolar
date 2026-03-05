@@ -29,6 +29,9 @@ model User {
   integrationKeys       IntegrationKey[]
   healthMetrics         HealthMetric[]
   financialTransactions FinancialTransaction[]
+  sosEvents             SOSEvent[]
+  socioeconomicProfile  SocioeconomicProfile?
+  professionalAccesses  ProfessionalAccess[]
 }
 
 model DiaryEntry {
@@ -295,6 +298,48 @@ model RateLimit {
 }
 
 // ── Financeiro ──────────────────────────────────────────────────
+
+model ProfessionalAccess {
+  id              String    @id @default(uuid())
+  userId          String
+  token           String    @unique     // URL-safe random token
+  pinHash         String                // bcrypt hash of 6-digit PIN
+  label           String?               // e.g. "Dr. Silva"
+  expiresAt       DateTime
+  consentGivenAt  DateTime  @default(now())
+  revokedAt       DateTime?
+  lastAccessedAt  DateTime?
+  createdAt       DateTime  @default(now())
+
+  user            User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+}
+
+model SocioeconomicProfile {
+  id                  String   @id @default(uuid())
+  userId              String   @unique
+  careAccess          String   // "regular" | "irregular" | "sem_acesso"
+  medicationSource    String   // "sus" | "plano" | "particular" | "nao_toma"
+  consultFrequency    String   // "mensal" | "trimestral" | "semestral" | "quando_consigo" | "nunca"
+  hasEmergencyContact Boolean  @default(false)
+  livingSituation     String?  // "estavel" | "instavel" | "situacao_rua"
+  updatedAt           DateTime @updatedAt
+
+  user                User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SOSEvent {
+  id        String   @id @default(uuid())
+  userId    String
+  action    String   // "opened" | "called_188" | "called_192" | "called_contact" | "breathing" | "grounding"
+  createdAt DateTime @default(now())
+
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
 
 model FinancialTransaction {
   id          String   @id @default(uuid())

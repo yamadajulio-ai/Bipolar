@@ -125,9 +125,9 @@ export default async function InsightsPage({
     }),
   ]);
 
-  // For insights computation: only last 30 days, filter out naps (<3h)
+  // For insights computation: last 30 days, only real sleep (>= 1h). Under 1h = nap.
   const sleepLogsForInsights = allSleepLogs.filter(
-    (l) => l.date >= cutoff30Str && l.totalHours >= 3,
+    (l) => l.date >= cutoff30Str && l.totalHours >= 1,
   );
 
   // Convert PlannerBlock DateTime with correct timezone
@@ -321,8 +321,8 @@ export default async function InsightsPage({
             </div>
             <div className="space-y-2">
               {lastNights.map((log) => {
-                const isNap = log.totalHours < 3;
-                const isShort = log.totalHours < 6;
+                const isNap = log.totalHours < 1;
+                const isShort = !isNap && log.totalHours < 6;
                 const isGood = log.totalHours >= 7;
                 const durationPct = Math.min(100, Math.max(8, (log.totalHours / 10) * 100));
                 const dateObj = new Date(log.date + "T12:00:00");

@@ -17,9 +17,22 @@ const navLinks = [
   { href: "/mais", label: "Mais" },
 ];
 
+async function clearSwCache() {
+  if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
+    navigator.serviceWorker.controller.postMessage({ type: "CLEAR_AUTH_CACHES" });
+    await new Promise((r) => setTimeout(r, 100));
+  }
+}
+
 export function Header({ isLoggedIn }: HeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
+
+  async function handleLogout(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    await clearSwCache();
+    (e.target as HTMLFormElement).submit();
+  }
 
   return (
     <header className="border-b border-border bg-white/80 backdrop-blur-sm">
@@ -51,7 +64,7 @@ export function Header({ isLoggedIn }: HeaderProps) {
               >
                 SOS
               </Link>
-              <form action="/api/auth/logout" method="POST">
+              <form action="/api/auth/logout" method="POST" onSubmit={handleLogout}>
                 <button
                   type="submit"
                   className="rounded bg-primary px-3 py-1 text-white hover:bg-primary-dark"
@@ -111,7 +124,7 @@ export function Header({ isLoggedIn }: HeaderProps) {
                       </Link>
                     );
                   })}
-                  <form action="/api/auth/logout" method="POST">
+                  <form action="/api/auth/logout" method="POST" onSubmit={handleLogout}>
                     <button
                       type="submit"
                       className="w-full rounded bg-primary px-3 py-2 text-white hover:bg-primary-dark"

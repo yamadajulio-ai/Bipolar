@@ -29,7 +29,8 @@ export default async function AppLayout({
       <Alert variant="info" className="mx-auto mt-4 max-w-5xl text-center">
         Consulte seu profissional de saúde para decisões clínicas. Este app é educacional.
       </Alert>
-      <main id="main-content" className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">
+      {/* tabIndex={-1} allows skip-to-content link to move keyboard focus, not just scroll */}
+      <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 outline-none">
         {children}
       </main>
       <Footer />

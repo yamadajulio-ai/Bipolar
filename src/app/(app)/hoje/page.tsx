@@ -25,66 +25,61 @@ export default async function HojePage() {
   const dayStart = new Date(today + "T00:00:00");
   const dayEnd = new Date(today + "T23:59:59");
 
-  const blocks = await prisma.plannerBlock.findMany({
-    where: {
-      userId: session.userId,
-      OR: [
-        // Non-recurring blocks that overlap with today (including overnight from yesterday)
-        { startAt: { lte: dayEnd }, endAt: { gte: dayStart } },
-        // Recurring blocks that might apply today
-        { recurrence: { isNot: null }, startAt: { lte: dayEnd } },
-      ],
-    },
-    include: { recurrence: true, exceptions: true },
-    orderBy: { startAt: "asc" },
-  });
-
-  // Fetch today's diary entry
-  const todayEntry = await prisma.diaryEntry.findFirst({
-    where: { userId: session.userId, date: today },
-  });
-
-  // Fetch today's sleep log
-  const todaySleep = await prisma.sleepLog.findFirst({
-    where: { userId: session.userId, date: today },
-  });
-
-  // Fetch today's rhythm
-  const todayRhythm = await prisma.dailyRhythm.findFirst({
-    where: { userId: session.userId, date: today },
-  });
-
-  // Get stability rules for energy budget
-  const rules = await prisma.stabilityRule.findUnique({
-    where: { userId: session.userId },
-  });
-
-  // Recent entries for alerts, chart, and streak
+  // Run all independent queries in parallel
   const last7Days = new Date();
   last7Days.setDate(last7Days.getDate() - 7);
   const cutoffStr = localDateStr(last7Days);
 
-  const [recentEntries, lastEntry] = await Promise.all([
+  const [blocks, todayEntry, todaySleep, todayRhythm, rules, recentEntries, lastEntry, streakDates] = await Promise.all([
+    prisma.plannerBlock.findMany({
+      where: {
+        userId: session.userId,
+        OR: [
+          { startAt: { lte: dayEnd }, endAt: { gte: dayStart } },
+          { recurrence: { isNot: null }, startAt: { lte: dayEnd } },
+        ],
+      },
+      include: { recurrence: true, exceptions: true },
+      orderBy: { startAt: "asc" },
+    }),
+    prisma.diaryEntry.findFirst({
+      where: { userId: session.userId, date: today },
+      select: { mood: true, sleepHours: true, energyLevel: true, tookMedication: true },
+    }),
+    prisma.sleepLog.findFirst({
+      where: { userId: session.userId, date: today },
+      select: { totalHours: true },
+    }),
+    prisma.dailyRhythm.findFirst({
+      where: { userId: session.userId, date: today },
+      select: { wakeTime: true, firstContact: true, mainActivityStart: true, dinnerTime: true, bedtime: true },
+    }),
+    prisma.stabilityRule.findUnique({
+      where: { userId: session.userId },
+      select: { targetSleepTimeMin: true },
+    }),
     prisma.diaryEntry.findMany({
       where: { userId: session.userId, date: { gte: cutoffStr } },
+      select: { date: true, mood: true, sleepHours: true },
       orderBy: { date: "asc" },
     }),
     prisma.diaryEntry.findFirst({
       where: { userId: session.userId },
       orderBy: { date: "desc" },
+      select: { date: true },
+    }),
+    prisma.diaryEntry.findMany({
+      where: { userId: session.userId },
+      orderBy: { date: "desc" },
+      select: { date: true },
+      take: 90,
     }),
   ]);
 
   // Streak: count consecutive days with entries ending today
   let streak = 0;
-  if (lastEntry) {
-    const allDates = await prisma.diaryEntry.findMany({
-      where: { userId: session.userId },
-      orderBy: { date: "desc" },
-      select: { date: true },
-      take: 90,
-    });
-    const dateSet = new Set(allDates.map((d) => d.date));
+  {
+    const dateSet = new Set(streakDates.map((d) => d.date));
     const d = new Date(today + "T12:00:00");
     while (dateSet.has(localDateStr(d))) {
       streak++;

@@ -141,6 +141,17 @@ async function refreshInBackground(request, cache, cacheKey) {
   }
 }
 
+// --- Message handler (cache purge on logout) ---
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "CLEAR_AUTH_CACHES") {
+    event.waitUntil(
+      caches.delete(CACHE_API).then(() => {
+        apiTimestamps.clear();
+      })
+    );
+  }
+});
+
 // --- Helpers ---
 
 function isStaticAsset(url) {

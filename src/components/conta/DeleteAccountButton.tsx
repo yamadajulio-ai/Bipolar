@@ -8,6 +8,11 @@ export function DeleteAccountButton() {
 
   async function handleDelete() {
     setLoading(true);
+    // Purge SW API cache before account deletion to prevent data leak
+    if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({ type: "CLEAR_AUTH_CACHES" });
+      await new Promise((r) => setTimeout(r, 100));
+    }
     try {
       const res = await fetch("/api/auth/excluir-conta", { method: "POST" });
       if (res.redirected) {

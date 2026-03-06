@@ -163,21 +163,34 @@ export default function AvaliacaoSemanalPage() {
       )}
 
       {/* Progress indicator */}
-      <div className="mb-6 flex gap-1">
-        {(["asrm", "phq9", "fast", "review"] as Step[]).map((s) => (
+      {(() => {
+        const steps: Step[] = ["asrm", "phq9", "fast", "review"];
+        const stepLabels: Record<Step, string> = { asrm: "ASRM", phq9: "PHQ-9", fast: "Funcionamento", review: "Revisão" };
+        const currentIdx = steps.indexOf(step) + 1;
+        return (
           <div
-            key={s}
-            className={`h-1 flex-1 rounded-full ${
-              s === step
-                ? "bg-primary"
-                : (["asrm", "phq9", "fast", "review"].indexOf(s) <
-                    ["asrm", "phq9", "fast", "review"].indexOf(step))
-                  ? "bg-primary/40"
-                  : "bg-border"
-            }`}
-          />
-        ))}
-      </div>
+            className="mb-6 flex gap-1"
+            role="progressbar"
+            aria-valuenow={currentIdx}
+            aria-valuemin={1}
+            aria-valuemax={4}
+            aria-label={`Etapa ${currentIdx} de 4: ${stepLabels[step]}`}
+          >
+            {steps.map((s) => (
+              <div
+                key={s}
+                className={`h-1 flex-1 rounded-full ${
+                  s === step
+                    ? "bg-primary"
+                    : steps.indexOf(s) < steps.indexOf(step)
+                      ? "bg-primary/40"
+                      : "bg-border"
+                }`}
+              />
+            ))}
+          </div>
+        );
+      })()}
 
       {/* ASRM Step */}
       {step === "asrm" && (

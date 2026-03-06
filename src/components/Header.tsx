@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 
 interface HeaderProps {
   isLoggedIn?: boolean;
@@ -18,6 +19,7 @@ const navLinks = [
 
 export function Header({ isLoggedIn }: HeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const pathname = usePathname();
 
   return (
     <header className="border-b border-border bg-white/80 backdrop-blur-sm">
@@ -30,11 +32,19 @@ export function Header({ isLoggedIn }: HeaderProps) {
           <>
             {/* Desktop nav */}
             <nav aria-label="Navegação principal" className="hidden items-center gap-3 text-sm lg:flex">
-              {navLinks.map((link) => (
-                <Link key={link.href} href={link.href} className="text-muted hover:text-foreground no-underline">
-                  {link.label}
-                </Link>
-              ))}
+              {navLinks.map((link) => {
+                const isCurrent = pathname === link.href;
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={isCurrent ? "font-medium text-foreground no-underline" : "text-muted hover:text-foreground no-underline"}
+                    aria-current={isCurrent ? "page" : undefined}
+                  >
+                    {link.label}
+                  </Link>
+                );
+              })}
               <Link
                 href="/sos"
                 className="ml-1 rounded-lg bg-red-600 px-3 py-1 text-sm font-semibold text-white no-underline hover:bg-red-700"
@@ -87,16 +97,20 @@ export function Header({ isLoggedIn }: HeaderProps) {
             {menuOpen && (
               <div id="mobile-menu" className="absolute top-14 left-0 right-0 z-50 border-b border-border bg-surface p-4 shadow-lg lg:hidden">
                 <nav aria-label="Navegação principal" className="flex flex-col gap-3 text-sm">
-                  {navLinks.map((link) => (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      className="text-muted hover:text-foreground no-underline"
-                      onClick={() => setMenuOpen(false)}
-                    >
-                      {link.label}
-                    </Link>
-                  ))}
+                  {navLinks.map((link) => {
+                    const isCurrent = pathname === link.href;
+                    return (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        className={isCurrent ? "font-medium text-foreground no-underline" : "text-muted hover:text-foreground no-underline"}
+                        aria-current={isCurrent ? "page" : undefined}
+                        onClick={() => setMenuOpen(false)}
+                      >
+                        {link.label}
+                      </Link>
+                    );
+                  })}
                   <form action="/api/auth/logout" method="POST">
                     <button
                       type="submit"

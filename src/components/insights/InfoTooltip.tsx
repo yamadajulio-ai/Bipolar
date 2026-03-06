@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useId } from "react";
 
 interface Props {
   title: string;
@@ -11,6 +11,7 @@ interface Props {
 export function InfoTooltip({ title, content, tip }: Props) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const tooltipId = useId();
 
   useEffect(() => {
     if (!open) return;
@@ -30,11 +31,13 @@ export function InfoTooltip({ title, content, tip }: Props) {
         onClick={() => setOpen(!open)}
         className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-black/10 text-[10px] font-bold text-muted hover:bg-black/20 dark:bg-white/10 dark:hover:bg-white/20"
         aria-label={`Informações sobre ${title}`}
+        aria-expanded={open}
+        aria-describedby={open ? tooltipId : undefined}
       >
         ?
       </button>
       {open && (
-        <div className="absolute left-1/2 top-full z-50 mt-1.5 w-64 -translate-x-1/2 rounded-lg border border-border bg-surface p-3 shadow-lg">
+        <div id={tooltipId} role="tooltip" className="absolute left-1/2 top-full z-50 mt-1.5 w-64 -translate-x-1/2 rounded-lg border border-border bg-surface p-3 shadow-lg">
           <p className="mb-1 text-xs font-semibold text-foreground">{title}</p>
           <p className="text-[11px] leading-relaxed text-muted">{content}</p>
           {tip && (

@@ -163,13 +163,13 @@ export function CalendarHeatmap({ data, metric }: Props) {
       </div>
 
       {/* Legend */}
-      <div className="mt-2 flex items-center gap-2 text-[9px] text-muted">
+      <div className="mt-2 flex items-center gap-2 text-[9px] text-muted" aria-label={metric === "mood" ? "Legenda: humor de 1 (baixo) a 5 (alto)" : "Legenda: sono de menos de 5h a mais de 10h"}>
         {metric === "mood" && (
           <>
             <span>Baixo</span>
-            <div className="flex gap-0.5">
+            <div className="flex gap-0.5" role="img" aria-label="Escala de cores: deprimido (azul) a eufórico (vermelho)">
               {[1, 2, 3, 4, 5].map((v) => (
-                <div key={v} className={`h-[10px] w-[10px] rounded-sm ${MOOD_COLORS[v]}`} />
+                <div key={v} className={`h-[10px] w-[10px] rounded-sm ${MOOD_COLORS[v]}`} aria-hidden="true" />
               ))}
             </div>
             <span>Alto</span>
@@ -178,12 +178,12 @@ export function CalendarHeatmap({ data, metric }: Props) {
         {metric === "sleep" && (
           <>
             <span>&lt;5h</span>
-            <div className="flex gap-0.5">
-              <div className="h-[10px] w-[10px] rounded-sm bg-red-600" />
-              <div className="h-[10px] w-[10px] rounded-sm bg-red-400" />
-              <div className="h-[10px] w-[10px] rounded-sm bg-amber-400" />
-              <div className="h-[10px] w-[10px] rounded-sm bg-green-500" />
-              <div className="h-[10px] w-[10px] rounded-sm bg-blue-500" />
+            <div className="flex gap-0.5" role="img" aria-label="Escala de cores: pouco sono (vermelho) a muito sono (azul)">
+              <div className="h-[10px] w-[10px] rounded-sm bg-red-600" aria-hidden="true" />
+              <div className="h-[10px] w-[10px] rounded-sm bg-red-400" aria-hidden="true" />
+              <div className="h-[10px] w-[10px] rounded-sm bg-amber-400" aria-hidden="true" />
+              <div className="h-[10px] w-[10px] rounded-sm bg-green-500" aria-hidden="true" />
+              <div className="h-[10px] w-[10px] rounded-sm bg-blue-500" aria-hidden="true" />
             </div>
             <span>&gt;10h</span>
           </>

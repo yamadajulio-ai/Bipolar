@@ -1,9 +1,11 @@
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { localToday } from "@/lib/dateUtils";
+import { localToday, localDateStr } from "@/lib/dateUtils";
 import { Card } from "@/components/Card";
 import { Greeting } from "@/components/Greeting";
 import { TodayBlocks } from "@/components/planner/TodayBlocks";
+import { ContextualSuggestions } from "@/components/dashboard/ContextualSuggestions";
+import { DashboardChartWrapper } from "@/components/dashboard/DashboardChartWrapper";
 import { getNews } from "@/lib/news";
 import Image from "next/image";
 import Link from "next/link";
@@ -57,6 +59,68 @@ export default async function HojePage() {
     where: { userId: session.userId },
   });
 
+  // Recent entries for alerts, chart, and streak
+  const last7Days = new Date();
+  last7Days.setDate(last7Days.getDate() - 7);
+  const cutoffStr = localDateStr(last7Days);
+
+  const [recentEntries, lastEntry] = await Promise.all([
+    prisma.diaryEntry.findMany({
+      where: { userId: session.userId, date: { gte: cutoffStr } },
+      orderBy: { date: "asc" },
+    }),
+    prisma.diaryEntry.findFirst({
+      where: { userId: session.userId },
+      orderBy: { date: "desc" },
+    }),
+  ]);
+
+  // Streak: count consecutive days with entries ending today
+  let streak = 0;
+  if (lastEntry) {
+    const allDates = await prisma.diaryEntry.findMany({
+      where: { userId: session.userId },
+      orderBy: { date: "desc" },
+      select: { date: true },
+      take: 90,
+    });
+    const dateSet = new Set(allDates.map((d) => d.date));
+    const d = new Date(today + "T12:00:00");
+    while (dateSet.has(localDateStr(d))) {
+      streak++;
+      d.setDate(d.getDate() - 1);
+    }
+  }
+
+  // Days since last entry
+  let daysSinceLastEntry: number | null = null;
+  if (lastEntry) {
+    const lastDate = new Date(lastEntry.date + "T12:00:00");
+    const now = new Date();
+    daysSinceLastEntry = Math.floor((now.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
+  }
+
+  // Generate alerts from recent entries
+  const recentAlerts: string[] = [];
+  if (recentEntries.length >= 3) {
+    const last3 = recentEntries.slice(-3);
+    if (last3[0].sleepHours > last3[1].sleepHours && last3[1].sleepHours > last3[2].sleepHours) {
+      recentAlerts.push("Seu sono está diminuindo progressivamente. Alterações no sono podem preceder episódios. Este alerta é automático e não substitui avaliação profissional.");
+    }
+    if (last3.every((e) => e.mood >= 4)) {
+      recentAlerts.push("Humor elevado persistente detectado. Converse com seu profissional de saúde. Este alerta é automático e não substitui avaliação profissional.");
+    }
+    if (last3.every((e) => e.mood <= 2)) {
+      recentAlerts.push("Humor baixo persistente. Considere conversar com seu profissional de saúde. Este alerta é automático e não substitui avaliação profissional.");
+    }
+  }
+
+  const chartData = recentEntries.map((e) => ({
+    date: e.date,
+    mood: e.mood,
+    sleepHours: e.sleepHours,
+  }));
+
   // Latest news (3 items for preview)
   const latestNews = await getNews();
   const newsPreview = latestNews.slice(0, 3);
@@ -96,10 +160,18 @@ export default async function HojePage() {
     <div className="space-y-6">
       <Greeting />
 
+      {/* Contextual alerts */}
+      <ContextualSuggestions
+        hasTodayEntry={!!todayEntry}
+        hasTodaySleep={!!todaySleep}
+        daysSinceLastEntry={daysSinceLastEntry}
+        recentAlerts={recentAlerts}
+      />
+
       {/* Quick status */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
         <Card>
-          <p className="text-xs text-muted">Check-in</p>
+          <p className="text-xs text-muted">Humor</p>
           <p className="text-lg font-bold">{todayEntry ? `${todayEntry.mood}/5` : "—"}</p>
           {!todayEntry && (
             <Link href="/checkin" className="text-xs text-primary hover:underline">Fazer agora</Link>
@@ -116,8 +188,12 @@ export default async function HojePage() {
         <Card>
           <p className="text-xs text-muted">Medicação</p>
           <p className="text-lg font-bold">
-            {todayEntry?.tookMedication === "sim" ? "Sim" : todayEntry?.tookMedication === "nao" ? "Nao" : "—"}
+            {todayEntry?.tookMedication === "sim" ? "Sim" : todayEntry?.tookMedication === "nao" ? "Não" : "—"}
           </p>
+        </Card>
+        <Card>
+          <p className="text-xs text-muted">Sequência</p>
+          <p className="text-lg font-bold">{streak > 0 ? `${streak}d` : "—"}</p>
         </Card>
       </div>
 
@@ -150,6 +226,19 @@ export default async function HojePage() {
           targetSleepTimeMin={rules?.targetSleepTimeMin ?? null}
         />
       </div>
+
+      {/* 7-day trend */}
+      {chartData.length >= 2 && (
+        <Card>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-foreground">Últimos 7 dias</h2>
+            <Link href="/insights" className="text-xs text-primary hover:underline">
+              Ver insights
+            </Link>
+          </div>
+          <DashboardChartWrapper data={chartData} />
+        </Card>
+      )}
 
       {/* Quick actions */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

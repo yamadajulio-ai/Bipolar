@@ -182,6 +182,14 @@ export default function CircadianoPage() {
         <p className="mb-6 text-center text-sm text-muted">Carregando dados...</p>
       )}
 
+      {!loading && !sleepData?.midpoint && (
+        <Card className="mb-6">
+          <p className="text-center text-sm text-muted">
+            Registre ao menos 3 noites de sono para ver seu perfil circadiano personalizado.
+          </p>
+        </Card>
+      )}
+
       {/* Dark therapy educational content */}
       <h2 className="mb-3 text-lg font-semibold">Terapia de Luz e Escuridão</h2>
       <p className="mb-4 text-xs text-muted">

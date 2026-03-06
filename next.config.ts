@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs";
 
 const csp = [
   "default-src 'self'",
@@ -7,7 +8,7 @@ const csp = [
   "frame-ancestors 'none'",
   "form-action 'self'",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com",
-  "connect-src 'self' https://*.googleapis.com https://accounts.google.com",
+  "connect-src 'self' https://*.googleapis.com https://accounts.google.com https://*.sentry.io https://*.ingest.sentry.io",
   "img-src 'self' data: blob: https:",
   "style-src 'self' 'unsafe-inline'",
   "font-src 'self' data:",
@@ -52,4 +53,7 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  silent: true,
+  disableLogger: true,
+});

@@ -42,12 +42,23 @@ export async function GET(request: NextRequest) {
     },
   });
 
-  const rhythms = await prisma.dailyRhythm.findMany({
-    where: {
-      userId: session.userId,
-      date: { gte: startDate, lt: endDate },
-    },
-  });
+  const [rhythms, weeklyAssessments, lifeChartEvents, functioningAssessments] = await Promise.all([
+    prisma.dailyRhythm.findMany({
+      where: { userId: session.userId, date: { gte: startDate, lt: endDate } },
+    }),
+    prisma.weeklyAssessment.findMany({
+      where: { userId: session.userId, date: { gte: startDate, lt: endDate } },
+      orderBy: { date: "asc" },
+    }),
+    prisma.lifeChartEvent.findMany({
+      where: { userId: session.userId, date: { gte: startDate, lt: endDate } },
+      orderBy: { date: "asc" },
+    }),
+    prisma.functioningAssessment.findMany({
+      where: { userId: session.userId, date: { gte: startDate, lt: endDate } },
+      orderBy: { date: "asc" },
+    }),
+  ]);
 
   // Aggregations
   const moods = entries.map((e) => e.mood);
@@ -74,6 +85,17 @@ export async function GET(request: NextRequest) {
     }
   });
 
+  // Weekly assessment summaries
+  const asrmScoresArr = weeklyAssessments.filter((w) => w.asrmTotal !== null).map((w) => w.asrmTotal!);
+  const phq9ScoresArr = weeklyAssessments.filter((w) => w.phq9Total !== null).map((w) => w.phq9Total!);
+  const fastScoresArr = functioningAssessments.filter((f) => f.avgScore !== null).map((f) => f.avgScore!);
+
+  // Life chart event type counts
+  const eventTypeCounts: Record<string, number> = {};
+  lifeChartEvents.forEach((e) => {
+    eventTypeCounts[e.eventType] = (eventTypeCounts[e.eventType] || 0) + 1;
+  });
+
   return NextResponse.json({
     month,
     stats: {
@@ -89,8 +111,26 @@ export async function GET(request: NextRequest) {
       moodDistribution,
       medicationAdherence: medicationTotal > 0 ? Math.round((medicationCount / medicationTotal) * 100) : null,
       warningSignsFreq,
+      // New P2 feature stats
+      totalWeeklyAssessments: weeklyAssessments.length,
+      avgAsrm: avg(asrmScoresArr),
+      avgPhq9: avg(phq9ScoresArr),
+      avgFunctioning: avg(fastScoresArr),
+      totalLifeChartEvents: lifeChartEvents.length,
+      eventTypeCounts,
     },
     entries,
     sleepLogs,
+    weeklyAssessments: weeklyAssessments.map((w) => ({
+      date: w.date,
+      asrmTotal: w.asrmTotal,
+      phq9Total: w.phq9Total,
+      fastAvg: w.fastAvg,
+    })),
+    lifeChartEvents: lifeChartEvents.map((e) => ({
+      date: e.date,
+      eventType: e.eventType,
+      label: e.label,
+    })),
   });
 }

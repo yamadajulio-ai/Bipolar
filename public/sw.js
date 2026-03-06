@@ -61,7 +61,7 @@ self.addEventListener("fetch", (event) => {
 
   // 2. Cacheable API GETs — stale-while-revalidate
   if (request.method === "GET" && isCacheableApi(url)) {
-    event.respondWith(staleWhileRevalidate(request, CACHE_API, url.pathname));
+    event.respondWith(staleWhileRevalidate(request, CACHE_API, url.pathname + url.search));
     return;
   }
 
@@ -166,6 +166,6 @@ function isStaticAsset(url) {
 
 function isCacheableApi(url) {
   return CACHEABLE_API_PATHS.some(
-    (path) => url.pathname === path || url.pathname.startsWith(path + "?") || url.pathname.startsWith(path + "/")
+    (path) => url.pathname === path || url.pathname.startsWith(path + "/")
   );
 }

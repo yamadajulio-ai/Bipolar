@@ -18,9 +18,17 @@ const navLinks = [
 ];
 
 async function clearSwCache() {
-  if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
-    navigator.serviceWorker.controller.postMessage({ type: "CLEAR_AUTH_CACHES" });
-    await new Promise((r) => setTimeout(r, 100));
+  if (!("serviceWorker" in navigator)) return;
+  try {
+    // Try controller first, fall back to registration.active
+    const sw = navigator.serviceWorker.controller
+      || (await navigator.serviceWorker.ready).active;
+    if (sw) {
+      sw.postMessage({ type: "CLEAR_AUTH_CACHES" });
+      await new Promise((r) => setTimeout(r, 100));
+    }
+  } catch {
+    // SW not available — cache will be cleared on next SW activation
   }
 }
 

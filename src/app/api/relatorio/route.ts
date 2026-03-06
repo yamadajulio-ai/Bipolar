@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
 
   const { searchParams } = new URL(request.url);
   const month = searchParams.get("month"); // YYYY-MM
-  if (!month || !/^\d{4}-\d{2}$/.test(month)) {
+  if (!month || !/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) {
     return NextResponse.json({ error: "Parâmetro month inválido (YYYY-MM)" }, { status: 400 });
   }
 
@@ -19,30 +19,18 @@ export async function GET(request: NextRequest) {
   const nextMonth = mon === 12 ? `${year + 1}-01` : `${year}-${String(mon + 1).padStart(2, "0")}`;
   const endDate = `${nextMonth}-01`;
 
-  const entries = await prisma.diaryEntry.findMany({
-    where: {
-      userId: session.userId,
-      date: { gte: startDate, lt: endDate },
-    },
-    orderBy: { date: "asc" },
-  });
-
-  const sleepLogs = await prisma.sleepLog.findMany({
-    where: {
-      userId: session.userId,
-      date: { gte: startDate, lt: endDate },
-    },
-    orderBy: { date: "asc" },
-  });
-
-  const exerciseSessions = await prisma.exerciseSession.findMany({
-    where: {
-      userId: session.userId,
-      completedAt: { gte: new Date(startDate), lt: new Date(endDate) },
-    },
-  });
-
-  const [rhythms, weeklyAssessments, lifeChartEvents, functioningAssessments] = await Promise.all([
+  const [entries, sleepLogs, exerciseSessions, rhythms, weeklyAssessments, lifeChartEvents, functioningAssessments] = await Promise.all([
+    prisma.diaryEntry.findMany({
+      where: { userId: session.userId, date: { gte: startDate, lt: endDate } },
+      orderBy: { date: "asc" },
+    }),
+    prisma.sleepLog.findMany({
+      where: { userId: session.userId, date: { gte: startDate, lt: endDate } },
+      orderBy: { date: "asc" },
+    }),
+    prisma.exerciseSession.findMany({
+      where: { userId: session.userId, completedAt: { gte: new Date(startDate), lt: new Date(endDate) } },
+    }),
     prisma.dailyRhythm.findMany({
       where: { userId: session.userId, date: { gte: startDate, lt: endDate } },
     }),
@@ -96,7 +84,7 @@ export async function GET(request: NextRequest) {
     eventTypeCounts[e.eventType] = (eventTypeCounts[e.eventType] || 0) + 1;
   });
 
-  return NextResponse.json({
+  const response = NextResponse.json({
     month,
     stats: {
       totalDiaryEntries: entries.length,
@@ -133,4 +121,6 @@ export async function GET(request: NextRequest) {
       label: e.label,
     })),
   });
+  response.headers.set("Cache-Control", "no-store");
+  return response;
 }

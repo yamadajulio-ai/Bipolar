@@ -11,8 +11,9 @@ import Image from "next/image";
 import Link from "next/link";
 
 function formatSleepDuration(hours: number): string {
-  const h = Math.floor(hours);
-  const m = Math.round((hours - h) * 60);
+  const totalMin = Math.round(hours * 60);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
   if (m === 0) return `${h}h`;
   return `${h}h${String(m).padStart(2, "0")}`;
 }
@@ -87,12 +88,14 @@ export default async function HojePage() {
     }
   }
 
-  // Days since last entry
+  // Days since last entry (date-based to avoid time-of-day off-by-one)
   let daysSinceLastEntry: number | null = null;
   if (lastEntry) {
-    const lastDate = new Date(lastEntry.date + "T12:00:00");
-    const now = new Date();
-    daysSinceLastEntry = Math.floor((now.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
+    const todayParts = today.split("-").map(Number);
+    const lastParts = lastEntry.date.split("-").map(Number);
+    const todayDate = Date.UTC(todayParts[0], todayParts[1] - 1, todayParts[2]);
+    const lastDate = Date.UTC(lastParts[0], lastParts[1] - 1, lastParts[2]);
+    daysSinceLastEntry = Math.round((todayDate - lastDate) / (1000 * 60 * 60 * 24));
   }
 
   // Generate alerts from recent entries
@@ -103,10 +106,10 @@ export default async function HojePage() {
       recentAlerts.push("Seu sono está diminuindo progressivamente. Alterações no sono podem preceder episódios. Este alerta é automático e não substitui avaliação profissional.");
     }
     if (last3.every((e) => e.mood >= 4)) {
-      recentAlerts.push("Humor elevado persistente detectado. Converse com seu profissional de saúde. Este alerta é automático e não substitui avaliação profissional.");
+      recentAlerts.push("Sinais de humor elevado persistente nos últimos dias. Converse com seu profissional de saúde. Este alerta é automático e não substitui avaliação profissional.");
     }
     if (last3.every((e) => e.mood <= 2)) {
-      recentAlerts.push("Humor baixo persistente. Considere conversar com seu profissional de saúde. Este alerta é automático e não substitui avaliação profissional.");
+      recentAlerts.push("Sinais de humor baixo persistente nos últimos dias. Considere conversar com seu profissional de saúde. Este alerta é automático e não substitui avaliação profissional.");
     }
   }
 

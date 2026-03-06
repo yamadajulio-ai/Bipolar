@@ -471,24 +471,46 @@ function processNight(segments: SleepSegment[]): ProcessedSleepNight | null {
     segments = segments.filter((s) => s.source === bestSource);
   }
 
-  // Filter to actual sleep stages (exclude "inbed", "awake", "unknown")
-  let sleepSegments = segments.filter((s) => ACTUAL_SLEEP_STAGES.has(s.stage));
-  if (sleepSegments.length === 0) return null;
+  // All actual sleep stages (exclude "inbed", "awake", "unknown")
+  const allSleepSegments = segments.filter((s) => ACTUAL_SLEEP_STAGES.has(s.stage));
+  if (allSleepSegments.length === 0) return null;
 
-  // If we have detailed stage breakdown (core/deep/rem), exclude generic "asleep"
-  // segments — Apple Health may send both summary and individual stages.
-  const hasStageBreakdown = sleepSegments.some(
+  // If we have detailed stage breakdown (core/deep/rem), use those for duration
+  // calculation to avoid double-counting. But ALWAYS use all sleep segments
+  // (including generic "asleep") for bedtime/wakeTime boundaries.
+  const hasStageBreakdown = allSleepSegments.some(
     (s) => s.stage === "core" || s.stage === "deep" || s.stage === "rem",
   );
-  if (hasStageBreakdown) {
-    sleepSegments = sleepSegments.filter((s) => s.stage !== "asleep");
+  let sleepSegments = hasStageBreakdown
+    ? allSleepSegments.filter((s) => s.stage !== "asleep")
+    : allSleepSegments;
+
+  // Bedtime/wakeTime: use ALL sleep segments (including generic "asleep") for
+  // accurate boundaries. Apple Health sends "asleep" spanning the full night
+  // plus detailed stages as subsets — we need the full span for bedtime/wake.
+  const bedtime = new Date(Math.min(...allSleepSegments.map((s) => s.start.getTime())));
+  const wakeTime = new Date(Math.max(...allSleepSegments.map((s) => s.end.getTime())));
+
+  // Total sleep hours: when we have both generic "asleep" and detailed stages,
+  // use the full sleep span minus awake segments for more accurate total.
+  // This avoids the bug where summing only detailed stages gives a fraction
+  // of actual sleep time (e.g. 4h instead of 8h).
+  let totalMs: number;
+  if (hasStageBreakdown && allSleepSegments.some((s) => s.stage === "asleep")) {
+    // We have both generic and detailed: use span minus awake time
+    const spanMs = wakeTime.getTime() - bedtime.getTime();
+    const awakeMs = segments
+      .filter((s) => s.stage === "awake")
+      .reduce((sum, s) => {
+        const segStart = Math.max(s.start.getTime(), bedtime.getTime());
+        const segEnd = Math.min(s.end.getTime(), wakeTime.getTime());
+        return sum + Math.max(0, segEnd - segStart);
+      }, 0);
+    totalMs = spanMs - awakeMs;
+  } else {
+    // Only one type of data: sum the sleep segments directly
+    totalMs = sleepSegments.reduce((sum, s) => sum + (s.end.getTime() - s.start.getTime()), 0);
   }
-
-  const bedtime = new Date(Math.min(...sleepSegments.map((s) => s.start.getTime())));
-  const wakeTime = new Date(Math.max(...sleepSegments.map((s) => s.end.getTime())));
-
-  // Total sleep hours (sum of actual sleep stage durations)
-  const totalMs = sleepSegments.reduce((sum, s) => sum + (s.end.getTime() - s.start.getTime()), 0);
   const totalHours = Math.round((totalMs / (1000 * 60 * 60)) * 100) / 100;
 
   // Deep + REM time (from selected source only)

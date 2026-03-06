@@ -47,3 +47,27 @@ body {
 :where(a):hover {
   color: var(--primary-dark);
 }
+
+/* Print styles for professional PDF export */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 11px !important;
+  }
+
+  .print\:hidden {
+    display: none !important;
+  }
+
+  * {
+    color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  @page {
+    margin: 1.5cm;
+    size: A4;
+  }
+}

@@ -186,10 +186,27 @@ export async function POST(
             select: { action: true, createdAt: true },
           })
         : Promise.resolve([]),
+      // Weekly assessments (last 12 weeks)
+      prisma.weeklyAssessment.findMany({
+        where: { userId: validAccess.userId },
+        orderBy: { date: "desc" },
+        take: 12,
+      }),
+      // Life chart events (last 90 days)
+      prisma.lifeChartEvent.findMany({
+        where: { userId: validAccess.userId, date: { gte: cutoff90Str } },
+        orderBy: { date: "desc" },
+      }),
+      // Functioning assessments (last 12 weeks)
+      prisma.functioningAssessment.findMany({
+        where: { userId: validAccess.userId },
+        orderBy: { date: "desc" },
+        take: 12,
+      }),
     ];
 
-    const [user, sleepLogs, entries, rhythms, rawPlannerBlocks, crisisPlan, sosEvents] =
-      await Promise.all(queries) as [any, any[], any[], any[], any[], any, any[]];
+    const [user, sleepLogs, entries, rhythms, rawPlannerBlocks, crisisPlan, sosEvents, weeklyAssessments, lifeChartEvents, functioningAssessments] =
+      await Promise.all(queries) as [any, any[], any[], any[], any[], any, any[], any[], any[], any[]];
 
     // Compute insights
     const sleepForInsights = sleepLogs.filter(
@@ -262,6 +279,30 @@ export async function POST(
       sosEvents: sosEvents.map((e) => ({
         action: e.action,
         date: e.createdAt.toISOString(),
+      })),
+      weeklyAssessments: weeklyAssessments.map((a) => ({
+        date: a.date,
+        asrmTotal: a.asrmTotal,
+        phq9Total: a.phq9Total,
+        phq9Item9: a.phq9Item9,
+        fastAvg: a.fastAvg,
+        notes: a.notes,
+      })),
+      lifeChartEvents: lifeChartEvents.map((e) => ({
+        date: e.date,
+        eventType: e.eventType,
+        label: e.label,
+        notes: e.notes,
+      })),
+      functioningAssessments: functioningAssessments.map((a) => ({
+        date: a.date,
+        work: a.work,
+        social: a.social,
+        selfcare: a.selfcare,
+        finances: a.finances,
+        cognition: a.cognition,
+        leisure: a.leisure,
+        avgScore: a.avgScore,
       })),
     };
 

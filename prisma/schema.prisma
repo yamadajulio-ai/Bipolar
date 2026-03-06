@@ -33,6 +33,9 @@ model User {
   socioeconomicProfile  SocioeconomicProfile?
   professionalAccesses  ProfessionalAccess[]
   consents              Consent[]
+  weeklyAssessments     WeeklyAssessment[]
+  lifeChartEvents       LifeChartEvent[]
+  functioningAssessments FunctioningAssessment[]
 }
 
 model DiaryEntry {
@@ -388,4 +391,63 @@ model Consent {
   user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, scope])
+}
+
+// ── Avaliação Semanal (ASRM + PHQ-9 + FAST) ─────────────────────
+
+model WeeklyAssessment {
+  id              String   @id @default(uuid())
+  userId          String
+  date            String   // YYYY-MM-DD (week ending date)
+  asrmScores      String?  // JSON: [0-4, 0-4, 0-4, 0-4, 0-4]
+  asrmTotal       Int?     // 0-20 (>=6 suggests hypomania)
+  phq9Scores      String?  // JSON: [0-3, 0-3, ..., 0-3] (9 items)
+  phq9Total       Int?     // 0-27
+  phq9Item9       Int?     // Item 9 (ideation) separated for safety flow
+  fastScores      String?  // JSON: { work: 1-5, social: 1-5, ... }
+  fastAvg         Float?   // Average functioning score
+  notes           String?  // max 280 chars
+  createdAt       DateTime @default(now())
+
+  user            User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId])
+}
+
+// ── Life Chart Events (marcadores de eventos significativos) ──────
+
+model LifeChartEvent {
+  id        String   @id @default(uuid())
+  userId    String
+  date      String   // YYYY-MM-DD
+  eventType String   // "med_change" | "stressor" | "travel" | "hospitalization" | "therapy" | "menstrual" | "other"
+  label     String   // Brief description
+  notes     String?
+  createdAt DateTime @default(now())
+
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+}
+
+// ── Avaliação de Funcionamento (FAST short) ──────────────────────
+
+model FunctioningAssessment {
+  id          String   @id @default(uuid())
+  userId      String
+  date        String   // YYYY-MM-DD
+  work        Int?     // 1-5 (1=muito difícil, 5=sem dificuldade)
+  social      Int?     // 1-5
+  selfcare    Int?     // 1-5
+  finances    Int?     // 1-5
+  cognition   Int?     // 1-5
+  leisure     Int?     // 1-5
+  avgScore    Float?
+  createdAt   DateTime @default(now())
+
+  user        User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId])
 }

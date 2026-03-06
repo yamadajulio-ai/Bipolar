@@ -72,10 +72,29 @@ interface PatientReport {
   };
   medications: string | null;
   sosEvents: { action: string; date: string }[];
+  weeklyAssessments?: {
+    date: string;
+    asrmTotal: number | null;
+    phq9Total: number | null;
+    phq9Item9: number | null;
+    fastAvg: number | null;
+    notes: string | null;
+  }[];
+  lifeChartEvents?: {
+    date: string;
+    eventType: string;
+    label: string;
+    notes: string | null;
+  }[];
+  functioningAssessments?: {
+    date: string;
+    avgScore: number | null;
+  }[];
 }
 
 function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("pt-BR", {
+  const d = new Date(dateStr.includes("T") ? dateStr : `${dateStr}T12:00:00`);
+  return d.toLocaleDateString("pt-BR", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -116,8 +135,12 @@ export default function ProfessionalDashboard() {
         const data = await res.json();
         setReport(data);
       } else {
-        const err = await res.json();
-        setError(err.error || "Erro ao acessar.");
+        let msg = "Erro ao acessar.";
+        try {
+          const err = await res.json();
+          msg = err?.error || msg;
+        } catch { /* keep default */ }
+        setError(msg);
       }
     } catch {
       setError("Erro de conexão.");
@@ -139,8 +162,9 @@ export default function ProfessionalDashboard() {
           </p>
 
           <input
-            type="text"
+            type="password"
             inputMode="numeric"
+            autoComplete="one-time-code"
             maxLength={6}
             value={pin}
             onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
@@ -189,9 +213,17 @@ export default function ProfessionalDashboard() {
                 Período: {report.period.from} a {report.period.to}
               </p>
             </div>
-            <div className="text-right text-xs text-muted">
-              <p>Gerado em {formatDate(report.generatedAt)}</p>
-              <p>Rede Bipolar</p>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => window.print()}
+                className="rounded-lg border border-border px-3 py-2 text-xs font-medium text-muted hover:bg-gray-100 dark:hover:bg-gray-800 print:hidden"
+              >
+                Exportar PDF / Imprimir
+              </button>
+              <div className="text-right text-xs text-muted">
+                <p>Gerado em {formatDate(report.generatedAt)}</p>
+                <p>Rede Bipolar</p>
+              </div>
             </div>
           </div>
         </div>
@@ -377,6 +409,88 @@ export default function ProfessionalDashboard() {
           </Card>
         )}
 
+        {/* Weekly Assessments (STEP-BD style) */}
+        {report.weeklyAssessments && report.weeklyAssessments.length > 0 && (
+          <Card className="mt-4">
+            <h2 className="mb-2 text-sm font-semibold">
+              Avaliações Semanais — ASRM / PHQ-9 / FAST
+            </h2>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="bg-gray-100 dark:bg-gray-800">
+                    <th className="px-2 py-1.5 text-left">Semana</th>
+                    <th className="px-2 py-1.5 text-center">ASRM</th>
+                    <th className="px-2 py-1.5 text-center">PHQ-9</th>
+                    <th className="px-2 py-1.5 text-center">Item 9</th>
+                    <th className="px-2 py-1.5 text-center">FAST</th>
+                    <th className="px-2 py-1.5 text-left">Notas</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {report.weeklyAssessments.map((a) => (
+                    <tr key={a.date} className="border-t border-border">
+                      <td className="px-2 py-1">{a.date}</td>
+                      <td className={`px-2 py-1 text-center font-medium ${
+                        a.asrmTotal !== null && a.asrmTotal >= 6
+                          ? "text-amber-700 dark:text-amber-400"
+                          : ""
+                      }`}>
+                        {a.asrmTotal ?? "—"}
+                      </td>
+                      <td className={`px-2 py-1 text-center font-medium ${
+                        a.phq9Total !== null && a.phq9Total >= 15
+                          ? "text-red-700 dark:text-red-400"
+                          : a.phq9Total !== null && a.phq9Total >= 10
+                            ? "text-amber-700 dark:text-amber-400"
+                            : ""
+                      }`}>
+                        {a.phq9Total ?? "—"}
+                      </td>
+                      <td className={`px-2 py-1 text-center ${
+                        a.phq9Item9 !== null && a.phq9Item9 >= 1
+                          ? "font-bold text-red-700 dark:text-red-400"
+                          : ""
+                      }`}>
+                        {a.phq9Item9 ?? "—"}
+                      </td>
+                      <td className="px-2 py-1 text-center">
+                        {a.fastAvg ?? "—"}
+                      </td>
+                      <td className="px-2 py-1 text-muted">
+                        {a.notes || "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="mt-2 text-[10px] text-muted">
+              ASRM ≥6 = possível hipomania. PHQ-9: 5-9 leve, 10-14 moderado, 15-19 mod-severo, 20+ severo. Item 9 = ideação.
+            </p>
+          </Card>
+        )}
+
+        {/* Life Chart Events */}
+        {report.lifeChartEvents && report.lifeChartEvents.length > 0 && (
+          <Card className="mt-4">
+            <h2 className="mb-2 text-sm font-semibold">
+              Life Chart — Eventos ({report.lifeChartEvents.length})
+            </h2>
+            <div className="space-y-1">
+              {report.lifeChartEvents.map((e, i) => (
+                <div key={i} className="flex items-start gap-2 text-xs">
+                  <span className="flex-shrink-0 font-medium">{e.date}</span>
+                  <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] dark:bg-gray-800">
+                    {e.eventType}
+                  </span>
+                  <span className="text-muted">{e.label}</span>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
+
         {/* Raw Data Tables */}
         <div className="mt-6">
           <h2 className="mb-3 text-sm font-semibold">
@@ -406,9 +520,13 @@ export default function ProfessionalDashboard() {
                       <td className="px-2 py-1 text-center">{e.irritability ?? "—"}</td>
                       <td className="px-2 py-1 text-center">{e.medication ?? "—"}</td>
                       <td className="px-2 py-1 text-muted">
-                        {e.warningSigns
-                          ? JSON.parse(e.warningSigns).join(", ")
-                          : "—"}
+                        {(() => {
+                          if (!e.warningSigns) return "—";
+                          try {
+                            const parsed = JSON.parse(e.warningSigns);
+                            return Array.isArray(parsed) ? parsed.join(", ") : "—";
+                          } catch { return "—"; }
+                        })()}
                       </td>
                     </tr>
                   ))}
@@ -481,7 +599,7 @@ export default function ProfessionalDashboard() {
         <p className="mt-6 text-center text-[10px] text-muted">
           Dados gerados automaticamente pela Rede Bipolar.
           Indicadores heurísticos educacionais — uso clínico requer interpretação profissional.
-          Paciente autorizou compartilhamento nos termos da LGPD (Art. 7, I).
+          Paciente autorizou compartilhamento conforme a LGPD e termos de consentimento aplicáveis.
         </p>
       </div>
     </div>

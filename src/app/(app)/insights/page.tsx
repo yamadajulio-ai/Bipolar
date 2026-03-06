@@ -4,9 +4,15 @@ import { Card } from "@/components/Card";
 import { Alert } from "@/components/Alert";
 import { InsightsCharts } from "@/components/planner/InsightsCharts";
 import { NightHistorySelector } from "@/components/insights/NightHistorySelector";
-import { computeInsights, formatSleepDuration, regularityScoreFromVariance } from "@/lib/insights/computeInsights";
+import { computeInsights, formatSleepDuration } from "@/lib/insights/computeInsights";
 import { MoodThermometer } from "@/components/insights/MoodThermometer";
-import type { ClinicalAlert, PlannerBlockInput, CombinedPattern, RiskScore } from "@/lib/insights/computeInsights";
+import type { ClinicalAlert, PlannerBlockInput, CombinedPattern, RiskScore, DataConfidence, CorrelationResult, EpisodePrediction as EpisodePredictionType, CyclingAnalysis as CyclingAnalysisType, SeasonalityAnalysis as SeasonalityAnalysisType, HeatmapDay } from "@/lib/insights/computeInsights";
+import { MetricLabel } from "@/components/insights/MetricLabel";
+import { SafetyNudge } from "@/components/insights/SafetyNudge";
+import { EpisodePrediction } from "@/components/insights/EpisodePrediction";
+import { CyclingAnalysis } from "@/components/insights/CyclingAnalysis";
+import { CalendarHeatmap } from "@/components/insights/CalendarHeatmap";
+import { Sparkline } from "@/components/insights/Sparkline";
 import Link from "next/link";
 import { Suspense } from "react";
 
@@ -35,6 +41,40 @@ const SOURCE_LABELS: Record<string, string> = {
   planner: "via planejador",
   sleep: "via sono",
 };
+
+function ConfidenceBadge({ confidence }: { confidence: DataConfidence }) {
+  const config: Record<DataConfidence, { label: string; color: string }> = {
+    baixa: { label: "Poucos dados", color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" },
+    media: { label: "Dados moderados", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" },
+    alta: { label: "Dados suficientes", color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" },
+  };
+  const c = config[confidence];
+  return (
+    <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-medium ${c.color}`}>
+      {c.label}
+    </span>
+  );
+}
+
+function CorrelationBadge({ result }: { result: CorrelationResult }) {
+  const strengthLabels: Record<string, string> = {
+    muito_fraca: "Muito fraca",
+    fraca: "Fraca",
+    moderada: "Moderada",
+    forte: "Forte",
+  };
+  const strengthColors: Record<string, string> = {
+    muito_fraca: "text-muted",
+    fraca: "text-blue-400",
+    moderada: "text-amber-400",
+    forte: "text-red-400",
+  };
+  return (
+    <span className={`text-xs font-medium ${strengthColors[result.strength] || "text-muted"}`}>
+      {result.direction === "positiva" ? "+" : "−"}{Math.abs(result.rho).toFixed(2)} ({strengthLabels[result.strength]})
+    </span>
+  );
+}
 
 function AlertList({ alerts }: { alerts: ClinicalAlert[] }) {
   if (alerts.length === 0) return null;
@@ -94,7 +134,9 @@ export default async function InsightsPage({
   const session = await getSession();
   const now = new Date();
   const params = await searchParams;
-  const nightsToShow = Math.min(90, Math.max(7, Number(params.noites) || 15));
+  const rawNoites = params.noites;
+  const noitesStr = Array.isArray(rawNoites) ? rawNoites[0] : rawNoites;
+  const nightsToShow = Math.min(90, Math.max(7, Number(noitesStr) || 15));
 
   // Fetch 90 days of sleep for history, 30 days for insights computation
   const cutoff90 = new Date(now);
@@ -105,13 +147,13 @@ export default async function InsightsPage({
   cutoff30.setDate(cutoff30.getDate() - 30);
   const cutoff30Str = cutoff30.toLocaleDateString("sv-SE", { timeZone: TZ });
 
-  const [allSleepLogs, entries, rhythms, rawPlannerBlocks] = await Promise.all([
+  const [allSleepLogs, allEntries, rhythms, rawPlannerBlocks] = await Promise.all([
     prisma.sleepLog.findMany({
       where: { userId: session.userId, date: { gte: cutoff90Str } },
       orderBy: { date: "asc" },
     }),
     prisma.diaryEntry.findMany({
-      where: { userId: session.userId, date: { gte: cutoff30Str } },
+      where: { userId: session.userId, date: { gte: cutoff90Str } },
       orderBy: { date: "asc" },
     }),
     prisma.dailyRhythm.findMany({
@@ -129,6 +171,9 @@ export default async function InsightsPage({
     }),
   ]);
 
+  // Entries for core metrics (30d) vs full 90d for heatmap/cycling/seasonality
+  const entries = allEntries.filter((e) => e.date >= cutoff30Str);
+
   // For insights computation: last 30 days, only real sleep (>= 1h). Under 1h = nap.
   const sleepLogsForInsights = allSleepLogs.filter(
     (l) => l.date >= cutoff30Str && l.totalHours >= 1,
@@ -144,7 +189,7 @@ export default async function InsightsPage({
     };
   });
 
-  const insights = computeInsights(sleepLogsForInsights, entries, rhythms, plannerBlocks, now, TZ);
+  const insights = computeInsights(sleepLogsForInsights, entries, rhythms, plannerBlocks, now, TZ, allEntries, allSleepLogs);
 
   // Filter anchors that have data for the IPSRT section
   const anchorsWithData = Object.entries(insights.rhythm.anchors)
@@ -211,12 +256,23 @@ export default async function InsightsPage({
               ? colorToCardBorder(insights.sleep.avgDurationColor)
               : "border-l-border"
           }`}>
-            <p className="text-[11px] text-muted leading-tight">Média de sono</p>
-            <p className="text-xl font-bold mt-0.5 tabular-nums">
-              {insights.sleep.avgDuration !== null
-                ? formatSleepDuration(insights.sleep.avgDuration)
-                : "—"}
-            </p>
+            <MetricLabel metricKey="avgDuration" className="text-[11px] text-muted leading-tight">Média de sono</MetricLabel>
+            <div className="flex items-center gap-2 mt-0.5">
+              <p className="text-xl font-bold tabular-nums">
+                {insights.sleep.avgDuration !== null
+                  ? formatSleepDuration(insights.sleep.avgDuration)
+                  : "—"}
+              </p>
+              {insights.heatmap.length >= 7 && (
+                <Sparkline
+                  data={insights.heatmap.slice(-14).map((d) => d.sleepHours)}
+                  color={insights.sleep.avgDurationColor === "green" ? "#22c55e" : insights.sleep.avgDurationColor === "yellow" ? "#f59e0b" : "#ef4444"}
+                  baseline={8}
+                  min={4}
+                  max={12}
+                />
+              )}
+            </div>
             {insights.sleep.avgDurationColor && insights.sleep.recordCount >= 7 && (
               <p className="mt-1 text-[10px] text-muted">{colorToText(insights.sleep.avgDurationColor)}</p>
             )}
@@ -232,7 +288,7 @@ export default async function InsightsPage({
               ? colorToCardBorder(insights.sleep.bedtimeVarianceColor)
               : "border-l-border"
           }`}>
-            <p className="text-[11px] text-muted leading-tight">Regularidade</p>
+            <MetricLabel metricKey="regularidade" className="text-[11px] text-muted leading-tight">Regularidade</MetricLabel>
             <p className="text-xl font-bold mt-0.5 tabular-nums">
               {insights.sleep.bedtimeVariance !== null
                 ? `±${insights.sleep.bedtimeVariance}min`
@@ -253,7 +309,7 @@ export default async function InsightsPage({
               ? colorToCardBorder(insights.sleep.durationVariabilityColor)
               : "border-l-border"
           }`}>
-            <p className="text-[11px] text-muted leading-tight">Variabilidade</p>
+            <MetricLabel metricKey="variabilidade" className="text-[11px] text-muted leading-tight">Variabilidade</MetricLabel>
             <p className="text-xl font-bold mt-0.5 tabular-nums">
               {insights.sleep.durationVariability !== null
                 ? `±${insights.sleep.durationVariability}min`
@@ -270,7 +326,7 @@ export default async function InsightsPage({
 
           {/* Tendência */}
           <Card className="border-l-4 border-l-border">
-            <p className="text-[11px] text-muted leading-tight">Tendência</p>
+            <MetricLabel metricKey="tendencia" className="text-[11px] text-muted leading-tight">Tendência</MetricLabel>
             <div className="flex items-baseline gap-1 mt-0.5">
               <p className="text-xl font-bold">
                 {insights.sleep.sleepTrend === "up" ? "↑"
@@ -290,7 +346,7 @@ export default async function InsightsPage({
 
           {/* Ponto médio do sono */}
           <Card className="border-l-4 border-l-border">
-            <p className="text-[11px] text-muted leading-tight">Ponto médio</p>
+            <MetricLabel metricKey="pontoMedio" className="text-[11px] text-muted leading-tight">Ponto médio</MetricLabel>
             <p className="text-xl font-bold mt-0.5 tabular-nums">
               {insights.sleep.midpoint ?? "—"}
             </p>
@@ -309,12 +365,37 @@ export default async function InsightsPage({
 
           {/* Qualidade */}
           <Card className="border-l-4 border-l-border">
-            <p className="text-[11px] text-muted leading-tight">Qualidade</p>
+            <MetricLabel metricKey="qualidade" className="text-[11px] text-muted leading-tight">Qualidade</MetricLabel>
             <p className="text-xl font-bold mt-0.5 tabular-nums">
               {insights.sleep.avgQuality !== null ? `${insights.sleep.avgQuality}%` : "—"}
             </p>
             <p className="mt-1 text-[10px] text-muted">wearable (0-100)</p>
           </Card>
+
+          {/* Social Jet Lag */}
+          {insights.sleep.socialJetLag !== null && (
+            <Card className={`border-l-4 ${
+              insights.sleep.socialJetLag > 60 ? "border-l-red-500"
+                : insights.sleep.socialJetLag > 30 ? "border-l-amber-500"
+                : "border-l-green-500"
+            }`}>
+              <MetricLabel metricKey="socialJetLag" className="text-[11px] text-muted leading-tight">Social Jet Lag</MetricLabel>
+              <p className="text-xl font-bold mt-0.5 tabular-nums">
+                {insights.sleep.socialJetLag}min
+              </p>
+              <p className="mt-1 text-[10px] text-muted">
+                {insights.sleep.socialJetLagLabel} · semana vs fim de semana
+              </p>
+            </Card>
+          )}
+        </div>
+
+        {/* Data confidence */}
+        <div className="mb-2 flex items-center gap-2">
+          <ConfidenceBadge confidence={insights.sleep.dataConfidence} />
+          <span className="text-[10px] text-muted">
+            {insights.sleep.recordCount} noites registradas
+          </span>
         </div>
 
         <AlertList alerts={insights.sleep.alerts} />
@@ -431,13 +512,24 @@ export default async function InsightsPage({
             <div className="mb-4 grid grid-cols-2 gap-2 sm:gap-3">
               {/* Tendência */}
               <Card className="border-l-4 border-l-border">
-                <p className="text-[11px] text-muted leading-tight">Tendência (7 dias)</p>
-                <p className="text-xl font-bold mt-0.5">
-                  {insights.mood.moodTrend === "up" ? "↑ Subindo"
-                    : insights.mood.moodTrend === "down" ? "↓ Caindo"
-                    : insights.mood.moodTrend === "stable" ? "→ Estável"
-                    : "—"}
-                </p>
+                <MetricLabel metricKey="moodTrend" className="text-[11px] text-muted leading-tight">Tendência (7 dias)</MetricLabel>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <p className="text-xl font-bold">
+                    {insights.mood.moodTrend === "up" ? "↑ Subindo"
+                      : insights.mood.moodTrend === "down" ? "↓ Caindo"
+                      : insights.mood.moodTrend === "stable" ? "→ Estável"
+                      : "—"}
+                  </p>
+                  {insights.heatmap.length >= 7 && (
+                    <Sparkline
+                      data={insights.heatmap.slice(-14).map((d) => d.mood)}
+                      color="#8b5e3c"
+                      baseline={3}
+                      min={1}
+                      max={5}
+                    />
+                  )}
+                </div>
               </Card>
 
               {/* Variabilidade (amplitude) */}
@@ -448,7 +540,7 @@ export default async function InsightsPage({
                     ? "border-l-amber-500"
                     : "border-l-border"
               }`}>
-                <p className="text-[11px] text-muted leading-tight">Oscilação (7 dias)</p>
+                <MetricLabel metricKey="oscilacao" className="text-[11px] text-muted leading-tight">Oscilação (7 dias)</MetricLabel>
                 <p className="text-xl font-bold mt-0.5">
                   {insights.mood.moodAmplitudeLabel ?? "—"}
                 </p>
@@ -467,7 +559,7 @@ export default async function InsightsPage({
                     ? "border-l-green-500"
                     : "border-l-border"
               }`}>
-                <p className="text-[11px] text-muted leading-tight">Medicação</p>
+                <MetricLabel metricKey="medicacao" className="text-[11px] text-muted leading-tight">Medicação</MetricLabel>
                 <p className="text-xl font-bold mt-0.5 tabular-nums">
                   {insights.mood.medicationAdherence !== null
                     ? `${insights.mood.medicationAdherence}%`
@@ -486,7 +578,7 @@ export default async function InsightsPage({
                   ? "border-l-amber-500"
                   : "border-l-border"
               }`}>
-                <p className="text-[11px] text-muted leading-tight">Sinais de alerta</p>
+                <MetricLabel metricKey="sinaisAlerta" className="text-[11px] text-muted leading-tight">Sinais de alerta</MetricLabel>
                 {insights.mood.topWarningSigns.length > 0 ? (
                   <ul className="mt-1 space-y-0.5">
                     {insights.mood.topWarningSigns.map((sign) => (
@@ -535,7 +627,7 @@ export default async function InsightsPage({
             {insights.rhythm.overallRegularity !== null && (
               <div className="mb-4">
                 <div className="mb-1 flex items-center justify-between">
-                  <span className="text-sm font-medium">Regularidade geral</span>
+                  <MetricLabel metricKey="regularidadeGeral" className="text-sm font-medium">Regularidade geral</MetricLabel>
                   <span className="text-sm font-bold">{insights.rhythm.overallRegularity}%</span>
                 </div>
                 <div className="h-2 w-full rounded-full bg-gray-200">
@@ -556,25 +648,32 @@ export default async function InsightsPage({
               {anchorsWithData.map(([key, anchor]) => {
                 const score = anchor.regularityScore ?? 0;
                 return (
-                  <div key={key} className="flex items-center gap-3">
-                    <div className="w-40 flex-shrink-0">
-                      <span className="text-sm">{anchor.label}</span>
-                      {anchor.source && (
-                        <span className="ml-1 text-[10px] text-muted">
-                          ({SOURCE_LABELS[anchor.source]})
-                        </span>
-                      )}
+                  <div key={key}>
+                    <div className="flex items-center gap-3">
+                      <div className="w-40 flex-shrink-0">
+                        <span className="text-sm">{anchor.label}</span>
+                        {anchor.source && (
+                          <span className="ml-1 text-[10px] text-muted">
+                            ({SOURCE_LABELS[anchor.source]})
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex-1 h-2 rounded-full bg-gray-200">
+                        <div
+                          className={`h-2 rounded-full ${colorToBg(anchor.color!)}`}
+                          style={{ width: `${Math.max(5, score)}%` }}
+                        />
+                      </div>
+                      <div className="w-20 text-right flex-shrink-0">
+                        <span className="text-xs font-medium">{score}%</span>
+                        <span className="text-[10px] text-muted ml-1">±{anchor.variance}min</span>
+                      </div>
                     </div>
-                    <div className="flex-1 h-2 rounded-full bg-gray-200">
-                      <div
-                        className={`h-2 rounded-full ${colorToBg(anchor.color!)}`}
-                        style={{ width: `${Math.max(5, score)}%` }}
-                      />
-                    </div>
-                    <div className="w-20 text-right flex-shrink-0">
-                      <span className="text-xs font-medium">{score}%</span>
-                      <span className="text-[10px] text-muted ml-1">±{anchor.variance}min</span>
-                    </div>
+                    {anchor.windowScore !== null && (
+                      <div className="ml-40 pl-3 mt-0.5 text-[10px] text-muted">
+                        Janela SRM: {anchor.windowScore}% dos dias dentro de ±45min
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -630,23 +729,159 @@ export default async function InsightsPage({
           <Card>
             <h2 className="mb-3 text-lg font-semibold">Humor e Sono</h2>
             <InsightsCharts data={insights.chart.chartData} />
-            {insights.chart.correlationNote && (
-              <p className="mt-3 text-xs text-muted italic">
-                {insights.chart.correlationNote}
-              </p>
+
+            {/* Correlation results */}
+            {(insights.chart.correlation || insights.chart.lagCorrelation) && (
+              <div className="mt-3 space-y-1.5 rounded-lg bg-black/5 dark:bg-white/5 p-3">
+                {insights.chart.correlation && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted">Correlação sono→humor</span>
+                    <CorrelationBadge result={insights.chart.correlation} />
+                  </div>
+                )}
+                {insights.chart.lagCorrelation && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted">Sono ontem→humor hoje</span>
+                    <CorrelationBadge result={insights.chart.lagCorrelation} />
+                  </div>
+                )}
+                <p className="text-[10px] text-muted italic">
+                  Correlação não prova causa. n={insights.chart.correlation?.n ?? insights.chart.lagCorrelation?.n ?? 0} dias.
+                </p>
+              </div>
             )}
-            {insights.chart.lagCorrelationNote && (
-              <p className="mt-1 text-xs text-muted italic">
-                {insights.chart.lagCorrelationNote}
-              </p>
-            )}
+
           </Card>
         </section>
       )}
 
+      {/* ── P2: Episode Prediction ──────────────────────────────── */}
+      {insights.prediction && (insights.prediction.maniaRisk > 0 || insights.prediction.depressionRisk > 0) && (
+        <section className="mb-8">
+          <EpisodePrediction data={insights.prediction} />
+        </section>
+      )}
+
+      {/* ── P2: Cycling Analysis ──────────────────────────────── */}
+      {insights.cycling && insights.cycling.episodes.length > 0 && (
+        <section className="mb-8">
+          <CyclingAnalysis data={insights.cycling} />
+        </section>
+      )}
+
+      {/* ── P2: Calendar Heatmap ──────────────────────────────── */}
+      {insights.heatmap.length > 0 && (
+        <section className="mb-8">
+          <Card>
+            <h2 className="mb-3 text-lg font-semibold">Mapa de Calor — 90 dias</h2>
+            <div className="space-y-4">
+              <div>
+                <p className="mb-1 text-xs text-muted">Humor</p>
+                <CalendarHeatmap data={insights.heatmap} metric="mood" />
+              </div>
+              <div>
+                <p className="mb-1 text-xs text-muted">Sono</p>
+                <CalendarHeatmap data={insights.heatmap} metric="sleep" />
+              </div>
+            </div>
+            <p className="mt-3 text-center text-[10px] text-muted">
+              Visualização inspirada no GitHub contribution graph. Cada célula = 1 dia.
+            </p>
+          </Card>
+        </section>
+      )}
+
+      {/* ── P2: Seasonality ────────────────────────────────────── */}
+      {insights.seasonality && insights.seasonality.monthlyMood.length >= 2 && (
+        <section className="mb-8">
+          <Card>
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
+              Sazonalidade
+            </h2>
+            <div className="flex items-end gap-1">
+              {insights.seasonality.monthlyMood.map((m) => {
+                const names = ["", "Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+                const heightPct = ((m.avgMood - 1) / 4) * 100;
+                const isPeak = insights.seasonality!.peakMonths.includes(m.month);
+                const isTrough = insights.seasonality!.troughMonths.includes(m.month);
+                return (
+                  <div key={m.month} className="flex flex-1 flex-col items-center">
+                    <div className="relative mb-1 w-full" style={{ height: "60px" }}>
+                      <div
+                        className={`absolute bottom-0 w-full rounded-t ${
+                          isPeak ? "bg-amber-500" : isTrough ? "bg-blue-500" : "bg-gray-500"
+                        }`}
+                        style={{ height: `${Math.max(10, heightPct)}%` }}
+                      />
+                    </div>
+                    <span className="text-[9px] text-muted">{names[m.month]}</span>
+                    <span className="text-[8px] text-muted tabular-nums">{m.avgMood.toFixed(1)}</span>
+                  </div>
+                );
+              })}
+            </div>
+            {insights.seasonality.description && (
+              <p className="mt-3 text-xs text-muted">
+                {insights.seasonality.description}
+              </p>
+            )}
+            <p className="mt-2 text-center text-[10px] text-muted">
+              Referência: Kessing (2004), Copenhagen. Sazonalidade é comum no bipolar.
+              Não constitui diagnóstico.
+            </p>
+          </Card>
+        </section>
+      )}
+
+      {/* ── Safety Nudge (when risk is high) ──────────────────────── */}
+      {insights.risk && insights.risk.level === "atencao_alta" && (
+        <div className="mb-8">
+          <SafetyNudge riskLevel={insights.risk.level} />
+        </div>
+      )}
+
+      {/* ── Quick links to new features ─────────────────────────── */}
+      <section className="mb-8">
+        <h2 className="mb-3 text-lg font-semibold">Acompanhamento avançado</h2>
+        <div className="grid grid-cols-2 gap-2 sm:gap-3">
+          <Link href="/avaliacao-semanal" className="block">
+            <Card className="h-full hover:border-primary/50 transition-colors">
+              <p className="text-sm font-medium">Avaliação Semanal</p>
+              <p className="mt-1 text-[11px] text-muted">
+                ASRM + PHQ-9 + FAST — escalas validadas
+              </p>
+            </Card>
+          </Link>
+          <Link href="/life-chart" className="block">
+            <Card className="h-full hover:border-primary/50 transition-colors">
+              <p className="text-sm font-medium">Life Chart</p>
+              <p className="mt-1 text-[11px] text-muted">
+                Eventos significativos — NIMH simplificado
+              </p>
+            </Card>
+          </Link>
+          <Link href="/cognitivo" className="block">
+            <Card className="h-full hover:border-primary/50 transition-colors">
+              <p className="text-sm font-medium">Microtarefas Cognitivas</p>
+              <p className="mt-1 text-[11px] text-muted">
+                Tempo de reação + span de dígitos
+              </p>
+            </Card>
+          </Link>
+          <Link href="/circadiano" className="block">
+            <Card className="h-full hover:border-primary/50 transition-colors">
+              <p className="text-sm font-medium">Ritmo Circadiano</p>
+              <p className="mt-1 text-[11px] text-muted">
+                Dark therapy + cronótipo + luz
+              </p>
+            </Card>
+          </Link>
+        </div>
+      </section>
+
       <p className="text-center text-xs text-muted mt-4">
         Baseado em pesquisas do PROMAN/USP (Prof. Beny Lafer), protocolos IPSRT e critérios do DSM-5.
-        Não substitui avaliação profissional.
+        Escalas ASRM (Altman), PHQ-9 (Kroenke), FAST (Vieta). Não substitui avaliação profissional.
       </p>
     </div>
   );

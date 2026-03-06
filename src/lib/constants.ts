@@ -9,6 +9,114 @@ export const WARNING_SIGNS = [
   { key: "apetite_alterado", label: "Apetite muito alterado" },
   { key: "dificuldade_concentracao", label: "Dificuldade de concentração" },
   { key: "planos_grandiosos", label: "Planos grandiosos ou irrealistas" },
+  // Added per ISBD/STEP-BD prodrome research
+  { key: "aumento_atividade", label: "Fazendo muitas coisas ao mesmo tempo" },
+  { key: "agitacao", label: "Inquietação ou agitação" },
+  { key: "uso_alcool", label: "Uso de álcool ou substâncias" },
+  { key: "conflitos", label: "Mais conflitos interpessoais" },
+  { key: "fala_rapida", label: "Falando mais rápido que o normal" },
+] as const;
+
+// ── ASRM (Altman Self-Rating Mania Scale) — 5 items, 0-4 each ────
+// Adapted for self-report. Score >= 6 suggests possible hypomania/mania.
+export const ASRM_ITEMS = [
+  {
+    id: 1,
+    question: "Humor",
+    options: [
+      "Não me sinto mais feliz ou animado que o normal",
+      "Às vezes me sinto mais feliz ou animado que o normal",
+      "Me sinto mais feliz ou animado boa parte do tempo",
+      "Me sinto mais feliz ou animado na maior parte do tempo",
+      "Me sinto extremamente feliz, eufórico o tempo todo",
+    ],
+  },
+  {
+    id: 2,
+    question: "Autoconfiança",
+    options: [
+      "Não me sinto mais autoconfiante que o normal",
+      "Às vezes me sinto mais autoconfiante que o normal",
+      "Me sinto mais autoconfiante boa parte do tempo",
+      "Me sinto muito mais autoconfiante na maior parte do tempo",
+      "Me sinto capaz de qualquer coisa o tempo todo",
+    ],
+  },
+  {
+    id: 3,
+    question: "Sono",
+    options: [
+      "Não preciso de menos sono que o habitual",
+      "Preciso de um pouco menos de sono que o habitual",
+      "Preciso de bem menos sono que o habitual",
+      "Preciso de muito menos sono, mas não me sinto cansado",
+      "Quase não preciso dormir e tenho muita energia",
+    ],
+  },
+  {
+    id: 4,
+    question: "Fala",
+    options: [
+      "Não falo mais que o normal",
+      "Às vezes falo mais que o normal",
+      "Falo mais que o normal boa parte do tempo",
+      "Falo muito mais na maior parte do tempo",
+      "Não consigo parar de falar o tempo todo",
+    ],
+  },
+  {
+    id: 5,
+    question: "Atividade",
+    options: [
+      "Não estou mais ativo que o normal",
+      "Às vezes estou mais ativo que o normal",
+      "Estou mais ativo boa parte do tempo",
+      "Estou muito mais ativo na maior parte do tempo",
+      "Estou em atividade constante o tempo todo",
+    ],
+  },
+] as const;
+
+// ── PHQ-9 (Patient Health Questionnaire) — 9 items, 0-3 each ─────
+// Score ranges: 0-4 minimal, 5-9 mild, 10-14 moderate, 15-19 mod-severe, 20-27 severe
+export const PHQ9_ITEMS = [
+  "Pouco interesse ou prazer em fazer as coisas",
+  "Se sentir 'pra baixo', deprimido ou sem esperança",
+  "Dificuldade para dormir, ou dormindo demais",
+  "Se sentir cansado ou com pouca energia",
+  "Pouco apetite ou comendo demais",
+  "Se sentir mal consigo mesmo, achando que é um fracasso",
+  "Dificuldade para se concentrar nas coisas",
+  "Se movimentar ou falar tão devagar que as pessoas percebem (ou o oposto: agitação)",
+  "Pensar que seria melhor estar morto ou se machucar de alguma forma",
+] as const;
+
+export const PHQ9_FREQUENCY_OPTIONS = [
+  { value: 0, label: "Nenhuma vez" },
+  { value: 1, label: "Vários dias" },
+  { value: 2, label: "Mais da metade dos dias" },
+  { value: 3, label: "Quase todos os dias" },
+] as const;
+
+// ── FAST short (Functioning Assessment) — 6 key domains ──────────
+export const FAST_SHORT_ITEMS = [
+  { key: "work", label: "Trabalho/estudo — conseguiu cumprir suas responsabilidades?" },
+  { key: "social", label: "Relações sociais — manteve contato com pessoas?" },
+  { key: "selfcare", label: "Autocuidado — cuidou da higiene, alimentação, saúde?" },
+  { key: "finances", label: "Finanças — controlou seus gastos?" },
+  { key: "cognition", label: "Cognição — conseguiu se concentrar e lembrar das coisas?" },
+  { key: "leisure", label: "Lazer — conseguiu fazer atividades prazerosas?" },
+] as const;
+
+// ── Life Chart event types ───────────────────────────────────────
+export const LIFE_CHART_EVENT_TYPES = [
+  { key: "med_change", label: "Mudança de medicação" },
+  { key: "stressor", label: "Evento estressante" },
+  { key: "travel", label: "Viagem" },
+  { key: "hospitalization", label: "Internação" },
+  { key: "therapy", label: "Sessão de terapia" },
+  { key: "menstrual", label: "Período menstrual" },
+  { key: "other", label: "Outro" },
 ] as const;
 
 export const MOOD_LABELS: Record<number, string> = {

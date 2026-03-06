@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import type { MoodThermometer as MoodThermometerType } from "@/lib/insights/computeInsights";
 
 /** Patient-facing props: raw scores (maniaScore/depressionScore) are omitted */
@@ -28,6 +28,7 @@ export function MoodThermometer({ data }: Props) {
   const colors = ZONE_COLORS[data.zone] || ZONE_COLORS.eutimia;
   const instab = INSTABILITY_LABELS[data.instability] || INSTABILITY_LABELS.baixa;
   const [showMixedInfo, setShowMixedInfo] = useState(false);
+  const mixedId = useId();
 
   return (
     <div className={`rounded-xl p-5 ${colors.bg}`}>
@@ -47,20 +48,33 @@ export function MoodThermometer({ data }: Props) {
         </span>
         {data.mixedFeatures && (
           <button
+            type="button"
             onClick={() => setShowMixedInfo(!showMixedInfo)}
+            aria-expanded={showMixedInfo}
+            aria-controls={mixedId}
             className="ml-2 rounded-full bg-purple-800/50 px-2 py-0.5 text-xs text-purple-300 hover:bg-purple-800/70"
           >
-            Sinais mistos ⓘ
+            {data.mixedStrength === "forte" ? "Sinais mistos" : "Possíveis sinais mistos"} ⓘ
           </button>
         )}
       </div>
 
       {/* Mixed features explanation */}
       {data.mixedFeatures && showMixedInfo && (
-        <div className="mb-4 rounded-lg bg-purple-900/30 p-3 text-xs text-purple-200">
-          Sinais mistos = alguns sinais de rebaixamento e de ativação ao mesmo
-          tempo. Isso pode indicar instabilidade. Se estiver difícil, considere
-          buscar apoio profissional.
+        <div id={mixedId} className="mb-4 rounded-lg bg-purple-900/30 p-3 text-xs text-purple-200">
+          {data.mixedStrength === "forte" ? (
+            <>
+              <strong>Sinais mistos detectados:</strong> indicadores de rebaixamento e ativação
+              elevados simultaneamente. Estados mistos podem ser difíceis de identificar sozinho.
+              Considere conversar com seu profissional.
+            </>
+          ) : (
+            <>
+              <strong>Possíveis sinais mistos:</strong> padrão recente sugere sobreposição de
+              sinais de rebaixamento e ativação (ex: ansiedade alta com energia elevada ou sono
+              reduzido). Se estiver difícil, considere buscar apoio profissional.
+            </>
+          )}
         </div>
       )}
 
@@ -79,7 +93,7 @@ export function MoodThermometer({ data }: Props) {
           className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2"
           style={{ left: `${data.position}%` }}
         >
-          <div className="h-6 w-6 rounded-full border-3 border-white bg-gray-900 shadow-lg" />
+          <div className="h-6 w-6 rounded-full border-2 border-white bg-gray-900 shadow-lg" />
         </div>
       </div>
       <div className="mb-4 flex justify-between text-[10px] text-muted">
@@ -105,9 +119,9 @@ export function MoodThermometer({ data }: Props) {
             Fatores recentes:
           </div>
           <div className="flex flex-wrap gap-1">
-            {data.factors.map((f) => (
+            {data.factors.map((f, i) => (
               <span
-                key={f}
+                key={`${f}-${i}`}
                 className="rounded-full bg-white/10 px-2 py-0.5 text-xs text-gray-300"
               >
                 {f}

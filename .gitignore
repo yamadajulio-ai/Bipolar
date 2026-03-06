@@ -48,3 +48,7 @@ prisma/dev.db-journal
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# prompt files (GPT audit, features, etc.)
+prompt-gpt-*.md
+IDEIAS REDE BIPOLAR.txt

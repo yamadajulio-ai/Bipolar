@@ -48,6 +48,8 @@ export interface ClinicalAlert {
   message: string;
 }
 
+export type DataConfidence = "baixa" | "media" | "alta";
+
 export interface SleepInsights {
   avgDuration: number | null;
   avgDurationColor: StatusColor | null;
@@ -64,6 +66,11 @@ export interface SleepInsights {
   recordCount: number;
   sleepHeadline: string | null;
   alerts: ClinicalAlert[];
+  /** Social jet lag: midpoint difference weekday vs weekend (minutes) */
+  socialJetLag: number | null;
+  socialJetLagLabel: string | null;
+  /** Data confidence based on record count + baseline availability */
+  dataConfidence: DataConfidence;
 }
 
 export interface MoodInsights {
@@ -79,7 +86,8 @@ export interface MoodInsights {
 
 export interface AnchorData {
   variance: number | null;
-  regularityScore: number | null;         // 0-100
+  regularityScore: number | null;         // 0-100 (variance-based)
+  windowScore: number | null;             // 0-100 (SRM-like: % days within ±45min of median)
   color: StatusColor | null;
   label: string;
   source: "manual" | "planner" | "sleep" | null;
@@ -95,10 +103,21 @@ export interface RhythmInsights {
   alerts: ClinicalAlert[];
 }
 
+export interface CorrelationResult {
+  rho: number;
+  strength: "muito_fraca" | "fraca" | "moderada" | "forte";
+  direction: "positiva" | "negativa";
+  n: number;
+  confidence: DataConfidence;
+}
+
 export interface ChartInsights {
   chartData: { date: string; mood: number; sleepHours: number; energy: number | null }[];
   correlationNote: string | null;
   lagCorrelationNote: string | null;
+  /** Structured correlation data for better UI */
+  correlation: CorrelationResult | null;
+  lagCorrelation: CorrelationResult | null;
 }
 
 export interface CombinedPattern {
@@ -126,6 +145,8 @@ export interface MoodThermometer {
   zoneLabel: string;
   /** Whether both M and D are elevated (mixed features) */
   mixedFeatures: boolean;
+  /** Strength of mixed signal: forte = both high, provavel = pattern-based */
+  mixedStrength: "forte" | "provavel" | null;
   /** Instability indicator based on mood amplitude */
   instability: "baixa" | "moderada" | "alta";
   /** Factors contributing to current position */
@@ -136,6 +157,60 @@ export interface MoodThermometer {
   baselineAvailable: boolean;
 }
 
+// ── P2: Episode prediction ──────────────────────────────────
+
+export interface EpisodePrediction {
+  /** Probability estimate 0-100 that a mood episode (mania or depression) is developing */
+  maniaRisk: number;
+  depressionRisk: number;
+  /** Which signals are driving each risk */
+  maniaSignals: string[];
+  depressionSignals: string[];
+  /** Overall risk level */
+  level: "baixo" | "moderado" | "elevado";
+  /** Recommended actions */
+  recommendations: string[];
+  /** Days of data used */
+  daysUsed: number;
+}
+
+// ── P2: Rapid cycling detection ──────────────────────────────
+
+export interface CyclingAnalysis {
+  /** Number of polarity switches in last 90 days */
+  polaritySwitches: number;
+  /** Whether rapid cycling pattern is detected (≥4 episodes/year pace) */
+  isRapidCycling: boolean;
+  /** Average cycle length in days (peak-to-peak or trough-to-trough) */
+  avgCycleLength: number | null;
+  /** Detected episodes: simplified mood phases */
+  episodes: { startDate: string; endDate: string; type: "mania" | "depression" | "mixed" }[];
+}
+
+// ── P2: Seasonality analysis ──────────────────────────────────
+
+export interface SeasonalityAnalysis {
+  /** Monthly average mood (1-5) for months with data */
+  monthlyMood: { month: number; avgMood: number; count: number }[];
+  /** Whether a seasonal pattern is detected */
+  hasSeasonalPattern: boolean;
+  /** Peak months (highest mood) and trough months (lowest mood) */
+  peakMonths: number[];
+  troughMonths: number[];
+  /** Description for the user */
+  description: string | null;
+}
+
+// ── P2: Calendar heatmap data ──────────────────────────────────
+
+export interface HeatmapDay {
+  date: string;
+  mood: number | null;
+  sleepHours: number | null;
+  energy: number | null;
+  hasEntry: boolean;
+}
+
 export interface InsightsResult {
   sleep: SleepInsights;
   mood: MoodInsights;
@@ -144,6 +219,14 @@ export interface InsightsResult {
   combinedPatterns: CombinedPattern[];
   risk: RiskScore | null;
   thermometer: MoodThermometer | null;
+  /** P2: Episode prediction based on multi-signal scoring */
+  prediction: EpisodePrediction | null;
+  /** P2: Rapid cycling detection */
+  cycling: CyclingAnalysis | null;
+  /** P2: Seasonality analysis */
+  seasonality: SeasonalityAnalysis | null;
+  /** P2: Calendar heatmap data (last 90 days) */
+  heatmap: HeatmapDay[];
 }
 
 // ── Helpers ─────────────────────────────────────────────────
@@ -241,30 +324,6 @@ function isNextDay(dateA: string, dateB: string): boolean {
   return diffMs >= 23 * 3600000 && diffMs <= 25 * 3600000;
 }
 
-/** Generic streak counter: counts max consecutive days matching predicate. */
-function longestStreak<T extends { date: string }>(
-  sorted: T[],
-  predicate: (item: T) => boolean,
-): number {
-  let max = 0;
-  let cur = 0;
-  let prevDate: string | null = null;
-
-  for (const item of sorted) {
-    const consecutive = prevDate !== null && isNextDay(prevDate, item.date);
-    if (!consecutive) cur = 0;
-
-    if (predicate(item)) {
-      cur++;
-      max = Math.max(max, cur);
-    } else {
-      cur = 0;
-    }
-    prevDate = item.date;
-  }
-  return max;
-}
-
 /** Current streak ending at the last element — for active alerts. */
 function currentStreak<T extends { date: string }>(
   sorted: T[],
@@ -284,11 +343,19 @@ function dateStr(d: Date, tz: string): string {
   return parts.join("-");
 }
 
-// ── Sleep Insights ──────────────────────────────────────────
-
-function findConsecutiveShortNights(sorted: SleepLogInput[], threshold: number): number {
-  return longestStreak(sorted, (log) => log.totalHours < threshold);
+/** Safely parse a JSON string that should be string[]. Returns [] on any error. */
+function parseStringArray(json: string | null): string[] {
+  if (!json) return [];
+  try {
+    const parsed = JSON.parse(json);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((v): v is string => typeof v === "string");
+  } catch {
+    return [];
+  }
 }
+
+// ── Sleep Insights ──────────────────────────────────────────
 
 function computeSleepInsights(sleepLogs: SleepLogInput[], today: Date, tz: string): SleepInsights {
   const recordCount = sleepLogs.length;
@@ -328,7 +395,7 @@ function computeSleepInsights(sleepLogs: SleepLogInput[], today: Date, tz: strin
   let sleepTrend: TrendDirection | null = null;
   let sleepTrendDelta: number | null = null;
 
-  if (last7.length >= 3 && prev7.length >= 3) {
+  if (last7.length >= 2 && prev7.length >= 2) {
     const avgLast = last7.reduce((s, l) => s + l.totalHours, 0) / last7.length;
     const avgPrev = prev7.reduce((s, l) => s + l.totalHours, 0) / prev7.length;
     sleepTrendDelta = Math.round((avgLast - avgPrev) * 10) / 10;
@@ -394,7 +461,7 @@ function computeSleepInsights(sleepLogs: SleepLogInput[], today: Date, tz: strin
   // 7. Clinical alerts
   const alerts: ClinicalAlert[] = [];
 
-  // Use currentStreak (active state) for alerts, not longestStreak (historical max)
+  // Use currentStreak (active state) for alerts
   const consecutiveShortNow = currentStreak(sorted, (log) => log.totalHours < 6);
   if (consecutiveShortNow >= 2) {
     alerts.push({
@@ -416,7 +483,7 @@ function computeSleepInsights(sleepLogs: SleepLogInput[], today: Date, tz: strin
       alerts.push({
         variant: "warning",
         title: "Sono abaixo do seu padrão",
-        message: `Sua média dos últimos 7 dias está ${Math.abs(deviationMin)} minutos abaixo da sua mediana de 30 dias. `
+        message: `Sua média dos últimos 7 dias está ${Math.abs(deviationMin)} minutos abaixo da sua mediana dos registros recentes. `
           + `Mudanças significativas no sono merecem atenção, especialmente se combinadas com outros sinais.`,
       });
     }
@@ -424,7 +491,7 @@ function computeSleepInsights(sleepLogs: SleepLogInput[], today: Date, tz: strin
       alerts.push({
         variant: "info",
         title: "Sono acima do seu padrão",
-        message: `Sua média dos últimos 7 dias está ${deviationMin} minutos acima da sua mediana de 30 dias. `
+        message: `Sua média dos últimos 7 dias está ${deviationMin} minutos acima da sua mediana dos registros recentes. `
           + `Observe se está sentindo menos energia ou motivação.`,
       });
     }
@@ -466,12 +533,50 @@ function computeSleepInsights(sleepLogs: SleepLogInput[], today: Date, tz: strin
     }
   }
 
+  // 9. Social Jet Lag (weekday vs weekend midpoint difference)
+  let socialJetLag: number | null = null;
+  let socialJetLagLabel: string | null = null;
+  if (recordCount >= 7) {
+    const weekdayMids: number[] = [];
+    const weekendMids: number[] = [];
+    for (const s of sorted) {
+      const btMin = timeToMinutes(s.bedtime);
+      if (btMin === null) continue;
+      const mid = normalizeBedtime(btMin) + (s.totalHours * 60) / 2;
+      const dayOfWeek = new Date(s.date + "T12:00:00").getDay(); // 0=Sun, 6=Sat
+      if (dayOfWeek === 0 || dayOfWeek === 6) weekendMids.push(mid);
+      else weekdayMids.push(mid);
+    }
+    if (weekdayMids.length >= 3 && weekendMids.length >= 2) {
+      const avgWeekday = weekdayMids.reduce((a, b) => a + b, 0) / weekdayMids.length;
+      const avgWeekend = weekendMids.reduce((a, b) => a + b, 0) / weekendMids.length;
+      socialJetLag = Math.round(Math.abs(avgWeekend - avgWeekday));
+      socialJetLagLabel = socialJetLag <= 30 ? "Baixo"
+        : socialJetLag <= 60 ? "Moderado"
+        : "Alto";
+      if (socialJetLag > 60) {
+        alerts.push({
+          variant: "info",
+          title: "Jet lag social detectado",
+          message: `Seu ponto médio de sono muda ${socialJetLag} minutos entre dias úteis e fins de semana. `
+            + `Essa diferença desregula o ritmo circadiano. Tente manter horários semelhantes todos os dias.`,
+        });
+      }
+    }
+  }
+
+  // 10. Data confidence
+  const dataConfidence: DataConfidence = recordCount >= 14 ? "alta"
+    : recordCount >= 7 ? "media"
+    : "baixa";
+
   return {
     avgDuration, avgDurationColor, bedtimeVariance, bedtimeVarianceColor,
     sleepTrend, sleepTrendDelta, avgQuality,
     midpoint, midpointTrend, midpointDelta,
     durationVariability, durationVariabilityColor,
     recordCount, sleepHeadline, alerts,
+    socialJetLag, socialJetLagLabel, dataConfidence,
   };
 }
 
@@ -521,13 +626,10 @@ function computeMoodInsights(entries: DiaryEntryInput[], today: Date, tz: string
   // 4. Top warning signs
   const signCounts: Record<string, number> = {};
   for (const entry of entries) {
-    if (!entry.warningSigns) continue;
-    try {
-      const signs: string[] = JSON.parse(entry.warningSigns);
-      for (const sign of signs) {
-        signCounts[sign] = (signCounts[sign] || 0) + 1;
-      }
-    } catch { /* ignore */ }
+    const signs = parseStringArray(entry.warningSigns);
+    for (const sign of signs) {
+      signCounts[sign] = (signCounts[sign] || 0) + 1;
+    }
   }
   const topWarningSigns = Object.entries(signCounts)
     .sort((a, b) => b[1] - a[1])
@@ -573,11 +675,8 @@ function computeMoodInsights(entries: DiaryEntryInput[], today: Date, tz: string
 
   // Combined pattern: sono_reduzido + energia_excessiva
   const combinedPattern = entries.filter((e) => {
-    if (!e.warningSigns) return false;
-    try {
-      const signs: string[] = JSON.parse(e.warningSigns);
-      return signs.includes("sono_reduzido") && signs.includes("energia_excessiva");
-    } catch { return false; }
+    const signs = parseStringArray(e.warningSigns);
+    return signs.includes("sono_reduzido") && signs.includes("energia_excessiva");
   });
   if (combinedPattern.length >= 2) {
     alerts.push({
@@ -720,7 +819,17 @@ function computeRhythmInsights(
 
     const regularityScore = variance !== null ? regularityScoreFromVariance(variance) : null;
 
-    anchors[field] = { variance, regularityScore, color, label: ANCHOR_LABELS[field], source, daysCount };
+    // SRM-like window score: % of days within ±45min of personal median
+    let windowScore: number | null = null;
+    if (values.length >= 3) {
+      const med = median(values);
+      if (med !== null) {
+        const withinWindow = values.filter((v) => Math.abs(v - med) <= 45).length;
+        windowScore = Math.round((withinWindow / values.length) * 100);
+      }
+    }
+
+    anchors[field] = { variance, regularityScore, windowScore, color, label: ANCHOR_LABELS[field], source, daysCount };
   }
 
   // Weighted average by daysCount (anchors with more data weigh more)
@@ -748,6 +857,17 @@ function computeRhythmInsights(
 
 // ── Chart Insights ──────────────────────────────────────────
 
+function buildCorrelationResult(rho: number, n: number): CorrelationResult {
+  const absRho = Math.abs(rho);
+  const strength = absRho < 0.2 ? "muito_fraca" as const
+    : absRho < 0.4 ? "fraca" as const
+    : absRho < 0.6 ? "moderada" as const
+    : "forte" as const;
+  const direction = rho >= 0 ? "positiva" as const : "negativa" as const;
+  const confidence: DataConfidence = n >= 21 ? "alta" : n >= 14 ? "media" : "baixa";
+  return { rho: Math.round(rho * 100) / 100, strength, direction, n, confidence };
+}
+
 function computeChartInsights(entries: DiaryEntryInput[], sleepLogs: SleepLogInput[]): ChartInsights {
   const sleepByDate = new Map<string, number>();
   for (const log of sleepLogs) {
@@ -765,22 +885,23 @@ function computeChartInsights(entries: DiaryEntryInput[], sleepLogs: SleepLogInp
   const validPairs = chartData.filter((d) => d.sleepHours >= 1 && d.sleepHours <= 14);
 
   let correlationNote: string | null = null;
+  let corrResult: CorrelationResult | null = null;
   if (validPairs.length >= 14) {
     const r = spearmanCorrelation(validPairs.map((d) => d.sleepHours), validPairs.map((d) => d.mood));
     if (r !== null) {
-      const caveat = ` (n=${validPairs.length}, converse com seu profissional para interpretar)`;
-      if (r > 0.4) {
-        correlationNote = "Seus dados sugerem uma associação positiva entre sono e humor: "
-          + "nos dias que você dorme mais, seu humor tende a ser melhor." + caveat;
-      } else if (r < -0.4) {
-        correlationNote = "Seus dados sugerem uma associação inversa entre sono e humor: "
-          + "nos dias que você dorme mais, seu humor tende a ser mais baixo." + caveat;
+      corrResult = buildCorrelationResult(r, validPairs.length);
+      const caveat = ` (associação ${corrResult.strength}, n=${validPairs.length} — não prova causa)`;
+      if (Math.abs(r) > 0.2) {
+        correlationNote = r > 0
+          ? "Seus dados sugerem uma associação entre dormir mais e humor melhor." + caveat
+          : "Seus dados sugerem uma associação entre dormir mais e humor mais baixo." + caveat;
       }
     }
   }
 
   // Lag-1 correlation: sleep(day N) → mood(day N+1) — sanitized
   let lagCorrelationNote: string | null = null;
+  let lagCorrResult: CorrelationResult | null = null;
   if (validPairs.length >= 15) {
     const sortedChart = [...validPairs].sort((a, b) => a.date.localeCompare(b.date));
     const lagSleep: number[] = [];
@@ -794,17 +915,18 @@ function computeChartInsights(entries: DiaryEntryInput[], sleepLogs: SleepLogInp
     if (lagSleep.length >= 14) {
       const rLag = spearmanCorrelation(lagSleep, lagMood);
       if (rLag !== null) {
-        const caveat = ` (n=${lagSleep.length}, converse com seu profissional para interpretar)`;
-        if (rLag > 0.4) {
-          lagCorrelationNote = "Padrão observado: quando você dorme mais, seu humor no dia seguinte tende a ser melhor." + caveat;
-        } else if (rLag < -0.4) {
-          lagCorrelationNote = "Padrão observado: quando você dorme mais, seu humor no dia seguinte tende a ser mais baixo." + caveat;
+        lagCorrResult = buildCorrelationResult(rLag, lagSleep.length);
+        const caveat = ` (associação ${lagCorrResult.strength}, n=${lagSleep.length} — não prova causa)`;
+        if (Math.abs(rLag) > 0.2) {
+          lagCorrelationNote = rLag > 0
+            ? "Padrão observado: quando você dorme mais, seu humor no dia seguinte tende a ser melhor." + caveat
+            : "Padrão observado: quando você dorme mais, seu humor no dia seguinte tende a ser mais baixo." + caveat;
         }
       }
     }
   }
 
-  return { chartData, correlationNote, lagCorrelationNote };
+  return { chartData, correlationNote, lagCorrelationNote, correlation: corrResult, lagCorrelation: lagCorrResult };
 }
 
 // ── Combined Patterns ───────────────────────────────────────
@@ -842,11 +964,7 @@ function computeCombinedPatterns(
       const sleep = sleepByDate.get(e.date);
       if (sleep === undefined || sleep < avgSleep + 1) return false;
       if (e.mood > 2) return false;
-      if (!e.warningSigns) return false;
-      try {
-        const signs: string[] = JSON.parse(e.warningSigns);
-        return signs.includes("isolamento");
-      } catch { return false; }
+      return parseStringArray(e.warningSigns).includes("isolamento");
     });
     if (hypersomniaMood.length >= 2) {
       patterns.push({
@@ -924,11 +1042,7 @@ function computeRiskScore(
   // Key warning signs (calendar-based last 7 days)
   const recentSigns = new Set<string>();
   for (const e of last7Entries) {
-    if (!e.warningSigns) continue;
-    try {
-      const signs: string[] = JSON.parse(e.warningSigns);
-      for (const s of signs) recentSigns.add(s);
-    } catch { /* ignore */ }
+    for (const s of parseStringArray(e.warningSigns)) recentSigns.add(s);
   }
   const riskSigns = ["pensamentos_acelerados", "gastos_impulsivos", "energia_excessiva", "planos_grandiosos"];
   const matchedSigns = riskSigns.filter((s) => recentSigns.has(s));
@@ -960,6 +1074,8 @@ const MANIA_SIGNS = new Set([
   "planos_grandiosos",
   "fala_rapida",
   "sono_reduzido",
+  "aumento_atividade",   // ISBD/STEP-BD prodrome
+  "agitacao",            // ISBD/STEP-BD prodrome
 ]);
 
 const DEPRESSION_SIGNS = new Set([
@@ -968,6 +1084,13 @@ const DEPRESSION_SIGNS = new Set([
   "desesperanca",
   "apetite_alterado",
   "dificuldade_concentracao",
+]);
+
+// Signs that indicate distress (anxiety-related) — used for mixed features detection
+const DISTRESS_SIGNS = new Set([
+  "agitacao",
+  "uso_alcool",
+  "conflitos",
 ]);
 
 function getZoneLabel(zone: string, position: number): string {
@@ -993,11 +1116,12 @@ function computeDayScores(
   entry: DiaryEntryInput,
   sleepHours: number | null,
   baselineSleep: number | null,
+  hasSleepLog: boolean,
 ) {
   let M = 0;
   let D = 0;
   const factors: string[] = [];
-  const hasObjectiveSleep = sleepHours !== null;
+  // hasSleepLog (param) = true only when objective SleepLog exists for this date
 
   // Mood contribution
   if (entry.mood >= 4) {
@@ -1062,33 +1186,46 @@ function computeDayScores(
     }
   }
 
-  // Irritability
+  // Irritability — contributes to M (activation), also a mixed signal
   if (entry.irritability !== null && entry.irritability >= 4) {
     M += 8;
     factors.push("irritabilidade alta");
   }
 
-  // Anxiety
+  // Anxiety — treated as distress score: small D contribution + mixed signal flag
+  // Per DSM-5 mixed features specifier: anxiety is a common co-occurring dimension
+  let anxietyDistress = false;
   if (entry.anxietyLevel !== null && entry.anxietyLevel >= 4) {
     D += 5;
+    anxietyDistress = true;
+    factors.push("ansiedade alta");
   }
 
   // Warning signs — skip "sono_reduzido" when we have objective sleep data (avoid double counting)
-  if (entry.warningSigns) {
-    try {
-      const signs: string[] = JSON.parse(entry.warningSigns);
-      let maniaSigns = 0;
-      let depSigns = 0;
-      for (const s of signs) {
-        if (s === "sono_reduzido" && hasObjectiveSleep) continue;
-        if (MANIA_SIGNS.has(s)) maniaSigns++;
-        if (DEPRESSION_SIGNS.has(s)) depSigns++;
-      }
-      M += maniaSigns * 5;
-      D += depSigns * 5;
-      if (maniaSigns > 0) factors.push(`${maniaSigns} sinais de ativação`);
-      if (depSigns > 0) factors.push(`${depSigns} sinais de rebaixamento`);
-    } catch { /* ignore */ }
+  let distressSignCount = 0;
+  {
+    const signs = parseStringArray(entry.warningSigns);
+    let maniaSigns = 0;
+    let depSigns = 0;
+    for (const s of signs) {
+      if (s === "sono_reduzido" && hasSleepLog) continue;
+      if (MANIA_SIGNS.has(s)) maniaSigns++;
+      if (DEPRESSION_SIGNS.has(s)) depSigns++;
+      if (DISTRESS_SIGNS.has(s)) distressSignCount++;
+    }
+    M += maniaSigns * 5;
+    D += depSigns * 5;
+    if (maniaSigns > 0) factors.push(`${maniaSigns} sinais de ativação`);
+    if (depSigns > 0) factors.push(`${depSigns} sinais de rebaixamento`);
+  }
+
+  // Mixed signal boost: anxiety/distress combined with activation indicators
+  // increases both M and D slightly to push toward mixed detection
+  const hasActivation = (entry.energyLevel !== null && entry.energyLevel >= 4) ||
+    (sleepHours !== null && sleepHours < 6);
+  if ((anxietyDistress || distressSignCount >= 2) && hasActivation) {
+    M += 5;
+    D += 5;
   }
 
   return { M: Math.min(100, M), D: Math.min(100, D), factors };
@@ -1126,8 +1263,9 @@ function computeMoodThermometer(
 
   // Compute per-day M/D scores
   const dayScores = recent.map((e) => {
+    const hasSleepLog = sleepByDate.has(e.date);
     const sleep = sleepByDate.get(e.date) ?? (e.sleepHours > 0 ? e.sleepHours : null);
-    return computeDayScores(e, sleep, baselineSleep);
+    return computeDayScores(e, sleep, baselineSleep, hasSleepLog);
   });
 
   // EWMA smoothing (alpha=0.4 — recent days have higher weight)
@@ -1177,6 +1315,8 @@ function computeMoodThermometer(
   const probableMixed = !strongMixed && mixedDayCount >= 2;
 
   const mixedFeatures = strongMixed || probableMixed;
+  const mixedStrength: MoodThermometer["mixedStrength"] =
+    strongMixed ? "forte" : probableMixed ? "provavel" : null;
 
   // Instability: combines mood amplitude + position amplitude for fuller picture
   const moods = recent.map((e) => e.mood);
@@ -1205,11 +1345,421 @@ function computeMoodThermometer(
     zone,
     zoneLabel: getZoneLabel(zone, position),
     mixedFeatures,
+    mixedStrength,
     instability,
     factors: Array.from(recentFactors),
     daysUsed: recent.length,
     baselineAvailable: baselineSleep !== null,
   };
+}
+
+// ── P2: Episode Prediction (multi-signal early warning) ──────
+
+function computeEpisodePrediction(
+  entries: DiaryEntryInput[],
+  sleepLogs: SleepLogInput[],
+  sleep: SleepInsights,
+  thermometer: MoodThermometer | null,
+  today: Date,
+  tz: string,
+): EpisodePrediction | null {
+  const sevenAgo = new Date(today);
+  sevenAgo.setDate(sevenAgo.getDate() - 6);
+  const str7 = dateStr(sevenAgo, tz);
+  const recentEntries = [...entries]
+    .filter((e) => e.date >= str7)
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const recentSleep = [...sleepLogs]
+    .filter((s) => s.date >= str7)
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  if (recentEntries.length < 3 && recentSleep.length < 3) return null;
+
+  let maniaRisk = 0;
+  let depressionRisk = 0;
+  const maniaSignals: string[] = [];
+  const depressionSignals: string[] = [];
+
+  // 1. Sleep reduction pattern (strong mania predictor — Harvey, Goodwin)
+  if (recentSleep.length >= 3) {
+    const avgRecent = recentSleep.reduce((s, l) => s + l.totalHours, 0) / recentSleep.length;
+    if (avgRecent < 5) {
+      maniaRisk += 25;
+      maniaSignals.push("Sono muito reduzido (<5h média)");
+    } else if (avgRecent < 6) {
+      maniaRisk += 15;
+      maniaSignals.push("Sono reduzido (<6h média)");
+    }
+    // Progressive reduction trend
+    if (recentSleep.length >= 4) {
+      const half = Math.floor(recentSleep.length / 2);
+      const first = recentSleep.slice(0, half);
+      const second = recentSleep.slice(half);
+      const avgFirst = first.reduce((s, l) => s + l.totalHours, 0) / first.length;
+      const avgSecond = second.reduce((s, l) => s + l.totalHours, 0) / second.length;
+      if (avgSecond < avgFirst - 0.5) {
+        maniaRisk += 10;
+        maniaSignals.push("Sono em queda progressiva");
+      }
+    }
+    // Hypersomnia (depression predictor)
+    if (avgRecent > 10) {
+      depressionRisk += 20;
+      depressionSignals.push("Hipersonia (>10h média)");
+    } else if (avgRecent > 9) {
+      depressionRisk += 10;
+      depressionSignals.push("Sono prolongado (>9h média)");
+    }
+  }
+
+  // 2. Sleep regularity disruption (Bauer & Whybrow)
+  if (sleep.bedtimeVariance !== null && sleep.bedtimeVariance > 90) {
+    maniaRisk += 10;
+    maniaSignals.push("Horários de sono muito irregulares");
+  }
+
+  // 3. Mood elevation/escalation
+  if (recentEntries.length >= 3) {
+    const moods = recentEntries.map((e) => e.mood);
+    const highMoodDays = moods.filter((m) => m >= 4).length;
+    const lowMoodDays = moods.filter((m) => m <= 2).length;
+    const avgMood = moods.reduce((a, b) => a + b, 0) / moods.length;
+
+    if (highMoodDays >= 3) {
+      maniaRisk += 15;
+      maniaSignals.push(`Humor elevado ${highMoodDays}/${moods.length} dias`);
+    }
+    if (lowMoodDays >= 3) {
+      depressionRisk += 15;
+      depressionSignals.push(`Humor baixo ${lowMoodDays}/${moods.length} dias`);
+    }
+
+    // Escalation: mood going up over the period
+    if (moods.length >= 4) {
+      const half = Math.floor(moods.length / 2);
+      const firstAvg = moods.slice(0, half).reduce((a, b) => a + b, 0) / half;
+      const secondAvg = moods.slice(half).reduce((a, b) => a + b, 0) / (moods.length - half);
+      if (secondAvg > firstAvg + 0.5 && avgMood >= 3.5) {
+        maniaRisk += 10;
+        maniaSignals.push("Humor em escalada");
+      }
+      if (secondAvg < firstAvg - 0.5 && avgMood <= 2.5) {
+        depressionRisk += 10;
+        depressionSignals.push("Humor em queda");
+      }
+    }
+  }
+
+  // 4. Energy/irritability (prodromal signals — Kessing, STEP-BD)
+  const highEnergy = recentEntries.filter((e) => e.energyLevel !== null && e.energyLevel >= 4).length;
+  const lowEnergy = recentEntries.filter((e) => e.energyLevel !== null && e.energyLevel <= 2).length;
+  if (highEnergy >= 3) {
+    maniaRisk += 10;
+    maniaSignals.push("Energia elevada frequente");
+  }
+  if (lowEnergy >= 3) {
+    depressionRisk += 10;
+    depressionSignals.push("Energia baixa frequente");
+  }
+
+  const highIrritability = recentEntries.filter((e) => e.irritability !== null && e.irritability >= 4).length;
+  if (highIrritability >= 2) {
+    maniaRisk += 8;
+    maniaSignals.push("Irritabilidade alta");
+  }
+
+  // 5. Warning signs clustering (ISBD prodrome research)
+  const allRecentSigns = new Set<string>();
+  for (const e of recentEntries) {
+    for (const s of parseStringArray(e.warningSigns)) allRecentSigns.add(s);
+  }
+  const maniaProdromes = ["pensamentos_acelerados", "gastos_impulsivos", "energia_excessiva",
+    "planos_grandiosos", "fala_rapida", "aumento_atividade", "agitacao"];
+  const depProdromes = ["isolamento", "desesperanca", "dificuldade_concentracao", "apetite_alterado"];
+
+  const matchedMania = maniaProdromes.filter((s) => allRecentSigns.has(s));
+  const matchedDep = depProdromes.filter((s) => allRecentSigns.has(s));
+
+  if (matchedMania.length >= 3) {
+    maniaRisk += 15;
+    maniaSignals.push(`${matchedMania.length} sinais prodrômicos de mania`);
+  } else if (matchedMania.length >= 2) {
+    maniaRisk += 8;
+    maniaSignals.push(`${matchedMania.length} sinais prodrômicos de mania`);
+  }
+
+  if (matchedDep.length >= 3) {
+    depressionRisk += 15;
+    depressionSignals.push(`${matchedDep.length} sinais prodrômicos de depressão`);
+  } else if (matchedDep.length >= 2) {
+    depressionRisk += 8;
+    depressionSignals.push(`${matchedDep.length} sinais prodrômicos de depressão`);
+  }
+
+  // 6. Thermometer corroboration
+  if (thermometer) {
+    if (thermometer.maniaScore >= 40) {
+      maniaRisk += 10;
+    }
+    if (thermometer.depressionScore >= 40) {
+      depressionRisk += 10;
+    }
+  }
+
+  // 7. Medication non-adherence amplifies risk
+  const recentMeds = recentEntries.filter((e) => e.tookMedication !== null);
+  const noMedDays = recentMeds.filter((e) => e.tookMedication === "nao").length;
+  if (recentMeds.length >= 3 && noMedDays / recentMeds.length >= 0.5) {
+    maniaRisk += 10;
+    depressionRisk += 10;
+    maniaSignals.push("Baixa adesão à medicação");
+    depressionSignals.push("Baixa adesão à medicação");
+  }
+
+  // Cap at 100
+  maniaRisk = Math.min(100, maniaRisk);
+  depressionRisk = Math.min(100, depressionRisk);
+
+  const maxRisk = Math.max(maniaRisk, depressionRisk);
+  const level: EpisodePrediction["level"] =
+    maxRisk >= 50 ? "elevado" : maxRisk >= 25 ? "moderado" : "baixo";
+
+  // Generate recommendations
+  const recommendations: string[] = [];
+  if (level === "elevado") {
+    recommendations.push("Considere entrar em contato com seu profissional de saúde");
+    if (maniaRisk > depressionRisk) {
+      recommendations.push("Priorize higiene do sono: escureça o quarto, evite telas, mantenha horário fixo");
+      recommendations.push("Evite estímulos excessivos e atividades noturnas");
+    } else {
+      recommendations.push("Mantenha atividades sociais mesmo que não tenha vontade");
+      recommendations.push("Tente manter a rotina de exercícios e exposição à luz natural");
+    }
+  } else if (level === "moderado") {
+    recommendations.push("Monitore os sinais nos próximos dias");
+    recommendations.push("Mantenha rotina regular de sono e atividades");
+  }
+
+  return {
+    maniaRisk,
+    depressionRisk,
+    maniaSignals,
+    depressionSignals,
+    level,
+    recommendations,
+    daysUsed: Math.max(recentEntries.length, recentSleep.length),
+  };
+}
+
+// ── P2: Rapid Cycling Detection ──────────────────────────────
+
+function computeCyclingAnalysis(
+  entries: DiaryEntryInput[],
+  today: Date,
+  tz: string,
+): CyclingAnalysis | null {
+  // Need at least 30 days of data
+  const ninetyAgo = new Date(today);
+  ninetyAgo.setDate(ninetyAgo.getDate() - 89);
+  const str90 = dateStr(ninetyAgo, tz);
+  const sorted = [...entries].filter((e) => e.date >= str90).sort((a, b) => a.date.localeCompare(b.date));
+
+  if (sorted.length < 14) return null;
+
+  // Classify each day as mania-like, depression-like, or euthymic
+  // Using 3-day smoothing to reduce noise
+  type Phase = "mania" | "depression" | "mixed" | "euthymia";
+  const phases: { date: string; phase: Phase }[] = [];
+
+  for (let i = 0; i < sorted.length; i++) {
+    const window = sorted.slice(Math.max(0, i - 1), Math.min(sorted.length, i + 2));
+    const avgMood = window.reduce((s, e) => s + e.mood, 0) / window.length;
+    const energyVals = window.map((e) => e.energyLevel).filter((v): v is number => v !== null);
+    const avgEnergy = energyVals.length > 0
+      ? energyVals.reduce((s, v) => s + v, 0) / energyVals.length
+      : 3; // neutral when no energy data
+
+    let phase: Phase;
+    if (avgMood >= 3.8 && avgEnergy >= 3.5) {
+      phase = "mania";
+    } else if (avgMood <= 2.2) {
+      phase = "depression";
+    } else if (avgMood <= 2.5 && avgEnergy >= 3.5) {
+      phase = "mixed";
+    } else {
+      phase = "euthymia";
+    }
+    phases.push({ date: sorted[i].date, phase });
+  }
+
+  // Detect episodes: consecutive calendar days in same phase (minimum 2 days)
+  const episodes: CyclingAnalysis["episodes"] = [];
+  let currentPhase: Phase | null = null;
+  let phaseStart = "";
+  let phaseLength = 0;
+  let prevDate: string | null = null;
+
+  for (let i = 0; i < phases.length; i++) {
+    const { date, phase } = phases[i];
+    const isConsecutive = prevDate ? isNextDay(prevDate, date) : true;
+
+    if (phase === currentPhase && isConsecutive) {
+      phaseLength++;
+    } else {
+      if (currentPhase && currentPhase !== "euthymia" && phaseLength >= 2) {
+        episodes.push({
+          startDate: phaseStart,
+          endDate: prevDate ?? date,
+          type: currentPhase,
+        });
+      }
+      currentPhase = phase;
+      phaseStart = date;
+      phaseLength = 1;
+    }
+    prevDate = date;
+  }
+  // Close final episode
+  if (currentPhase && currentPhase !== "euthymia" && phaseLength >= 2) {
+    episodes.push({
+      startDate: phaseStart,
+      endDate: phases[phases.length - 1].date,
+      type: currentPhase,
+    });
+  }
+
+  // Count polarity switches (mania→depression or depression→mania)
+  let switches = 0;
+  for (let i = 1; i < episodes.length; i++) {
+    const prev = episodes[i - 1].type;
+    const curr = episodes[i].type;
+    if ((prev === "mania" && (curr === "depression" || curr === "mixed")) ||
+        (prev === "depression" && (curr === "mania" || curr === "mixed")) ||
+        (prev === "mixed" && (curr === "mania" || curr === "depression"))) {
+      switches++;
+    }
+  }
+
+  // Calculate average cycle length
+  let avgCycleLength: number | null = null;
+  if (episodes.length >= 2) {
+    const starts = episodes.map((e) => new Date(e.startDate + "T12:00:00").getTime());
+    const gaps: number[] = [];
+    for (let i = 1; i < starts.length; i++) {
+      gaps.push(Math.round((starts[i] - starts[i - 1]) / (1000 * 60 * 60 * 24)));
+    }
+    if (gaps.length > 0) {
+      avgCycleLength = Math.round(gaps.reduce((a, b) => a + b, 0) / gaps.length);
+    }
+  }
+
+  // Rapid cycling: ≥4 episodes per year — require ≥60 days observed to avoid inflated extrapolation
+  const firstTs = new Date(sorted[0].date + "T12:00:00Z").getTime();
+  const lastTs = new Date(sorted[sorted.length - 1].date + "T12:00:00Z").getTime();
+  const daysObserved = Math.max(1, Math.round((lastTs - firstTs) / (24 * 60 * 60 * 1000)) + 1);
+  const hasEnoughWindow = daysObserved >= 60;
+  const annualizedEpisodes = (episodes.length / daysObserved) * 365;
+  const isRapidCycling = hasEnoughWindow && annualizedEpisodes >= 4 && episodes.length >= 2;
+
+  return {
+    polaritySwitches: switches,
+    isRapidCycling,
+    avgCycleLength,
+    episodes,
+  };
+}
+
+// ── P2: Seasonality Analysis ──────────────────────────────────
+
+function computeSeasonalityAnalysis(
+  entries: DiaryEntryInput[],
+): SeasonalityAnalysis | null {
+  if (entries.length < 30) return null;
+
+  // Group entries by month
+  const byMonth = new Map<number, number[]>();
+  for (const e of entries) {
+    const month = parseInt(e.date.slice(5, 7), 10);
+    if (!byMonth.has(month)) byMonth.set(month, []);
+    byMonth.get(month)!.push(e.mood);
+  }
+
+  const monthlyMood: SeasonalityAnalysis["monthlyMood"] = [];
+  for (const [month, moods] of byMonth) {
+    if (moods.length >= 3) {
+      monthlyMood.push({
+        month,
+        avgMood: Math.round((moods.reduce((a, b) => a + b, 0) / moods.length) * 100) / 100,
+        count: moods.length,
+      });
+    }
+  }
+
+  if (monthlyMood.length < 3) return null;
+
+  monthlyMood.sort((a, b) => a.month - b.month);
+
+  // Detect peaks and troughs
+  const avgAll = monthlyMood.reduce((s, m) => s + m.avgMood, 0) / monthlyMood.length;
+  const peakMonths = monthlyMood.filter((m) => m.avgMood > avgAll + 0.5).map((m) => m.month);
+  const troughMonths = monthlyMood.filter((m) => m.avgMood < avgAll - 0.5).map((m) => m.month);
+
+  const hasSeasonalPattern = peakMonths.length > 0 && troughMonths.length > 0;
+
+  const monthNames = [
+    "", "janeiro", "fevereiro", "março", "abril", "maio", "junho",
+    "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
+  ];
+
+  let description: string | null = null;
+  if (hasSeasonalPattern) {
+    const peakStr = peakMonths.map((m) => monthNames[m]).join(", ");
+    const troughStr = troughMonths.map((m) => monthNames[m]).join(", ");
+    description = `Humor tende a ser mais elevado em ${peakStr} e mais baixo em ${troughStr}. `
+      + `Padrões sazonais são comuns no transtorno bipolar (Kessing et al., Copenhagen). `
+      + `Converse com seu profissional sobre ajustes preventivos nessas épocas.`;
+  }
+
+  return {
+    monthlyMood,
+    hasSeasonalPattern,
+    peakMonths,
+    troughMonths,
+    description,
+  };
+}
+
+// ── P2: Calendar Heatmap Data ──────────────────────────────────
+
+function computeHeatmapData(
+  entries: DiaryEntryInput[],
+  sleepLogs: SleepLogInput[],
+  today: Date,
+  tz: string,
+): HeatmapDay[] {
+  const ninetyAgo = new Date(today);
+  ninetyAgo.setDate(ninetyAgo.getDate() - 89);
+
+  const entryMap = new Map(entries.map((e) => [e.date, e]));
+  const sleepMap = new Map(sleepLogs.map((s) => [s.date, s]));
+
+  const days: HeatmapDay[] = [];
+  const d = new Date(ninetyAgo);
+  while (d <= today) {
+    const ds = dateStr(d, tz);
+    const entry = entryMap.get(ds);
+    const sleepLog = sleepMap.get(ds);
+    days.push({
+      date: ds,
+      mood: entry?.mood ?? null,
+      sleepHours: sleepLog?.totalHours ?? null,
+      energy: entry?.energyLevel ?? null,
+      hasEntry: !!entry || !!sleepLog,
+    });
+    d.setDate(d.getDate() + 1);
+  }
+
+  return days;
 }
 
 // ── Main Export ─────────────────────────────────────────────
@@ -1221,6 +1771,10 @@ export function computeInsights(
   plannerBlocks?: PlannerBlockInput[],
   today: Date = new Date(),
   tz: string = "America/Sao_Paulo",
+  /** Optional extended entries (90d) for P2 features (heatmap, cycling, seasonality). Falls back to entries. */
+  entries90?: DiaryEntryInput[],
+  /** Optional extended sleep logs (90d) for P2 features (heatmap). Falls back to sleepLogs. */
+  sleepLogs90?: SleepLogInput[],
 ): InsightsResult {
   const sleep = computeSleepInsights(sleepLogs, today, tz);
   const mood = computeMoodInsights(entries, today, tz);
@@ -1230,5 +1784,16 @@ export function computeInsights(
   const risk = computeRiskScore(sleep, mood, entries, sleepLogs, today, tz);
   const thermometer = computeMoodThermometer(entries, sleepLogs, today, tz);
 
-  return { sleep, mood, rhythm, chart, combinedPatterns, risk, thermometer };
+  // P2 features — use extended data (90d) when available
+  const extEntries = entries90 ?? entries;
+  const extSleep = sleepLogs90 ?? sleepLogs;
+  const prediction = computeEpisodePrediction(entries, sleepLogs, sleep, thermometer, today, tz);
+  const cycling = computeCyclingAnalysis(extEntries, today, tz);
+  const seasonality = computeSeasonalityAnalysis(extEntries);
+  const heatmap = computeHeatmapData(extEntries, extSleep, today, tz);
+
+  return {
+    sleep, mood, rhythm, chart, combinedPatterns, risk, thermometer,
+    prediction, cycling, seasonality, heatmap,
+  };
 }

@@ -9,11 +9,11 @@
   --surface: #ffffff;
   --surface-alt: #f5ebe0;
   --border: #f0e6dc;
-  --muted: #8b7355;
+  --muted: #6b563d;
   --success: #5c7a5c;
   --warning: #e8a849;
   --danger: #c0392b;
-  --info: #b08968;
+  --info: #8b6d4a;
 }
 
 @theme inline {
@@ -46,6 +46,11 @@ body {
 
 :where(a):hover {
   color: var(--primary-dark);
+}
+
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
 }
 
 /* Print styles for professional PDF export */

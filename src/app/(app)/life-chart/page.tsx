@@ -128,8 +128,9 @@ export default function LifeChartPage() {
       {showForm && (
         <Card className="mb-4 space-y-3">
           <div>
-            <label className="block text-xs font-medium text-muted mb-1">Data</label>
+            <label htmlFor="lc-date" className="block text-xs font-medium text-muted mb-1">Data</label>
             <input
+              id="lc-date"
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
@@ -137,7 +138,7 @@ export default function LifeChartPage() {
             />
           </div>
 
-          <div>
+          <div role="group" aria-label="Tipo de evento">
             <label className="block text-xs font-medium text-muted mb-1">Tipo</label>
             <div className="flex flex-wrap gap-1.5">
               {LIFE_CHART_EVENT_TYPES.map((t) => (
@@ -145,6 +146,7 @@ export default function LifeChartPage() {
                   key={t.key}
                   type="button"
                   onClick={() => setEventType(t.key)}
+                  aria-pressed={eventType === t.key}
                   className={`rounded-full border px-3 py-1 text-xs transition-colors ${
                     eventType === t.key
                       ? "border-primary bg-primary/10 text-foreground"
@@ -158,8 +160,9 @@ export default function LifeChartPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-muted mb-1">Descrição</label>
+            <label htmlFor="lc-label" className="block text-xs font-medium text-muted mb-1">Descrição</label>
             <input
+              id="lc-label"
               type="text"
               value={label}
               onChange={(e) => setLabel(e.target.value)}
@@ -170,10 +173,11 @@ export default function LifeChartPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-muted mb-1">
+            <label htmlFor="lc-notes" className="block text-xs font-medium text-muted mb-1">
               Notas (opcional)
             </label>
             <textarea
+              id="lc-notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               maxLength={500}

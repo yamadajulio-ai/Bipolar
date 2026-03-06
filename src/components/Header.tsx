@@ -29,7 +29,7 @@ export function Header({ isLoggedIn }: HeaderProps) {
         {isLoggedIn ? (
           <>
             {/* Desktop nav */}
-            <nav className="hidden items-center gap-3 text-sm lg:flex">
+            <nav aria-label="Navegação principal" className="hidden items-center gap-3 text-sm lg:flex">
               {navLinks.map((link) => (
                 <Link key={link.href} href={link.href} className="text-muted hover:text-foreground no-underline">
                   {link.label}
@@ -63,6 +63,8 @@ export function Header({ isLoggedIn }: HeaderProps) {
                 onClick={() => setMenuOpen(!menuOpen)}
                 className="rounded p-2 text-muted hover:bg-surface-alt"
                 aria-label="Menu"
+                aria-expanded={menuOpen}
+                aria-controls="mobile-menu"
               >
                 <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                   {menuOpen ? (
@@ -83,8 +85,8 @@ export function Header({ isLoggedIn }: HeaderProps) {
 
             {/* Mobile menu dropdown */}
             {menuOpen && (
-              <div className="absolute top-14 left-0 right-0 z-50 border-b border-border bg-surface p-4 shadow-lg lg:hidden">
-                <nav className="flex flex-col gap-3 text-sm">
+              <div id="mobile-menu" className="absolute top-14 left-0 right-0 z-50 border-b border-border bg-surface p-4 shadow-lg lg:hidden">
+                <nav aria-label="Navegação principal" className="flex flex-col gap-3 text-sm">
                   {navLinks.map((link) => (
                     <Link
                       key={link.href}

@@ -130,10 +130,11 @@ export default function CheckinPage() {
 
         {/* Sleep */}
         <Card>
-          <label className="block text-sm font-medium text-foreground mb-2">
+          <label htmlFor="sleep-hours" className="block text-sm font-medium text-foreground mb-2">
             Horas de sono
           </label>
           <input
+            id="sleep-hours"
             type="number"
             min={0}
             max={24}
@@ -146,22 +147,25 @@ export default function CheckinPage() {
 
         {/* Medication */}
         <Card>
-          <label className="block text-sm font-medium text-foreground mb-2">Medicação</label>
-          <div className="flex gap-2">
-            {MEDICATION_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => setMedication(opt.value)}
-                className={`flex-1 rounded-lg border px-2 py-2 text-xs font-medium transition-colors ${
-                  medication === opt.value
-                    ? "border-primary bg-primary text-white"
-                    : "border-border bg-surface text-muted hover:border-primary/50"
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
+          <div role="group" aria-label="Medicação">
+            <label className="block text-sm font-medium text-foreground mb-2">Medicação</label>
+            <div className="flex gap-2">
+              {MEDICATION_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setMedication(opt.value)}
+                  aria-pressed={medication === opt.value}
+                  className={`flex-1 rounded-lg border px-2 py-2 text-xs font-medium transition-colors ${
+                    medication === opt.value
+                      ? "border-primary bg-primary text-white"
+                      : "border-border bg-surface text-muted hover:border-primary/50"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
           </div>
         </Card>
 
@@ -171,12 +175,14 @@ export default function CheckinPage() {
             type="button"
             onClick={() => setShowSigns(!showSigns)}
             className="flex w-full items-center justify-between text-sm font-medium text-foreground"
+            aria-expanded={showSigns}
+            aria-controls="warning-signs-panel"
           >
             <span>Sinais de alerta {selectedSigns.length > 0 && `(${selectedSigns.length})`}</span>
-            <span className="text-muted">{showSigns ? "▲" : "▼"}</span>
+            <span className="text-muted" aria-hidden="true">{showSigns ? "▲" : "▼"}</span>
           </button>
           {showSigns && (
-            <div className="mt-3 space-y-2">
+            <div id="warning-signs-panel" className="mt-3 space-y-2">
               {WARNING_SIGNS.map((sign) => (
                 <label key={sign.key} className="flex items-center gap-2 text-sm">
                   <input

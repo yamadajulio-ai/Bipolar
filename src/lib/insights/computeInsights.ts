@@ -1741,7 +1741,9 @@ function computeHeatmapData(
   ninetyAgo.setDate(ninetyAgo.getDate() - 89);
 
   const entryMap = new Map(entries.map((e) => [e.date, e]));
-  const sleepMap = new Map(sleepLogs.map((s) => [s.date, s]));
+  // Filter out naps (<1h) to avoid painting noise on the heatmap
+  const realSleep = sleepLogs.filter((s) => s.totalHours >= 1);
+  const sleepMap = new Map(realSleep.map((s) => [s.date, s]));
 
   const days: HeatmapDay[] = [];
   const d = new Date(ninetyAgo);

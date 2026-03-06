@@ -4,9 +4,12 @@ import * as Sentry from "@sentry/nextjs";
 function scrubUrl(url: string | undefined): string | undefined {
   if (!url) return url;
   return url
-    .replace(/\/profissional\/[^/]+/g, "/profissional/[redacted]")
+    .replace(/\/profissional\/[^/?#]+/g, "/profissional/[redacted]")
+    .replace(/\/api\/acesso-profissional\/[^/?#]+/g, "/api/acesso-profissional/[redacted]")
     .replace(/\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, "/[uuid]")
-    .replace(/\/\d{2,}/g, "/[id]");
+    .replace(/\/\d{2,}/g, "/[id]")
+    .replace(/\/[A-Za-z0-9_-]{16,}/g, "/[token]")
+    .replace(/[?#].*$/, "");
 }
 
 Sentry.init({
@@ -30,6 +33,21 @@ Sentry.init({
     }
     if (event.transaction) {
       event.transaction = scrubUrl(event.transaction)!;
+    }
+    return event;
+  },
+  beforeSendTransaction(event) {
+    if (event.transaction) {
+      event.transaction = scrubUrl(event.transaction)!;
+    }
+    if (event.request?.url) {
+      event.request.url = scrubUrl(event.request.url)!;
+    }
+    if (event.spans) {
+      event.spans = event.spans.map((span) => ({
+        ...span,
+        description: span.description ? scrubUrl(span.description) : span.description,
+      }));
     }
     return event;
   },

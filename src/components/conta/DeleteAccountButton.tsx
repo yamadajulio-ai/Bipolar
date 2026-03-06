@@ -8,15 +8,13 @@ export function DeleteAccountButton() {
 
   async function handleDelete() {
     setLoading(true);
-    // Purge SW API cache before account deletion to prevent data leak
+    // Deterministic purge: delete API cache directly, notify SW for TTL cleanup
+    try { await caches.delete("rb-api-v2"); } catch { /* Cache API unavailable */ }
     if ("serviceWorker" in navigator) {
       try {
         const sw = navigator.serviceWorker.controller
           || (await navigator.serviceWorker.ready).active;
-        if (sw) {
-          sw.postMessage({ type: "CLEAR_AUTH_CACHES" });
-          await new Promise((r) => setTimeout(r, 100));
-        }
+        if (sw) sw.postMessage({ type: "CLEAR_AUTH_CACHES" });
       } catch { /* SW not available */ }
     }
     try {

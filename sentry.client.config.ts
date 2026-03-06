@@ -4,9 +4,61 @@ import * as Sentry from "@sentry/nextjs";
 function scrubUrl(url: string | undefined): string | undefined {
   if (!url) return url;
   return url
-    .replace(/\/profissional\/[^/]+/g, "/profissional/[redacted]")
+    // Known routes with sensitive tokens
+    .replace(/\/profissional\/[^/?#]+/g, "/profissional/[redacted]")
+    .replace(/\/api\/acesso-profissional\/[^/?#]+/g, "/api/acesso-profissional/[redacted]")
+    // UUIDs anywhere in path
     .replace(/\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, "/[uuid]")
-    .replace(/\/\d{2,}/g, "/[id]");
+    // Numeric IDs (2+ digits)
+    .replace(/\/\d{2,}/g, "/[id]")
+    // Long alphanumeric tokens (16+ chars, catch-all for other token patterns)
+    .replace(/\/[A-Za-z0-9_-]{16,}/g, "/[token]")
+    // Strip query string and hash from URL
+    .replace(/[?#].*$/, "");
+}
+
+function scrubEvent(event: Sentry.ErrorEvent) {
+  if (event.request?.url) {
+    event.request.url = scrubUrl(event.request.url)!;
+  }
+  if (event.request?.data) {
+    event.request.data = "[Filtered]";
+  }
+  if (event.request?.query_string) {
+    event.request.query_string = "[Filtered]";
+  }
+  if (event.request?.cookies) {
+    event.request.cookies = {};
+  }
+  // Scrub breadcrumb data — strict whitelist
+  if (event.breadcrumbs) {
+    event.breadcrumbs = event.breadcrumbs.map((b) => {
+      if (b.category === "fetch" || b.category === "xhr") {
+        return {
+          ...b,
+          data: {
+            url: scrubUrl(b.data?.url),
+            status_code: b.data?.status_code,
+            method: b.data?.method,
+          },
+        };
+      }
+      if (b.category === "navigation") {
+        return {
+          ...b,
+          data: {
+            from: scrubUrl(b.data?.from),
+            to: scrubUrl(b.data?.to),
+          },
+        };
+      }
+      return b;
+    });
+  }
+  if (event.transaction) {
+    event.transaction = scrubUrl(event.transaction)!;
+  }
+  return event;
 }
 
 Sentry.init({
@@ -18,47 +70,21 @@ Sentry.init({
   enabled: process.env.NODE_ENV === "production",
   sendDefaultPii: false,
   beforeSend(event) {
-    // Redact URL/path (may contain tokens/IDs)
+    return scrubEvent(event);
+  },
+  beforeSendTransaction(event) {
+    if (event.transaction) {
+      event.transaction = scrubUrl(event.transaction)!;
+    }
     if (event.request?.url) {
       event.request.url = scrubUrl(event.request.url)!;
     }
-    if (event.request?.data) {
-      event.request.data = "[Filtered]";
-    }
-    if (event.request?.query_string) {
-      event.request.query_string = "[Filtered]";
-    }
-    if (event.request?.cookies) {
-      event.request.cookies = {};
-    }
-    // Scrub breadcrumb data — strict whitelist (no ...b.data spread)
-    if (event.breadcrumbs) {
-      event.breadcrumbs = event.breadcrumbs.map((b) => {
-        if (b.category === "fetch" || b.category === "xhr") {
-          return {
-            ...b,
-            data: {
-              url: scrubUrl(b.data?.url),
-              status_code: b.data?.status_code,
-              method: b.data?.method,
-            },
-          };
-        }
-        if (b.category === "navigation") {
-          return {
-            ...b,
-            data: {
-              from: scrubUrl(b.data?.from),
-              to: scrubUrl(b.data?.to),
-            },
-          };
-        }
-        return b;
-      });
-    }
-    // Scrub transaction name (may contain dynamic route segments)
-    if (event.transaction) {
-      event.transaction = scrubUrl(event.transaction)!;
+    // Scrub span descriptions that may contain URLs
+    if (event.spans) {
+      event.spans = event.spans.map((span) => ({
+        ...span,
+        description: span.description ? scrubUrl(span.description) : span.description,
+      }));
     }
     return event;
   },

@@ -18,17 +18,19 @@ const navLinks = [
 ];
 
 async function clearSwCache() {
-  if (!("serviceWorker" in navigator)) return;
+  // Deterministic: delete API cache directly from client (Cache API is available in window)
   try {
-    // Try controller first, fall back to registration.active
-    const sw = navigator.serviceWorker.controller
-      || (await navigator.serviceWorker.ready).active;
-    if (sw) {
-      sw.postMessage({ type: "CLEAR_AUTH_CACHES" });
-      await new Promise((r) => setTimeout(r, 100));
-    }
+    await caches.delete("rb-api-v2");
   } catch {
-    // SW not available — cache will be cleared on next SW activation
+    // Cache API not available or already deleted
+  }
+  // Also notify SW to clear its in-memory TTL tracker
+  if ("serviceWorker" in navigator) {
+    try {
+      const sw = navigator.serviceWorker.controller
+        || (await navigator.serviceWorker.ready).active;
+      if (sw) sw.postMessage({ type: "CLEAR_AUTH_CACHES" });
+    } catch { /* SW not available */ }
   }
 }
 

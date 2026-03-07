@@ -180,6 +180,21 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
     autoSync();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Auto-refresh: re-sync Google Calendar every 5 minutes while page is open
+  useEffect(() => {
+    if (googleConnected !== true) return;
+    const INTERVAL = 5 * 60_000; // 5 minutes
+    const id = setInterval(async () => {
+      try {
+        await fetch("/api/google/sync", { method: "POST" });
+        await fetchData(weekStart);
+      } catch {
+        // non-blocking
+      }
+    }, INTERVAL);
+    return () => clearInterval(id);
+  }, [googleConnected, weekStart, fetchData]);
+
   // Fetch data when week changes (after initial load)
   useEffect(() => {
     if (didAutoSync.current) {

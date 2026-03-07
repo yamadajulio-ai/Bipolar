@@ -16,7 +16,7 @@ export async function GET() {
   return NextResponse.json({ connected: !!account });
 }
 
-export async function POST() {
+export async function POST(request: Request) {
   const session = await getSession();
   if (!session.isLoggedIn) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
@@ -30,6 +30,15 @@ export async function POST() {
       { error: "Google Calendar não conectado" },
       { status: 400 },
     );
+  }
+
+  // ?full=1 resets syncToken to force a complete re-sync
+  const url = new URL(request.url);
+  if (url.searchParams.get("full") === "1") {
+    await prisma.googleAccount.update({
+      where: { userId: session.userId },
+      data: { syncToken: null },
+    });
   }
 
   try {

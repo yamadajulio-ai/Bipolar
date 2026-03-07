@@ -222,7 +222,8 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
     if (syncing) return;
     setSyncing(true);
     try {
-      await fetch("/api/google/sync", { method: "POST" });
+      // Full sync resets syncToken to re-import all events
+      await fetch("/api/google/sync?full=1", { method: "POST" });
       await fetchData(weekStart);
     } catch {
       // silent

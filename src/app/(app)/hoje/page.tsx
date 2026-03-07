@@ -119,9 +119,12 @@ export default async function HojePage() {
     sleepHours: e.sleepHours,
   }));
 
-  // Latest news (3 items for preview)
-  const latestNews = await getNews();
-  const newsPreview = latestNews.slice(0, 3);
+  // Latest news (3 items for preview) — external API, may fail
+  let newsPreview: Awaited<ReturnType<typeof getNews>> = [];
+  try {
+    const latestNews = await getNews();
+    newsPreview = latestNews.slice(0, 3);
+  } catch { /* External API failure — page renders without news */ }
 
   // Serialize blocks for client component
   const serializedBlocks = blocks.map((b) => ({

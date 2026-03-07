@@ -121,7 +121,7 @@ Sentry.init({
       event.spans = event.spans.map((span) => ({
         ...span,
         description: span.description ? scrubUrl(span.description) : span.description,
-        data: scrubSpanData(span.data),
+        ...(span.data ? { data: scrubSpanData(span.data) as typeof span.data } : {}),
       }));
     }
     return event;

@@ -19,7 +19,9 @@ export async function GET(request: NextRequest) {
   const nextMonth = mon === 12 ? `${year + 1}-01` : `${year}-${String(mon + 1).padStart(2, "0")}`;
   const endDate = `${nextMonth}-01`;
 
-  const [entries, sleepLogs, exerciseSessions, rhythms, weeklyAssessments, lifeChartEvents, functioningAssessments] = await Promise.all([
+  let entries, sleepLogs, exerciseSessions, rhythms, weeklyAssessments, lifeChartEvents, functioningAssessments;
+  try {
+    [entries, sleepLogs, exerciseSessions, rhythms, weeklyAssessments, lifeChartEvents, functioningAssessments] = await Promise.all([
     prisma.diaryEntry.findMany({
       where: { userId: session.userId, date: { gte: startDate, lt: endDate } },
       orderBy: { date: "asc" },
@@ -47,6 +49,9 @@ export async function GET(request: NextRequest) {
       orderBy: { date: "asc" },
     }),
   ]);
+  } catch {
+    return NextResponse.json({ error: "Erro ao buscar dados" }, { status: 500 });
+  }
 
   // Aggregations
   const moods = entries.map((e) => e.mood);

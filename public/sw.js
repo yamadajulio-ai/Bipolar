@@ -155,12 +155,12 @@ self.addEventListener("message", (event) => {
 });
 
 function trackTimestamp(key) {
-  apiTimestamps.set(key, Date.now());
-  if (apiTimestamps.size > API_TIMESTAMPS_MAX) {
-    // Delete oldest entry (Map preserves insertion order)
+  // Evict oldest before insert to stay within cap
+  if (!apiTimestamps.has(key) && apiTimestamps.size >= API_TIMESTAMPS_MAX) {
     const oldest = apiTimestamps.keys().next().value;
     apiTimestamps.delete(oldest);
   }
+  apiTimestamps.set(key, Date.now());
 }
 
 // --- Helpers ---

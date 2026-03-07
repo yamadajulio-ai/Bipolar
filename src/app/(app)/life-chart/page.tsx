@@ -41,8 +41,12 @@ export default function LifeChartPage() {
       if (res.ok) {
         const data = await res.json();
         setEvents(data);
+      } else {
+        setError("Erro ao carregar eventos.");
       }
-    } catch { /* ignore */ } finally {
+    } catch {
+      setError("Erro de conexão ao carregar eventos.");
+    } finally {
       setLoading(false);
     }
   }, []);
@@ -86,10 +90,17 @@ export default function LifeChartPage() {
   }
 
   async function handleDelete(id: string) {
+    if (!confirm("Remover este evento? Esta ação não pode ser desfeita.")) return;
     try {
-      await fetch(`/api/life-chart?id=${id}`, { method: "DELETE" });
-      setEvents((prev) => prev.filter((e) => e.id !== id));
-    } catch { /* ignore */ }
+      const res = await fetch(`/api/life-chart?id=${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setEvents((prev) => prev.filter((e) => e.id !== id));
+      } else {
+        setError("Erro ao remover evento.");
+      }
+    } catch {
+      setError("Erro de conexão ao remover evento.");
+    }
   }
 
   // Group events by month

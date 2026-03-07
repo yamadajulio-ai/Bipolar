@@ -32,6 +32,20 @@ Sentry.init({
   environment: process.env.NODE_ENV,
   enabled: process.env.NODE_ENV === "production",
   sendDefaultPii: false,
+  beforeBreadcrumb(breadcrumb) {
+    if (breadcrumb.category === "http" || breadcrumb.category === "fetch") {
+      return {
+        ...breadcrumb,
+        data: breadcrumb.data?.url
+          ? { url: scrubUrl(breadcrumb.data.url), status_code: breadcrumb.data.status_code, method: breadcrumb.data.method }
+          : undefined,
+      };
+    }
+    if (typeof breadcrumb.data?.url === "string") {
+      return { ...breadcrumb, data: { ...breadcrumb.data, url: scrubUrl(breadcrumb.data.url) } };
+    }
+    return breadcrumb;
+  },
   beforeSend(event) {
     if (event.request?.url) {
       event.request.url = scrubUrl(event.request.url)!;
@@ -69,7 +83,7 @@ Sentry.init({
       event.spans = event.spans.map((span) => ({
         ...span,
         description: span.description ? scrubUrl(span.description) : span.description,
-        data: scrubSpanData(span.data),
+        ...(span.data ? { data: scrubSpanData(span.data) as typeof span.data } : {}),
       }));
     }
     return event;

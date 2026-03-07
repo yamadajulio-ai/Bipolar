@@ -5,10 +5,9 @@ import { useState } from "react";
 export function DeleteAccountButton() {
   const [confirming, setConfirming] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  async function handleDelete() {
-    setLoading(true);
-    // Deterministic purge: delete API cache directly, notify SW for TTL cleanup
+  async function purgeLocalCaches() {
     try { await caches.delete("rb-api-v2"); } catch { /* Cache API unavailable */ }
     if ("serviceWorker" in navigator) {
       try {
@@ -17,17 +16,26 @@ export function DeleteAccountButton() {
         if (sw) sw.postMessage({ type: "CLEAR_AUTH_CACHES" });
       } catch { /* SW not available */ }
     }
+  }
+
+  async function handleDelete() {
+    setLoading(true);
+    setError("");
     try {
       const res = await fetch("/api/auth/excluir-conta", { method: "POST" });
       if (res.redirected) {
+        await purgeLocalCaches();
         window.location.href = res.url;
       } else if (res.ok) {
+        await purgeLocalCaches();
         window.location.href = "/";
       } else {
+        setError("Não foi possível excluir a conta. Tente novamente.");
         setLoading(false);
         setConfirming(false);
       }
     } catch {
+      setError("Erro de conexão. Verifique sua internet e tente novamente.");
       setLoading(false);
       setConfirming(false);
     }
@@ -46,6 +54,9 @@ export function DeleteAccountButton() {
 
   return (
     <div className="space-y-2">
+      {error && (
+        <p className="text-sm text-danger" role="alert">{error}</p>
+      )}
       <p className="text-sm font-medium text-danger">
         Tem certeza? Todos os dados serão excluídos permanentemente.
       </p>

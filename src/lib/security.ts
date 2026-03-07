@@ -46,12 +46,20 @@ export async function checkRateLimit(
  */
 export function maskIp(ip: string | null): string | null {
   if (!ip) return null;
+  // IPv4: mask to /24
   const parts = ip.split(".");
   if (parts.length === 4) {
     parts[3] = "0";
     return parts.join(".");
   }
-  return ip; // IPv6 or unusual format — keep as-is
+  // IPv6: mask to /64 (keep first 4 groups)
+  if (ip.includes(":")) {
+    const groups = ip.split(":");
+    if (groups.length >= 4) {
+      return groups.slice(0, 4).join(":") + ":0:0:0:0";
+    }
+  }
+  return "[masked]";
 }
 
 export function sanitizeInput(input: string): string {

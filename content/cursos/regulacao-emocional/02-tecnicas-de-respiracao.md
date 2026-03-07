@@ -2,6 +2,7 @@
 title: "Técnicas de Respiração"
 description: "Técnicas de respiração que ajudam a regular o sistema nervoso e lidar com emoções intensas"
 lessonNumber: 2
+videoUrl: "https://www.youtube.com/watch?v=z2EwvVotdNA"
 ---
 
 # Técnicas de Respiração

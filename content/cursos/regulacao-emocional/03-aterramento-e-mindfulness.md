@@ -2,6 +2,7 @@
 title: "Aterramento e Mindfulness"
 description: "Técnicas de aterramento (grounding) e práticas básicas de mindfulness para se reconectar com o presente"
 lessonNumber: 3
+videoUrl: "https://www.youtube.com/watch?v=9Zg4RuLPQPc"
 ---
 
 # Aterramento e Mindfulness

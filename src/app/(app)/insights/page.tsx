@@ -147,7 +147,7 @@ export default async function InsightsPage({
   cutoff30.setDate(cutoff30.getDate() - 30);
   const cutoff30Str = cutoff30.toLocaleDateString("sv-SE", { timeZone: TZ });
 
-  const [allSleepLogs, allEntries, rhythms, rawPlannerBlocks] = await Promise.all([
+  const [allSleepLogs, allEntries, rhythms, rawPlannerBlocks, financialTxs] = await Promise.all([
     prisma.sleepLog.findMany({
       where: { userId: session.userId, date: { gte: cutoff90Str } },
       orderBy: { date: "asc" },
@@ -169,6 +169,10 @@ export default async function InsightsPage({
       select: { startAt: true, category: true },
       orderBy: { startAt: "asc" },
     }),
+    prisma.financialTransaction.findMany({
+      where: { userId: session.userId, date: { gte: cutoff30Str } },
+      select: { date: true, amount: true },
+    }),
   ]);
 
   // Entries for core metrics (30d) vs full 90d for heatmap/cycling/seasonality
@@ -189,7 +193,7 @@ export default async function InsightsPage({
     };
   });
 
-  const insights = computeInsights(sleepLogsForInsights, entries, rhythms, plannerBlocks, now, TZ, allEntries, allSleepLogs);
+  const insights = computeInsights(sleepLogsForInsights, entries, rhythms, plannerBlocks, now, TZ, allEntries, allSleepLogs, financialTxs);
 
   // Filter anchors that have data for the IPSRT section
   const anchorsWithData = Object.entries(insights.rhythm.anchors)

@@ -61,8 +61,15 @@ export default async function CursoPage({
                   <span className="flex h-7 w-7 items-center justify-center rounded-full bg-surface-alt text-xs font-semibold text-muted">
                     {lesson.lessonNumber}
                   </span>
-                  <div>
-                    <h3 className="font-medium text-foreground">{lesson.title}</h3>
+                  <div className="flex-1">
+                    <h3 className="font-medium text-foreground">
+                      {lesson.title}
+                      {lesson.videoUrl && (
+                        <span className="ml-1.5 inline-block rounded bg-red-100 px-1.5 py-0.5 align-middle text-[10px] font-medium text-red-700">
+                          Video
+                        </span>
+                      )}
+                    </h3>
                     {lesson.description && (
                       <p className="text-xs text-muted">{lesson.description}</p>
                     )}

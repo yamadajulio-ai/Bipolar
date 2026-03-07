@@ -2,6 +2,7 @@
 title: "Episódios Maníacos"
 description: "O que são episódios maníacos, seus principais sintomas e os riscos envolvidos"
 lessonNumber: 2
+videoUrl: "https://www.youtube.com/watch?v=zr3qGcKTMYk"
 ---
 
 # Episódios Maníacos

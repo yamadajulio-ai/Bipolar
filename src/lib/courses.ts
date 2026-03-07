@@ -8,6 +8,17 @@ import rehypeStringify from "rehype-stringify";
 
 const coursesDirectory = path.join(process.cwd(), "content", "cursos");
 
+const ALLOWED_VIDEO_DOMAINS = ["youtube.com", "www.youtube.com", "youtu.be", "m.youtube.com"];
+
+function sanitizeVideoUrl(url: string | undefined): string | null {
+  if (!url) return null;
+  try {
+    const u = new URL(url);
+    if (ALLOWED_VIDEO_DOMAINS.includes(u.hostname)) return url;
+  } catch { /* invalid URL */ }
+  return null;
+}
+
 export interface CourseInfo {
   slug: string;
   title: string;
@@ -21,6 +32,7 @@ export interface LessonInfo {
   title: string;
   description: string;
   lessonNumber: number;
+  videoUrl: string | null;
 }
 
 export interface LessonContent extends LessonInfo {
@@ -72,6 +84,7 @@ export function getCourseLessons(courseSlug: string): LessonInfo[] {
       title: data.title || slug,
       description: data.description || "",
       lessonNumber: data.lessonNumber || parseInt(slug.split("-")[0]) || 0,
+      videoUrl: sanitizeVideoUrl(data.videoUrl),
     };
   });
 }
@@ -95,6 +108,7 @@ export async function getLessonContent(courseSlug: string, lessonSlug: string): 
     title: data.title || lessonSlug,
     description: data.description || "",
     lessonNumber: data.lessonNumber || parseInt(lessonSlug.split("-")[0]) || 0,
+    videoUrl: sanitizeVideoUrl(data.videoUrl),
     contentHtml: processed.toString(),
   };
 }

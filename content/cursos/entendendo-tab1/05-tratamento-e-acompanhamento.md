@@ -2,6 +2,7 @@
 title: "Tratamento e Acompanhamento"
 description: "A importância do tratamento contínuo com medicação e psicoterapia, e como acessar ajuda no Brasil pelo SUS e CAPS"
 lessonNumber: 5
+videoUrl: "https://www.youtube.com/watch?v=0LwPFi948IY"
 ---
 
 # Tratamento e Acompanhamento

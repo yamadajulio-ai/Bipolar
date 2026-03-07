@@ -9,12 +9,15 @@ const transactionSchema = z.object({
   amount: z.number(),
   category: z.string().min(1).max(100),
   account: z.string().max(100).optional(),
+  occurredAt: z.string().datetime().optional(),
 });
+
+const HEADERS = { "Cache-Control": "no-store" };
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
   if (!session.isLoggedIn) {
-    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    return NextResponse.json({ error: "Não autorizado" }, { status: 401, headers: HEADERS });
   }
 
   const { searchParams } = new URL(request.url);
@@ -37,13 +40,13 @@ export async function GET(request: NextRequest) {
     orderBy: { date: "desc" },
   });
 
-  return NextResponse.json(transactions);
+  return NextResponse.json(transactions, { headers: HEADERS });
 }
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
   if (!session.isLoggedIn) {
-    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    return NextResponse.json({ error: "Não autorizado" }, { status: 401, headers: HEADERS });
   }
 
   try {
@@ -57,7 +60,7 @@ export async function POST(request: NextRequest) {
         if (!fieldErrors[key]) fieldErrors[key] = [];
         fieldErrors[key].push(issue.message);
       }
-      return NextResponse.json({ errors: fieldErrors }, { status: 400 });
+      return NextResponse.json({ errors: fieldErrors }, { status: 400, headers: HEADERS });
     }
 
     const tx = await prisma.financialTransaction.create({
@@ -68,15 +71,16 @@ export async function POST(request: NextRequest) {
         amount: parsed.data.amount,
         category: parsed.data.category,
         account: parsed.data.account || null,
+        occurredAt: parsed.data.occurredAt ? new Date(parsed.data.occurredAt) : null,
         source: "manual",
       },
     });
 
-    return NextResponse.json(tx, { status: 201 });
+    return NextResponse.json(tx, { status: 201, headers: HEADERS });
   } catch {
     return NextResponse.json(
       { error: "Erro ao criar transação." },
-      { status: 500 },
+      { status: 500, headers: HEADERS },
     );
   }
 }

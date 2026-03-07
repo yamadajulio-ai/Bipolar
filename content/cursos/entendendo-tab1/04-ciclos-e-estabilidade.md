@@ -2,6 +2,7 @@
 title: "Ciclos e Estabilidade"
 description: "Entendendo os ciclos do TAB, o conceito de eutimia e os principais gatilhos de novos episódios"
 lessonNumber: 4
+videoUrl: "https://www.youtube.com/watch?v=Ng2ygK98ii8"
 ---
 
 # Ciclos e Estabilidade

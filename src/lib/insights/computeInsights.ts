@@ -37,6 +37,11 @@ export interface PlannerBlockInput {
   category: string;
 }
 
+export interface FinancialTxInput {
+  date: string;   // YYYY-MM-DD
+  amount: number; // negative = expense
+}
+
 // ── Output types ────────────────────────────────────────────
 
 type StatusColor = "green" | "yellow" | "red";
@@ -988,6 +993,7 @@ function computeRiskScore(
   sleepLogs: SleepLogInput[],
   today: Date,
   tz: string,
+  financialTxs?: FinancialTxInput[],
 ): RiskScore | null {
   if (sleep.recordCount < 7 || entries.length < 7) return null;
 
@@ -1049,6 +1055,49 @@ function computeRiskScore(
   if (matchedSigns.length >= 2) {
     score += 1;
     factors.push("Sinais de alerta ativos");
+  }
+
+  // Financial spending spikes (DSM: "unrestrained buying sprees")
+  if (financialTxs && financialTxs.length > 0) {
+    const dailyExp: Record<string, number> = {};
+    for (const tx of financialTxs) {
+      if (tx.amount < 0) {
+        if (!dailyExp[tx.date]) dailyExp[tx.date] = 0;
+        dailyExp[tx.date] += Math.abs(tx.amount);
+      }
+    }
+    const expValues = Object.values(dailyExp);
+    if (expValues.length >= 5) {
+      const sorted = [...expValues].sort((a, b) => a - b);
+      const mid = Math.floor(sorted.length / 2);
+      const med = sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+      const devs = expValues.map((x) => Math.abs(x - med));
+      const devsSorted = [...devs].sort((a, b) => a - b);
+      const madMid = Math.floor(devsSorted.length / 2);
+      const madVal = devsSorted.length % 2 !== 0 ? devsSorted[madMid] : (devsSorted[madMid - 1] + devsSorted[madMid]) / 2;
+      const sigma = madVal * 1.4826;
+
+      // Check last 7 days for spending spikes
+      const str7 = dateStr(sevenAgo, tz);
+      const recentSpikes = Object.entries(dailyExp)
+        .filter(([date, val]) => date >= str7 && sigma > 0 && (val - med) / sigma >= 2 && (val - med) >= 50);
+
+      if (recentSpikes.length > 0) {
+        score += 2;
+        factors.push(`Gasto atípico em ${recentSpikes.length} dia(s) recente(s)`);
+
+        // Extra risk if combined with short sleep or high energy
+        const spikeWithContext = recentSpikes.some(([date]) => {
+          const sleepDay = sortedSleep.find((s) => s.date === date);
+          const entryDay = sortedEntries.find((e) => e.date === date);
+          return (sleepDay && sleepDay.totalHours < 6) || (entryDay && entryDay.energyLevel !== null && entryDay.energyLevel >= 4);
+        });
+        if (spikeWithContext) {
+          score += 1;
+          factors.push("Gasto atípico + sono curto ou energia alta");
+        }
+      }
+    }
   }
 
   // Good medication adherence reduces score
@@ -1777,13 +1826,15 @@ export function computeInsights(
   entries90?: DiaryEntryInput[],
   /** Optional extended sleep logs (90d) for P2 features (heatmap). Falls back to sleepLogs. */
   sleepLogs90?: SleepLogInput[],
+  /** Optional financial transactions (30d) for risk score integration. */
+  financialTxs?: FinancialTxInput[],
 ): InsightsResult {
   const sleep = computeSleepInsights(sleepLogs, today, tz);
   const mood = computeMoodInsights(entries, today, tz);
   const rhythm = computeRhythmInsights(rhythms, sleepLogs, plannerBlocks ?? []);
   const chart = computeChartInsights(entries, sleepLogs);
   const combinedPatterns = computeCombinedPatterns(sleepLogs, entries);
-  const risk = computeRiskScore(sleep, mood, entries, sleepLogs, today, tz);
+  const risk = computeRiskScore(sleep, mood, entries, sleepLogs, today, tz, financialTxs);
   const thermometer = computeMoodThermometer(entries, sleepLogs, today, tz);
 
   // P2 features — use extended data (90d) when available

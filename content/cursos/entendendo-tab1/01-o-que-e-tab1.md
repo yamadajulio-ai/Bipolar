@@ -2,6 +2,7 @@
 title: "O que é o Transtorno Afetivo Bipolar Tipo 1"
 description: "Definições básicas sobre o TAB tipo 1, desmistificando preconceitos e entendendo que não se trata de falha de caráter"
 lessonNumber: 1
+videoUrl: "https://www.youtube.com/watch?v=E1bU1AgWTvo"
 ---
 
 # O que é o Transtorno Afetivo Bipolar Tipo 1

@@ -29,6 +29,7 @@ model User {
   integrationKeys       IntegrationKey[]
   healthMetrics         HealthMetric[]
   financialTransactions FinancialTransaction[]
+  alertFeedbacks        AlertFeedback[]
   sosEvents             SOSEvent[]
   socioeconomicProfile  SocioeconomicProfile?
   professionalAccesses  ProfessionalAccess[]
@@ -363,20 +364,35 @@ model SOSEvent {
 }
 
 model FinancialTransaction {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   userId      String
-  date        String   // YYYY-MM-DD
+  date        String    // YYYY-MM-DD
   description String
-  amount      Float    // positivo = receita, negativo = despesa
+  amount      Float     // positivo = receita, negativo = despesa
   category    String
   account     String?
-  source      String   @default("manual") // "manual" | "mobills_csv"
-  createdAt   DateTime @default(now())
+  source      String    @default("manual") // "manual" | "mobills_csv"
+  occurredAt  DateTime? // horário real da transação (para detectar gastos noturnos)
+  createdAt   DateTime  @default(now())
 
   user        User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, date])
   @@unique([userId, date, description, amount])
+}
+
+model AlertFeedback {
+  id        String   @id @default(uuid())
+  userId    String
+  alertType String   // "spending_spike" | "frequency_spike" | "sustained_increase"
+  alertDate String   // YYYY-MM-DD
+  useful    Boolean
+  createdAt DateTime @default(now())
+
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, alertType, alertDate])
+  @@index([userId])
 }
 
 // ── LGPD — Consentimentos ─────────────────────────────────────────

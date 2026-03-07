@@ -2,6 +2,7 @@
 title: "Episódios Depressivos"
 description: "O que são episódios depressivos no TAB tipo 1 e como eles se diferenciam da tristeza comum"
 lessonNumber: 3
+videoUrl: "https://www.youtube.com/watch?v=zr3qGcKTMYk"
 ---
 
 # Episódios Depressivos

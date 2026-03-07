@@ -13,6 +13,16 @@ interface LessonData {
   contentHtml: string;
   courseSlug: string;
   slug: string;
+  videoUrl: string | null;
+}
+
+function extractYouTubeId(url: string): string | null {
+  try {
+    const u = new URL(url);
+    if (u.hostname === "youtu.be") return u.pathname.slice(1);
+    if (u.hostname.includes("youtube.com")) return u.searchParams.get("v");
+  } catch { /* invalid URL */ }
+  return null;
 }
 
 export default function AulaPage() {
@@ -63,6 +73,8 @@ export default function AulaPage() {
     );
   }
 
+  const videoId = lesson.videoUrl ? extractYouTubeId(lesson.videoUrl) : null;
+
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <Link href={`/cursos/${cursoSlug}`} className="text-sm text-primary hover:underline">
@@ -77,6 +89,19 @@ export default function AulaPage() {
       <Alert variant="info">
         Conteúdo educacional. Não substitui orientação de profissionais de saúde.
       </Alert>
+
+      {/* Video embed */}
+      {videoId && (
+        <div className="relative w-full overflow-hidden rounded-lg" style={{ paddingBottom: "56.25%" }}>
+          <iframe
+            className="absolute inset-0 h-full w-full"
+            src={`https://www.youtube-nocookie.com/embed/${videoId}?rel=0`}
+            title={lesson.title}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        </div>
+      )}
 
       <Card>
         <div

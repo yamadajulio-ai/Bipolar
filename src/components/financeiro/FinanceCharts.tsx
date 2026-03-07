@@ -9,6 +9,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  Legend,
   ResponsiveContainer,
   Cell,
   ReferenceLine,
@@ -39,9 +40,14 @@ export function CategoryChart({ data }: { data: CategoryData[] }) {
     isExpense: d.total < 0,
   }));
 
+  const topExpense = chartData.filter((d) => d.isExpense).slice(0, 3);
+  const srText = `Categorias: ${topExpense.map((d) => `${d.name} R$${d.valor.toFixed(0)}`).join(", ")}`;
+
   return (
     <div>
       <h3 className="mb-2 text-sm font-medium">Por Categoria</h3>
+      <p className="sr-only">{srText}</p>
+      <div role="img" aria-label={srText}>
       <ResponsiveContainer width="100%" height={200}>
         <BarChart data={chartData} layout="vertical" margin={{ left: 80 }}>
           <CartesianGrid strokeDasharray="3 3" />
@@ -55,6 +61,7 @@ export function CategoryChart({ data }: { data: CategoryData[] }) {
           </Bar>
         </BarChart>
       </ResponsiveContainer>
+      </div>
     </div>
   );
 }
@@ -90,7 +97,46 @@ export function MoodSpendingChart({ data }: { data: MoodCorrelation[] }) {
   );
 }
 
-export function SpendingTrendChart({ data, dailyAverage }: { data: SpendingTrendData[]; dailyAverage: number }) {
+interface MonthlyHistoryData {
+  month: string;
+  label: string;
+  income: number;
+  expense: number;
+}
+
+export function YearlyComparisonChart({ data }: { data: MonthlyHistoryData[] }) {
+  if (data.length < 2) return null;
+
+  const hasData = data.some((d) => d.income > 0 || d.expense > 0);
+  if (!hasData) return null;
+
+  const totalIncome = data.reduce((s, d) => s + d.income, 0);
+  const totalExpense = data.reduce((s, d) => s + d.expense, 0);
+  const peakMonth = data.reduce((max, d) => d.expense > max.expense ? d : max, data[0]);
+  const srText = `Últimos 12 meses: receita total R$${totalIncome.toFixed(0)}, despesa total R$${totalExpense.toFixed(0)}. Maior despesa em ${peakMonth.label}: R$${peakMonth.expense.toFixed(0)}`;
+
+  return (
+    <div>
+      <h3 className="mb-2 text-sm font-medium">Últimos 12 meses</h3>
+      <p className="sr-only">{srText}</p>
+      <div role="img" aria-label={srText}>
+      <ResponsiveContainer width="100%" height={220}>
+        <BarChart data={data}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="label" tick={{ fontSize: 10 }} />
+          <YAxis tick={{ fontSize: 10 }} />
+          <Tooltip formatter={(v) => `R$ ${Number(v).toFixed(2)}`} />
+          <Legend wrapperStyle={{ fontSize: 11 }} />
+          <Bar dataKey="income" fill="#22c55e" name="Receita" />
+          <Bar dataKey="expense" fill="#ef4444" name="Despesa" />
+        </BarChart>
+      </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
+export function SpendingTrendChart({ data, dailyAverage, dailyMedian }: { data: SpendingTrendData[]; dailyAverage: number; dailyMedian?: number }) {
   if (data.length < 2) return null;
 
   const chartData = data.map((d) => ({
@@ -98,21 +144,34 @@ export function SpendingTrendChart({ data, dailyAverage }: { data: SpendingTrend
     gasto: d.spending,
   }));
 
+  const maxDay = chartData.reduce((max, d) => d.gasto > max.gasto ? d : max, chartData[0]);
+  const trendSrText = `Gastos diários: ${chartData.length} dias, pico R$${maxDay.gasto.toFixed(0)} em ${maxDay.date}${dailyMedian != null ? `, mediana R$${dailyMedian.toFixed(0)}` : ""}`;
+
   return (
     <div>
       <h3 className="mb-2 text-sm font-medium">Gastos ao longo do mês</h3>
+      <p className="sr-only">{trendSrText}</p>
+      <div role="img" aria-label={trendSrText}>
       <ResponsiveContainer width="100%" height={180}>
         <LineChart data={chartData}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="date" tick={{ fontSize: 10 }} />
           <YAxis tick={{ fontSize: 10 }} />
           <Tooltip formatter={(v) => `R$ ${Number(v).toFixed(2)}`} />
+          {dailyMedian != null && dailyMedian > 0 && (
+            <ReferenceLine
+              y={dailyMedian}
+              stroke="#527a6e"
+              strokeDasharray="5 3"
+              label={{ value: "Mediana", position: "right", fontSize: 10, fill: "#527a6e" }}
+            />
+          )}
           {dailyAverage > 0 && (
             <ReferenceLine
               y={dailyAverage}
               stroke="#f59e0b"
               strokeDasharray="5 3"
-              label={{ value: "Média", position: "right", fontSize: 10, fill: "#f59e0b" }}
+              label={{ value: "Média", position: "left", fontSize: 10, fill: "#f59e0b" }}
             />
           )}
           <Line
@@ -125,6 +184,7 @@ export function SpendingTrendChart({ data, dailyAverage }: { data: SpendingTrend
           />
         </LineChart>
       </ResponsiveContainer>
+      </div>
     </div>
   );
 }

@@ -16,7 +16,7 @@ export default function LandingPage() {
           <div className="relative mx-auto flex max-w-5xl flex-col items-center px-4 pb-10 pt-12 text-center md:pt-16">
             <div className="mb-8 flex items-center justify-center">
               <div className="relative flex h-32 w-40 items-center justify-center">
-                <div className="absolute bottom-4 left-3 h-14 w-16 rotate-[12deg] rounded-b-full rounded-tr-full bg-[#d4a574] opacity-50" />
+                <div className="absolute bottom-4 left-3 h-14 w-16 rotate-[12deg] rounded-b-full rounded-tr-full bg-[#7da399] opacity-50" />
                 <div className="absolute bottom-4 right-3 h-14 w-16 -rotate-[12deg] rounded-b-full rounded-tl-full bg-[#a1887f] opacity-50" />
                 <div className="relative z-10 flex flex-col items-center">
                   <div className="h-7 w-7 rounded-full bg-[#4ade80]" />

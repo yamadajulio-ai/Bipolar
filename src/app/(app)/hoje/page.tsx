@@ -18,7 +18,7 @@ function formatSleepDuration(hours: number): string {
 const moodLabels: Record<number, { text: string; color: string }> = {
   1: { text: "Muito deprimido", color: "text-red-600" },
   2: { text: "Deprimido", color: "text-orange-600" },
-  3: { text: "Eutímico (estável)", color: "text-green-700" },
+  3: { text: "Eutímico (estável)", color: "text-emerald-700" },
   4: { text: "Elevado", color: "text-amber-600" },
   5: { text: "Muito elevado", color: "text-red-600" },
 };
@@ -26,7 +26,7 @@ const moodLabels: Record<number, { text: string; color: string }> = {
 const energyLabels: Record<number, { text: string; color: string }> = {
   1: { text: "Muito baixa", color: "text-red-600" },
   2: { text: "Baixa", color: "text-orange-600" },
-  3: { text: "Normal", color: "text-green-700" },
+  3: { text: "Normal", color: "text-emerald-700" },
   4: { text: "Alta", color: "text-amber-600" },
   5: { text: "Muito alta", color: "text-red-600" },
 };
@@ -160,26 +160,26 @@ export default async function HojePage() {
             </Card>
           </Link>
         ) : (
-          <Card className="border-green-200 bg-green-50/50 text-center py-5">
+          <Card className="border-emerald-200 bg-emerald-50/50 text-center py-5">
             <div className="text-2xl mb-1">&#9989;</div>
-            <p className="font-semibold text-green-700">Check-in feito</p>
-            <p className="text-xs text-green-600 mt-1">Humor, energia e medicação registrados</p>
+            <p className="font-semibold text-emerald-700">Check-in feito</p>
+            <p className="text-xs text-emerald-600 mt-1">Humor, energia e medicação registrados</p>
           </Card>
         )}
 
         {!todaySleep ? (
           <Link href="/sono/novo" className="block no-underline">
-            <Card className="border-indigo-200 bg-indigo-50/50 hover:bg-indigo-50 transition-colors text-center py-5">
+            <Card className="border-primary/20 bg-primary/5 hover:bg-primary/10 transition-colors text-center py-5">
               <div className="text-2xl mb-1">&#127769;</div>
               <p className="font-semibold text-foreground">Registrar sono</p>
               <p className="text-xs text-muted mt-1">Como foi a noite passada?</p>
             </Card>
           </Link>
         ) : (
-          <Card className="border-green-200 bg-green-50/50 text-center py-5">
+          <Card className="border-emerald-200 bg-emerald-50/50 text-center py-5">
             <div className="text-2xl mb-1">&#9989;</div>
-            <p className="font-semibold text-green-700">Sono registrado</p>
-            <p className="text-xs text-green-600 mt-1">{formatSleepDuration(todaySleep.totalHours)} dormidas</p>
+            <p className="font-semibold text-emerald-700">Sono registrado</p>
+            <p className="text-xs text-emerald-600 mt-1">{formatSleepDuration(todaySleep.totalHours)} dormidas</p>
           </Card>
         )}
       </div>
@@ -209,7 +209,7 @@ export default async function HojePage() {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted">Medicação (hoje)</span>
-              <span className={`text-sm font-medium ${todayEntry.tookMedication === "sim" ? "text-green-700" : todayEntry.tookMedication === "nao" ? "text-red-600" : "text-muted"}`}>
+              <span className={`text-sm font-medium ${todayEntry.tookMedication === "sim" ? "text-emerald-700" : todayEntry.tookMedication === "nao" ? "text-red-600" : "text-muted"}`}>
                 {todayEntry.tookMedication === "sim" ? "Tomou" : todayEntry.tookMedication === "nao" ? "Não tomou" : "Não informado"}
               </span>
             </div>
@@ -232,9 +232,9 @@ export default async function HojePage() {
           </div>
           <div className="flex flex-wrap gap-2">
             {anchors.map((a) => (
-              <div key={a.label} className="rounded-lg bg-indigo-50 px-3 py-1.5 text-sm">
-                <span className="font-medium text-indigo-700">{a.time}</span>
-                <span className="ml-1.5 text-indigo-600">{a.label}</span>
+              <div key={a.label} className="rounded-lg bg-primary/10 px-3 py-1.5 text-sm">
+                <span className="font-medium text-primary-dark">{a.time}</span>
+                <span className="ml-1.5 text-primary">{a.label}</span>
               </div>
             ))}
           </div>

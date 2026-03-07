@@ -40,8 +40,8 @@ export function MiniTrendChart({ data }: MiniTrendChartProps) {
               [name === "mood" ? `${value}/5` : `${value}h`, name === "mood" ? "Humor" : "Sono"]
             }
           />
-          <Line yAxisId="mood" type="monotone" dataKey="mood" stroke="#6366f1" strokeWidth={2} dot={false} />
-          <Line yAxisId="sleep" type="monotone" dataKey="sleepHours" stroke="#3b82f6" strokeWidth={2} dot={false} />
+          <Line yAxisId="mood" type="monotone" dataKey="mood" stroke="#527a6e" strokeWidth={2} dot={false} />
+          <Line yAxisId="sleep" type="monotone" dataKey="sleepHours" stroke="#7da399" strokeWidth={2} dot={false} />
         </LineChart>
       </ResponsiveContainer>
     </div>

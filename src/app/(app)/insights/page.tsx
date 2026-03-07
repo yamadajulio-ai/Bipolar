@@ -44,13 +44,13 @@ const SOURCE_LABELS: Record<string, string> = {
 
 function ConfidenceBadge({ confidence }: { confidence: DataConfidence }) {
   const config: Record<DataConfidence, { label: string; color: string }> = {
-    baixa: { label: "Poucos dados", color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" },
-    media: { label: "Dados moderados", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" },
-    alta: { label: "Dados suficientes", color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" },
+    baixa: { label: "Poucos dados", color: "bg-red-100 text-red-800 border border-red-200" },
+    media: { label: "Dados moderados", color: "bg-amber-100 text-amber-800 border border-amber-200" },
+    alta: { label: "Dados suficientes", color: "bg-emerald-100 text-emerald-800 border border-emerald-200" },
   };
   const c = config[confidence];
   return (
-    <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-medium ${c.color}`}>
+    <span className={`inline-block rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${c.color}`}>
       {c.label}
     </span>
   );
@@ -65,9 +65,9 @@ function CorrelationBadge({ result }: { result: CorrelationResult }) {
   };
   const strengthColors: Record<string, string> = {
     muito_fraca: "text-muted",
-    fraca: "text-blue-400",
-    moderada: "text-amber-400",
-    forte: "text-red-400",
+    fraca: "text-blue-600",
+    moderada: "text-amber-600",
+    forte: "text-red-600",
   };
   return (
     <span className={`text-xs font-medium ${strengthColors[result.strength] || "text-muted"}`}>
@@ -111,7 +111,7 @@ function RiskBadge({ risk }: { risk: RiskScore }) {
           {risk.factors.map((f, i) => {
             const isProtective = f.toLowerCase().includes("protetor") || f.toLowerCase().includes("boa adesão");
             return (
-              <li key={i} className={`text-xs flex items-start gap-1.5 ${isProtective ? "text-green-700 dark:text-green-400" : "text-muted"}`}>
+              <li key={i} className={`text-xs flex items-start gap-1.5 ${isProtective ? "text-emerald-700" : "text-foreground/70"}`}>
                 <span className="mt-0.5 flex-shrink-0">{isProtective ? "✅" : "⚠️"}</span>
                 {f}
               </li>
@@ -237,10 +237,10 @@ export default async function InsightsPage({
           <h2 className="text-lg font-semibold">Seu Sono</h2>
         </div>
         {insights.sleep.sleepHeadline && (
-          <p className={`mb-2 text-sm font-medium ${
+          <p className={`mb-2 text-sm font-semibold ${
             insights.sleep.sleepHeadline.startsWith("Atenção")
-              ? "text-amber-700 dark:text-amber-400"
-              : "text-green-700 dark:text-green-400"
+              ? "text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5"
+              : "text-emerald-700"
           }`}>
             {insights.sleep.sleepHeadline}
           </p>
@@ -429,11 +429,11 @@ export default async function InsightsPage({
                     key={log.id}
                     className={`rounded-lg border p-3 ${
                       isNap
-                        ? "border-purple-200 bg-purple-50/40 dark:border-purple-900/30 dark:bg-purple-950/20"
+                        ? "border-purple-200 bg-purple-50/40"
                         : isShort
-                          ? "border-red-200 bg-red-50/50 dark:border-red-900/30 dark:bg-red-950/20"
+                          ? "border-red-200 bg-red-50/50"
                           : isGood
-                            ? "border-green-200/50 bg-green-50/30 dark:border-green-900/20 dark:bg-green-950/10"
+                            ? "border-emerald-200/50 bg-emerald-50/30"
                             : "border-border bg-surface"
                     }`}
                   >
@@ -442,15 +442,15 @@ export default async function InsightsPage({
                         <span className="text-xs font-medium capitalize">{weekday}</span>
                         <span className="text-xs text-muted">{dateLabel}</span>
                         {isNap && (
-                          <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-medium text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">
+                          <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-medium text-purple-700">
                             cochilo
                           </span>
                         )}
                       </div>
                       <span className={`text-sm font-bold tabular-nums ${
-                        isNap ? "text-purple-600 dark:text-purple-400"
-                          : isShort ? "text-red-600 dark:text-red-400"
-                          : isGood ? "text-green-700 dark:text-green-400"
+                        isNap ? "text-purple-600"
+                          : isShort ? "text-red-600"
+                          : isGood ? "text-emerald-700"
                           : "text-foreground"
                       }`}>
                         {formatSleepDuration(log.totalHours)}
@@ -458,10 +458,10 @@ export default async function InsightsPage({
                     </div>
 
                     {/* Duration bar */}
-                    <div className="h-1.5 w-full rounded-full bg-black/5 dark:bg-white/5 mb-1.5">
+                    <div className="h-1.5 w-full rounded-full bg-black/10 mb-1.5">
                       <div
                         className={`h-1.5 rounded-full transition-all ${
-                          isNap ? "bg-purple-400" : isShort ? "bg-red-400" : isGood ? "bg-green-400" : "bg-amber-400"
+                          isNap ? "bg-purple-400" : isShort ? "bg-red-400" : isGood ? "bg-emerald-400" : "bg-amber-400"
                         }`}
                         style={{ width: `${durationPct}%` }}
                       />
@@ -493,12 +493,12 @@ export default async function InsightsPage({
           <h2 className="text-lg font-semibold">Seu Humor</h2>
         </div>
         {insights.mood.moodHeadline && (
-          <p className={`mb-2 text-sm font-medium ${
+          <p className={`mb-2 text-sm font-semibold ${
             insights.mood.moodHeadline.includes("elevado") || insights.mood.moodHeadline.includes("oscilação")
-              ? "text-amber-700 dark:text-amber-400"
+              ? "text-amber-800"
               : insights.mood.moodHeadline.includes("queda")
-                ? "text-blue-700 dark:text-blue-400"
-                : "text-green-700 dark:text-green-400"
+                ? "text-blue-700"
+                : "text-emerald-700"
           }`}>
             {insights.mood.moodHeadline}
           </p>
@@ -523,7 +523,7 @@ export default async function InsightsPage({
                   {insights.heatmap.length >= 7 && (
                     <Sparkline
                       data={insights.heatmap.slice(-14).map((d) => d.mood)}
-                      color="#8b5e3c"
+                      color="#527a6e"
                       baseline={3}
                       min={1}
                       max={5}
@@ -588,7 +588,7 @@ export default async function InsightsPage({
                     ))}
                   </ul>
                 ) : (
-                  <p className="mt-1 text-sm font-bold text-green-600 dark:text-green-400">Nenhum</p>
+                  <p className="mt-1 text-sm font-bold text-emerald-600">Nenhum</p>
                 )}
               </Card>
             </div>
@@ -617,8 +617,9 @@ export default async function InsightsPage({
           <span className="text-lg">⏰</span>
           <h2 className="text-lg font-semibold">Seu Ritmo Social</h2>
         </div>
-        <p className="mb-4 text-[11px] text-muted">
-          Horários regulares para atividades-chave protegem contra episódios (IPSRT).
+        <p className="mb-4 text-xs text-foreground/60">
+          Mede o quão regular é a sua rotina diária. Horários consistentes para dormir, acordar e atividades
+          protegem contra episódios. Quanto maior a %, mais regular.
         </p>
 
         {anchorsWithData.length > 0 ? (
@@ -628,18 +629,27 @@ export default async function InsightsPage({
               <div className="mb-4">
                 <div className="mb-1 flex items-center justify-between">
                   <MetricLabel metricKey="regularidadeGeral" className="text-sm font-medium">Regularidade geral</MetricLabel>
-                  <span className="text-sm font-bold">{insights.rhythm.overallRegularity}%</span>
+                  <span className={`text-sm font-bold ${
+                    insights.rhythm.overallRegularity >= 70 ? "text-emerald-600"
+                      : insights.rhythm.overallRegularity >= 40 ? "text-amber-600"
+                      : "text-red-600"
+                  }`}>{insights.rhythm.overallRegularity}%</span>
                 </div>
-                <div className="h-2 w-full rounded-full bg-gray-200">
+                <div className="h-2.5 w-full rounded-full bg-black/10">
                   <div
-                    className={`h-2 rounded-full transition-all ${
-                      insights.rhythm.overallRegularity >= 70 ? "bg-green-400"
+                    className={`h-2.5 rounded-full transition-all ${
+                      insights.rhythm.overallRegularity >= 70 ? "bg-emerald-400"
                         : insights.rhythm.overallRegularity >= 40 ? "bg-amber-400"
                         : "bg-red-400"
                     }`}
-                    style={{ width: `${insights.rhythm.overallRegularity}%` }}
+                    style={{ width: `${Math.max(3, insights.rhythm.overallRegularity)}%` }}
                   />
                 </div>
+                {insights.rhythm.overallRegularity < 30 && (
+                  <p className="mt-1.5 text-[11px] text-foreground/60">
+                    Regularidade baixa indica horários muito variáveis. Tente fixar primeiro o horário de acordar — é o que mais impacta o ritmo.
+                  </p>
+                )}
               </div>
             )}
 
@@ -658,7 +668,7 @@ export default async function InsightsPage({
                           </span>
                         )}
                       </div>
-                      <div className="flex-1 h-2 rounded-full bg-gray-200">
+                      <div className="flex-1 h-2 rounded-full bg-black/10">
                         <div
                           className={`h-2 rounded-full ${colorToBg(anchor.color!)}`}
                           style={{ width: `${Math.max(5, score)}%` }}
@@ -732,7 +742,7 @@ export default async function InsightsPage({
 
             {/* Correlation results */}
             {(insights.chart.correlation || insights.chart.lagCorrelation) && (
-              <div className="mt-3 space-y-1.5 rounded-lg bg-black/5 dark:bg-white/5 p-3">
+              <div className="mt-3 space-y-1.5 rounded-lg bg-surface-alt p-3">
                 {insights.chart.correlation && (
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-muted">Correlação sono→humor</span>
@@ -773,20 +783,20 @@ export default async function InsightsPage({
       {insights.heatmap.length > 0 && (
         <section className="mb-8">
           <Card>
-            <h2 className="mb-3 text-lg font-semibold">Mapa de Calor — 90 dias</h2>
-            <div className="space-y-4">
+            <h2 className="mb-1 text-lg font-semibold">Visão geral — 90 dias</h2>
+            <p className="mb-4 text-[11px] text-muted">
+              Cada quadrado representa um dia. Cores indicam a intensidade — toque ou passe o mouse para ver detalhes.
+            </p>
+            <div className="space-y-5">
               <div>
-                <p className="mb-1 text-xs text-muted">Humor</p>
+                <p className="mb-1.5 text-xs font-medium text-foreground/70">Humor (1=deprimido, 3=estável, 5=elevado)</p>
                 <CalendarHeatmap data={insights.heatmap} metric="mood" />
               </div>
               <div>
-                <p className="mb-1 text-xs text-muted">Sono</p>
+                <p className="mb-1.5 text-xs font-medium text-foreground/70">Sono (verde=7-9h ideal, vermelho=pouco, azul=excesso)</p>
                 <CalendarHeatmap data={insights.heatmap} metric="sleep" />
               </div>
             </div>
-            <p className="mt-3 text-center text-[10px] text-muted">
-              Visualização inspirada no GitHub contribution graph. Cada célula = 1 dia.
-            </p>
           </Card>
         </section>
       )}

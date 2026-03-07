@@ -9,26 +9,26 @@ interface Props {
 }
 
 const MOOD_COLORS: Record<number, string> = {
-  1: "bg-blue-700",
-  2: "bg-blue-400",
-  3: "bg-green-500",
+  1: "bg-blue-600",
+  2: "bg-blue-300",
+  3: "bg-emerald-400",
   4: "bg-amber-400",
-  5: "bg-red-500",
+  5: "bg-red-400",
 };
 
 function getSleepColor(hours: number | null): string {
-  if (hours === null) return "bg-gray-800/30";
-  if (hours < 5) return "bg-red-600";
-  if (hours < 6) return "bg-red-400";
-  if (hours < 7) return "bg-amber-400";
-  if (hours <= 9) return "bg-green-500";
-  if (hours <= 10) return "bg-amber-400";
-  return "bg-blue-500";
+  if (hours === null) return "bg-black/10";
+  if (hours < 5) return "bg-red-500";
+  if (hours < 6) return "bg-red-300";
+  if (hours < 7) return "bg-amber-300";
+  if (hours <= 9) return "bg-emerald-400";
+  if (hours <= 10) return "bg-amber-300";
+  return "bg-blue-400";
 }
 
 function getEnergyColor(energy: number | null): string {
-  if (energy === null) return "bg-gray-800/30";
-  return MOOD_COLORS[energy] || "bg-gray-800/30";
+  if (energy === null) return "bg-black/10";
+  return MOOD_COLORS[energy] || "bg-black/10";
 }
 
 const WEEKDAY_LABELS = ["D", "S", "T", "Q", "Q", "S", "S"];
@@ -54,8 +54,8 @@ export function CalendarHeatmap({ data, metric }: Props) {
   while (lastWeek.length < 7) lastWeek.push(null);
 
   function getCellColor(day: HeatmapDay | null): string {
-    if (!day || !day.hasEntry) return "bg-gray-800/20";
-    if (metric === "mood") return day.mood !== null ? (MOOD_COLORS[day.mood] || "bg-gray-800/30") : "bg-gray-800/20";
+    if (!day || !day.hasEntry) return "bg-black/8";
+    if (metric === "mood") return day.mood !== null ? (MOOD_COLORS[day.mood] || "bg-gray-800/30") : "bg-black/8";
     if (metric === "sleep") return getSleepColor(day.sleepHours);
     return getEnergyColor(day.energy);
   }
@@ -126,7 +126,7 @@ export function CalendarHeatmap({ data, metric }: Props) {
                 tabIndex={day?.hasEntry ? 0 : undefined}
                 aria-label={day?.hasEntry ? getTooltipText(day) : undefined}
                 className={`h-[12px] w-[12px] rounded-sm ${getCellColor(day)} ${
-                  day?.hasEntry ? "cursor-pointer hover:ring-1 hover:ring-white/50 focus:ring-1 focus:ring-white/50 focus:outline-none" : ""
+                  day?.hasEntry ? "cursor-pointer hover:ring-1 hover:ring-foreground/30 focus:ring-1 focus:ring-foreground/30 focus:outline-none" : ""
                 }`}
                 onMouseEnter={(e) => {
                   if (day?.hasEntry) {
@@ -179,11 +179,11 @@ export function CalendarHeatmap({ data, metric }: Props) {
           <>
             <span>&lt;5h</span>
             <div className="flex gap-0.5" role="img" aria-label="Escala de cores: pouco sono (vermelho) a muito sono (azul)">
-              <div className="h-[10px] w-[10px] rounded-sm bg-red-600" aria-hidden="true" />
-              <div className="h-[10px] w-[10px] rounded-sm bg-red-400" aria-hidden="true" />
-              <div className="h-[10px] w-[10px] rounded-sm bg-amber-400" aria-hidden="true" />
-              <div className="h-[10px] w-[10px] rounded-sm bg-green-500" aria-hidden="true" />
-              <div className="h-[10px] w-[10px] rounded-sm bg-blue-500" aria-hidden="true" />
+              <div className="h-[10px] w-[10px] rounded-sm bg-red-500" aria-hidden="true" />
+              <div className="h-[10px] w-[10px] rounded-sm bg-red-300" aria-hidden="true" />
+              <div className="h-[10px] w-[10px] rounded-sm bg-amber-300" aria-hidden="true" />
+              <div className="h-[10px] w-[10px] rounded-sm bg-emerald-400" aria-hidden="true" />
+              <div className="h-[10px] w-[10px] rounded-sm bg-blue-400" aria-hidden="true" />
             </div>
             <span>&gt;10h</span>
           </>

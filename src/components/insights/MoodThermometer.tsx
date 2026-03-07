@@ -10,18 +10,18 @@ interface Props {
   data: ThermometerDisplayData;
 }
 
-const ZONE_COLORS: Record<string, { bg: string; text: string; bar: string }> = {
-  depressao: { bg: "bg-blue-900/30", text: "text-blue-300", bar: "bg-blue-500" },
-  depressao_leve: { bg: "bg-blue-800/20", text: "text-blue-200", bar: "bg-blue-400" },
-  eutimia: { bg: "bg-green-900/30", text: "text-green-300", bar: "bg-green-500" },
-  hipomania: { bg: "bg-amber-900/30", text: "text-amber-300", bar: "bg-amber-500" },
-  mania: { bg: "bg-red-900/30", text: "text-red-300", bar: "bg-red-500" },
+const ZONE_COLORS: Record<string, { bg: string; text: string }> = {
+  depressao: { bg: "bg-blue-50 border border-blue-200", text: "text-blue-700" },
+  depressao_leve: { bg: "bg-sky-50 border border-sky-200", text: "text-sky-700" },
+  eutimia: { bg: "bg-emerald-50 border border-emerald-200", text: "text-emerald-700" },
+  hipomania: { bg: "bg-amber-50 border border-amber-200", text: "text-amber-700" },
+  mania: { bg: "bg-red-50 border border-red-200", text: "text-red-700" },
 };
 
 const INSTABILITY_LABELS: Record<string, { label: string; color: string }> = {
-  baixa: { label: "Baixa", color: "text-green-400" },
-  moderada: { label: "Moderada", color: "text-amber-400" },
-  alta: { label: "Alta", color: "text-red-400" },
+  baixa: { label: "Baixa", color: "text-emerald-600" },
+  moderada: { label: "Moderada", color: "text-amber-600" },
+  alta: { label: "Alta", color: "text-red-600" },
 };
 
 export function MoodThermometer({ data }: Props) {
@@ -33,10 +33,10 @@ export function MoodThermometer({ data }: Props) {
   return (
     <div className={`rounded-xl p-5 ${colors.bg}`}>
       <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted">
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-foreground/60">
           Termômetro de humor
         </h3>
-        <span className="text-xs text-muted">
+        <span className="text-xs text-foreground/50">
           {data.daysUsed} dias
         </span>
       </div>
@@ -52,7 +52,7 @@ export function MoodThermometer({ data }: Props) {
             onClick={() => setShowMixedInfo(!showMixedInfo)}
             aria-expanded={showMixedInfo}
             aria-controls={mixedId}
-            className="ml-2 rounded-full bg-purple-800/50 px-2 py-0.5 text-xs text-purple-300 hover:bg-purple-800/70"
+            className="ml-2 rounded-full bg-purple-100 px-2 py-0.5 text-xs text-purple-700 hover:bg-purple-200"
           >
             {data.mixedStrength === "forte" ? "Sinais mistos" : "Possíveis sinais mistos"} ⓘ
           </button>
@@ -61,7 +61,7 @@ export function MoodThermometer({ data }: Props) {
 
       {/* Mixed features explanation */}
       {data.mixedFeatures && showMixedInfo && (
-        <div id={mixedId} className="mb-4 rounded-lg bg-purple-900/30 p-3 text-xs text-purple-200">
+        <div id={mixedId} className="mb-4 rounded-lg bg-purple-50 border border-purple-200 p-3 text-xs text-purple-800">
           {data.mixedStrength === "forte" ? (
             <>
               <strong>Sinais mistos detectados:</strong> indicadores de rebaixamento e ativação
@@ -82,21 +82,21 @@ export function MoodThermometer({ data }: Props) {
       <div className="relative mb-2">
         {/* Background gradient bar */}
         <div className="flex h-4 overflow-hidden rounded-full">
-          <div className="flex-1 bg-blue-600" />
-          <div className="flex-1 bg-blue-400" />
-          <div className="flex-1 bg-green-500" />
+          <div className="flex-1 bg-blue-500" />
+          <div className="flex-1 bg-sky-400" />
+          <div className="flex-1 bg-emerald-400" />
           <div className="flex-1 bg-amber-400" />
-          <div className="flex-1 bg-red-500" />
+          <div className="flex-1 bg-red-400" />
         </div>
         {/* Position indicator */}
         <div
           className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2"
           style={{ left: `${data.position}%` }}
         >
-          <div className="h-6 w-6 rounded-full border-2 border-white bg-gray-900 shadow-lg" />
+          <div className="h-6 w-6 rounded-full border-3 border-white bg-foreground shadow-lg" />
         </div>
       </div>
-      <div className="mb-4 flex justify-between text-[10px] text-muted">
+      <div className="mb-4 flex justify-between text-[10px] text-foreground/50">
         <span>Rebaixamento</span>
         <span>Padrão</span>
         <span>Ativação</span>
@@ -105,7 +105,7 @@ export function MoodThermometer({ data }: Props) {
       {/* Stats row */}
       <div className="mb-3 grid grid-cols-1 gap-2 text-center">
         <div>
-          <div className="text-xs text-muted">Oscilação do humor</div>
+          <div className="text-xs text-foreground/60">Oscilação do humor</div>
           <div className={`text-sm font-semibold ${instab.color}`}>
             {instab.label}
           </div>
@@ -114,15 +114,15 @@ export function MoodThermometer({ data }: Props) {
 
       {/* Contributing factors */}
       {data.factors.length > 0 && (
-        <div className="rounded-lg bg-black/20 p-3">
-          <div className="mb-1 text-xs font-medium text-muted">
+        <div className="rounded-lg bg-black/5 p-3">
+          <div className="mb-1 text-xs font-medium text-foreground/60">
             Fatores recentes:
           </div>
           <div className="flex flex-wrap gap-1">
             {data.factors.map((f, i) => (
               <span
                 key={`${f}-${i}`}
-                className="rounded-full bg-white/10 px-2 py-0.5 text-xs text-gray-300"
+                className="rounded-full bg-white/70 border border-border px-2 py-0.5 text-xs text-foreground/80"
               >
                 {f}
               </span>
@@ -131,11 +131,11 @@ export function MoodThermometer({ data }: Props) {
         </div>
       )}
 
-      <p className="mt-3 text-center text-[10px] text-muted">
+      <p className="mt-3 text-center text-[10px] text-foreground/50">
         Indicador baseado nos seus registros recentes. Não substitui avaliação profissional.
       </p>
       {!data.baselineAvailable && (
-        <p className="mt-1 text-center text-[10px] text-amber-400/80">
+        <p className="mt-1 text-center text-[10px] text-amber-600">
           Usando referências gerais de sono. Com mais registros, o cálculo se ajustará ao seu padrão pessoal.
         </p>
       )}

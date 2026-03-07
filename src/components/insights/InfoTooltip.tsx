@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useId } from "react";
+import { useState, useRef, useEffect, useId, useCallback } from "react";
 
 interface Props {
   title: string;
@@ -11,6 +11,7 @@ interface Props {
 export function InfoTooltip({ title, content, tip }: Props) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const hoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tooltipId = useId();
 
   useEffect(() => {
@@ -24,12 +25,26 @@ export function InfoTooltip({ title, content, tip }: Props) {
     return () => document.removeEventListener("mousedown", handleClick);
   }, [open]);
 
+  const handleMouseEnter = useCallback(() => {
+    hoverTimeout.current = setTimeout(() => setOpen(true), 200);
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
+    hoverTimeout.current = setTimeout(() => setOpen(false), 300);
+  }, []);
+
   return (
-    <div className="relative inline-block" ref={ref}>
+    <div
+      className="relative inline-block"
+      ref={ref}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-black/10 text-[10px] font-bold text-muted hover:bg-black/20 dark:bg-white/10 dark:hover:bg-white/20"
+        className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-black/10 text-[10px] font-bold text-muted hover:bg-black/20"
         aria-label={`Informações sobre ${title}`}
         aria-expanded={open}
         aria-describedby={open ? tooltipId : undefined}
@@ -39,7 +54,7 @@ export function InfoTooltip({ title, content, tip }: Props) {
       {open && (
         <div id={tooltipId} role="tooltip" className="absolute left-1/2 top-full z-50 mt-1.5 w-64 -translate-x-1/2 rounded-lg border border-border bg-surface p-3 shadow-lg">
           <p className="mb-1 text-xs font-semibold text-foreground">{title}</p>
-          <p className="text-[11px] leading-relaxed text-muted">{content}</p>
+          <p className="text-[11px] leading-relaxed text-foreground/60">{content}</p>
           {tip && (
             <p className="mt-2 text-[11px] leading-relaxed text-primary">
               <span className="font-medium">Como melhorar:</span> {tip}

@@ -141,7 +141,7 @@ function PreviewTerra() {
           Educação e ferramentas para o dia a dia com Transtorno Bipolar. No seu ritmo.
         </p>
 
-        <div className="relative inline-block rounded-full bg-[#efebe9] border border-[#d7ccc8] px-4 py-1.5 text-[10px] text-[#6d4c41] mb-3">
+        <div className="relative inline-block rounded-full bg-[#ecf1ee] border border-[#d6deda] px-4 py-1.5 text-[10px] text-[#3d5c52] mb-3">
           Educacional · Consulte seu profissional
         </div>
 
@@ -153,10 +153,10 @@ function PreviewTerra() {
 
       <div className="flex flex-wrap justify-center gap-1.5 px-4 pb-3">
         {["Diário", "Biblioteca", "Exercícios", "Família"].map((f) => (
-          <span key={f} className="rounded-full bg-white/80 border border-[#d7ccc8] px-3 py-1 text-[9px] font-medium text-[#5d4037]">{f}</span>
+          <span key={f} className="rounded-full bg-white/80 border border-[#d6deda] px-3 py-1 text-[9px] font-medium text-[#3d5c52]">{f}</span>
         ))}
       </div>
-      <div className="py-1.5 text-center text-[9px] text-[#a1887f] bg-[#efebe9]">CVV 188 · SAMU 192 · UPA 24h</div>
+      <div className="py-1.5 text-center text-[9px] text-[#7da399] bg-[#ecf1ee]">CVV 188 · SAMU 192 · UPA 24h</div>
     </div>
   );
 }
@@ -264,7 +264,7 @@ function PreviewJardim() {
         {/* Ícone: duas mãos segurando um broto */}
         <div className="relative mx-auto mb-5 w-20 h-16 flex items-center justify-center">
           {/* Mão esquerda — forma de concha */}
-          <div className="absolute left-0 bottom-1 w-9 h-7 rounded-b-full rounded-tr-full bg-[#d4a574] opacity-60 rotate-[15deg]" />
+          <div className="absolute left-0 bottom-1 w-9 h-7 rounded-b-full rounded-tr-full bg-[#7da399] opacity-60 rotate-[15deg]" />
           {/* Mão direita */}
           <div className="absolute right-0 bottom-1 w-9 h-7 rounded-b-full rounded-tl-full bg-[#a1887f] opacity-60 -rotate-[15deg]" />
           {/* Broto */}

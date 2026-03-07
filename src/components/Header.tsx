@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -44,7 +45,8 @@ export function Header({ isLoggedIn }: HeaderProps) {
   return (
     <header className="border-b border-border bg-white/80 backdrop-blur-sm">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-        <Link href={isLoggedIn ? "/hoje" : "/"} className="text-lg font-semibold text-primary-dark no-underline">
+        <Link href={isLoggedIn ? "/hoje" : "/"} className="flex items-center gap-2 text-lg font-semibold text-primary-dark no-underline">
+          <Image src="/icon-192.png" alt="" width={28} height={28} className="rounded-md" />
           Rede Bipolar
         </Link>
 

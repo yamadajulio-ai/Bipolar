@@ -50,8 +50,8 @@ export function InsightsCharts({ data }: InsightsChartsProps) {
           }}
         />
         <Legend />
-        <Line yAxisId="mood" type="monotone" dataKey="mood" name="Humor" stroke="#6366f1" strokeWidth={2} dot={false} />
-        <Line yAxisId="sleep" type="monotone" dataKey="sleepHours" name="Sono" stroke="#3b82f6" strokeWidth={2} dot={false} />
+        <Line yAxisId="mood" type="monotone" dataKey="mood" name="Humor" stroke="#527a6e" strokeWidth={2} dot={false} />
+        <Line yAxisId="sleep" type="monotone" dataKey="sleepHours" name="Sono" stroke="#7da399" strokeWidth={2} dot={false} />
       </LineChart>
     </ResponsiveContainer>
   );

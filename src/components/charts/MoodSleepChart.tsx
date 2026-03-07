@@ -51,7 +51,7 @@ export function MoodSleepChart({ entries }: MoodSleepChartProps) {
             value: "Humor",
             angle: -90,
             position: "insideLeft",
-            style: { fontSize: 12, fill: "#6366f1" },
+            style: { fontSize: 12, fill: "#527a6e" },
           }}
         />
         <YAxis
@@ -63,7 +63,7 @@ export function MoodSleepChart({ entries }: MoodSleepChartProps) {
             value: "Sono (h)",
             angle: 90,
             position: "insideRight",
-            style: { fontSize: 12, fill: "#3b82f6" },
+            style: { fontSize: 12, fill: "#7da399" },
           }}
         />
         <Tooltip
@@ -78,18 +78,18 @@ export function MoodSleepChart({ entries }: MoodSleepChartProps) {
           yAxisId="mood"
           type="monotone"
           dataKey="humor"
-          stroke="#6366f1"
+          stroke="#527a6e"
           strokeWidth={2}
-          dot={{ r: 3, fill: "#6366f1" }}
+          dot={{ r: 3, fill: "#527a6e" }}
           name="Humor"
         />
         <Line
           yAxisId="sleep"
           type="monotone"
           dataKey="sono"
-          stroke="#3b82f6"
+          stroke="#7da399"
           strokeWidth={2}
-          dot={{ r: 3, fill: "#3b82f6" }}
+          dot={{ r: 3, fill: "#7da399" }}
           name="Sono (h)"
         />
       </LineChart>

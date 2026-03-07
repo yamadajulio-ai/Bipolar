@@ -21,7 +21,7 @@ const moodColors: Record<number, string> = {
   2: "#f59e0b", // warning amber
   3: "#9ca3af", // muted gray
   4: "#3b82f6", // info blue
-  5: "#6366f1", // primary indigo
+  5: "#527a6e", // primary teal
 };
 
 export function MoodDistribution({ entries }: MoodDistributionProps) {

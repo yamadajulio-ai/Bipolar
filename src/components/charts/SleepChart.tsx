@@ -81,7 +81,7 @@ export function SleepChart({ data }: SleepChartProps) {
             type="monotone"
             dataKey="totalHours"
             name="Horas de sono"
-            stroke="var(--color-primary, #6366f1)"
+            stroke="var(--color-primary, #527a6e)"
             strokeWidth={2}
             dot={{ r: 3 }}
             activeDot={{ r: 5 }}

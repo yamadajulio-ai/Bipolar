@@ -21,7 +21,7 @@ const phaseLabels: Record<Phase, string> = {
 };
 
 const phaseColors: Record<Phase, string> = {
-  inhale: "var(--color-primary, #6366f1)",
+  inhale: "var(--color-primary, #527a6e)",
   hold: "var(--color-info, #3b82f6)",
   exhale: "var(--color-success, #22c55e)",
   holdAfter: "var(--color-info, #3b82f6)",

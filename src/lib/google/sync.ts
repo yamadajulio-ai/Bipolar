@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { getAuthenticatedClient } from "./auth";
 import {
   googleEventToBlockData,
+  getCalendarColorId,
   isAllDayEvent,
   isLongEvent,
   listEvents,
@@ -25,6 +26,9 @@ export async function pullGoogleCalendar(userId: string): Promise<SyncResult> {
   let errors = 0;
 
   const isFullSync = !account.syncToken;
+
+  // Fetch calendar default color (for events without custom colorId)
+  const defaultColorId = await getCalendarColorId(auth, account.calendarId);
 
   const response = await listEvents(
     auth,
@@ -58,7 +62,7 @@ export async function pullGoogleCalendar(userId: string): Promise<SyncResult> {
       if (isAllDayEvent(event) || isLongEvent(event)) continue;
 
       // Upsert Google event
-      const blockData = googleEventToBlockData(event);
+      const blockData = googleEventToBlockData(event, defaultColorId);
       await prisma.plannerBlock.upsert({
         where: {
           userId_googleEventId: { userId, googleEventId: event.id },

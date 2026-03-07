@@ -49,7 +49,9 @@ export const CATEGORY_COLORS: Record<string, string> = {
 };
 
 /** Google Calendar event color IDs → inline styles (matching Google's palette). */
+// Google Calendar event colorIds (1-11) + calendar colorIds (12-24)
 export const GOOGLE_EVENT_COLORS: Record<string, { bg: string; border: string; text: string }> = {
+  // Event colors (1-11)
   "1":  { bg: "#d4e4fc", border: "#7986CB", text: "#3b4880" },  // Lavanda
   "2":  { bg: "#c8f7d8", border: "#33B679", text: "#1a6b3f" },  // Sálvia
   "3":  { bg: "#f0d4f7", border: "#8E24AA", text: "#5c1370" },  // Uva
@@ -61,4 +63,18 @@ export const GOOGLE_EVENT_COLORS: Record<string, { bg: string; border: string; t
   "9":  { bg: "#d4d8f0", border: "#3F51B5", text: "#283270" },  // Mirtilo
   "10": { bg: "#c8e6d0", border: "#0B8043", text: "#064d28" },  // Manjericão
   "11": { bg: "#fccccb", border: "#D50000", text: "#800000" },  // Tomate
+  // Calendar colors (12-24) — used as fallback for calendar default
+  "12": { bg: "#fce4ec", border: "#AD1457", text: "#6d0d37" },  // Beterraba
+  "13": { bg: "#d4e4fc", border: "#7986CB", text: "#3b4880" },  // Lavanda (cal)
+  "14": { bg: "#e8f5e9", border: "#0B8043", text: "#064d28" },  // Manjericão (cal)
+  "15": { bg: "#fff3e0", border: "#F09300", text: "#7a4b00" },  // Citrino
+  "16": { bg: "#fde0dd", border: "#E67C73", text: "#8c3a33" },  // Flamingo (cal)
+  "17": { bg: "#fdd8cc", border: "#F4511E", text: "#8c2a0e" },  // Tangerina (cal)
+  "18": { bg: "#e0f2f1", border: "#009688", text: "#004d40" },  // Sálvia (cal)
+  "19": { bg: "#e0e0e0", border: "#616161", text: "#333333" },  // Grafite (cal)
+  "20": { bg: "#d4d8f0", border: "#3F51B5", text: "#283270" },  // Mirtilo (cal)
+  "21": { bg: "#cce8f9", border: "#039BE5", text: "#045a85" },  // Pavão (cal)
+  "22": { bg: "#fccccb", border: "#D50000", text: "#800000" },  // Tomate (cal)
+  "23": { bg: "#fef3c7", border: "#F6BF26", text: "#7a5d0a" },  // Banana (cal)
+  "24": { bg: "#f0d4f7", border: "#8E24AA", text: "#5c1370" },  // Uva (cal)
 };

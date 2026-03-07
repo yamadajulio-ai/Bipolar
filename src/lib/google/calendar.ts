@@ -21,7 +21,7 @@ export function isLongEvent(event: calendar_v3.Schema$Event, maxHours = 18): boo
 }
 
 /** Convert a Google Calendar event into partial PlannerBlock data. */
-export function googleEventToBlockData(event: calendar_v3.Schema$Event) {
+export function googleEventToBlockData(event: calendar_v3.Schema$Event, defaultColorId?: string | null) {
   const extProps = event.extendedProperties?.private || {};
   const startDt = event.start?.dateTime || event.start?.date;
   const endDt = event.end?.dateTime || event.end?.date;
@@ -35,8 +35,20 @@ export function googleEventToBlockData(event: calendar_v3.Schema$Event) {
     notes: event.description || null,
     energyCost: extProps.energyCost ? Number(extProps.energyCost) : 3,
     stimulation: extProps.stimulation ? Number(extProps.stimulation) : 1,
-    googleColor: event.colorId || null,
+    // event.colorId = custom per-event color; fallback to calendar default
+    googleColor: event.colorId || defaultColorId || null,
   };
+}
+
+/** Fetch the calendar's default colorId from calendarList. */
+export async function getCalendarColorId(auth: OAuth2Client, calendarId: string): Promise<string | null> {
+  try {
+    const cal = getCalendarClient(auth);
+    const res = await cal.calendarList.get({ calendarId });
+    return res.data.colorId || null;
+  } catch {
+    return null;
+  }
 }
 
 export async function listEvents(

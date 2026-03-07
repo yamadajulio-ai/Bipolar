@@ -120,6 +120,9 @@ async function staleWhileRevalidate(request, cacheName, cacheKey) {
     if (response.ok) {
       cache.put(request, response.clone());
       trackTimestamp(cacheKey);
+    } else if (response.status === 401 || response.status === 403) {
+      // Session expired — purge cached PHI to prevent leaks on shared devices
+      purgeApiCache();
     }
     return response;
   } catch {
@@ -137,13 +140,21 @@ async function refreshInBackground(request, cache, cacheKey) {
     if (response.ok) {
       cache.put(request, response.clone());
       trackTimestamp(cacheKey);
+    } else if (response.status === 401 || response.status === 403) {
+      purgeApiCache();
     }
   } catch {
     // Network failed — stale cache continues serving
   }
 }
 
-// --- Message handler (cache purge on logout) ---
+// --- Cache purge (logout, session expiry, account deletion) ---
+function purgeApiCache() {
+  caches.delete(CACHE_API).then(() => {
+    apiTimestamps.clear();
+  });
+}
+
 self.addEventListener("message", (event) => {
   if (event.data && event.data.type === "CLEAR_AUTH_CACHES") {
     event.waitUntil(

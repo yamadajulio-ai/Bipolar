@@ -6,12 +6,9 @@ import { prisma } from "@/lib/db";
  * Triggered by Vercel Cron (daily at 03:00 UTC).
  */
 export async function GET(request: NextRequest) {
-  // Validate: Vercel Cron header or Bearer token
-  const isVercelCron = request.headers.get("x-vercel-cron") === "1";
+  // Always require Bearer token — x-vercel-cron header is spoofable
   const authHeader = request.headers.get("authorization");
-  const isAuthorized = authHeader === `Bearer ${process.env.CRON_SECRET}`;
-
-  if (!isVercelCron && !isAuthorized) {
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

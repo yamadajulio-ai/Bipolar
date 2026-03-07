@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { BottomNav } from "@/components/BottomNav";
 import { Alert } from "@/components/Alert";
 import { SOSButton } from "@/components/SOSButton";
 import { ReminderManager } from "@/components/ReminderManager";
@@ -30,10 +31,11 @@ export default async function AppLayout({
         Consulte seu profissional de saúde para decisões clínicas. Este app é educacional.
       </Alert>
       {/* tabIndex={-1} allows skip-to-content link to move keyboard focus, not just scroll */}
-      <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 outline-none">
+      <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 pb-20 outline-none lg:pb-6">
         {children}
       </main>
       <Footer />
+      <BottomNav />
       <SOSButton />
       <ReminderManager />
       <InstallBanner />

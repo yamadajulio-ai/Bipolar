@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
 import { usePathname } from "next/navigation";
 
 interface HeaderProps {
@@ -10,10 +9,9 @@ interface HeaderProps {
 
 const navLinks = [
   { href: "/hoje", label: "Hoje" },
-  { href: "/planejador", label: "Planejador" },
   { href: "/checkin", label: "Check-in" },
+  { href: "/sono", label: "Sono" },
   { href: "/insights", label: "Insights" },
-  { href: "/como-usar", label: "Guia" },
   { href: "/mais", label: "Mais" },
 ];
 
@@ -35,7 +33,6 @@ async function clearSwCache() {
 }
 
 export function Header({ isLoggedIn }: HeaderProps) {
-  const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
 
   async function handleLogout(e: React.FormEvent<HTMLFormElement>) {
@@ -84,7 +81,7 @@ export function Header({ isLoggedIn }: HeaderProps) {
               </form>
             </nav>
 
-            {/* Mobile hamburger */}
+            {/* Mobile: only SOS button, nav handled by BottomNav */}
             <div className="flex items-center gap-2 lg:hidden">
               <Link
                 href="/sos"
@@ -92,59 +89,15 @@ export function Header({ isLoggedIn }: HeaderProps) {
               >
                 SOS
               </Link>
-              <button
-                onClick={() => setMenuOpen(!menuOpen)}
-                className="rounded p-2 text-muted hover:bg-surface-alt"
-                aria-label="Menu"
-                aria-expanded={menuOpen}
-                aria-controls="mobile-menu"
-              >
-                <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                  {menuOpen ? (
-                    <>
-                      <line x1="6" y1="6" x2="18" y2="18" />
-                      <line x1="6" y1="18" x2="18" y2="6" />
-                    </>
-                  ) : (
-                    <>
-                      <line x1="4" y1="6" x2="20" y2="6" />
-                      <line x1="4" y1="12" x2="20" y2="12" />
-                      <line x1="4" y1="18" x2="20" y2="18" />
-                    </>
-                  )}
-                </svg>
-              </button>
+              <form action="/api/auth/logout" method="POST" onSubmit={handleLogout}>
+                <button
+                  type="submit"
+                  className="rounded px-3 py-1 text-sm text-muted hover:text-foreground"
+                >
+                  Sair
+                </button>
+              </form>
             </div>
-
-            {/* Mobile menu dropdown */}
-            {menuOpen && (
-              <div id="mobile-menu" className="absolute top-14 left-0 right-0 z-50 border-b border-border bg-surface p-4 shadow-lg lg:hidden">
-                <nav aria-label="Navegação principal" className="flex flex-col gap-3 text-sm">
-                  {navLinks.map((link) => {
-                    const isCurrent = pathname === link.href;
-                    return (
-                      <Link
-                        key={link.href}
-                        href={link.href}
-                        className={isCurrent ? "font-medium text-foreground no-underline" : "text-muted hover:text-foreground no-underline"}
-                        aria-current={isCurrent ? "page" : undefined}
-                        onClick={() => setMenuOpen(false)}
-                      >
-                        {link.label}
-                      </Link>
-                    );
-                  })}
-                  <form action="/api/auth/logout" method="POST" onSubmit={handleLogout}>
-                    <button
-                      type="submit"
-                      className="w-full rounded bg-primary px-3 py-2 text-white hover:bg-primary-dark"
-                    >
-                      Sair
-                    </button>
-                  </form>
-                </nav>
-              </div>
-            )}
           </>
         ) : (
           <nav className="flex items-center gap-4 text-sm">

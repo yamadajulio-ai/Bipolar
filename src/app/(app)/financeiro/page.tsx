@@ -3,9 +3,24 @@
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { Card } from "@/components/Card";
+import { Alert } from "@/components/Alert";
 import { ImportCSV } from "@/components/financeiro/ImportCSV";
 import { TransactionList } from "@/components/financeiro/TransactionList";
-import { CategoryChart, MoodSpendingChart } from "@/components/financeiro/FinanceCharts";
+import { CategoryChart, MoodSpendingChart, SpendingTrendChart } from "@/components/financeiro/FinanceCharts";
+
+interface SpendingAlert {
+  date: string;
+  spending: number;
+  mood: number;
+  message: string;
+}
+
+interface Comparison {
+  prevIncome: number;
+  prevExpense: number;
+  incomeChange: number | null;
+  expenseChange: number | null;
+}
 
 interface Summary {
   totalIncome: number;
@@ -13,8 +28,11 @@ interface Summary {
   balance: number;
   dailyAverage: number;
   transactionCount: number;
+  comparison: Comparison | null;
   categoryBreakdown: { category: string; total: number }[];
   moodCorrelation: { date: string; spending: number; mood: number | null; energy: number | null }[];
+  spendingAlerts: SpendingAlert[];
+  spendingTrend: { date: string; spending: number }[];
 }
 
 interface Transaction {
@@ -70,22 +88,45 @@ export default function FinanceiroPage() {
           />
         </div>
       </div>
+
       <div className="mb-6 flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-2.5">
         <Image src="/mobills-logo.png" alt="Mobills" width={20} height={20} className="shrink-0" />
         <span className="text-sm font-medium text-green-700">Compatível com Mobills — exporte CSV e importe abaixo</span>
       </div>
 
+      {/* Spending alerts — clinical context */}
+      {summary && summary.spendingAlerts.length > 0 && (
+        <Alert variant="warning" className="mb-6">
+          <p className="font-medium">Atenção: gastos elevados em dias de humor alto</p>
+          <ul className="mt-1 space-y-1">
+            {summary.spendingAlerts.map((a, i) => (
+              <li key={i} className="text-sm">
+                {a.date.slice(8)}/{a.date.slice(5, 7)} — R$ {a.spending.toFixed(2)} (humor {a.mood}/5)
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-xs">
+            Gastos impulsivos podem ser sinal de fase maníaca. Considere compartilhar com seu profissional de saúde.
+          </p>
+        </Alert>
+      )}
+
       {/* Summary cards */}
       {summary && (
         <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Card>
-            <p className="text-xs text-muted">Receita</p>
-            <p className="text-xl font-bold text-green-600">R$ {summary.totalIncome.toFixed(2)}</p>
-          </Card>
-          <Card>
-            <p className="text-xs text-muted">Despesa</p>
-            <p className="text-xl font-bold text-red-600">R$ {summary.totalExpense.toFixed(2)}</p>
-          </Card>
+          <SummaryCard
+            label="Receita"
+            value={summary.totalIncome}
+            color="text-green-600"
+            change={summary.comparison?.incomeChange}
+          />
+          <SummaryCard
+            label="Despesa"
+            value={summary.totalExpense}
+            color="text-red-600"
+            change={summary.comparison?.expenseChange}
+            invertChange
+          />
           <Card>
             <p className="text-xs text-muted">Saldo</p>
             <p className={`text-xl font-bold ${summary.balance >= 0 ? "text-green-600" : "text-red-600"}`}>
@@ -116,20 +157,71 @@ export default function FinanceiroPage() {
         {showForm && <ManualEntryForm onCreated={() => { fetchData(); setShowForm(false); }} />}
       </Card>
 
-      {/* Charts */}
+      {/* Insights section */}
       {summary && (
-        <>
+        <div className="mb-6 space-y-4">
+          <h2 className="text-lg font-semibold">Insights financeiros</h2>
+
+          {/* Spending trend */}
+          {summary.spendingTrend.length >= 2 && (
+            <Card>
+              <SpendingTrendChart data={summary.spendingTrend} dailyAverage={summary.dailyAverage} />
+            </Card>
+          )}
+
+          {/* Category breakdown */}
           {summary.categoryBreakdown.length > 0 && (
-            <Card className="mb-6">
+            <Card>
               <CategoryChart data={summary.categoryBreakdown} />
             </Card>
           )}
+
+          {/* Mood-spending correlation */}
           {summary.moodCorrelation.length >= 3 && (
-            <Card className="mb-6">
+            <Card>
               <MoodSpendingChart data={summary.moodCorrelation} />
             </Card>
           )}
-        </>
+
+          {/* Text insights */}
+          {summary.transactionCount > 0 && (
+            <Card>
+              <h3 className="mb-2 text-sm font-medium">Resumo do mês</h3>
+              <ul className="space-y-1.5 text-sm text-muted">
+                <li>
+                  Você teve <strong className="text-foreground">{summary.transactionCount}</strong> transações em{" "}
+                  <strong className="text-foreground">{monthLabel}</strong>.
+                </li>
+                {summary.categoryBreakdown.length > 0 && (
+                  <li>
+                    Maior categoria de gasto:{" "}
+                    <strong className="text-foreground">
+                      {summary.categoryBreakdown.find((c) => c.total < 0)?.category || summary.categoryBreakdown[0].category}
+                    </strong>
+                  </li>
+                )}
+                {summary.comparison && summary.comparison.expenseChange !== null && (
+                  <li>
+                    Despesas{" "}
+                    <strong className={summary.comparison.expenseChange > 0 ? "text-red-600" : "text-green-600"}>
+                      {summary.comparison.expenseChange > 0 ? "+" : ""}
+                      {summary.comparison.expenseChange.toFixed(0)}%
+                    </strong>{" "}
+                    em relação ao mês anterior
+                    {Math.abs(summary.comparison.expenseChange) > 30 && (
+                      <span className="text-warning"> — variação significativa</span>
+                    )}
+                  </li>
+                )}
+                {summary.moodCorrelation.filter((d) => d.mood !== null && d.mood >= 4 && d.spending > summary.dailyAverage).length > 0 && (
+                  <li className="text-warning">
+                    Foram identificados dias com humor elevado e gastos acima da média — padrão que merece atenção clínica.
+                  </li>
+                )}
+              </ul>
+            </Card>
+          )}
+        </div>
       )}
 
       {/* Transaction list */}
@@ -143,6 +235,36 @@ export default function FinanceiroPage() {
         Compartilhe com seu profissional de saúde.
       </p>
     </div>
+  );
+}
+
+function SummaryCard({
+  label,
+  value,
+  color,
+  change,
+  invertChange,
+}: {
+  label: string;
+  value: number;
+  color: string;
+  change?: number | null;
+  invertChange?: boolean;
+}) {
+  const changeColor = change != null
+    ? (invertChange ? (change > 0 ? "text-red-500" : "text-green-500") : (change > 0 ? "text-green-500" : "text-red-500"))
+    : "";
+
+  return (
+    <Card>
+      <p className="text-xs text-muted">{label}</p>
+      <p className={`text-xl font-bold ${color}`}>R$ {value.toFixed(2)}</p>
+      {change != null && (
+        <p className={`text-xs font-medium ${changeColor}`}>
+          {change > 0 ? "+" : ""}{change.toFixed(0)}% vs mês anterior
+        </p>
+      )}
+    </Card>
   );
 }
 

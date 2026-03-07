@@ -24,11 +24,22 @@ export async function pullGoogleCalendar(userId: string): Promise<SyncResult> {
   let pulled = 0;
   let errors = 0;
 
+  const isFullSync = !account.syncToken;
+
   const response = await listEvents(
     auth,
     account.calendarId,
     account.syncToken || undefined,
   );
+
+  // Full sync: delete all Google-sourced blocks first, then re-create.
+  // This handles events that were deleted in Google Calendar (which don't
+  // appear in a full sync response — only incremental sync returns "cancelled").
+  if (isFullSync) {
+    await prisma.plannerBlock.deleteMany({
+      where: { userId, sourceType: "google" },
+    });
+  }
 
   for (const event of response.items) {
     if (!event.id) continue;

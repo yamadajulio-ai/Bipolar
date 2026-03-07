@@ -12,6 +12,20 @@ function scrubUrl(url: string | undefined): string | undefined {
     .replace(/[?#].*$/, "");
 }
 
+/** Scrub URL-like values from span data object */
+function scrubSpanData(data: Record<string, unknown> | undefined): Record<string, unknown> | undefined {
+  if (!data) return data;
+  const scrubbed: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(data)) {
+    if (typeof v === "string" && (k === "url" || k === "http.url" || k.endsWith(".url"))) {
+      scrubbed[k] = scrubUrl(v);
+    } else {
+      scrubbed[k] = v;
+    }
+  }
+  return scrubbed;
+}
+
 Sentry.init({
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
   tracesSampleRate: 0.1,
@@ -31,6 +45,14 @@ Sentry.init({
     if (event.request?.cookies) {
       event.request.cookies = {};
     }
+    if (event.request?.headers) {
+      const safe = ["content-type", "user-agent", "accept"];
+      const filtered: Record<string, string> = {};
+      for (const [k, v] of Object.entries(event.request.headers)) {
+        if (safe.includes(k.toLowerCase())) filtered[k] = v;
+      }
+      event.request.headers = filtered;
+    }
     if (event.transaction) {
       event.transaction = scrubUrl(event.transaction)!;
     }
@@ -47,6 +69,7 @@ Sentry.init({
       event.spans = event.spans.map((span) => ({
         ...span,
         description: span.description ? scrubUrl(span.description) : span.description,
+        data: scrubSpanData(span.data),
       }));
     }
     return event;

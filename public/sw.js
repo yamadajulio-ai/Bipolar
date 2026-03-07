@@ -21,6 +21,8 @@ const CACHEABLE_API_PATHS = [
 const API_TTL_MS = 5 * 60 * 1000;
 
 // In-memory TTL tracker (resets when SW restarts — acceptable)
+// Cap at 50 entries to prevent unbounded growth from query variations
+const API_TIMESTAMPS_MAX = 50;
 const apiTimestamps = new Map();
 
 // --- Install ---
@@ -117,7 +119,7 @@ async function staleWhileRevalidate(request, cacheName, cacheKey) {
     const response = await fetch(request);
     if (response.ok) {
       cache.put(request, response.clone());
-      apiTimestamps.set(cacheKey, Date.now());
+      trackTimestamp(cacheKey);
     }
     return response;
   } catch {
@@ -134,7 +136,7 @@ async function refreshInBackground(request, cache, cacheKey) {
     const response = await fetch(request);
     if (response.ok) {
       cache.put(request, response.clone());
-      apiTimestamps.set(cacheKey, Date.now());
+      trackTimestamp(cacheKey);
     }
   } catch {
     // Network failed — stale cache continues serving
@@ -151,6 +153,15 @@ self.addEventListener("message", (event) => {
     );
   }
 });
+
+function trackTimestamp(key) {
+  apiTimestamps.set(key, Date.now());
+  if (apiTimestamps.size > API_TIMESTAMPS_MAX) {
+    // Delete oldest entry (Map preserves insertion order)
+    const oldest = apiTimestamps.keys().next().value;
+    apiTimestamps.delete(oldest);
+  }
+}
 
 // --- Helpers ---
 

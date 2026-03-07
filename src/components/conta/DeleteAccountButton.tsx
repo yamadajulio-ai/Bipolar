@@ -23,6 +23,9 @@ export function DeleteAccountButton() {
         window.location.href = res.url;
       } else if (res.ok) {
         window.location.href = "/";
+      } else {
+        setLoading(false);
+        setConfirming(false);
       }
     } catch {
       setLoading(false);

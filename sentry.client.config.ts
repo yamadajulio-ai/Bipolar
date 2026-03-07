@@ -17,6 +17,20 @@ function scrubUrl(url: string | undefined): string | undefined {
     .replace(/[?#].*$/, "");
 }
 
+/** Scrub URL-like values from span data object */
+function scrubSpanData(data: Record<string, unknown> | undefined): Record<string, unknown> | undefined {
+  if (!data) return data;
+  const scrubbed: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(data)) {
+    if (typeof v === "string" && (k === "url" || k === "http.url" || k.endsWith(".url"))) {
+      scrubbed[k] = scrubUrl(v);
+    } else {
+      scrubbed[k] = v;
+    }
+  }
+  return scrubbed;
+}
+
 function scrubEvent(event: Sentry.ErrorEvent) {
   if (event.request?.url) {
     event.request.url = scrubUrl(event.request.url)!;
@@ -69,6 +83,30 @@ Sentry.init({
   environment: process.env.NODE_ENV,
   enabled: process.env.NODE_ENV === "production",
   sendDefaultPii: false,
+  beforeBreadcrumb(breadcrumb) {
+    if (breadcrumb.category === "xhr" || breadcrumb.category === "fetch") {
+      return {
+        ...breadcrumb,
+        data: breadcrumb.data?.url
+          ? { url: scrubUrl(breadcrumb.data.url), status_code: breadcrumb.data.status_code, method: breadcrumb.data.method }
+          : undefined,
+      };
+    }
+    if (breadcrumb.category === "navigation") {
+      return {
+        ...breadcrumb,
+        data: {
+          from: scrubUrl(breadcrumb.data?.from),
+          to: scrubUrl(breadcrumb.data?.to),
+        },
+      };
+    }
+    // Generic: scrub any breadcrumb with data.url string
+    if (typeof breadcrumb.data?.url === "string") {
+      return { ...breadcrumb, data: { ...breadcrumb.data, url: scrubUrl(breadcrumb.data.url) } };
+    }
+    return breadcrumb;
+  },
   beforeSend(event) {
     return scrubEvent(event);
   },
@@ -79,11 +117,11 @@ Sentry.init({
     if (event.request?.url) {
       event.request.url = scrubUrl(event.request.url)!;
     }
-    // Scrub span descriptions that may contain URLs
     if (event.spans) {
       event.spans = event.spans.map((span) => ({
         ...span,
         description: span.description ? scrubUrl(span.description) : span.description,
+        data: scrubSpanData(span.data),
       }));
     }
     return event;

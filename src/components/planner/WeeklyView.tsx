@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Card } from "@/components/Card";
 import { Alert } from "@/components/Alert";
-import { CATEGORY_COLORS } from "@/lib/planner/categories";
+import { CATEGORY_COLORS, GOOGLE_EVENT_COLORS } from "@/lib/planner/categories";
 import { localToday, localDateStr } from "@/lib/dateUtils";
 import { expandSerializedBlocks } from "@/lib/planner/expandClient";
 import type { SerializedBlock } from "@/lib/planner/expandClient";
@@ -397,19 +397,21 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
                       const height = Math.max((endH - startH) * HOUR_HEIGHT, 18);
                       const leftPct = (lb.col / lb.totalCols) * 100;
                       const widthPct = (1 / lb.totalCols) * 100;
-                      const colors = CATEGORY_COLORS[lb.occ.category] || CATEGORY_COLORS.outro;
+                      const gColor = lb.occ.googleColor ? GOOGLE_EVENT_COLORS[lb.occ.googleColor] : null;
+                      const categoryClasses = !gColor ? (CATEGORY_COLORS[lb.occ.category] || CATEGORY_COLORS.outro) : "";
                       const isShort = height < 36;
 
                       return (
                         <div
                           key={k}
-                          className={`absolute z-10 overflow-hidden rounded border text-left ${colors}`}
+                          className={`absolute z-10 overflow-hidden rounded border text-left ${categoryClasses}`}
                           style={{
                             top,
                             height,
                             left: `${leftPct}%`,
                             width: `calc(${widthPct}% - 2px)`,
                             marginLeft: 1,
+                            ...(gColor ? { backgroundColor: gColor.bg, borderColor: gColor.border, color: gColor.text } : {}),
                           }}
                           title={`${lb.occ.title}\n${formatTime(lb.occ.startAt)} - ${formatTime(lb.occ.endAt)}`}
                         >

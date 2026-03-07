@@ -35,6 +35,7 @@ export function googleEventToBlockData(event: calendar_v3.Schema$Event) {
     notes: event.description || null,
     energyCost: extProps.energyCost ? Number(extProps.energyCost) : 3,
     stimulation: extProps.stimulation ? Number(extProps.stimulation) : 1,
+    googleColor: event.colorId || null,
   };
 }
 

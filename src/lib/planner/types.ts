@@ -10,6 +10,7 @@ export interface PlannerBlockData {
   energyCost: number;
   stimulation: number;
   sourceType?: string; // "app" | "google"
+  googleColor?: string | null; // Google Calendar colorId (1-11)
   recurrence: {
     freq: string;
     interval: number;
@@ -38,6 +39,7 @@ export interface ExpandedOccurrence {
   energyCost: number;
   stimulation: number;
   sourceType?: string; // "app" | "google"
+  googleColor?: string | null;
   isRecurring: boolean;
   occurrenceDate: string; // YYYY-MM-DD anchor for this occurrence
 }

@@ -47,3 +47,18 @@ export const CATEGORY_COLORS: Record<string, string> = {
   lazer: "bg-purple-100 border-purple-300 text-purple-800",
   outro: "bg-gray-100 border-gray-300 text-gray-800",
 };
+
+/** Google Calendar event color IDs → inline styles (matching Google's palette). */
+export const GOOGLE_EVENT_COLORS: Record<string, { bg: string; border: string; text: string }> = {
+  "1":  { bg: "#d4e4fc", border: "#7986CB", text: "#3b4880" },  // Lavanda
+  "2":  { bg: "#c8f7d8", border: "#33B679", text: "#1a6b3f" },  // Sálvia
+  "3":  { bg: "#f0d4f7", border: "#8E24AA", text: "#5c1370" },  // Uva
+  "4":  { bg: "#fde0dd", border: "#E67C73", text: "#8c3a33" },  // Flamingo
+  "5":  { bg: "#e0e0e0", border: "#616161", text: "#333333" },  // Grafite
+  "6":  { bg: "#fef3c7", border: "#F6BF26", text: "#7a5d0a" },  // Banana
+  "7":  { bg: "#fdd8cc", border: "#F4511E", text: "#8c2a0e" },  // Tangerina
+  "8":  { bg: "#cce8f9", border: "#039BE5", text: "#045a85" },  // Pavão
+  "9":  { bg: "#d4d8f0", border: "#3F51B5", text: "#283270" },  // Mirtilo
+  "10": { bg: "#c8e6d0", border: "#0B8043", text: "#064d28" },  // Manjericão
+  "11": { bg: "#fccccb", border: "#D50000", text: "#800000" },  // Tomate
+};

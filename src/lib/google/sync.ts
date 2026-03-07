@@ -57,6 +57,7 @@ export async function pullGoogleCalendar(userId: string): Promise<SyncResult> {
           startAt: blockData.startAt,
           endAt: blockData.endAt,
           notes: blockData.notes,
+          googleColor: blockData.googleColor,
         },
         create: {
           userId,
@@ -69,6 +70,7 @@ export async function pullGoogleCalendar(userId: string): Promise<SyncResult> {
           energyCost: blockData.energyCost,
           stimulation: blockData.stimulation,
           googleEventId: event.id,
+          googleColor: blockData.googleColor,
           sourceType: "google",
         },
       });

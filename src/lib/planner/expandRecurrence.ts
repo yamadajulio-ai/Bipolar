@@ -136,6 +136,7 @@ function applyException(
     energyCost: block.energyCost,
     stimulation: block.stimulation,
     sourceType: block.sourceType,
+    googleColor: block.googleColor,
     isRecurring,
     occurrenceDate: ymd,
   };

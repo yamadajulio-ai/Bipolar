@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/Card";
-import { CATEGORY_COLORS } from "@/lib/planner/categories";
+import { CATEGORY_COLORS, GOOGLE_EVENT_COLORS } from "@/lib/planner/categories";
 import { expandSerializedBlocks } from "@/lib/planner/expandClient";
 import type { SerializedBlock } from "@/lib/planner/expandClient";
 
@@ -20,6 +20,7 @@ interface DisplayBlock {
   startAt: Date;
   endAt: Date;
   energyCost: number;
+  googleColor?: string | null;
   isPast: boolean;
   isNext: boolean;
 }
@@ -48,6 +49,7 @@ export function TodayBlocks({ blocks, today, targetSleepTimeMin }: TodayBlocksPr
       startAt: occ.startAt instanceof Date ? occ.startAt : new Date(occ.startAt),
       endAt: occ.endAt instanceof Date ? occ.endAt : new Date(occ.endAt),
       energyCost: occ.energyCost,
+      googleColor: occ.googleColor,
       isPast: false,
       isNext: false,
     }));
@@ -120,13 +122,15 @@ export function TodayBlocks({ blocks, today, targetSleepTimeMin }: TodayBlocksPr
         </Card>
       ) : (
         displayBlocks.map((b) => {
-          const colors = CATEGORY_COLORS[b.category] || CATEGORY_COLORS.outro;
+          const gColor = b.googleColor ? GOOGLE_EVENT_COLORS[b.googleColor] : null;
+          const categoryClasses = !gColor ? (CATEGORY_COLORS[b.category] || CATEGORY_COLORS.outro) : "";
           return (
             <div
               key={b.id + b.startAt.toISOString()}
-              className={`flex items-center gap-3 rounded-lg border p-3 transition-opacity ${colors} ${
+              className={`flex items-center gap-3 rounded-lg border p-3 transition-opacity ${categoryClasses} ${
                 b.isPast ? "opacity-50" : ""
               } ${b.isNext ? "ring-2 ring-primary/30" : ""}`}
+              style={gColor ? { backgroundColor: gColor.bg, borderColor: gColor.border, color: gColor.text } : undefined}
             >
               <div className="text-sm font-medium" style={{ minWidth: "5rem" }}>
                 {formatTimeDisplay(b.startAt)} — {formatTimeDisplay(b.endAt)}

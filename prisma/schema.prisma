@@ -168,6 +168,7 @@ model PlannerBlock {
   energyCost  Int      @default(3)  // 0..10
   stimulation   Int      @default(1)  // 0=LOW, 1=MED, 2=HIGH
   googleEventId String?
+  googleColor   String?              // Google Calendar colorId (1-11)
   sourceType    String   @default("app") // "app" | "google"
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

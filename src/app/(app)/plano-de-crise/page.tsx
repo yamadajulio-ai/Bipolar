@@ -18,8 +18,8 @@ export default async function PlanoDeCrisePage() {
 
       <Alert variant="danger" className="mb-6">
         <strong>Em crise ou risco imediato?</strong> Ligue agora: CVV{" "}
-        <strong>188</strong> (24h, gratuito) | SAMU <strong>192</strong> | Va a{" "}
-        <strong>UPA 24h</strong> mais proxima.
+        <strong>188</strong> (24h, gratuito) | SAMU <strong>192</strong> | Vá a{" "}
+        <strong>UPA 24h</strong> mais próxima.
       </Alert>
 
       {plan ? (
@@ -38,7 +38,7 @@ export default async function PlanoDeCrisePage() {
       ) : (
         <Card className="mb-6">
           <p className="mb-3 text-center text-muted">
-            Voce ainda nao criou seu plano de crise pessoal.
+            Você ainda não criou seu plano de crise pessoal.
           </p>
           <div className="text-center">
             <Link
@@ -52,24 +52,24 @@ export default async function PlanoDeCrisePage() {
       )}
 
       <Alert variant="info" className="mb-6">
-        Este plano contem orientacoes gerais. Construa seu plano de crise
-        pessoal junto com seu profissional de saude mental.
+        Este plano contém orientações gerais. Construa seu plano de crise
+        pessoal junto com seu profissional de saúde mental.
       </Alert>
 
       <section className="mb-8">
         <h2 className="mb-3 text-lg font-semibold">Sinais de alerta</h2>
         <Card>
           <p className="mb-3 text-sm text-muted">
-            Preste atencao a mudancas que podem indicar o inicio de um episodio:
+            Preste atenção a mudanças que podem indicar o início de um episódio:
           </p>
           <ul className="space-y-2 text-sm text-muted">
-            <li>• Alteracoes significativas no padrao de sono (dormir muito menos ou muito mais)</li>
-            <li>• Mudancas bruscas de energia ou humor</li>
-            <li>• Irritabilidade incomum ou agitacao</li>
-            <li>• Pensamentos acelerados ou dificuldade de concentracao</li>
+            <li>• Alterações significativas no padrão de sono (dormir muito menos ou muito mais)</li>
+            <li>• Mudanças bruscas de energia ou humor</li>
+            <li>• Irritabilidade incomum ou agitação</li>
+            <li>• Pensamentos acelerados ou dificuldade de concentração</li>
             <li>• Isolamento social ou perda de interesse em atividades</li>
-            <li>• Impulsividade aumentada (gastos, decisoes precipitadas)</li>
-            <li>• Pensamentos de desesperanca ou ideias de que nada vale a pena</li>
+            <li>• Impulsividade aumentada (gastos, decisões precipitadas)</li>
+            <li>• Pensamentos de desesperança ou ideias de que nada vale a pena</li>
           </ul>
         </Card>
       </section>
@@ -79,44 +79,44 @@ export default async function PlanoDeCrisePage() {
         <Card>
           <ol className="space-y-3 text-sm text-muted">
             <li>
-              <strong>1. Reconheca o momento.</strong> Perceber que algo nao esta
-              bem e o primeiro passo. Nao se julgue.
+              <strong>1. Reconheça o momento.</strong> Perceber que algo não está
+              bem é o primeiro passo. Não se julgue.
             </li>
             <li>
-              <strong>2. Busque apoio imediato.</strong> Ligue para alguem de
-              confianca, seu profissional de saude, ou para o CVV (188).
+              <strong>2. Busque apoio imediato.</strong> Ligue para alguém de
+              confiança, seu profissional de saúde, ou para o CVV (188).
             </li>
             <li>
-              <strong>3. Reduza estimulos.</strong> Procure um ambiente calmo,
-              com pouca luz e barulho. Evite tomar decisoes importantes.
+              <strong>3. Reduza estímulos.</strong> Procure um ambiente calmo,
+              com pouca luz e barulho. Evite tomar decisões importantes.
             </li>
             <li>
-              <strong>4. Nao altere sua medicacao.</strong> Mudancas na
-              medicacao devem ser feitas apenas com orientacao do seu medico.
+              <strong>4. Não altere sua medicação.</strong> Mudanças na
+              medicação devem ser feitas apenas com orientação do seu médico.
             </li>
             <li>
-              <strong>5. Va a um servico de saude se necessario.</strong> SAMU
-              (192) ou UPA 24h sao recursos disponiveis a qualquer hora.
+              <strong>5. Vá a um serviço de saúde se necessário.</strong> SAMU
+              (192) ou UPA 24h são recursos disponíveis a qualquer hora.
             </li>
           </ol>
         </Card>
       </section>
 
       <section className="mb-8">
-        <h2 className="mb-3 text-lg font-semibold">Recursos de emergencia no Brasil</h2>
+        <h2 className="mb-3 text-lg font-semibold">Recursos de emergência no Brasil</h2>
         <div className="grid gap-3 sm:grid-cols-3">
           <Card className="text-center">
             <p className="text-3xl font-bold text-primary">188</p>
             <p className="text-sm font-medium">CVV</p>
             <p className="text-xs text-muted">
-              Centro de Valorizacao da Vida. 24h, gratuito, sigilo garantido.
+              Centro de Valorização da Vida. 24h, gratuito, sigilo garantido.
             </p>
           </Card>
           <Card className="text-center">
             <p className="text-3xl font-bold text-danger">192</p>
             <p className="text-sm font-medium">SAMU</p>
             <p className="text-xs text-muted">
-              Servico de Atendimento Movel de Urgencia. 24h.
+              Serviço de Atendimento Móvel de Urgência. 24h.
             </p>
           </Card>
           <Card className="text-center">
@@ -131,8 +131,8 @@ export default async function PlanoDeCrisePage() {
 
       <Alert variant="info">
         <strong>Dica:</strong> Monte seu plano de crise pessoal em um momento de
-        estabilidade, junto com seu profissional de saude. Inclua contatos de
-        confianca, medicacoes atuais e hospital de preferencia.
+        estabilidade, junto com seu profissional de saúde. Inclua contatos de
+        confiança, medicações atuais e hospital de preferência.
       </Alert>
     </div>
   );

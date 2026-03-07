@@ -24,11 +24,11 @@ const periodOptions = [
 ];
 
 const qualityLabels: Record<number, string> = {
-  1: "Pessima",
+  1: "Péssima",
   2: "Ruim",
   3: "Regular",
   4: "Boa",
-  5: "Otima",
+  5: "Ótima",
 };
 
 function getQualityLabel(avg: number): string {
@@ -50,7 +50,7 @@ export default function TendenciasSonoPage() {
       setData(json);
       setError("");
     } catch {
-      setError("Erro ao carregar tendencias. Tente novamente.");
+      setError("Erro ao carregar tendências. Tente novamente.");
     } finally {
       setLoading(false);
     }
@@ -63,7 +63,7 @@ export default function TendenciasSonoPage() {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Tendencias de Sono</h1>
+        <h1 className="text-2xl font-bold">Tendências de Sono</h1>
         <Link
           href="/sono"
           className="text-sm text-primary hover:underline"
@@ -101,7 +101,7 @@ export default function TendenciasSonoPage() {
       ) : data && data.totalLogs === 0 ? (
         <Card>
           <p className="text-center text-muted">
-            Nenhum registro de sono neste periodo.{" "}
+            Nenhum registro de sono neste período.{" "}
             <Link href="/sono/novo" className="text-primary hover:underline">
               Criar registro
             </Link>
@@ -121,24 +121,24 @@ export default function TendenciasSonoPage() {
 
           <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
             <Card>
-              <p className="text-xs text-muted">Media de horas</p>
+              <p className="text-xs text-muted">Média de horas</p>
               <p className="text-2xl font-bold">{data.avgHours}h</p>
               <p className="text-xs text-muted">{data.totalLogs} registros</p>
             </Card>
             <Card>
-              <p className="text-xs text-muted">Media de qualidade</p>
+              <p className="text-xs text-muted">Média de qualidade</p>
               <p className="text-2xl font-bold">{data.avgQuality}</p>
               <p className="text-xs text-muted">{getQualityLabel(data.avgQuality)}</p>
             </Card>
             <Card>
-              <p className="text-xs text-muted">Media de despertares</p>
+              <p className="text-xs text-muted">Média de despertares</p>
               <p className="text-2xl font-bold">{data.avgAwakenings}</p>
               <p className="text-xs text-muted">por noite</p>
             </Card>
           </div>
 
           <Card className="mb-6">
-            <h2 className="mb-4 text-lg font-semibold">Grafico de Sono</h2>
+            <h2 className="mb-4 text-lg font-semibold">Gráfico de Sono</h2>
             <SleepChart data={data.logs} />
           </Card>
         </>

@@ -14,17 +14,26 @@ const transactionSchema = z.object({
 export async function GET(request: NextRequest) {
   const session = await getSession();
   if (!session.isLoggedIn) {
-    return NextResponse.json({ error: "Nao autorizado" }, { status: 401 });
+    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
   const { searchParams } = new URL(request.url);
-  const days = parseInt(searchParams.get("days") || "30");
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - days);
-  const cutoffStr = `${cutoff.getFullYear()}-${String(cutoff.getMonth() + 1).padStart(2, "0")}-${String(cutoff.getDate()).padStart(2, "0")}`;
+  const month = searchParams.get("month"); // YYYY-MM
+  let dateFilter: { gte: string; lte?: string };
+
+  if (month && /^\d{4}-\d{2}$/.test(month)) {
+    const [year, mon] = month.split("-").map(Number);
+    const lastDay = new Date(year, mon, 0).getDate();
+    dateFilter = { gte: `${month}-01`, lte: `${month}-${String(lastDay).padStart(2, "0")}` };
+  } else {
+    const days = parseInt(searchParams.get("days") || "30");
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - days);
+    dateFilter = { gte: `${cutoff.getFullYear()}-${String(cutoff.getMonth() + 1).padStart(2, "0")}-${String(cutoff.getDate()).padStart(2, "0")}` };
+  }
 
   const transactions = await prisma.financialTransaction.findMany({
-    where: { userId: session.userId, date: { gte: cutoffStr } },
+    where: { userId: session.userId, date: dateFilter },
     orderBy: { date: "desc" },
   });
 
@@ -34,7 +43,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const session = await getSession();
   if (!session.isLoggedIn) {
-    return NextResponse.json({ error: "Nao autorizado" }, { status: 401 });
+    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
   try {
@@ -66,7 +75,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(tx, { status: 201 });
   } catch {
     return NextResponse.json(
-      { error: "Erro ao criar transacao." },
+      { error: "Erro ao criar transação." },
       { status: 500 },
     );
   }

@@ -27,7 +27,7 @@ function colorToBg(color: "green" | "yellow" | "red"): string {
 function colorToText(color: "green" | "yellow" | "red"): string {
   if (color === "green") return "Dentro do ideal";
   if (color === "yellow") return "Moderado";
-  return "Fora do ideal";
+  return "Atenção recomendada";
 }
 
 function colorToCardBorder(color: "green" | "yellow" | "red"): string {

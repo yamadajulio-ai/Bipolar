@@ -82,14 +82,14 @@ export function MonthlyReport({ data }: MonthlyReportProps) {
       {/* Summary Cards */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 print:grid-cols-4">
         <StatCard label="Registros" value={stats.totalDiaryEntries} />
-        <StatCard label="Humor médio" value={stats.avgMood ? `${stats.avgMood}/5` : "—"} />
-        <StatCard label="Sono médio" value={stats.avgSleep ? `${stats.avgSleep}h` : "—"} />
-        <StatCard label="Exercícios" value={stats.totalExercises} />
-        {stats.avgEnergy && <StatCard label="Energia média" value={`${stats.avgEnergy}/5`} />}
-        {stats.avgAnxiety && <StatCard label="Ansiedade média" value={`${stats.avgAnxiety}/5`} />}
-        {stats.avgSleepQuality && <StatCard label="Qualidade sono" value={`${stats.avgSleepQuality}/5`} />}
+        <StatCard label="Humor médio" value={stats.avgMood ? `${stats.avgMood}/5` : "—"} subtitle="1=Muito baixo, 5=Muito elevado" />
+        <StatCard label="Sono médio" value={stats.avgSleep ? `${stats.avgSleep}h` : "—"} subtitle="Horas por noite" />
+        <StatCard label="Exercícios respiratórios" value={stats.totalExercises} subtitle="Sessões realizadas" />
+        {stats.avgEnergy && <StatCard label="Disposição média" value={`${stats.avgEnergy}/5`} subtitle="1=Exausta, 5=Agitada" />}
+        {stats.avgAnxiety && <StatCard label="Ansiedade média" value={`${stats.avgAnxiety}/5`} subtitle="1=Tranquila, 5=Intensa" />}
+        {stats.avgSleepQuality && <StatCard label="Qualidade sono" value={`${stats.avgSleepQuality}/100`} subtitle="20=Péssima, 100=Ótima" />}
         {stats.medicationAdherence !== null && (
-          <StatCard label="Adesão medicação" value={`${stats.medicationAdherence}%`} />
+          <StatCard label="Adesão medicação" value={`${stats.medicationAdherence}%`} subtitle={`Dos ${stats.totalDiaryEntries} registro(s) feitos`} />
         )}
         {stats.totalWeeklyAssessments ? <StatCard label="Avaliações semanais" value={stats.totalWeeklyAssessments} /> : null}
         {stats.avgAsrm !== null && stats.avgAsrm !== undefined && <StatCard label="ASRM médio" value={`${stats.avgAsrm}/20`} />}
@@ -205,11 +205,12 @@ export function MonthlyReport({ data }: MonthlyReportProps) {
   );
 }
 
-function StatCard({ label, value }: { label: string; value: string | number }) {
+function StatCard({ label, value, subtitle }: { label: string; value: string | number; subtitle?: string }) {
   return (
     <div className="rounded-lg border border-border bg-surface p-3 text-center">
       <p className="text-lg font-bold text-foreground">{value}</p>
       <p className="text-xs text-muted">{label}</p>
+      {subtitle && <p className="mt-0.5 text-[10px] text-muted/70">{subtitle}</p>}
     </div>
   );
 }

@@ -45,21 +45,21 @@ export default async function RotinaPage() {
           href="/rotina/tendencias"
           className="text-sm text-primary hover:underline"
         >
-          Ver tendencias e regularidade
+          Ver tendências e regularidade
         </Link>
       </div>
 
       <Card className="mb-6">
         <h2 className="mb-2 text-sm font-semibold text-foreground">
-          O que e a Terapia de Ritmos Sociais?
+          O que é a Terapia de Ritmos Sociais?
         </h2>
         <p className="text-sm text-muted">
-          A Terapia Interpessoal e de Ritmos Sociais (IPSRT) e uma abordagem
+          A Terapia Interpessoal e de Ritmos Sociais (IPSRT) é uma abordagem
           desenvolvida especificamente para o transtorno bipolar. Ela reconhece que
-          a estabilidade das rotinas diarias — como horarios de acordar, comer e
-          dormir — tem impacto direto na regulacao do humor. Mudancas bruscas
-          nesses ritmos podem desencadear episodios. Monitorar e manter
-          regularidade nessas ancoras sociais e uma ferramenta poderosa para a
+          a estabilidade das rotinas diárias — como horários de acordar, comer e
+          dormir — tem impacto direto na regulação do humor. Mudanças bruscas
+          nesses ritmos podem desencadear episódios. Monitorar e manter
+          regularidade nessas âncoras sociais é uma ferramenta poderosa para a
           estabilidade emocional.
         </p>
       </Card>
@@ -67,7 +67,7 @@ export default async function RotinaPage() {
       {entries.length === 0 ? (
         <Card>
           <p className="text-center text-muted">
-            Nenhum registro nos ultimos 7 dias.{" "}
+            Nenhum registro nos últimos 7 dias.{" "}
             <Link href="/rotina/novo" className="text-primary hover:underline">
               Criar primeiro registro
             </Link>
@@ -109,7 +109,7 @@ export default async function RotinaPage() {
       )}
 
       <Alert variant="info" className="mt-6">
-        Baseado na Terapia Interpessoal de Ritmos Sociais (IPSRT). Nao substitui
+        Baseado na Terapia Interpessoal de Ritmos Sociais (IPSRT). Não substitui
         acompanhamento profissional.
       </Alert>
     </div>

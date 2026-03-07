@@ -59,7 +59,7 @@ export function SleepChart({ data }: SleepChartProps) {
           <YAxis
             yAxisId="quality"
             orientation="right"
-            domain={[1, 5]}
+            domain={[0, 100]}
             tick={{ fontSize: 12 }}
             label={{ value: "Qualidade", angle: 90, position: "insideRight", fontSize: 12 }}
           />
@@ -91,8 +91,9 @@ export function SleepChart({ data }: SleepChartProps) {
             type="monotone"
             dataKey="quality"
             name="Qualidade"
-            stroke="var(--color-success, #22c55e)"
+            stroke="#8b5cf6"
             strokeWidth={2}
+            strokeDasharray="5 3"
             dot={{ r: 3 }}
             activeDot={{ r: 5 }}
           />

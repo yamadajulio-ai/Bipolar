@@ -148,7 +148,7 @@ export function CrisisPlanForm({ initialData }: CrisisPlanFormProps) {
         setError("Erro ao salvar. Tente novamente.");
       }
     } catch {
-      setError("Erro de conexao. Tente novamente.");
+      setError("Erro de conexão. Tente novamente.");
     } finally {
       setSaving(false);
     }

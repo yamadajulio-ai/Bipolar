@@ -100,7 +100,7 @@ export function TodayBlocks({ blocks, today, targetSleepTimeMin }: TodayBlocksPr
       {/* Next block highlight */}
       {nextBlock && (
         <Card className="border-primary/30 bg-primary/5">
-          <p className="text-xs text-muted">Proximo</p>
+          <p className="text-xs text-muted">Próximo</p>
           <p className="text-lg font-bold text-foreground">{nextBlock.title}</p>
           <p className="text-sm text-muted">
             {formatTimeDisplay(nextBlock.startAt)} — {formatTimeDisplay(nextBlock.endAt)}
@@ -133,7 +133,7 @@ export function TodayBlocks({ blocks, today, targetSleepTimeMin }: TodayBlocksPr
               </div>
               <div className="flex-1">
                 <span className="font-medium">{b.title}</span>
-                {b.kind === "ANCHOR" && <span className="ml-1 text-xs opacity-60">Ancora</span>}
+                {b.kind === "ANCHOR" && <span className="ml-1 text-xs opacity-60">Âncora</span>}
               </div>
               <div className="text-xs text-muted">E:{b.energyCost}</div>
             </div>
@@ -144,7 +144,7 @@ export function TodayBlocks({ blocks, today, targetSleepTimeMin }: TodayBlocksPr
       {/* Wind-down reminder */}
       {targetSleepTimeMin !== null && (
         <p className="text-center text-xs text-muted">
-          Horario alvo de sono: {formatMinutes(targetSleepTimeMin)}
+          Horário alvo de sono: {formatMinutes(targetSleepTimeMin)}
         </p>
       )}
     </div>

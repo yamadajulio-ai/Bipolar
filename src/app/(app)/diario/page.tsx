@@ -87,6 +87,13 @@ export default async function DiarioPage() {
                         month: "long",
                         year: "numeric",
                       })}
+                      <span className="ml-2 text-xs font-normal text-muted">
+                        preenchido às {new Date(entry.createdAt).toLocaleTimeString("pt-BR", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          timeZone: "America/Sao_Paulo",
+                        })}
+                      </span>
                     </p>
                     <p className="text-xs text-muted mt-1">
                       Humor: {MOOD_LABELS[entry.mood] || entry.mood} | Sono:{" "}

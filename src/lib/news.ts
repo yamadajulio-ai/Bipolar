@@ -282,7 +282,11 @@ export async function getNews(source?: "pubmed" | "google_news") {
   };
 
   return prisma.newsArticle.findMany({
-    where: source ? { source, ...bipolarFilter } : bipolarFilter,
+    where: {
+      ...(source ? { source } : {}),
+      ...bipolarFilter,
+      publishedAt: { lte: new Date() },
+    },
     orderBy: { publishedAt: "desc" },
     take: 40,
   });

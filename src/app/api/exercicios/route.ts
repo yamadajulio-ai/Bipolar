@@ -4,8 +4,8 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 
 const exerciseSessionSchema = z.object({
-  exerciseType: z.string().min(1, "Tipo de exercicio e obrigatorio"),
-  durationSecs: z.number().int().min(1, "Duracao deve ser pelo menos 1 segundo"),
+  exerciseType: z.string().min(1, "Tipo de exercício é obrigatório"),
+  durationSecs: z.number().int().min(1, "Duração deve ser pelo menos 1 segundo"),
 });
 
 export async function GET(request: NextRequest) {
@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(exerciseSession, { status: 201 });
   } catch {
     return NextResponse.json(
-      { error: "Erro ao salvar sessao de exercicio." },
+      { error: "Erro ao salvar sessão de exercício." },
       { status: 500 },
     );
   }

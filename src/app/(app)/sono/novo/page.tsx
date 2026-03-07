@@ -90,7 +90,7 @@ export default function NovoSonoPage() {
       router.push("/sono");
       router.refresh();
     } catch {
-      setError("Erro de conexao. Tente novamente.");
+      setError("Erro de conexão. Tente novamente.");
     } finally {
       setLoading(false);
     }
@@ -118,7 +118,7 @@ export default function NovoSonoPage() {
 
           <div className="mb-4">
             <label htmlFor="bedtime" className="block text-sm font-medium text-foreground">
-              Horario de dormir <span className="text-danger ml-1">*</span>
+              Horário de dormir <span className="text-danger ml-1">*</span>
             </label>
             <input
               id="bedtime"
@@ -132,7 +132,7 @@ export default function NovoSonoPage() {
 
           <div className="mb-4">
             <label htmlFor="wakeTime" className="block text-sm font-medium text-foreground">
-              Horario de acordar <span className="text-danger ml-1">*</span>
+              Horário de acordar <span className="text-danger ml-1">*</span>
             </label>
             <input
               id="wakeTime"
@@ -172,15 +172,20 @@ export default function NovoSonoPage() {
             </div>
           </div>
 
-          <FormField
-            label="Despertares durante a noite"
-            name="awakenings"
-            type="number"
-            min={0}
-            max={10}
-            value={0}
-            placeholder="0"
-          />
+          <div className="mb-4">
+            <label htmlFor="awakenings" className="block text-sm font-medium text-foreground">
+              Despertares durante a noite
+            </label>
+            <input
+              id="awakenings"
+              name="awakenings"
+              type="number"
+              min={0}
+              max={10}
+              defaultValue={0}
+              className="mt-1 block w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          </div>
 
           <div className="mb-4 grid grid-cols-2 gap-3">
             <FormField

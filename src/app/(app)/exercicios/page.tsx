@@ -28,7 +28,7 @@ export default function ExerciciosPage() {
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-bold">Exercicios</h1>
+      <h1 className="mb-6 text-2xl font-bold">Exercícios</h1>
 
       <section className="mb-8">
         <h2 className="mb-4 text-lg font-semibold text-foreground">Respiração</h2>

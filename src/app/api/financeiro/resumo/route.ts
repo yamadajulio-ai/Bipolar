@@ -6,17 +6,26 @@ import { localDateStr } from "@/lib/dateUtils";
 export async function GET(request: NextRequest) {
   const session = await getSession();
   if (!session.isLoggedIn) {
-    return NextResponse.json({ error: "Nao autorizado" }, { status: 401 });
+    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
   const { searchParams } = new URL(request.url);
-  const days = parseInt(searchParams.get("days") || "30");
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - days);
-  const cutoffStr = localDateStr(cutoff);
+  const month = searchParams.get("month"); // YYYY-MM
+  let dateFilter: { gte: string; lte?: string };
+
+  if (month && /^\d{4}-\d{2}$/.test(month)) {
+    const [year, mon] = month.split("-").map(Number);
+    const lastDay = new Date(year, mon, 0).getDate();
+    dateFilter = { gte: `${month}-01`, lte: `${month}-${String(lastDay).padStart(2, "0")}` };
+  } else {
+    const days = parseInt(searchParams.get("days") || "30");
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - days);
+    dateFilter = { gte: localDateStr(cutoff) };
+  }
 
   const transactions = await prisma.financialTransaction.findMany({
-    where: { userId: session.userId, date: { gte: cutoffStr } },
+    where: { userId: session.userId, date: dateFilter },
   });
 
   // Compute totals
@@ -44,7 +53,7 @@ export async function GET(request: NextRequest) {
 
   // Mood-spending correlation: join with DiaryEntry
   const diaryEntries = await prisma.diaryEntry.findMany({
-    where: { userId: session.userId, date: { gte: cutoffStr } },
+    where: { userId: session.userId, date: dateFilter },
     select: { date: true, mood: true, energyLevel: true },
   });
 

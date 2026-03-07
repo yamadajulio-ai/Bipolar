@@ -59,7 +59,7 @@ export default function CheckinPage() {
       setSuccess(true);
       setTimeout(() => router.push("/hoje"), 1500);
     } catch {
-      setError("Erro de conexao. Tente novamente.");
+      setError("Erro de conexão. Tente novamente.");
     } finally {
       setSaving(false);
     }
@@ -78,9 +78,9 @@ export default function CheckinPage() {
 
   return (
     <div className="mx-auto max-w-lg">
-      <h1 className="mb-2 text-2xl font-bold">Check-in Rapido</h1>
+      <h1 className="mb-2 text-2xl font-bold">Check-in Rápido</h1>
       <p className="mb-6 text-sm text-muted">
-        Como voce esta agora? Leva menos de 30 segundos.
+        Como você está agora? Leva menos de 30 segundos.
       </p>
 
       {error && (
@@ -209,7 +209,7 @@ export default function CheckinPage() {
 
         <p className="text-center text-xs text-muted">
           Para registro detalhado, use o{" "}
-          <a href="/diario/novo" className="text-primary hover:underline">diario completo</a>.
+          <a href="/diario/novo" className="text-primary hover:underline">diário completo</a>.
         </p>
       </div>
     </div>

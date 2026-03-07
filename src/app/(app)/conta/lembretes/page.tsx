@@ -16,8 +16,8 @@ interface Settings {
 const reminderFields = [
   { name: "wakeReminder", label: "Lembrete de despertar" },
   { name: "sleepReminder", label: "Lembrete de hora de dormir" },
-  { name: "diaryReminder", label: "Lembrete de registrar diario" },
-  { name: "breathingReminder", label: "Lembrete de exercicio de respiracao" },
+  { name: "diaryReminder", label: "Lembrete de registrar diário" },
+  { name: "breathingReminder", label: "Lembrete de exercício de respiração" },
 ] as const;
 
 export default function LembretesPage() {
@@ -35,7 +35,7 @@ export default function LembretesPage() {
           setSettings(await res.json());
         }
       } catch {
-        setError("Erro ao carregar configuracoes.");
+        setError("Erro ao carregar configurações.");
       } finally {
         setLoading(false);
       }
@@ -68,12 +68,12 @@ export default function LembretesPage() {
 
       if (res.ok) {
         setSettings(await res.json());
-        setMessage("Configuracoes salvas com sucesso.");
+        setMessage("Configurações salvas com sucesso.");
       } else {
-        setError("Erro ao salvar configuracoes.");
+        setError("Erro ao salvar configurações.");
       }
     } catch {
-      setError("Erro de conexao. Tente novamente.");
+      setError("Erro de conexão. Tente novamente.");
     } finally {
       setSaving(false);
     }

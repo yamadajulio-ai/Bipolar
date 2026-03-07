@@ -84,9 +84,9 @@ export function QuickBreathing({ onClose }: QuickBreathingProps) {
     <div className="flex min-h-[60vh] flex-col items-center justify-center rounded-2xl bg-gray-900 p-8 text-white">
       {finished ? (
         <div className="text-center">
-          <p className="mb-4 text-2xl font-light">Exercicio concluido.</p>
+          <p className="mb-4 text-2xl font-light">Exercício concluído.</p>
           <p className="mb-6 text-lg text-gray-400">
-            Respire normalmente. Voce esta seguro(a).
+            Respire normalmente. Você está seguro(a).
           </p>
           <button
             onClick={onClose}

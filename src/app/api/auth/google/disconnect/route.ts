@@ -5,7 +5,7 @@ import { getSession } from "@/lib/auth";
 export async function DELETE() {
   const session = await getSession();
   if (!session.isLoggedIn) {
-    return NextResponse.json({ error: "Nao autorizado" }, { status: 401 });
+    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
   try {

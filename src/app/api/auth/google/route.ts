@@ -5,7 +5,7 @@ import { getAuthUrl } from "@/lib/google/auth";
 export async function GET() {
   const session = await getSession();
   if (!session.isLoggedIn) {
-    return NextResponse.json({ error: "Nao autorizado" }, { status: 401 });
+    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
   const authUrl = getAuthUrl();

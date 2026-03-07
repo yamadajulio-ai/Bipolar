@@ -129,12 +129,12 @@ export default function AvaliacaoSemanalPage() {
           </p>
           {asrmTotal >= 6 && (
             <p className="mt-2 text-sm text-amber-400">
-              ASRM {asrmTotal}/20 — considere conversar com seu profissional sobre sinais de ativação.
+              ASRM {asrmTotal}/20 — pode ser útil compartilhar esse resultado com seu profissional de saúde.
             </p>
           )}
           {phq9Total >= 10 && (
             <p className="mt-2 text-sm text-blue-400">
-              PHQ-9 {phq9Total}/27 — sinais compatíveis com sintomas moderados ou acima.
+              PHQ-9 {phq9Total}/27 — considere compartilhar esse resultado na sua próxima consulta.
             </p>
           )}
           <button

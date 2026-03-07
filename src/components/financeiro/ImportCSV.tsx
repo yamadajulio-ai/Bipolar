@@ -44,7 +44,7 @@ export function ImportCSV({ onImported }: { onImported: () => void }) {
       // Reset file input
       if (fileRef.current) fileRef.current.value = "";
     } catch {
-      setError("Erro de conexao ao importar arquivo");
+      setError("Erro de conexão ao importar arquivo");
     } finally {
       setLoading(false);
     }

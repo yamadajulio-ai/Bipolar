@@ -243,7 +243,7 @@ function ReactionTimeTask({ onComplete, onBack }: { onComplete: (ms: number) => 
 
       <button
         type="button"
-        onClick={handleTap}
+        onPointerDown={handleTap}
         aria-label="Área do teste de tempo de reação. Toque quando mudar para verde."
         className={`flex h-64 w-full cursor-pointer items-center justify-center rounded-xl text-center transition-colors ${
           phase === "ready"

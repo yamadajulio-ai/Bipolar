@@ -94,7 +94,7 @@ export function GroundingGuide({ exercise, onComplete }: GroundingGuideProps) {
           onClick={handleStart}
           className="rounded-lg bg-primary px-6 py-3 font-medium text-white hover:bg-primary-dark"
         >
-          Iniciar exercicio
+          Iniciar exercício
         </button>
       )}
 
@@ -119,7 +119,7 @@ export function GroundingGuide({ exercise, onComplete }: GroundingGuideProps) {
             onClick={handleNext}
             className="mt-6 rounded-lg bg-primary px-6 py-2 font-medium text-white hover:bg-primary-dark"
           >
-            {currentStep < exercise.steps.length - 1 ? "Proximo" : "Concluir"}
+            {currentStep < exercise.steps.length - 1 ? "Próximo" : "Concluir"}
           </button>
         </>
       )}
@@ -127,9 +127,9 @@ export function GroundingGuide({ exercise, onComplete }: GroundingGuideProps) {
       {completed && (
         <div className="text-center">
           <div className="rounded-lg border border-success/30 bg-success/10 p-6 mb-4">
-            <p className="text-lg font-semibold text-success">Exercicio concluido!</p>
+            <p className="text-lg font-semibold text-success">Exercício concluído!</p>
             <p className="text-sm text-muted mt-1">
-              Parabens por dedicar esse tempo ao seu bem-estar.
+              Parabéns por dedicar esse tempo ao seu bem-estar.
             </p>
           </div>
           <button

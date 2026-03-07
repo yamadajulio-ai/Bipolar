@@ -27,11 +27,11 @@ interface TrendData {
 }
 
 const anchorLabels: Record<string, string> = {
-  wakeTime: "Horario que acordou",
+  wakeTime: "Horário que acordou",
   firstContact: "Primeiro contato social",
-  mainActivityStart: "Inicio da atividade principal",
-  dinnerTime: "Horario do jantar",
-  bedtime: "Horario que foi dormir",
+  mainActivityStart: "Início da atividade principal",
+  dinnerTime: "Horário do jantar",
+  bedtime: "Horário que foi dormir",
 };
 
 export default function TendenciasPage() {
@@ -65,11 +65,11 @@ export default function TendenciasPage() {
   if (!data || data.entries.length === 0) {
     return (
       <div className="mx-auto max-w-3xl">
-        <h1 className="mb-4 text-2xl font-bold">Tendencias de Regularidade</h1>
+        <h1 className="mb-4 text-2xl font-bold">Tendências de Regularidade</h1>
         <Card>
           <p className="text-center text-muted">
             Sem dados suficientes. Registre pelo menos alguns dias de rotina para
-            ver suas tendencias.
+            ver suas tendências.
           </p>
         </Card>
         <Link
@@ -84,18 +84,18 @@ export default function TendenciasPage() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <h1 className="mb-6 text-2xl font-bold">Tendencias de Regularidade</h1>
+      <h1 className="mb-6 text-2xl font-bold">Tendências de Regularidade</h1>
 
       <Card className="mb-6">
         <h2 className="mb-3 text-lg font-semibold">Regularidade geral</h2>
         <RegularityMeter
           value={data.overallRegularity}
-          label="Indice geral de regularidade"
+          label="Índice geral de regularidade"
         />
       </Card>
 
       <Card className="mb-6">
-        <h2 className="mb-3 text-lg font-semibold">Por ancora temporal</h2>
+        <h2 className="mb-3 text-lg font-semibold">Por âncora temporal</h2>
         {Object.entries(data.anchors).map(([key, stats]) => (
           <div key={key} className="mb-3">
             <RegularityMeter

@@ -1,49 +1,49 @@
 ---
 title: "Construindo uma rede de apoio"
-description: "A importancia de uma rede de apoio e como construir relacoes de confianca no manejo do TAB."
+description: "A importância de uma rede de apoio e como construir relações de confiança no manejo do TAB."
 order: 7
 ---
 
-> **Aviso importante:** Este conteudo e educacional e informativo. Nao substitui o acompanhamento de profissionais de saude mental.
+> **Aviso importante:** Este conteúdo é educacional e informativo. Não substitui o acompanhamento de profissionais de saúde mental.
 
-## O que e uma rede de apoio
+## O que é uma rede de apoio
 
-Uma rede de apoio e o conjunto de pessoas e servicos com os quais voce pode contar nos momentos dificeis e tambem no dia a dia. Para quem vive com Transtorno Afetivo Bipolar tipo 1, ter uma rede de apoio solida pode ser um fator decisivo na manutencao da estabilidade e na qualidade de vida.
+Uma rede de apoio é o conjunto de pessoas e serviços com os quais você pode contar nos momentos difíceis e também no dia a dia. Para quem vive com Transtorno Afetivo Bipolar tipo 1, ter uma rede de apoio sólida pode ser um fator decisivo na manutenção da estabilidade e na qualidade de vida.
 
-Ninguem precisa enfrentar o TAB sozinho. Aceitar apoio nao e sinal de fraqueza; e uma estrategia inteligente de cuidado.
+Ninguém precisa enfrentar o TAB sozinho. Aceitar apoio não é sinal de fraqueza; é uma estratégia inteligente de cuidado.
 
 ## Quem pode fazer parte da sua rede
 
-A rede de apoio e pessoal e pode incluir diferentes pessoas e servicos:
+A rede de apoio é pessoal e pode incluir diferentes pessoas e serviços:
 
-- **Familiares:** pessoas da familia que compreendem sua condicao e estao dispostas a ajudar
-- **Amigos de confianca:** amigos proximos com quem voce se sente seguro para compartilhar o que vive
-- **Profissionais de saude:** seu psiquiatra, psicologo, e outros profissionais envolvidos no seu cuidado
-- **Grupos de apoio:** espacos onde pessoas com experiencias semelhantes se encontram para trocar vivencias e se fortalecer mutuamente
-- **Colegas de trabalho ou estudo:** pessoas do seu convivio diario que podem oferecer suporte pratico quando necessario
+- **Familiares:** pessoas da família que compreendem sua condição e estão dispostas a ajudar
+- **Amigos de confiança:** amigos próximos com quem você se sente seguro para compartilhar o que vive
+- **Profissionais de saúde:** seu psiquiatra, psicólogo, e outros profissionais envolvidos no seu cuidado
+- **Grupos de apoio:** espaços onde pessoas com experiências semelhantes se encontram para trocar vivências e se fortalecer mutuamente
+- **Colegas de trabalho ou estudo:** pessoas do seu convívio diário que podem oferecer suporte prático quando necessário
 
 ## Como comunicar suas necessidades
 
-Uma das partes mais importantes de construir uma rede de apoio e aprender a comunicar o que voce precisa:
+Uma das partes mais importantes de construir uma rede de apoio é aprender a comunicar o que você precisa:
 
-- **Seja honesto sobre sua condicao:** compartilhe informacoes sobre o TAB com as pessoas que voce confia, no nivel de detalhe com o qual se sente confortavel
-- **Diga como podem ajudar:** as vezes, as pessoas querem ajudar mas nao sabem como. Frases como "Quando eu estiver em crise, preciso que voce ligue para o meu medico" sao muito uteis
-- **Estabeleca limites:** deixe claro o que e e o que nao e util para voce
-- **Agradeca o apoio:** reconhecer o esforco das pessoas fortalece os vinculos
+- **Seja honesto sobre sua condição:** compartilhe informações sobre o TAB com as pessoas que você confia, no nível de detalhe com o qual se sente confortável
+- **Diga como podem ajudar:** às vezes, as pessoas querem ajudar mas não sabem como. Frases como "Quando eu estiver em crise, preciso que você ligue para o meu médico" são muito úteis
+- **Estabeleça limites:** deixe claro o que é e o que não é útil para você
+- **Agradeça o apoio:** reconhecer o esforço das pessoas fortalece os vínculos
 
-## Recursos publicos no Brasil
+## Recursos públicos no Brasil
 
-O Sistema Unico de Saude (SUS) oferece servicos importantes para pessoas com transtornos mentais:
+O Sistema Único de Saúde (SUS) oferece serviços importantes para pessoas com transtornos mentais:
 
-- **CAPS (Centro de Atencao Psicossocial):** servicos especializados em saude mental que oferecem acompanhamento multidisciplinar, atividades terapeuticas e suporte para crises. Existem diferentes tipos de CAPS, incluindo os que funcionam 24 horas
-- **Unidades Basicas de Saude (UBS):** porta de entrada para o SUS, onde voce pode ser encaminhado para servicos especializados
-- **UPA 24h:** para atendimentos de urgencia
-- **CVV (Centro de Valorizacao da Vida):** apoio emocional por telefone (188), chat ou e-mail, disponivel 24 horas
+- **CAPS (Centro de Atenção Psicossocial):** serviços especializados em saúde mental que oferecem acompanhamento multidisciplinar, atividades terapêuticas e suporte para crises. Existem diferentes tipos de CAPS, incluindo os que funcionam 24 horas
+- **Unidades Básicas de Saúde (UBS):** porta de entrada para o SUS, onde você pode ser encaminhado para serviços especializados
+- **UPA 24h:** para atendimentos de urgência
+- **CVV (Centro de Valorização da Vida):** apoio emocional por telefone (188), chat ou e-mail, disponível 24 horas
 
 ## Mantenha sua rede ativa
 
-Uma rede de apoio precisa de cuidado continuo. Mantenha contato regular com as pessoas importantes, mesmo nos periodos em que voce esta se sentindo bem. Esses vinculos, cultivados ao longo do tempo, serao seu alicerce nos momentos de maior necessidade.
+Uma rede de apoio precisa de cuidado contínuo. Mantenha contato regular com as pessoas importantes, mesmo nos períodos em que você está se sentindo bem. Esses vínculos, cultivados ao longo do tempo, serão seu alicerce nos momentos de maior necessidade.
 
 ---
 
-**Recursos de emergencia: CVV 188 | SAMU 192 | UPA 24h**
+**Recursos de emergência: CVV 188 | SAMU 192 | UPA 24h**

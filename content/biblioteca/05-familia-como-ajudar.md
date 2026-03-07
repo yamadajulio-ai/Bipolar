@@ -1,65 +1,65 @@
 ---
-title: "Familia: como apoiar alguem com TAB"
-description: "Guia para familiares sobre comunicacao, limites saudaveis e quando buscar ajuda profissional."
+title: "Família: como apoiar alguém com TAB"
+description: "Guia para familiares sobre comunicação, limites saudáveis e quando buscar ajuda profissional."
 order: 5
 ---
 
-> **Aviso importante:** Este conteudo e educacional e informativo. Nao substitui o acompanhamento de profissionais de saude mental.
+> **Aviso importante:** Este conteúdo é educacional e informativo. Não substitui o acompanhamento de profissionais de saúde mental.
 
-## O papel da familia no manejo do TAB
+## O papel da família no manejo do TAB
 
-Quando alguem na familia vive com Transtorno Afetivo Bipolar tipo 1, toda a dinamica familiar pode ser afetada. Familiares frequentemente sentem preocupacao, confusao e ate impotencia diante dos episodios. Saber como agir pode fazer uma diferenca significativa tanto para a pessoa com TAB quanto para quem esta ao redor.
+Quando alguém na família vive com Transtorno Afetivo Bipolar tipo 1, toda a dinâmica familiar pode ser afetada. Familiares frequentemente sentem preocupação, confusão e até impotência diante dos episódios. Saber como agir pode fazer uma diferença significativa tanto para a pessoa com TAB quanto para quem está ao redor.
 
-## Comunicacao acolhedora
+## Comunicação acolhedora
 
-A forma como nos comunicamos pode aproximar ou afastar. Algumas orientacoes que podem ajudar:
+A forma como nos comunicamos pode aproximar ou afastar. Algumas orientações que podem ajudar:
 
-- **Ouca com atencao:** as vezes, a pessoa precisa mais de escuta do que de solucoes
-- **Use frases de apoio:** expressoes como "Estou aqui com voce" ou "Como posso ajudar?" transmitem seguranca
-- **Evite julgamentos:** frases como "Voce esta exagerando" ou "Isso e frescura" podem ser muito prejudiciais
-- **Escolha o momento certo:** conversas importantes sobre saude sao mais produtivas em periodos de estabilidade
-- **Seja direto e gentil:** quando houver preocupacao genuina, expresse-a com respeito
+- **Ouça com atenção:** às vezes, a pessoa precisa mais de escuta do que de soluções
+- **Use frases de apoio:** expressões como "Estou aqui com você" ou "Como posso ajudar?" transmitem segurança
+- **Evite julgamentos:** frases como "Você está exagerando" ou "Isso é frescura" podem ser muito prejudiciais
+- **Escolha o momento certo:** conversas importantes sobre saúde são mais produtivas em períodos de estabilidade
+- **Seja direto e gentil:** quando houver preocupação genuína, expresse-a com respeito
 
-## Limites saudaveis
+## Limites saudáveis
 
-Apoiar nao significa anular suas proprias necessidades. Estabelecer limites e fundamental:
+Apoiar não significa anular suas próprias necessidades. Estabelecer limites é fundamental:
 
-- Reconheca o que esta ao seu alcance e o que nao esta
-- Voce pode oferecer apoio, mas nao pode controlar o comportamento de outra pessoa
-- E saudavel dizer "Eu me preocupo com voce e preciso tambem cuidar de mim"
-- Limites nao sao punicao; sao uma forma de manter relacoes sustentaveis
+- Reconheça o que está ao seu alcance e o que não está
+- Você pode oferecer apoio, mas não pode controlar o comportamento de outra pessoa
+- É saudável dizer "Eu me preocupo com você e preciso também cuidar de mim"
+- Limites não são punição; são uma forma de manter relações sustentáveis
 
 ## O que evitar
 
 Algumas atitudes, mesmo bem-intencionadas, podem ser prejudiciais:
 
-- **Nao discuta sobre a medicacao:** nunca incentive a pessoa a parar ou mudar a medicacao por conta propria. Isso e uma decisao que cabe ao medico
-- **Nao minimize os sentimentos:** dizer "Voce nao tem motivo para estar triste" invalida a experiencia da pessoa
-- **Nao tente "consertar" a pessoa:** o TAB nao e algo que se resolve com conselhos simples ou forca de vontade
-- **Nao use o diagnostico como argumento:** em discussoes, evite frases como "Voce so esta falando isso por causa da bipolaridade"
-- **Nao ignore sinais de crise:** se voce perceber mudancas importantes no comportamento, busque orientacao profissional
+- **Não discuta sobre a medicação:** nunca incentive a pessoa a parar ou mudar a medicação por conta própria. Isso é uma decisão que cabe ao médico
+- **Não minimize os sentimentos:** dizer "Você não tem motivo para estar triste" invalida a experiência da pessoa
+- **Não tente "consertar" a pessoa:** o TAB não é algo que se resolve com conselhos simples ou força de vontade
+- **Não use o diagnóstico como argumento:** em discussões, evite frases como "Você só está falando isso por causa da bipolaridade"
+- **Não ignore sinais de crise:** se você perceber mudanças importantes no comportamento, busque orientação profissional
 
 ## Reconhecendo sinais de alerta
 
-Familiares muitas vezes percebem mudancas antes da propria pessoa. Fique atento a:
+Familiares muitas vezes percebem mudanças antes da própria pessoa. Fique atento a:
 
-- Mudancas drasticas no sono (dormir muito pouco ou demais)
-- Alteracoes de humor intensas e prolongadas
+- Mudanças drásticas no sono (dormir muito pouco ou demais)
+- Alterações de humor intensas e prolongadas
 - Isolamento social repentino
 - Comportamentos impulsivos ou de risco
-- Expressao de pensamentos sobre morte ou suicidio -- neste caso, busque ajuda imediata
+- Expressão de pensamentos sobre morte ou suicídio -- neste caso, busque ajuda imediata
 
-## Cuide de voce tambem
+## Cuide de você também
 
-Cuidar de alguem com uma condicao cronica de saude mental pode ser emocionalmente desgastante. Por isso:
+Cuidar de alguém com uma condição crônica de saúde mental pode ser emocionalmente desgastante. Por isso:
 
-- **Busque apoio para si:** terapia individual pode ajudar voce a lidar com suas proprias emocoes
+- **Busque apoio para si:** terapia individual pode ajudar você a lidar com suas próprias emoções
 - **Participe de grupos de apoio:** existem grupos voltados para familiares de pessoas com transtornos mentais, inclusive nos CAPS
-- **Mantenha suas atividades:** nao abandone seus proprios interesses e relacoes sociais
-- **Informe-se:** quanto mais voce entender sobre o TAB, mais preparado estara para ajudar
+- **Mantenha suas atividades:** não abandone seus próprios interesses e relações sociais
+- **Informe-se:** quanto mais você entender sobre o TAB, mais preparado estará para ajudar
 
-Apoiar alguem com TAB e um ato de amor que exige paciencia, informacao e, acima de tudo, cuidado consigo mesmo. Voce nao precisa fazer isso sozinho.
+Apoiar alguém com TAB é um ato de amor que exige paciência, informação e, acima de tudo, cuidado consigo mesmo. Você não precisa fazer isso sozinho.
 
 ---
 
-**Recursos de emergencia: CVV 188 | SAMU 192 | UPA 24h**
+**Recursos de emergência: CVV 188 | SAMU 192 | UPA 24h**

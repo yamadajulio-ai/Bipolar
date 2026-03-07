@@ -28,29 +28,48 @@ interface Transaction {
 }
 
 export default function FinanceiroPage() {
+  const now = new Date();
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const [month, setMonth] = useState(currentMonth);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [showForm, setShowForm] = useState(false);
 
   const fetchData = useCallback(async () => {
     const [sumRes, txRes] = await Promise.all([
-      fetch("/api/financeiro/resumo?days=30"),
-      fetch("/api/financeiro?days=30"),
+      fetch(`/api/financeiro/resumo?month=${month}`),
+      fetch(`/api/financeiro?month=${month}`),
     ]);
     if (sumRes.ok) setSummary(await sumRes.json());
     if (txRes.ok) setTransactions(await txRes.json());
-  }, []);
+  }, [month]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
+  const monthLabel = new Date(month + "-15").toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+
   return (
     <div>
-      <h1 className="mb-2 text-2xl font-bold">Financeiro</h1>
-      <p className="mb-4 text-sm text-muted">
-        Controle de gastos — importante para estabilidade na bipolaridade.
-      </p>
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Financeiro</h1>
+          <p className="text-sm text-muted">
+            Controle de gastos — importante para estabilidade na bipolaridade.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <label htmlFor="fin-month" className="text-sm text-muted">Mês:</label>
+          <input
+            id="fin-month"
+            type="month"
+            value={month}
+            onChange={(e) => setMonth(e.target.value)}
+            className="rounded border border-border bg-surface px-2 py-1 text-sm"
+          />
+        </div>
+      </div>
       <div className="mb-6 flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-2.5">
         <Image src="/mobills-logo.png" alt="Mobills" width={20} height={20} className="shrink-0" />
         <span className="text-sm font-medium text-green-700">Compatível com Mobills — exporte CSV e importe abaixo</span>
@@ -115,7 +134,7 @@ export default function FinanceiroPage() {
 
       {/* Transaction list */}
       <Card className="mb-6">
-        <h2 className="mb-3 text-lg font-semibold">Transações (30 dias)</h2>
+        <h2 className="mb-3 text-lg font-semibold">Transações — {monthLabel}</h2>
         <TransactionList transactions={transactions} onDeleted={fetchData} />
       </Card>
 

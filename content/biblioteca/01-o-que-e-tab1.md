@@ -1,48 +1,48 @@
 ---
-title: "O que e o Transtorno Afetivo Bipolar tipo 1?"
-description: "Entenda os fundamentos do TAB tipo 1, seus principais aspectos e por que o diagnostico profissional e essencial."
+title: "O que é o Transtorno Afetivo Bipolar tipo 1?"
+description: "Entenda os fundamentos do TAB tipo 1, seus principais aspectos e por que o diagnóstico profissional é essencial."
 order: 1
 ---
 
-> **Aviso importante:** Este conteudo e educacional e informativo. Nao substitui o acompanhamento de profissionais de saude mental.
+> **Aviso importante:** Este conteúdo é educacional e informativo. Não substitui o acompanhamento de profissionais de saúde mental.
 
 ## Entendendo o Transtorno Afetivo Bipolar tipo 1
 
-O Transtorno Afetivo Bipolar tipo 1 (TAB tipo 1) e uma condicao de saude mental caracterizada por alteracoes significativas no humor, na energia e na capacidade de realizar atividades do dia a dia. Trata-se de uma condicao cronica, ou seja, que acompanha a pessoa ao longo da vida, mas que pode ser manejada de forma eficaz com acompanhamento profissional adequado.
+O Transtorno Afetivo Bipolar tipo 1 (TAB tipo 1) é uma condição de saúde mental caracterizada por alterações significativas no humor, na energia e na capacidade de realizar atividades do dia a dia. Trata-se de uma condição crônica, ou seja, que acompanha a pessoa ao longo da vida, mas que pode ser manejada de forma eficaz com acompanhamento profissional adequado.
 
-## Episodios maniacos e depressivos
+## Episódios maníacos e depressivos
 
-O TAB tipo 1 se distingue pela presenca de **episodios maniacos**, que sao periodos em que a pessoa pode experimentar:
+O TAB tipo 1 se distingue pela presença de **episódios maníacos**, que são períodos em que a pessoa pode experimentar:
 
-- Humor elevado ou irritavel de forma intensa e persistente
+- Humor elevado ou irritável de forma intensa e persistente
 - Aumento significativo de energia e atividade
-- Reducao da necessidade de sono sem sentir cansaco
-- Pensamentos acelerados e fala mais rapida que o habitual
-- Comportamentos impulsivos que podem trazer consequencias serias
+- Redução da necessidade de sono sem sentir cansaço
+- Pensamentos acelerados e fala mais rápida que o habitual
+- Comportamentos impulsivos que podem trazer consequências sérias
 
-Alem dos episodios maniacos, muitas pessoas tambem vivenciam **episodios depressivos**, marcados por:
+Além dos episódios maníacos, muitas pessoas também vivenciam **episódios depressivos**, marcados por:
 
 - Tristeza profunda e persistente
 - Perda de interesse em atividades antes prazerosas
-- Alteracoes no sono e no apetite
-- Dificuldade de concentracao
-- Sensacao de cansaco extremo
-- Em casos graves, pensamentos sobre morte ou suicidio
+- Alterações no sono e no apetite
+- Dificuldade de concentração
+- Sensação de cansaço extremo
+- Em casos graves, pensamentos sobre morte ou suicídio
 
-Entre esses episodios, muitas pessoas vivem periodos de estabilidade, nos quais o humor se mantem equilibrado. A duracao e a frequencia dos episodios variam de pessoa para pessoa.
+Entre esses episódios, muitas pessoas vivem períodos de estabilidade, nos quais o humor se mantém equilibrado. A duração e a frequência dos episódios variam de pessoa para pessoa.
 
-## Uma condicao manejavel
+## Uma condição manejável
 
-E fundamental entender que o TAB tipo 1 nao e uma escolha, uma fraqueza de carater ou algo que se resolve apenas com "forca de vontade". Trata-se de uma condicao que envolve fatores biologicos, geneticos e ambientais.
+É fundamental entender que o TAB tipo 1 não é uma escolha, uma fraqueza de caráter ou algo que se resolve apenas com "força de vontade". Trata-se de uma condição que envolve fatores biológicos, genéticos e ambientais.
 
-A boa noticia e que, com tratamento adequado e acompanhamento continuo, a maioria das pessoas com TAB tipo 1 consegue levar uma vida plena, produtiva e com qualidade. O tratamento e individualizado e deve ser conduzido por profissionais de saude mental qualificados.
+A boa notícia é que, com tratamento adequado e acompanhamento contínuo, a maioria das pessoas com TAB tipo 1 consegue levar uma vida plena, produtiva e com qualidade. O tratamento é individualizado e deve ser conduzido por profissionais de saúde mental qualificados.
 
-## A importancia do diagnostico profissional
+## A importância do diagnóstico profissional
 
-Somente um profissional de saude mental -- como psiquiatras e psicologos -- pode realizar o diagnostico do TAB tipo 1. O diagnostico envolve uma avaliacao cuidadosa do historico da pessoa, dos sintomas apresentados e da exclusao de outras condicoes.
+Somente um profissional de saúde mental -- como psiquiatras e psicólogos -- pode realizar o diagnóstico do TAB tipo 1. O diagnóstico envolve uma avaliação cuidadosa do histórico da pessoa, dos sintomas apresentados e da exclusão de outras condições.
 
-**Nunca tente se autodiagnosticar.** Muitas condicoes podem apresentar sintomas semelhantes, e um diagnostico preciso e o primeiro passo para um tratamento eficaz. Se voce suspeita que pode ter TAB tipo 1, procure ajuda profissional. Esse e o passo mais importante que voce pode dar pela sua saude.
+**Nunca tente se autodiagnosticar.** Muitas condições podem apresentar sintomas semelhantes, e um diagnóstico preciso é o primeiro passo para um tratamento eficaz. Se você suspeita que pode ter TAB tipo 1, procure ajuda profissional. Esse é o passo mais importante que você pode dar pela sua saúde.
 
 ---
 
-**Recursos de emergencia: CVV 188 | SAMU 192 | UPA 24h**
+**Recursos de emergência: CVV 188 | SAMU 192 | UPA 24h**

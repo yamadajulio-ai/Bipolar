@@ -1,18 +1,18 @@
 export const BLOCK_CATEGORIES = [
   { value: "sono", label: "Sono" },
-  { value: "medicacao", label: "Medicacao" },
-  { value: "refeicao", label: "Refeicao" },
+  { value: "medicacao", label: "Medicação" },
+  { value: "refeicao", label: "Refeição" },
   { value: "trabalho", label: "Trabalho" },
   { value: "social", label: "Social" },
-  { value: "exercicio", label: "Exercicio" },
+  { value: "exercicio", label: "Exercício" },
   { value: "lazer", label: "Lazer" },
   { value: "outro", label: "Outro" },
 ] as const;
 
 export const BLOCK_KINDS = [
-  { value: "ANCHOR", label: "Ancora", description: "Horarios fixos que protegem sua estabilidade" },
-  { value: "FLEX", label: "Flexivel", description: "Atividades que podem ser ajustadas" },
-  { value: "RISK", label: "Risco", description: "Atividades que merecem atencao especial" },
+  { value: "ANCHOR", label: "Âncora", description: "Horários fixos que protegem sua estabilidade" },
+  { value: "FLEX", label: "Flexível", description: "Atividades que podem ser ajustadas" },
+  { value: "RISK", label: "Risco", description: "Atividades que merecem atenção especial" },
 ] as const;
 
 export const STIMULATION_LEVELS = [

@@ -18,7 +18,7 @@ const toggleSchema = z.object({
 export async function GET() {
   const session = await getSession();
   if (!session.isLoggedIn) {
-    return NextResponse.json({ error: "Nao autorizado" }, { status: 401 });
+    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
   const keys = await prisma.integrationKey.findMany({
@@ -32,7 +32,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   const session = await getSession();
   if (!session.isLoggedIn) {
-    return NextResponse.json({ error: "Nao autorizado" }, { status: 401 });
+    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
   try {
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   const session = await getSession();
   if (!session.isLoggedIn) {
-    return NextResponse.json({ error: "Nao autorizado" }, { status: 401 });
+    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
   try {
@@ -120,7 +120,7 @@ export async function PATCH(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   const session = await getSession();
   if (!session.isLoggedIn) {
-    return NextResponse.json({ error: "Nao autorizado" }, { status: 401 });
+    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
   try {

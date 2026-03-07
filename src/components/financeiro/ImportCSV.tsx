@@ -32,8 +32,14 @@ export function ImportCSV({ onImported }: { onImported: () => void }) {
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        setError(data.errors?.file?.[0] || data.error || "Erro ao importar");
+        let msg = "Erro ao importar";
+        try {
+          const data = await res.json();
+          msg = data.errors?.file?.[0] || data.error || msg;
+        } catch {
+          msg = `Erro ${res.status}: ${res.statusText}`;
+        }
+        setError(msg);
         return;
       }
 
@@ -43,8 +49,9 @@ export function ImportCSV({ onImported }: { onImported: () => void }) {
 
       // Reset file input
       if (fileRef.current) fileRef.current.value = "";
-    } catch {
-      setError("Erro de conexão ao importar arquivo");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Erro desconhecido";
+      setError(`Erro de conexão: ${msg}`);
     } finally {
       setLoading(false);
     }

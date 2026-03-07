@@ -4,6 +4,8 @@ import { getSession } from "@/lib/auth";
 import { parseMobillsCsv } from "@/lib/financeiro/parseMobillsCsv";
 import { parseMobillsXlsx } from "@/lib/financeiro/parseMobillsXlsx";
 
+export const maxDuration = 30;
+
 export async function POST(request: NextRequest) {
   const session = await getSession();
   if (!session.isLoggedIn) {
@@ -49,9 +51,12 @@ export async function POST(request: NextRequest) {
     let imported = 0;
     let skipped = 0;
 
-    for (const tx of transactions) {
-      try {
-        await prisma.financialTransaction.upsert({
+    // Batch upserts in transaction to avoid Vercel timeout
+    const BATCH_SIZE = 50;
+    for (let i = 0; i < transactions.length; i += BATCH_SIZE) {
+      const batch = transactions.slice(i, i + BATCH_SIZE);
+      const ops = batch.map((tx) =>
+        prisma.financialTransaction.upsert({
           where: {
             userId_date_description_amount: {
               userId: session.userId,
@@ -70,10 +75,12 @@ export async function POST(request: NextRequest) {
             account: tx.account,
             source: "mobills_csv",
           },
-        });
-        imported++;
-      } catch {
-        skipped++;
+        }),
+      );
+      const results = await Promise.allSettled(ops);
+      for (const r of results) {
+        if (r.status === "fulfilled") imported++;
+        else skipped++;
       }
     }
 

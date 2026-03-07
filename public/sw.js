@@ -122,7 +122,7 @@ async function staleWhileRevalidate(request, cacheName, cacheKey) {
       trackTimestamp(cacheKey);
     } else if (response.status === 401 || response.status === 403) {
       // Session expired — purge cached PHI to prevent leaks on shared devices
-      purgeApiCache();
+      await purgeApiCache();
     }
     return response;
   } catch {
@@ -141,7 +141,7 @@ async function refreshInBackground(request, cache, cacheKey) {
       cache.put(request, response.clone());
       trackTimestamp(cacheKey);
     } else if (response.status === 401 || response.status === 403) {
-      purgeApiCache();
+      await purgeApiCache();
     }
   } catch {
     // Network failed — stale cache continues serving
@@ -149,10 +149,12 @@ async function refreshInBackground(request, cache, cacheKey) {
 }
 
 // --- Cache purge (logout, session expiry, account deletion) ---
-function purgeApiCache() {
-  caches.delete(CACHE_API).then(() => {
+async function purgeApiCache() {
+  try {
+    await caches.delete(CACHE_API);
+  } finally {
     apiTimestamps.clear();
-  });
+  }
 }
 
 self.addEventListener("message", (event) => {

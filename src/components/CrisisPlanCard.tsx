@@ -36,21 +36,25 @@ export function CrisisPlanCard({ plan }: CrisisPlanCardProps) {
 
   return (
     <div className="space-y-4">
-      {/* Contatos de confianca */}
+      {/* Contatos de confiança */}
       {contacts.length > 0 && (
         <Card>
-          <h3 className="mb-2 text-lg font-bold">Contatos de confianca</h3>
+          <h3 className="mb-2 text-lg font-bold">Contatos de confiança</h3>
           <div className="space-y-2">
             {contacts.map((contact, i) => (
-              <div key={i} className="flex items-center justify-between">
-                <span className="text-sm font-medium">{contact.name}</span>
-                <a
-                  href={`tel:${contact.phone}`}
-                  className="rounded-lg bg-primary px-3 py-1 text-sm font-medium text-white no-underline hover:bg-primary-dark"
-                >
-                  {contact.phone}
-                </a>
-              </div>
+              <a
+                key={i}
+                href={`tel:${contact.phone}`}
+                className="flex items-center justify-between rounded-lg bg-primary/10 px-4 py-3 no-underline transition-colors hover:bg-primary/20"
+              >
+                <div>
+                  <span className="text-sm font-semibold text-foreground">{contact.name}</span>
+                  <span className="ml-2 text-sm text-muted">{contact.phone}</span>
+                </div>
+                <span className="rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-white">
+                  📞 Ligar
+                </span>
+              </a>
             ))}
           </div>
         </Card>
@@ -59,18 +63,25 @@ export function CrisisPlanCard({ plan }: CrisisPlanCardProps) {
       {/* Profissional */}
       {(plan.professionalName || plan.professionalPhone) && (
         <Card>
-          <h3 className="mb-2 text-lg font-bold">Profissional de saude</h3>
-          {plan.professionalName && (
-            <p className="text-sm">{plan.professionalName}</p>
-          )}
-          {plan.professionalPhone && (
+          <h3 className="mb-2 text-lg font-bold">Profissional de saúde</h3>
+          {plan.professionalPhone ? (
             <a
               href={`tel:${plan.professionalPhone}`}
-              className="mt-1 inline-block rounded-lg bg-primary px-3 py-1 text-sm font-medium text-white no-underline hover:bg-primary-dark"
+              className="flex items-center justify-between rounded-lg bg-primary/10 px-4 py-3 no-underline transition-colors hover:bg-primary/20"
             >
-              {plan.professionalPhone}
+              <div>
+                <span className="text-sm font-semibold text-foreground">
+                  {plan.professionalName || "Profissional"}
+                </span>
+                <span className="ml-2 text-sm text-muted">{plan.professionalPhone}</span>
+              </div>
+              <span className="rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-white">
+                📞 Ligar
+              </span>
             </a>
-          )}
+          ) : plan.professionalName ? (
+            <p className="text-sm">{plan.professionalName}</p>
+          ) : null}
         </Card>
       )}
 
@@ -91,7 +102,7 @@ export function CrisisPlanCard({ plan }: CrisisPlanCardProps) {
       {/* Hospital */}
       {plan.preferredHospital && (
         <Card>
-          <h3 className="mb-2 text-lg font-bold">Hospital de preferencia</h3>
+          <h3 className="mb-2 text-lg font-bold">Hospital de preferência</h3>
           <p className="text-sm">{plan.preferredHospital}</p>
         </Card>
       )}
@@ -99,7 +110,7 @@ export function CrisisPlanCard({ plan }: CrisisPlanCardProps) {
       {/* Estrategias */}
       {strategies.length > 0 && (
         <Card>
-          <h3 className="mb-2 text-lg font-bold">Estrategias de enfrentamento</h3>
+          <h3 className="mb-2 text-lg font-bold">Estratégias de enfrentamento</h3>
           <ul className="space-y-1">
             {strategies.map((s, i) => (
               <li key={i} className="text-sm">
@@ -112,7 +123,7 @@ export function CrisisPlanCard({ plan }: CrisisPlanCardProps) {
 
       {/* Numeros de emergencia */}
       <Card className="border-danger/30 bg-danger/5">
-        <h3 className="mb-2 text-lg font-bold text-danger">Emergencia</h3>
+        <h3 className="mb-2 text-lg font-bold text-danger">Emergência</h3>
         <div className="space-y-2">
           <a
             href="tel:188"
@@ -130,11 +141,16 @@ export function CrisisPlanCard({ plan }: CrisisPlanCardProps) {
             <br />
             <span className="text-sm text-foreground">SAMU - 24h</span>
           </a>
-          <div className="rounded-lg bg-danger/10 p-3 text-center">
+          <a
+            href="https://www.google.com/maps/search/?api=1&query=UPA+24h+perto+de+mim"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block rounded-lg bg-danger/10 p-3 text-center no-underline hover:bg-danger/20"
+          >
             <span className="text-2xl font-bold text-danger">UPA</span>
             <br />
-            <span className="text-sm text-foreground">UPA 24h mais proxima</span>
-          </div>
+            <span className="text-sm text-foreground">UPA 24h mais próxima — Abrir no mapa</span>
+          </a>
         </div>
       </Card>
     </div>

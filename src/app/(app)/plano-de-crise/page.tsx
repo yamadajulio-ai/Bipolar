@@ -17,9 +17,10 @@ export default async function PlanoDeCrisePage() {
       <h1 className="mb-4 text-2xl font-bold">Plano de Crise</h1>
 
       <Alert variant="danger" className="mb-6">
-        <strong>Em crise ou risco imediato?</strong> Ligue agora: CVV{" "}
-        <strong>188</strong> (24h, gratuito) | SAMU <strong>192</strong> | Vá a{" "}
-        <strong>UPA 24h</strong> mais próxima.
+        <strong>Em crise ou risco imediato?</strong> Ligue agora:{" "}
+        <a href="tel:188" className="font-bold text-danger underline">CVV 188</a> (24h, gratuito) |{" "}
+        <a href="tel:192" className="font-bold text-danger underline">SAMU 192</a> |{" "}
+        Vá à <strong>UPA 24h</strong> mais próxima.
       </Alert>
 
       {plan ? (
@@ -84,7 +85,8 @@ export default async function PlanoDeCrisePage() {
             </li>
             <li>
               <strong>2. Busque apoio imediato.</strong> Ligue para alguém de
-              confiança, seu profissional de saúde, ou para o CVV (188).
+              confiança, seu profissional de saúde, ou para o{" "}
+              <a href="tel:188" className="font-medium underline">CVV (188)</a>.
             </li>
             <li>
               <strong>3. Reduza estímulos.</strong> Procure um ambiente calmo,
@@ -95,8 +97,8 @@ export default async function PlanoDeCrisePage() {
               medicação devem ser feitas apenas com orientação do seu médico.
             </li>
             <li>
-              <strong>5. Vá a um serviço de saúde se necessário.</strong> SAMU
-              (192) ou UPA 24h são recursos disponíveis a qualquer hora.
+              <strong>5. Vá a um serviço de saúde se necessário.</strong>{" "}
+              <a href="tel:192" className="font-medium underline">SAMU (192)</a> ou UPA 24h são recursos disponíveis a qualquer hora.
             </li>
           </ol>
         </Card>
@@ -105,27 +107,38 @@ export default async function PlanoDeCrisePage() {
       <section className="mb-8">
         <h2 className="mb-3 text-lg font-semibold">Recursos de emergência no Brasil</h2>
         <div className="grid gap-3 sm:grid-cols-3">
-          <Card className="text-center">
-            <p className="text-3xl font-bold text-primary">188</p>
-            <p className="text-sm font-medium">CVV</p>
-            <p className="text-xs text-muted">
-              Centro de Valorização da Vida. 24h, gratuito, sigilo garantido.
-            </p>
-          </Card>
-          <Card className="text-center">
-            <p className="text-3xl font-bold text-danger">192</p>
-            <p className="text-sm font-medium">SAMU</p>
-            <p className="text-xs text-muted">
-              Serviço de Atendimento Móvel de Urgência. 24h.
-            </p>
-          </Card>
-          <Card className="text-center">
-            <p className="text-3xl font-bold text-warning">UPA</p>
-            <p className="text-sm font-medium">UPA 24h</p>
-            <p className="text-xs text-muted">
-              Unidade de Pronto Atendimento. Atendimento presencial 24h.
-            </p>
-          </Card>
+          <a href="tel:188" className="no-underline">
+            <Card className="text-center transition-colors hover:border-primary/50">
+              <p className="text-3xl font-bold text-primary">188</p>
+              <p className="text-sm font-medium text-foreground">CVV — Ligar agora</p>
+              <p className="text-xs text-muted">
+                Centro de Valorização da Vida. 24h, gratuito, sigilo garantido.
+              </p>
+            </Card>
+          </a>
+          <a href="tel:192" className="no-underline">
+            <Card className="text-center transition-colors hover:border-danger/50">
+              <p className="text-3xl font-bold text-danger">192</p>
+              <p className="text-sm font-medium text-foreground">SAMU — Ligar agora</p>
+              <p className="text-xs text-muted">
+                Serviço de Atendimento Móvel de Urgência. 24h.
+              </p>
+            </Card>
+          </a>
+          <a
+            href="https://www.google.com/maps/search/?api=1&query=UPA+24h+perto+de+mim"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="no-underline"
+          >
+            <Card className="text-center transition-colors hover:border-warning/50">
+              <p className="text-3xl font-bold text-warning">UPA</p>
+              <p className="text-sm font-medium text-foreground">Encontrar no mapa</p>
+              <p className="text-xs text-muted">
+                Unidade de Pronto Atendimento. Atendimento presencial 24h.
+              </p>
+            </Card>
+          </a>
         </div>
       </section>
 

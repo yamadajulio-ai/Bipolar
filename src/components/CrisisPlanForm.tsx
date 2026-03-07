@@ -163,11 +163,11 @@ export function CrisisPlanForm({ initialData }: CrisisPlanFormProps) {
         <Alert variant="danger">{error}</Alert>
       )}
 
-      {/* Contatos de confianca */}
+      {/* Contatos de confiança */}
       <Card>
-        <h2 className="mb-3 text-lg font-semibold">Contatos de confianca</h2>
+        <h2 className="mb-3 text-lg font-semibold">Contatos de confiança</h2>
         <p className="mb-3 text-xs text-muted">
-          Pessoas para quem voce pode ligar em momentos dificeis.
+          Pessoas para quem você pode ligar em momentos difíceis.
         </p>
         {contacts.map((contact, i) => (
           <div key={i} className="mb-3 flex gap-2">
@@ -203,9 +203,9 @@ export function CrisisPlanForm({ initialData }: CrisisPlanFormProps) {
         </button>
       </Card>
 
-      {/* Profissional de saude */}
+      {/* Profissional de saúde */}
       <Card>
-        <h2 className="mb-3 text-lg font-semibold">Profissional de saude</h2>
+        <h2 className="mb-3 text-lg font-semibold">Profissional de saúde</h2>
         <FormField
           label="Nome do profissional"
           name="professionalName"
@@ -227,8 +227,8 @@ export function CrisisPlanForm({ initialData }: CrisisPlanFormProps) {
       <Card>
         <h2 className="mb-3 text-lg font-semibold">Medicamentos atuais</h2>
         <Alert variant="warning" className="mb-3">
-          Liste apenas os nomes para referencia em emergencias. Nao altere doses
-          sem orientacao medica.
+          Liste apenas os nomes para referência em emergências. Não altere doses
+          sem orientação médica.
         </Alert>
         {medications.map((med, i) => (
           <div key={i} className="mb-2 flex gap-2">
@@ -257,23 +257,23 @@ export function CrisisPlanForm({ initialData }: CrisisPlanFormProps) {
         </button>
       </Card>
 
-      {/* Hospital de preferencia */}
+      {/* Hospital de preferência */}
       <Card>
-        <h2 className="mb-3 text-lg font-semibold">Hospital de preferencia</h2>
+        <h2 className="mb-3 text-lg font-semibold">Hospital de preferência</h2>
         <FormField
           label="Nome do hospital ou UPA"
           name="preferredHospital"
           value={preferredHospital}
           onChange={(e) => setPreferredHospital(e.target.value)}
-          placeholder="Ex: Hospital das Clinicas"
+          placeholder="Ex: Hospital das Clínicas"
         />
       </Card>
 
-      {/* Estrategias de enfrentamento */}
+      {/* Estratégias de enfrentamento */}
       <Card>
-        <h2 className="mb-3 text-lg font-semibold">Estrategias de enfrentamento</h2>
+        <h2 className="mb-3 text-lg font-semibold">Estratégias de enfrentamento</h2>
         <p className="mb-3 text-xs text-muted">
-          O que ajuda voce a se acalmar? Adicione acoes que funcionam para voce.
+          O que ajuda você a se acalmar? Adicione ações que funcionam para você.
         </p>
         {strategies.map((strategy, i) => (
           <div key={i} className="mb-2 flex gap-2">
@@ -281,7 +281,7 @@ export function CrisisPlanForm({ initialData }: CrisisPlanFormProps) {
               type="text"
               value={strategy}
               onChange={(e) => updateStrategy(i, e.target.value)}
-              placeholder='Ex: "Ligar para minha mae", "Respiracao 4-7-8"'
+              placeholder='Ex: "Ligar para minha mãe", "Respiração 4-7-8"'
               className="flex-1 rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted focus:border-primary focus:outline-none"
             />
             <button
@@ -298,7 +298,7 @@ export function CrisisPlanForm({ initialData }: CrisisPlanFormProps) {
           onClick={addStrategy}
           className="text-sm text-primary hover:underline"
         >
-          + Adicionar estrategia
+          + Adicionar estratégia
         </button>
       </Card>
 

@@ -57,7 +57,7 @@ export function MoodSpendingChart({ data }: { data: MoodCorrelation[] }) {
   if (filtered.length < 3) return null;
 
   const chartData = filtered.map((d) => ({
-    date: d.date.slice(5), // MM-DD
+    date: d.date.slice(8) + "/" + d.date.slice(5, 7), // DD/MM
     gasto: d.spending,
     humor: d.mood,
   }));

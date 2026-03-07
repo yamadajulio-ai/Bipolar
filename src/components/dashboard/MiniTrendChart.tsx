@@ -24,7 +24,7 @@ export function MiniTrendChart({ data }: MiniTrendChartProps) {
 
   const formatted = data.map((d) => ({
     ...d,
-    label: d.date.slice(5).replace("-", "/"),
+    label: d.date.slice(8) + "/" + d.date.slice(5, 7),
   }));
 
   return (

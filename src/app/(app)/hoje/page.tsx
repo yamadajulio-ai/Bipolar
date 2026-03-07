@@ -15,20 +15,20 @@ function formatSleepDuration(hours: number): string {
   return `${h}h${String(m).padStart(2, "0")}`;
 }
 
-const moodLabels: Record<number, string> = {
-  1: "Muito baixo",
-  2: "Baixo",
-  3: "Neutro",
-  4: "Elevado",
-  5: "Muito elevado",
+const moodLabels: Record<number, { text: string; color: string }> = {
+  1: { text: "Muito deprimido", color: "text-red-600" },
+  2: { text: "Deprimido", color: "text-orange-600" },
+  3: { text: "Eutímico (estável)", color: "text-green-700" },
+  4: { text: "Elevado", color: "text-amber-600" },
+  5: { text: "Muito elevado", color: "text-red-600" },
 };
 
-const energyLabels: Record<number, string> = {
-  1: "Muito baixa",
-  2: "Baixa",
-  3: "Normal",
-  4: "Alta",
-  5: "Muito alta",
+const energyLabels: Record<number, { text: string; color: string }> = {
+  1: { text: "Muito baixa", color: "text-red-600" },
+  2: { text: "Baixa", color: "text-orange-600" },
+  3: { text: "Normal", color: "text-green-700" },
+  4: { text: "Alta", color: "text-amber-600" },
+  5: { text: "Muito alta", color: "text-red-600" },
 };
 
 export default async function HojePage() {
@@ -191,8 +191,8 @@ export default async function HojePage() {
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted">Humor (check-in)</span>
-              <span className="text-sm font-medium text-foreground">
-                {todayEntry.mood}/5 — {moodLabels[todayEntry.mood] || ""}
+              <span className={`text-sm font-medium ${moodLabels[todayEntry.mood]?.color || "text-foreground"}`}>
+                {todayEntry.mood}/5 — {moodLabels[todayEntry.mood]?.text || ""}
               </span>
             </div>
             <div className="flex items-center justify-between">
@@ -203,8 +203,8 @@ export default async function HojePage() {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted">Energia (check-in)</span>
-              <span className="text-sm font-medium text-foreground">
-                {todayEntry.energyLevel ? `${todayEntry.energyLevel}/5 — ${energyLabels[todayEntry.energyLevel] || ""}` : "Não informado"}
+              <span className={`text-sm font-medium ${todayEntry.energyLevel ? (energyLabels[todayEntry.energyLevel]?.color || "text-foreground") : "text-muted"}`}>
+                {todayEntry.energyLevel ? `${todayEntry.energyLevel}/5 — ${energyLabels[todayEntry.energyLevel]?.text || ""}` : "Não informado"}
               </span>
             </div>
             <div className="flex items-center justify-between">

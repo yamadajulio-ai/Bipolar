@@ -147,8 +147,9 @@ export default function CheckinPage() {
 
         {/* Medication */}
         <Card>
-          <div role="group" aria-label="Medicação">
-            <label className="block text-sm font-medium text-foreground mb-2">Medicação</label>
+          <div role="group" aria-label="Medicação de hoje">
+            <label className="block text-sm font-medium text-foreground mb-1">Tomou a medicação hoje?</label>
+            <p className="text-xs text-muted mb-3">Refere-se ao dia de hoje ({new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "short" })}). Se ainda não tomou, marque &quot;Ainda não&quot;.</p>
             <div className="flex gap-2">
               {MEDICATION_OPTIONS.map((opt) => (
                 <button

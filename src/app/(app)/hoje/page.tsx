@@ -1,11 +1,13 @@
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { localToday, localDateStr } from "@/lib/dateUtils";
+import { getNews } from "@/lib/news";
 import { Card } from "@/components/Card";
 import { Greeting } from "@/components/Greeting";
 import { ContextualSuggestions } from "@/components/dashboard/ContextualSuggestions";
 import { DashboardChartWrapper } from "@/components/dashboard/DashboardChartWrapper";
 import Link from "next/link";
+import Image from "next/image";
 
 function formatSleepDuration(hours: number): string {
   const totalMin = Math.round(hours * 60);
@@ -124,6 +126,49 @@ export default async function HojePage() {
     sleepHours: e.sleepHours,
   }));
 
+  // News (top 3) + Health metrics
+  let newsArticles: { title: string; url: string; sourceName: string | null; publishedAt: Date }[] = [];
+  try {
+    const allNews = await getNews();
+    newsArticles = allNews.slice(0, 3);
+  } catch { /* news fetch failed silently */ }
+
+  // Latest health metrics from Apple Watch (last 7 days)
+  const healthCutoff = new Date();
+  healthCutoff.setDate(healthCutoff.getDate() - 7);
+  const healthCutoffStr = localDateStr(healthCutoff);
+  const [latestMetrics, recentSleepLogs] = await Promise.all([
+    prisma.healthMetric.findMany({
+      where: { userId: session.userId, date: { gte: healthCutoffStr } },
+      orderBy: { date: "desc" },
+      take: 30,
+    }),
+    prisma.sleepLog.findMany({
+      where: { userId: session.userId, date: { gte: healthCutoffStr }, totalHours: { gte: 1 } },
+      orderBy: { date: "desc" },
+      take: 7,
+      select: { date: true, totalHours: true, hrv: true, heartRate: true, quality: true },
+    }),
+  ]);
+
+  // Aggregate health metrics for display
+  const avgSteps = (() => {
+    const steps = latestMetrics.filter((m) => m.metric === "steps");
+    if (steps.length === 0) return null;
+    return Math.round(steps.reduce((s, m) => s + m.value, 0) / steps.length);
+  })();
+  const avgHrv = (() => {
+    const hrvLogs = recentSleepLogs.filter((s) => s.hrv !== null);
+    if (hrvLogs.length === 0) return null;
+    return Math.round(hrvLogs.reduce((s, l) => s + (l.hrv || 0), 0) / hrvLogs.length);
+  })();
+  const avgHr = (() => {
+    const hrLogs = recentSleepLogs.filter((s) => s.heartRate !== null);
+    if (hrLogs.length === 0) return null;
+    return Math.round(hrLogs.reduce((s, l) => s + (l.heartRate || 0), 0) / hrLogs.length);
+  })();
+  const hasHealthData = avgSteps !== null || avgHrv !== null || avgHr !== null;
+
   // Anchors
   const anchors: { label: string; time: string }[] = [];
   if (todayRhythm) {
@@ -208,9 +253,9 @@ export default async function HojePage() {
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted">Medicação (hoje)</span>
-              <span className={`text-sm font-medium ${todayEntry.tookMedication === "sim" ? "text-emerald-700" : todayEntry.tookMedication === "nao" ? "text-red-600" : "text-muted"}`}>
-                {todayEntry.tookMedication === "sim" ? "Tomou" : todayEntry.tookMedication === "nao" ? "Não tomou" : "Não informado"}
+              <span className="text-sm text-muted">Medicação</span>
+              <span className={`text-sm font-medium ${todayEntry.tookMedication === "sim" ? "text-emerald-700" : todayEntry.tookMedication === "nao" ? "text-red-600" : "text-amber-600"}`}>
+                {todayEntry.tookMedication === "sim" ? "Já tomou" : todayEntry.tookMedication === "nao" ? "Não tomou" : todayEntry.tookMedication === "nao_sei" ? "Ainda não" : "Não informado"}
               </span>
             </div>
             {streak > 0 && (
@@ -271,6 +316,90 @@ export default async function HojePage() {
             </Link>
           </div>
           <DashboardChartWrapper data={chartData} />
+        </Card>
+      )}
+
+      {/* === DADOS DO CORPO (Apple Watch) === */}
+      {hasHealthData && (
+        <Card>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-foreground">Dados do corpo (7 dias)</h2>
+            <Link href="/integracoes" className="text-xs text-primary hover:underline">Configurar</Link>
+          </div>
+          <div className="grid grid-cols-3 gap-3 text-center">
+            {avgSteps !== null && (
+              <div className="rounded-lg bg-blue-50 p-3">
+                <p className="text-lg font-semibold text-blue-700">{avgSteps.toLocaleString("pt-BR")}</p>
+                <p className="text-xs text-blue-600">Passos/dia</p>
+              </div>
+            )}
+            {avgHrv !== null && (
+              <div className="rounded-lg bg-purple-50 p-3">
+                <p className="text-lg font-semibold text-purple-700">{avgHrv} ms</p>
+                <p className="text-xs text-purple-600">HRV (sono)</p>
+              </div>
+            )}
+            {avgHr !== null && (
+              <div className="rounded-lg bg-red-50 p-3">
+                <p className="text-lg font-semibold text-red-700">{avgHr} bpm</p>
+                <p className="text-xs text-red-600">FC repouso</p>
+              </div>
+            )}
+          </div>
+          <p className="mt-2 text-xs text-muted">Via Apple Health (Health Auto Export)</p>
+        </Card>
+      )}
+
+      {/* === INTEGRAÇÕES RÁPIDAS === */}
+      <Card>
+        <h2 className="mb-3 text-sm font-semibold text-foreground">Suas integrações</h2>
+        <div className="grid grid-cols-3 gap-2">
+          <Link href="/integracoes" className="flex flex-col items-center gap-1.5 rounded-lg bg-red-50 p-3 no-underline hover:bg-red-100 transition-colors">
+            <svg className="h-6 w-6 text-red-500" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M16.365 1.43c0 1.14-.493 2.27-1.177 3.08-.744.9-1.99 1.57-2.987 1.57-.18 0-.36-.02-.53-.06.018-.18.04-.36.04-.55 0-1.12.535-2.22 1.235-3.02C13.666 1.66 14.98 1 16.12 1c.18 0 .36.01.53.02-.01.14-.01.28-.01.41h-.274zm3.44 5.89c-.16.09-2.61 1.53-2.585 4.56.03 3.6 3.14 4.8 3.17 4.81-.02.08-.5 1.7-1.63 3.36-.98 1.45-2 2.9-3.6 2.93-1.57.03-2.08-.94-3.88-.94s-2.39.91-3.87.97c-1.55.06-2.73-1.57-3.72-3.01C1.6 17.18.27 12.84 2.44 9.73c1.07-1.54 2.99-2.52 5.07-2.55 1.52-.03 2.95 1.03 3.88 1.03.93 0 2.67-1.27 4.5-1.08.77.03 2.92.31 4.3 2.33-.11.07-2.56 1.51-2.54 4.49l-.36-.18z" />
+            </svg>
+            <span className="text-xs font-medium text-red-700">Apple Watch</span>
+          </Link>
+          <Link href="/planejador" className="flex flex-col items-center gap-1.5 rounded-lg bg-blue-50 p-3 no-underline hover:bg-blue-100 transition-colors">
+            <svg className="h-6 w-6" viewBox="0 0 24 24">
+              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
+              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+            </svg>
+            <span className="text-xs font-medium text-blue-700">Google Agenda</span>
+          </Link>
+          <Link href="/financeiro" className="flex flex-col items-center gap-1.5 rounded-lg bg-green-50 p-3 no-underline hover:bg-green-100 transition-colors">
+            <Image src="/mobills-logo.png" alt="Mobills" width={24} height={24} className="object-contain" />
+            <span className="text-xs font-medium text-green-700">Mobills</span>
+          </Link>
+        </div>
+      </Card>
+
+      {/* === NOTÍCIAS === */}
+      {newsArticles.length > 0 && (
+        <Card>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-foreground">Notícias e estudos</h2>
+            <Link href="/noticias" className="text-xs text-primary hover:underline">Ver todas</Link>
+          </div>
+          <div className="space-y-3">
+            {newsArticles.map((article) => (
+              <a
+                key={article.url}
+                href={article.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block rounded-lg bg-surface-alt p-3 no-underline hover:bg-primary/5 transition-colors"
+              >
+                <p className="text-sm font-medium text-foreground line-clamp-2">{article.title}</p>
+                <p className="mt-1 text-xs text-muted">
+                  {article.sourceName || "PubMed"} &middot;{" "}
+                  {article.publishedAt.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}
+                </p>
+              </a>
+            ))}
+          </div>
         </Card>
       )}
     </div>

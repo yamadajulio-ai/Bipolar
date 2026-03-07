@@ -69,9 +69,9 @@ export function BottomNav() {
   return (
     <nav
       aria-label="Navegação principal"
-      className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-white/95 backdrop-blur-sm lg:hidden"
+      className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-white shadow-[0_-2px_8px_rgba(0,0,0,0.08)] lg:hidden"
     >
-      <div className="mx-auto flex max-w-lg items-center justify-around py-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))]">
+      <div className="mx-auto flex max-w-lg items-center justify-around py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         {tabs.map((tab) => {
           const isActive =
             pathname === tab.href ||
@@ -81,17 +81,17 @@ export function BottomNav() {
             <Link
               key={tab.href}
               href={tab.href}
-              className={`flex flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 no-underline transition-colors ${
+              className={`flex flex-col items-center gap-1 rounded-xl px-4 py-2 no-underline transition-colors ${
                 isActive
-                  ? "text-primary"
-                  : "text-muted hover:text-foreground"
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted hover:text-foreground hover:bg-surface-alt"
               }`}
               aria-current={isActive ? "page" : undefined}
             >
               <span className={isActive ? "text-primary" : "text-muted"}>
                 {tab.icon}
               </span>
-              <span className="text-[10px] font-medium">{tab.label}</span>
+              <span className={`text-[11px] font-semibold ${isActive ? "text-primary" : ""}`}>{tab.label}</span>
             </Link>
           );
         })}

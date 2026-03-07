@@ -103,6 +103,12 @@ export function Header({ isLoggedIn }: HeaderProps) {
           </>
         ) : (
           <nav className="flex items-center gap-4 text-sm">
+            <Link
+              href="/sos"
+              className="rounded-lg bg-red-600 px-3 py-1 text-sm font-semibold text-white no-underline hover:bg-red-700"
+            >
+              SOS
+            </Link>
             <Link href="/login" className="text-muted hover:text-foreground no-underline">
               Entrar
             </Link>

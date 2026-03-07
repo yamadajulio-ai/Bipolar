@@ -152,9 +152,9 @@ export const IRRITABILITY_LABELS: Record<number, string> = {
 };
 
 export const MEDICATION_OPTIONS = [
-  { value: "sim", label: "Sim" },
-  { value: "nao", label: "Não" },
-  { value: "nao_sei", label: "Não lembro" },
+  { value: "sim", label: "Já tomei" },
+  { value: "nao", label: "Não tomei" },
+  { value: "nao_sei", label: "Ainda não" },
 ] as const;
 
 export const SLEEP_ROUTINES = [

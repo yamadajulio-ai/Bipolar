@@ -46,6 +46,16 @@ export async function GET(request: Request) {
   if (url.searchParams.get("raw") === "1" && account) {
     try {
       const auth = await getAuthenticatedClient(session.userId);
+
+      // Get connected email to verify which account is linked
+      let connectedEmail: string | null = null;
+      try {
+        const { google: g } = await import("googleapis");
+        const oauth2 = g.oauth2({ version: "v2", auth });
+        const userInfo = await oauth2.userinfo.get();
+        connectedEmail = userInfo.data.email || null;
+      } catch { /* scope may not allow this */ }
+
       const response = await listEvents(auth, account.calendarId);
       const summary = response.items.map((ev) => ({
         id: ev.id?.slice(0, 20),
@@ -58,9 +68,12 @@ export async function GET(request: Request) {
         recurring: !!ev.recurringEventId,
       }));
       return NextResponse.json({
+        connectedEmail,
         totalFromGoogle: response.items.length,
+        confirmedCount: response.items.filter((e) => e.status === "confirmed").length,
+        cancelledCount: response.items.filter((e) => e.status === "cancelled").length,
         hasNextSyncToken: !!response.nextSyncToken,
-        events: summary,
+        events: summary.slice(0, 20), // limit to first 20
       });
     } catch (err) {
       return NextResponse.json({ error: String(err) }, { status: 500 });

@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getAuthenticatedClient } from "./auth";
 import {
@@ -8,24 +9,26 @@ import {
   listEvents,
 } from "./calendar";
 
+type PrismaPromise = Prisma.PrismaPromise<unknown>;
+
 export interface SyncResult {
   pulled: number;
   errors: number;
   skippedAllDay?: number;
   skippedLong?: number;
+  skippedCancelled?: number;
 }
 
 /**
  * Pull-only sync: imports events from Google Calendar into the planner.
  * Events are read-only in the app — all creation/editing happens in Google Calendar.
+ *
+ * Uses batched transactions to avoid Vercel timeout on large event sets.
  */
 export async function pullGoogleCalendar(userId: string): Promise<SyncResult> {
   const auth = await getAuthenticatedClient(userId);
   const account = await prisma.googleAccount.findUnique({ where: { userId } });
   if (!account) throw new Error("Google account not linked");
-
-  let pulled = 0;
-  let errors = 0;
 
   const isFullSync = !account.syncToken;
 
@@ -44,15 +47,11 @@ export async function pullGoogleCalendar(userId: string): Promise<SyncResult> {
     throw err;
   }
 
-  console.log(`[Google Sync] Got ${response.items.length} events (fullSync=${isFullSync}, calendarId=${account.calendarId})`);
-  // Log first 10 events for debugging
-  for (const ev of response.items.slice(0, 10)) {
-    console.log(`[Google Sync] Event: "${ev.summary}" status=${ev.status} start=${JSON.stringify(ev.start)} end=${JSON.stringify(ev.end)} recurring=${!!ev.recurringEventId}`);
-  }
+  const confirmed = response.items.filter((e) => e.status !== "cancelled" && e.id);
+  const cancelled = response.items.filter((e) => e.status === "cancelled" && e.id);
+  console.log(`[Google Sync] Got ${response.items.length} events (${confirmed.length} confirmed, ${cancelled.length} cancelled, fullSync=${isFullSync})`);
 
   // Full sync: delete all Google-sourced blocks first, then re-create.
-  // This handles events that were deleted in Google Calendar (which don't
-  // appear in a full sync response — only incremental sync returns "cancelled").
   if (isFullSync) {
     const deleted = await prisma.plannerBlock.deleteMany({
       where: { userId, sourceType: "google" },
@@ -63,36 +62,38 @@ export async function pullGoogleCalendar(userId: string): Promise<SyncResult> {
   let skippedAllDay = 0;
   let skippedLong = 0;
 
-  for (const event of response.items) {
-    if (!event.id) continue;
+  // ── Handle cancelled events (incremental sync only) ──
+  // During full sync, blocks were already bulk-deleted above, so skip.
+  let cancelledProcessed = 0;
+  if (!isFullSync && cancelled.length > 0) {
+    const cancelledIds = cancelled.map((e) => e.id!);
+    // Single bulk delete instead of N individual queries
+    const delResult = await prisma.plannerBlock.deleteMany({
+      where: { userId, googleEventId: { in: cancelledIds } },
+    });
+    cancelledProcessed = delResult.count;
+    console.log(`[Google Sync] Bulk-deleted ${cancelledProcessed} cancelled blocks`);
+  }
 
-    try {
-      if (event.status === "cancelled") {
-        // Event deleted in Google — delete from app
-        await prisma.plannerBlock.deleteMany({
-          where: { googleEventId: event.id, userId },
-        });
-        pulled++;
-        continue;
-      }
+  // ── Batch upserts for confirmed events ──
+  const txOps: PrismaPromise[] = [];
+  let pulled = 0;
 
-      // Skip all-day and excessively long events (>18h) — they pollute the planner
-      if (isAllDayEvent(event)) {
-        skippedAllDay++;
-        console.log(`[Google Sync] Skipped all-day: "${event.summary}" (start: ${JSON.stringify(event.start)})`);
-        continue;
-      }
-      if (isLongEvent(event)) {
-        skippedLong++;
-        console.log(`[Google Sync] Skipped long: "${event.summary}" (start: ${JSON.stringify(event.start)}, end: ${JSON.stringify(event.end)})`);
-        continue;
-      }
+  for (const event of confirmed) {
+    if (isAllDayEvent(event)) {
+      skippedAllDay++;
+      continue;
+    }
+    if (isLongEvent(event)) {
+      skippedLong++;
+      continue;
+    }
 
-      // Upsert Google event
-      const blockData = googleEventToBlockData(event, defaultColorId);
-      await prisma.plannerBlock.upsert({
+    const blockData = googleEventToBlockData(event, defaultColorId);
+    txOps.push(
+      prisma.plannerBlock.upsert({
         where: {
-          userId_googleEventId: { userId, googleEventId: event.id },
+          userId_googleEventId: { userId, googleEventId: event.id! },
         },
         update: {
           title: blockData.title,
@@ -111,19 +112,30 @@ export async function pullGoogleCalendar(userId: string): Promise<SyncResult> {
           notes: blockData.notes,
           energyCost: blockData.energyCost,
           stimulation: blockData.stimulation,
-          googleEventId: event.id,
+          googleEventId: event.id!,
           googleColor: blockData.googleColor,
           sourceType: "google",
         },
-      });
-      pulled++;
+      }),
+    );
+    pulled++;
+  }
+
+  // Execute all upserts in batches of 50 to stay within DB limits
+  const BATCH_SIZE = 50;
+  let errors = 0;
+  for (let i = 0; i < txOps.length; i += BATCH_SIZE) {
+    const batch = txOps.slice(i, i + BATCH_SIZE);
+    try {
+      await prisma.$transaction(batch);
     } catch (err) {
-      console.error(`[Google Sync] Error processing event ${event.id} (${event.summary}):`, err);
-      errors++;
+      console.error(`[Google Sync] Batch ${i / BATCH_SIZE + 1} failed:`, err);
+      errors += batch.length;
+      pulled -= batch.length;
     }
   }
 
-  console.log(`[Google Sync] Result: pulled=${pulled}, errors=${errors}, skippedAllDay=${skippedAllDay}, skippedLong=${skippedLong}`);
+  console.log(`[Google Sync] Result: pulled=${pulled}, errors=${errors}, skippedAllDay=${skippedAllDay}, skippedLong=${skippedLong}, cancelledSkipped=${isFullSync ? cancelled.length : 0}, cancelledDeleted=${cancelledProcessed}`);
 
   // Update syncToken and lastSyncAt for next incremental sync
   await prisma.googleAccount.update({
@@ -134,5 +146,5 @@ export async function pullGoogleCalendar(userId: string): Promise<SyncResult> {
     },
   });
 
-  return { pulled, errors, skippedAllDay, skippedLong } as SyncResult;
+  return { pulled, errors, skippedAllDay, skippedLong, skippedCancelled: isFullSync ? cancelled.length : 0 } as SyncResult;
 }

@@ -14,7 +14,7 @@ export default function PlanejadorPage() {
 
   return (
     <div>
-      <h1 className="mb-4 text-2xl font-bold">Planejador Semanal</h1>
+      <h1 className="mb-4 text-2xl font-bold">Agenda - Rotina</h1>
       <p className="mb-4 text-sm text-muted">
         Seus eventos do Google Calendar aparecem automaticamente. Âncoras protegem sua estabilidade.
       </p>

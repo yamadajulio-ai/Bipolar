@@ -34,7 +34,7 @@ const sections: { title: string; items: ModuleItem[] }[] = [
     items: [
       { href: "/exercicios", label: "Exercícios", description: "Respiração e aterramento" },
       { href: "/sons", label: "Sons Ambiente", description: "Ruído branco, rosa, marrom e chuva" },
-      { href: "/planejador", label: "Planejador", description: "Blocos semanais de atividades" },
+      { href: "/planejador", label: "Agenda - Rotina", description: "Blocos semanais de atividades" },
     ],
   },
   {

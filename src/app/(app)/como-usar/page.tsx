@@ -29,9 +29,9 @@ const sections = [
   },
   {
     id: "planejador",
-    title: "Planejador semanal",
+    title: "Agenda - Rotina",
     content: [
-      "O planejador mostra sua semana em 7 colunas. Cada coluna é um dia.",
+      "A agenda mostra sua semana em 7 colunas. Cada coluna é um dia.",
       "Clique no \"+\" de um dia para criar um novo bloco.",
       "Cada bloco tem uma categoria (sono, refeição, trabalho, etc.) e um tipo:",
       "• Âncora — protege sua estabilidade (ex: acordar, medicação, dormir)",
@@ -39,13 +39,13 @@ const sections = [
       "• Risco — atividades que exigem atenção extra (ex: eventos sociais intensos)",
       "O sistema alerta automaticamente sobre conflitos de horário, noites tardias e atividades que invadem seus horários de âncora.",
     ],
-    link: { href: "/planejador", label: "Abrir planejador" },
+    link: { href: "/planejador", label: "Abrir agenda" },
   },
   {
     id: "quick-add",
     title: "Adição rápida (Quick Add)",
     content: [
-      "No topo do planejador, há um campo de texto para adicionar blocos rapidamente.",
+      "No topo da agenda, há um campo de texto para adicionar blocos rapidamente.",
       "Digite em linguagem natural. Exemplos:",
       "• \"amanhã 14-15 reunião\" — cria bloco de reunião amanhã das 14 às 15",
       "• \"seg 9h academia\" — cria bloco de academia segunda às 9h",

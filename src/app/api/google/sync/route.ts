@@ -73,6 +73,7 @@ export async function GET(request: Request) {
         confirmedCount: response.items.filter((e) => e.status === "confirmed").length,
         cancelledCount: response.items.filter((e) => e.status === "cancelled").length,
         hasNextSyncToken: !!response.nextSyncToken,
+        confirmedEvents: summary.filter((e) => e.status === "confirmed").map((e) => e.title),
         events: summary.slice(0, 20), // limit to first 20
       });
     } catch (err) {

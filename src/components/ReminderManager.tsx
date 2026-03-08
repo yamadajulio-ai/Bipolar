@@ -44,7 +44,12 @@ export function ReminderManager() {
   useEffect(() => {
     if (typeof window === "undefined" || !("Notification" in window)) return;
 
-    if (Notification.permission === "default") {
+    // Only ask once — don't nag the user on every page load
+    if (
+      Notification.permission === "default" &&
+      !localStorage.getItem("notification-asked")
+    ) {
+      localStorage.setItem("notification-asked", "1");
       Notification.requestPermission();
     }
 

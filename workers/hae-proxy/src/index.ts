@@ -2,13 +2,44 @@
  * Cloudflare Worker — HAE Proxy
  *
  * Receives Health Auto Export payloads and forwards to Vercel.
- * Small payloads (<3.5MB) are forwarded directly.
- * Large payloads are split by metric using memory-efficient text scanning
- * (NO JSON.parse) to stay within the 128MB Worker memory limit.
+ * Filters to only metrics we actually use (sleep, HRV, HR, steps, calories, SpO2).
+ * Large payloads are split by metric using memory-efficient text scanning.
  */
 
 interface Env {
   TARGET_URL: string;
+}
+
+// Only forward metrics the app actually processes (see healthExport.ts)
+const ALLOWED_METRICS = new Set([
+  // Sleep
+  "sleep_analysis", "Sleep Analysis", "sleepAnalysis", "sleep",
+  // HRV
+  "heart_rate_variability", "Heart Rate Variability", "heartRateVariability",
+  "heart_rate_variability_sdnn",
+  // Heart Rate
+  "resting_heart_rate", "Resting Heart Rate", "restingHeartRate",
+  "heart_rate", "Heart Rate", "heartRate",
+  // Steps
+  "step_count", "Step Count", "stepCount", "steps",
+  // Active Energy
+  "active_energy", "Active Energy", "activeEnergy", "active_calories",
+  // Blood Oxygen
+  "blood_oxygen", "Blood Oxygen", "bloodOxygen", "oxygen_saturation",
+]);
+
+// Quick check: does this metric JSON contain a known metric name?
+function isAllowedMetric(metricJson: string): boolean {
+  for (const name of ALLOWED_METRICS) {
+    if (metricJson.includes(`"${name}"`)) return true;
+  }
+  // Fallback: check for sleep stage values (unnamed sleep metrics)
+  if (metricJson.includes('"Core"') || metricJson.includes('"Deep"') ||
+      metricJson.includes('"REM"') || metricJson.includes('"Asleep"') ||
+      metricJson.includes('"InBed"') || metricJson.includes('"Awake"')) {
+    return true;
+  }
+  return false;
 }
 
 const MAX_DIRECT_SIZE = 3_500_000;
@@ -24,10 +55,9 @@ export default {
       return json({ error: "Authorization header missing" }, 401);
     }
 
-    // Read body as text — single allocation, no ArrayBuffer + decode overhead
     const text = await request.text();
 
-    // Small payload → forward directly to Vercel
+    // Small payload → forward directly
     if (text.length < MAX_DIRECT_SIZE) {
       const res = await fetch(env.TARGET_URL, {
         method: "POST",
@@ -43,16 +73,13 @@ export default {
       });
     }
 
-    // ── Large payload → split by metric WITHOUT JSON.parse ──
-    // Scans the raw text to find metric object boundaries using bracket
-    // depth tracking. This uses ~1/3 the memory of JSON.parse.
+    // ── Large payload → split by metric, filter, and forward ──
 
     const metricsIdx = text.indexOf('"metrics"');
     if (metricsIdx === -1) {
       return json({ error: "No metrics key found in payload" }, 400);
     }
 
-    // Detect {"data":{"metrics":[...]}} vs {"metrics":[...]}
     const hasDataWrapper = text.substring(0, metricsIdx).includes('"data"');
 
     const arrayStart = text.indexOf("[", metricsIdx);
@@ -60,7 +87,7 @@ export default {
       return json({ error: "No metrics array found" }, 400);
     }
 
-    // Scan character by character, tracking depth and string boundaries
+    // Scan for metric object boundaries
     let depth = 0;
     let metricStart = -1;
     let inString = false;
@@ -68,42 +95,40 @@ export default {
 
     let successCount = 0;
     let totalMetrics = 0;
+    let skippedMetrics = 0;
     let totalSleep = 0;
     let totalHrvHr = 0;
     let totalHealthMetrics = 0;
+    const errors: string[] = [];
 
     for (let i = arrayStart; i < text.length; i++) {
       const ch = text[i];
 
-      if (escaped) {
-        escaped = false;
-        continue;
-      }
-      if (ch === "\\") {
-        escaped = true;
-        continue;
-      }
-      if (ch === '"') {
-        inString = !inString;
-        continue;
-      }
+      if (escaped) { escaped = false; continue; }
+      if (ch === "\\") { escaped = true; continue; }
+      if (ch === '"') { inString = !inString; continue; }
       if (inString) continue;
 
       if (ch === "[") {
         depth++;
       } else if (ch === "]") {
         depth--;
-        if (depth === 0) break; // End of metrics array
+        if (depth === 0) break;
       } else if (ch === "{") {
-        if (depth === 1) metricStart = i; // Top-level metric object
+        if (depth === 1) metricStart = i;
         depth++;
       } else if (ch === "}") {
         depth--;
         if (depth === 1 && metricStart !== -1) {
-          // Found complete metric object — extract and forward
           totalMetrics++;
           const metricJson = text.substring(metricStart, i + 1);
           metricStart = -1;
+
+          // Skip metrics we don't use
+          if (!isAllowedMetric(metricJson)) {
+            skippedMetrics++;
+            continue;
+          }
 
           const payload = hasDataWrapper
             ? `{"data":{"metrics":[${metricJson}]}}`
@@ -126,26 +151,31 @@ export default {
                 totalSleep += r.sleepNights ?? 0;
                 totalHrvHr += r.hrvHrEnriched ?? 0;
                 totalHealthMetrics += r.metricsImported ?? 0;
-              } catch {
-                // ignore
-              }
+              } catch { /* ignore */ }
+            } else {
+              const errText = await res.text().catch(() => "");
+              errors.push(`HTTP ${res.status}: ${errText.slice(0, 200)}`);
             }
-          } catch {
-            // continue with next metric
+          } catch (err) {
+            errors.push(`Fetch error: ${String(err).slice(0, 200)}`);
           }
         }
       }
     }
 
+    const forwarded = totalMetrics - skippedMetrics;
     return json(
       {
         proxy: true,
         chunked: true,
         totalMetrics,
+        skippedMetrics,
+        forwarded,
         successCount,
         sleepNights: totalSleep,
         hrvHrEnriched: totalHrvHr,
         metricsImported: totalHealthMetrics,
+        ...(errors.length > 0 ? { errors: errors.slice(0, 5) } : {}),
       },
       successCount > 0 ? 200 : 502,
     );

@@ -80,6 +80,53 @@ export async function GET(request: Request) {
     }
   }
 
+  // ?calendars=1 — list all calendars and sample events from each
+  if (url.searchParams.get("calendars") === "1" && account) {
+    try {
+      const auth = await getAuthenticatedClient(session.userId);
+      const { google: g } = await import("googleapis");
+      const cal = g.calendar({ version: "v3", auth });
+
+      const calList = await cal.calendarList.list();
+      const calendars = calList.data.items || [];
+
+      const results = [];
+      for (const c of calendars) {
+        if (!c.id) continue;
+        try {
+          const evRes = await cal.events.list({
+            calendarId: c.id,
+            timeMin: new Date(Date.now() - 7 * 86400000).toISOString(),
+            timeMax: new Date(Date.now() + 14 * 86400000).toISOString(),
+            singleEvents: true,
+            maxResults: 10,
+            showDeleted: false,
+          });
+          results.push({
+            calendarId: c.id,
+            summary: c.summary,
+            primary: c.primary || false,
+            accessRole: c.accessRole,
+            eventCount: evRes.data.items?.length || 0,
+            sampleEvents: (evRes.data.items || []).slice(0, 5).map((e) => ({
+              title: e.summary,
+              start: e.start,
+            })),
+          });
+        } catch (err) {
+          results.push({
+            calendarId: c.id,
+            summary: c.summary,
+            error: String(err),
+          });
+        }
+      }
+      return NextResponse.json({ calendars: results, storedCalendarId: account.calendarId });
+    } catch (err) {
+      return NextResponse.json({ error: String(err) }, { status: 500 });
+    }
+  }
+
   return NextResponse.json({ connected: !!account });
 }
 

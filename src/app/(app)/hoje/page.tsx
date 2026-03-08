@@ -221,13 +221,21 @@ export default async function HojePage() {
         )}
 
         {!todaySleep ? (
-          <Link href="/sono/novo" className="block no-underline">
-            <Card className="border-primary/20 bg-primary/5 hover:bg-primary/10 transition-colors text-center py-5">
-              <div className="text-2xl mb-1">&#127769;</div>
-              <p className="font-semibold text-foreground">Registrar sono</p>
-              <p className="text-xs text-muted mt-1">Como foi a noite passada?</p>
+          hasHae ? (
+            <Card className="border-amber-200 bg-amber-50/50 text-center py-5">
+              <div className="text-2xl mb-1">&#9202;</div>
+              <p className="font-semibold text-amber-700">Aguardando Apple Watch</p>
+              <p className="text-xs text-amber-600 mt-1">Os dados de sono chegam automaticamente</p>
             </Card>
-          </Link>
+          ) : (
+            <Link href="/sono/novo" className="block no-underline">
+              <Card className="border-primary/20 bg-primary/5 hover:bg-primary/10 transition-colors text-center py-5">
+                <div className="text-2xl mb-1">&#127769;</div>
+                <p className="font-semibold text-foreground">Registrar sono</p>
+                <p className="text-xs text-muted mt-1">Como foi a noite passada?</p>
+              </Card>
+            </Link>
+          )
         ) : (
           <Card className="border-emerald-200 bg-emerald-50/50 text-center py-5">
             <div className="text-2xl mb-1">&#9989;</div>

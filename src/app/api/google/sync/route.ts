@@ -3,7 +3,9 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { pullGoogleCalendar } from "@/lib/google/sync";
 
-export async function GET() {
+export const maxDuration = 30;
+
+export async function GET(request: Request) {
   const session = await getSession();
   if (!session.isLoggedIn) {
     return NextResponse.json({ connected: false }, { status: 401 });
@@ -12,6 +14,31 @@ export async function GET() {
   const account = await prisma.googleAccount.findUnique({
     where: { userId: session.userId },
   });
+
+  const url = new URL(request.url);
+  if (url.searchParams.get("debug") === "1" && account) {
+    const googleBlocks = await prisma.plannerBlock.findMany({
+      where: { userId: session.userId, sourceType: "google" },
+      select: { id: true, title: true, startAt: true, endAt: true, googleEventId: true },
+      orderBy: { startAt: "asc" },
+      take: 50,
+    });
+    const allBlocks = await prisma.plannerBlock.count({
+      where: { userId: session.userId },
+    });
+    const googleBlockCount = await prisma.plannerBlock.count({
+      where: { userId: session.userId, sourceType: "google" },
+    });
+    return NextResponse.json({
+      connected: true,
+      calendarId: account.calendarId,
+      hasSyncToken: !!account.syncToken,
+      lastSyncAt: account.lastSyncAt,
+      totalBlocks: allBlocks,
+      googleBlocks: googleBlockCount,
+      blocks: googleBlocks,
+    });
+  }
 
   return NextResponse.json({ connected: !!account });
 }
@@ -44,9 +71,11 @@ export async function POST(request: Request) {
   try {
     const result = await pullGoogleCalendar(session.userId);
     return NextResponse.json(result);
-  } catch {
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Erro desconhecido";
+    console.error("[Google Sync] Error:", message, err);
     return NextResponse.json(
-      { error: "Erro na sincronização com Google Calendar" },
+      { error: `Erro na sincronização: ${message}` },
       { status: 500 },
     );
   }

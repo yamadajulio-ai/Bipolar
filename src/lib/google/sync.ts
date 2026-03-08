@@ -30,19 +30,28 @@ export async function pullGoogleCalendar(userId: string): Promise<SyncResult> {
   // Fetch calendar default color (for events without custom colorId)
   const defaultColorId = await getCalendarColorId(auth, account.calendarId);
 
-  const response = await listEvents(
-    auth,
-    account.calendarId,
-    account.syncToken || undefined,
-  );
+  let response;
+  try {
+    response = await listEvents(
+      auth,
+      account.calendarId,
+      account.syncToken || undefined,
+    );
+  } catch (err) {
+    console.error("[Google Sync] listEvents failed:", err);
+    throw err;
+  }
+
+  console.log(`[Google Sync] Got ${response.items.length} events (fullSync=${isFullSync}, calendarId=${account.calendarId})`);
 
   // Full sync: delete all Google-sourced blocks first, then re-create.
   // This handles events that were deleted in Google Calendar (which don't
   // appear in a full sync response — only incremental sync returns "cancelled").
   if (isFullSync) {
-    await prisma.plannerBlock.deleteMany({
+    const deleted = await prisma.plannerBlock.deleteMany({
       where: { userId, sourceType: "google" },
     });
+    console.log(`[Google Sync] Deleted ${deleted.count} old google blocks`);
   }
 
   for (const event of response.items) {
@@ -90,7 +99,8 @@ export async function pullGoogleCalendar(userId: string): Promise<SyncResult> {
         },
       });
       pulled++;
-    } catch {
+    } catch (err) {
+      console.error(`[Google Sync] Error processing event ${event.id} (${event.summary}):`, err);
       errors++;
     }
   }

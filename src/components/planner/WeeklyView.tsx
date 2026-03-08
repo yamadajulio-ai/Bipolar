@@ -102,6 +102,7 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
   const [alerts, setAlerts] = useState<StabilityAlert[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
   const [googleConnected, setGoogleConnected] = useState<boolean | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const didScroll = useRef(false);
@@ -156,16 +157,22 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
 
           if (data.connected) {
             setSyncing(true);
+            setSyncError(null);
             try {
               const controller = new AbortController();
               const timeout = setTimeout(() => controller.abort(), 15000);
-              await fetch("/api/google/sync", {
+              const syncRes = await fetch("/api/google/sync", {
                 method: "POST",
                 signal: controller.signal,
               });
               clearTimeout(timeout);
-              // Refresh blocks after successful sync
-              await fetchData(weekStart);
+              if (!syncRes.ok) {
+                const errData = await syncRes.json().catch(() => ({}));
+                setSyncError(errData.error || `Erro ${syncRes.status}`);
+              } else {
+                // Refresh blocks after successful sync
+                await fetchData(weekStart);
+              }
             } catch {
               // sync failure or timeout is non-blocking
             } finally {
@@ -221,12 +228,24 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
   async function handleManualSync() {
     if (syncing) return;
     setSyncing(true);
+    setSyncError(null);
     try {
       // Full sync resets syncToken to re-import all events
-      await fetch("/api/google/sync?full=1", { method: "POST" });
-      await fetchData(weekStart);
+      const res = await fetch("/api/google/sync?full=1", { method: "POST" });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        setSyncError(errData.error || `Erro ${res.status}`);
+      } else {
+        const result = await res.json();
+        setSyncError(null);
+        // Show result briefly
+        if (result.pulled === 0 && result.errors === 0) {
+          setSyncError("Nenhum evento encontrado no Google Calendar no período (última semana + próximas 2 semanas).");
+        }
+        await fetchData(weekStart);
+      }
     } catch {
-      // silent
+      setSyncError("Falha de conexão ao sincronizar.");
     } finally {
       setSyncing(false);
     }
@@ -272,6 +291,19 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
           <span className="text-sm text-blue-700">Sincronizando com Google Calendar...</span>
+        </div>
+      )}
+
+      {/* Sync error */}
+      {syncError && !syncing && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5" role="alert">
+          <p className="text-sm text-red-700">{syncError}</p>
+          <button
+            onClick={handleManualSync}
+            className="mt-1 text-xs font-medium text-red-600 underline hover:text-red-800"
+          >
+            Tentar novamente
+          </button>
         </div>
       )}
 

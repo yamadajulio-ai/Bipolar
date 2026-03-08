@@ -97,15 +97,29 @@ export async function POST(request: NextRequest) {
 
     const result = parseHealthExportPayloadV2(body);
 
+    // Log sleep parsing results for debugging
+    if (result.sleepNights.length > 0) {
+      console.log("[health-export] Sleep nights parsed:", JSON.stringify(result.sleepNights));
+    }
+
     // ── Batch all DB writes in a single transaction ──
     const txOps: PrismaPromise[] = [];
 
-    // 1. Save debug payload (truncated to 10KB for speed)
+    // 1. Save debug payload — store sleep metric separately for diagnostics
     const payloadStr = JSON.stringify(body);
+    const sleepMetricRaw = Array.isArray(metrics)
+      ? metrics.find((m: { name?: string; data?: { value?: string }[] }) =>
+          ["sleep_analysis", "Sleep Analysis", "sleepAnalysis", "sleep"].includes(m.name || "") ||
+          (m.data?.slice(0, 5).some((e: { value?: string }) =>
+            e.value && /Core|Deep|REM|Asleep|InBed|Awake/i.test(e.value))))
+      : null;
+    const debugPayload = sleepMetricRaw
+      ? JSON.stringify({ _sleepMetric: sleepMetricRaw, _metricsCount: metrics.length })
+      : payloadStr;
     txOps.push(
       prisma.integrationKey.update({
         where: { apiKey },
-        data: { lastPayloadDebug: payloadStr.slice(0, 10000) },
+        data: { lastPayloadDebug: debugPayload.slice(0, 50000) },
       }),
     );
 

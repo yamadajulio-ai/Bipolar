@@ -238,9 +238,14 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
       } else {
         const result = await res.json();
         setSyncError(null);
-        // Show result briefly
+        // Show result info
         if (result.pulled === 0 && result.errors === 0) {
-          setSyncError("Nenhum evento encontrado no Google Calendar no período (última semana + próximas 2 semanas).");
+          const skipped = (result.skippedAllDay || 0) + (result.skippedLong || 0);
+          if (skipped > 0) {
+            setSyncError(`Nenhum evento importado. ${skipped} evento(s) ignorado(s) (dia inteiro ou muito longo). Verifique se seus eventos têm horário definido.`);
+          } else {
+            setSyncError("Nenhum evento encontrado no Google Calendar no período (última semana + próximas 2 semanas).");
+          }
         }
         await fetchData(weekStart);
       }

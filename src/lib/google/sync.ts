@@ -11,6 +11,8 @@ import {
 export interface SyncResult {
   pulled: number;
   errors: number;
+  skippedAllDay?: number;
+  skippedLong?: number;
 }
 
 /**
@@ -54,6 +56,9 @@ export async function pullGoogleCalendar(userId: string): Promise<SyncResult> {
     console.log(`[Google Sync] Deleted ${deleted.count} old google blocks`);
   }
 
+  let skippedAllDay = 0;
+  let skippedLong = 0;
+
   for (const event of response.items) {
     if (!event.id) continue;
 
@@ -68,7 +73,16 @@ export async function pullGoogleCalendar(userId: string): Promise<SyncResult> {
       }
 
       // Skip all-day and excessively long events (>18h) — they pollute the planner
-      if (isAllDayEvent(event) || isLongEvent(event)) continue;
+      if (isAllDayEvent(event)) {
+        skippedAllDay++;
+        console.log(`[Google Sync] Skipped all-day: "${event.summary}" (start: ${JSON.stringify(event.start)})`);
+        continue;
+      }
+      if (isLongEvent(event)) {
+        skippedLong++;
+        console.log(`[Google Sync] Skipped long: "${event.summary}" (start: ${JSON.stringify(event.start)}, end: ${JSON.stringify(event.end)})`);
+        continue;
+      }
 
       // Upsert Google event
       const blockData = googleEventToBlockData(event, defaultColorId);
@@ -105,6 +119,8 @@ export async function pullGoogleCalendar(userId: string): Promise<SyncResult> {
     }
   }
 
+  console.log(`[Google Sync] Result: pulled=${pulled}, errors=${errors}, skippedAllDay=${skippedAllDay}, skippedLong=${skippedLong}`);
+
   // Update syncToken and lastSyncAt for next incremental sync
   await prisma.googleAccount.update({
     where: { userId },
@@ -114,5 +130,5 @@ export async function pullGoogleCalendar(userId: string): Promise<SyncResult> {
     },
   });
 
-  return { pulled, errors };
+  return { pulled, errors, skippedAllDay, skippedLong } as SyncResult;
 }

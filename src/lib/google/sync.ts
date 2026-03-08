@@ -45,6 +45,10 @@ export async function pullGoogleCalendar(userId: string): Promise<SyncResult> {
   }
 
   console.log(`[Google Sync] Got ${response.items.length} events (fullSync=${isFullSync}, calendarId=${account.calendarId})`);
+  // Log first 10 events for debugging
+  for (const ev of response.items.slice(0, 10)) {
+    console.log(`[Google Sync] Event: "${ev.summary}" status=${ev.status} start=${JSON.stringify(ev.start)} end=${JSON.stringify(ev.end)} recurring=${!!ev.recurringEventId}`);
+  }
 
   // Full sync: delete all Google-sourced blocks first, then re-create.
   // This handles events that were deleted in Google Calendar (which don't

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { pullGoogleCalendar } from "@/lib/google/sync";
+import { getAuthenticatedClient } from "@/lib/google/auth";
+import { listEvents, isAllDayEvent, isLongEvent } from "@/lib/google/calendar";
 
 export const maxDuration = 30;
 
@@ -38,6 +40,31 @@ export async function GET(request: Request) {
       googleBlocks: googleBlockCount,
       blocks: googleBlocks,
     });
+  }
+
+  // ?raw=1 — show what Google API returns (for debugging)
+  if (url.searchParams.get("raw") === "1" && account) {
+    try {
+      const auth = await getAuthenticatedClient(session.userId);
+      const response = await listEvents(auth, account.calendarId);
+      const summary = response.items.map((ev) => ({
+        id: ev.id?.slice(0, 20),
+        title: ev.summary,
+        status: ev.status,
+        start: ev.start,
+        end: ev.end,
+        allDay: isAllDayEvent(ev),
+        long: isLongEvent(ev),
+        recurring: !!ev.recurringEventId,
+      }));
+      return NextResponse.json({
+        totalFromGoogle: response.items.length,
+        hasNextSyncToken: !!response.nextSyncToken,
+        events: summary,
+      });
+    } catch (err) {
+      return NextResponse.json({ error: String(err) }, { status: 500 });
+    }
   }
 
   return NextResponse.json({ connected: !!account });

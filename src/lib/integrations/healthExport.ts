@@ -72,12 +72,17 @@ function parseHAEDate(dateStr: string): Date {
   return d;
 }
 
+// All times must be in the user's timezone (America/Sao_Paulo), NOT UTC.
+// Vercel runs in UTC, so getHours()/getDate() return wrong values.
+const USER_TZ = "America/Sao_Paulo";
+
 function formatHHMM(d: Date): string {
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  return d.toLocaleTimeString("en-GB", { timeZone: USER_TZ, hour: "2-digit", minute: "2-digit", hour12: false });
 }
 
 function toYMD(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  // en-CA locale gives YYYY-MM-DD format
+  return new Intl.DateTimeFormat("en-CA", { timeZone: USER_TZ }).format(d);
 }
 
 // ── Sleep stage normalization ───────────────────────────────────
@@ -396,20 +401,42 @@ function parseDetailedSegments(data: HAEMetricEntry[]): ProcessedSleepNight[] {
 
   segments.sort((a, b) => a.start.getTime() - b.start.getTime());
 
-  const nights: SleepSegment[][] = [];
-  let currentNight: SleepSegment[] = [segments[0]];
+  // First pass: group by time proximity (6h gap)
+  const rawGroups: SleepSegment[][] = [];
+  let currentGroup: SleepSegment[] = [segments[0]];
 
   for (let i = 1; i < segments.length; i++) {
-    const gap = segments[i].start.getTime() - currentNight[currentNight.length - 1].end.getTime();
-    // 6h gap — prevents grouping naps with night sleep (was 12h)
+    const gap = segments[i].start.getTime() - currentGroup[currentGroup.length - 1].end.getTime();
     if (gap < 6 * 60 * 60 * 1000) {
-      currentNight.push(segments[i]);
+      currentGroup.push(segments[i]);
     } else {
-      nights.push(currentNight);
-      currentNight = [segments[i]];
+      rawGroups.push(currentGroup);
+      currentGroup = [segments[i]];
     }
   }
-  nights.push(currentNight);
+  rawGroups.push(currentGroup);
+
+  // Second pass: split groups on long awake segments (>= 60min)
+  // This prevents naps from being merged with night sleep when a
+  // long "awake" segment bridges them (e.g. 19:39→20:49 = 1h10).
+  const AWAKE_SPLIT_MS = 60 * 60 * 1000; // 60 minutes
+  const nights: SleepSegment[][] = [];
+  for (const group of rawGroups) {
+    let subGroup: SleepSegment[] = [];
+    for (const seg of group) {
+      if (seg.stage === "awake") {
+        const durationMs = seg.end.getTime() - seg.start.getTime();
+        if (durationMs >= AWAKE_SPLIT_MS && subGroup.length > 0) {
+          // Long awake = split point. Save current subgroup, start new one.
+          nights.push(subGroup);
+          subGroup = [];
+          continue; // Drop the long awake segment itself
+        }
+      }
+      subGroup.push(seg);
+    }
+    if (subGroup.length > 0) nights.push(subGroup);
+  }
 
   return nights.map((nightSegments) => processNight(nightSegments)).filter(Boolean) as ProcessedSleepNight[];
 }

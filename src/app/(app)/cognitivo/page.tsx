@@ -84,79 +84,239 @@ export default function CognitivoPage() {
       )}
 
       {task === "results" && (
-        <div className="space-y-4">
-          <Card>
-            <h2 className="mb-3 text-sm font-semibold">Seus Resultados</h2>
-            <div className="grid grid-cols-2 gap-4 text-center">
-              <div>
-                <div className="text-xs text-muted">Tempo de Reação</div>
-                <div className={`text-2xl font-bold ${
-                  result.reactionTimeMs !== null
-                    ? result.reactionTimeMs < 300 ? "text-green-400"
-                      : result.reactionTimeMs < 500 ? "text-amber-400"
-                      : "text-red-400"
-                    : "text-muted"
-                }`}>
-                  {result.reactionTimeMs !== null ? `${result.reactionTimeMs}ms` : "—"}
-                </div>
-                <div className="text-[10px] text-muted">
-                  {result.reactionTimeMs !== null
-                    ? result.reactionTimeMs < 300 ? "Rápido"
-                      : result.reactionTimeMs < 500 ? "Normal"
-                      : "Lento"
-                    : "Não testado"}
-                </div>
-              </div>
-              <div>
-                <div className="text-xs text-muted">Span de Dígitos</div>
-                <div className={`text-2xl font-bold ${
-                  result.digitSpan !== null
-                    ? result.digitSpan >= 7 ? "text-green-400"
-                      : result.digitSpan >= 5 ? "text-amber-400"
-                      : "text-red-400"
-                    : "text-muted"
-                }`}>
-                  {result.digitSpan !== null ? result.digitSpan : "—"}
-                </div>
-                <div className="text-[10px] text-muted">
-                  {result.digitSpan !== null
-                    ? result.digitSpan >= 7 ? "Acima da média"
-                      : result.digitSpan >= 5 ? "Normal"
-                      : "Abaixo da média"
-                    : "Não testado"}
-                </div>
+        <ResultsScreen
+          result={result}
+          onBack={() => setTask("menu")}
+          onReset={() => {
+            setResult({ reactionTimeMs: null, digitSpan: null, timestamp: new Date().toISOString() });
+            setTask("menu");
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── Results Screen ──────────────────────────────────────────
+
+function getReactionLevel(ms: number): { label: string; color: string; emoji: string; detail: string } {
+  if (ms < 250) return { label: "Excelente", color: "text-green-500", emoji: "🟢", detail: "Sua velocidade de processamento está acima da média. Reflexos muito rápidos." };
+  if (ms < 350) return { label: "Bom", color: "text-green-400", emoji: "🟢", detail: "Dentro da faixa esperada para adultos saudáveis (250–350ms). Boa velocidade de processamento." };
+  if (ms < 500) return { label: "Normal", color: "text-amber-400", emoji: "🟡", detail: "Ligeiramente acima da média, mas dentro do aceitável. Fadiga, sono ou medicação podem influenciar." };
+  if (ms < 700) return { label: "Lento", color: "text-orange-400", emoji: "🟠", detail: "Acima do esperado. Pode indicar fadiga, efeito de medicação sedativa, ou lentificação cognitiva — comum em episódios depressivos." };
+  return { label: "Muito lento", color: "text-red-400", emoji: "🔴", detail: "Significativamente acima do esperado. Considere se está com fadiga intensa, efeito de medicação, ou em fase depressiva. Vale relatar ao profissional." };
+}
+
+function getDigitLevel(span: number): { label: string; color: string; emoji: string; detail: string } {
+  if (span >= 9) return { label: "Excelente", color: "text-green-500", emoji: "🟢", detail: "Memória de trabalho acima da média. Capacidade excelente de retenção de informações." };
+  if (span >= 7) return { label: "Bom", color: "text-green-400", emoji: "🟢", detail: "Dentro da média (7±2, Miller 1956). Memória de trabalho funcionando bem." };
+  if (span >= 5) return { label: "Normal", color: "text-amber-400", emoji: "🟡", detail: "Ligeiramente abaixo da média geral, mas dentro do esperado para pessoas com TAB em eutimia (~6, Bora et al. 2009)." };
+  if (span >= 4) return { label: "Abaixo da média", color: "text-orange-400", emoji: "🟠", detail: "Abaixo do esperado. Pode estar relacionado a episódio atual, efeito de medicação, ou fadiga. Acompanhe a evolução." };
+  return { label: "Reduzido", color: "text-red-400", emoji: "🔴", detail: "Significativamente abaixo da média. Dificuldade de memória de trabalho pode indicar fase ativa ou efeito medicamentoso. Vale discutir com seu profissional." };
+}
+
+function GaugeBar({ value, min, max, zones }: { value: number; min: number; max: number; zones: { end: number; color: string }[] }) {
+  const clamped = Math.max(min, Math.min(max, value));
+  const pct = ((clamped - min) / (max - min)) * 100;
+
+  return (
+    <div className="relative mt-2 mb-1">
+      <div className="flex h-3 w-full overflow-hidden rounded-full">
+        {zones.map((zone, i) => {
+          const prev = i === 0 ? min : zones[i - 1].end;
+          const width = ((zone.end - prev) / (max - min)) * 100;
+          return <div key={i} className={`h-full ${zone.color}`} style={{ width: `${width}%` }} />;
+        })}
+      </div>
+      <div
+        className="absolute top-[-4px] h-5 w-1 rounded-full bg-foreground shadow-md"
+        style={{ left: `calc(${pct}% - 2px)` }}
+        aria-label={`Seu resultado: ${value}`}
+      />
+    </div>
+  );
+}
+
+function ResultsScreen({ result, onBack, onReset }: { result: TaskResult; onBack: () => void; onReset: () => void }) {
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const hasReaction = result.reactionTimeMs !== null;
+  const hasDigits = result.digitSpan !== null;
+  const reactionInfo = hasReaction ? getReactionLevel(result.reactionTimeMs!) : null;
+  const digitInfo = hasDigits ? getDigitLevel(result.digitSpan!) : null;
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      const res = await fetch("/api/cognitivo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reactionTimeMs: result.reactionTimeMs,
+          digitSpan: result.digitSpan,
+        }),
+      });
+      if (res.ok) setSaved(true);
+    } catch {
+      // silently fail
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // Summary message
+  let summaryMessage = "";
+  if (hasReaction && hasDigits) {
+    const bothGood = result.reactionTimeMs! < 350 && result.digitSpan! >= 7;
+    const bothBad = result.reactionTimeMs! >= 500 && result.digitSpan! < 5;
+    if (bothGood) {
+      summaryMessage = "Bom desempenho geral! Tanto a velocidade de processamento quanto a memória de trabalho estão dentro ou acima da média.";
+    } else if (bothBad) {
+      summaryMessage = "Ambos os indicadores estão abaixo do esperado. Isso pode estar relacionado ao seu estado atual (humor, sono, medicação). Considere registrar como se sente hoje e acompanhar a evolução nos próximos dias.";
+    } else {
+      summaryMessage = "Resultados mistos — é normal ter variação entre diferentes funções cognitivas. Fatores como sono, humor e medicação influenciam cada área de forma diferente.";
+    }
+  } else if (hasReaction) {
+    summaryMessage = "Teste de velocidade de processamento concluído. Faça também o Span de Dígitos para uma avaliação mais completa.";
+  } else if (hasDigits) {
+    summaryMessage = "Teste de memória de trabalho concluído. Faça também o Tempo de Reação para uma avaliação mais completa.";
+  }
+
+  return (
+    <div className="space-y-4">
+      <h2 className="text-lg font-bold">Seus Resultados</h2>
+
+      {/* Reaction Time */}
+      {hasReaction && reactionInfo && (
+        <Card>
+          <div className="flex items-start justify-between">
+            <div>
+              <h3 className="text-sm font-semibold">Tempo de Reação</h3>
+              <p className="mt-0.5 text-xs text-muted">Velocidade de processamento</p>
+            </div>
+            <div className="text-right">
+              <span className={`text-2xl font-bold ${reactionInfo.color}`}>
+                {result.reactionTimeMs}ms
+              </span>
+              <div className={`text-xs font-medium ${reactionInfo.color}`}>
+                {reactionInfo.emoji} {reactionInfo.label}
               </div>
             </div>
-          </Card>
-
-          <Card>
-            <h3 className="mb-1 text-xs font-semibold text-muted">Referências</h3>
-            <ul className="space-y-1 text-xs text-muted">
-              <li>Tempo de reação: adultos saudáveis ~250-350ms (Deary et al.)</li>
-              <li>Digit span: média 7±2 (Miller, 1956). Bipolar em eutimia: ~6 (Bora et al., 2009)</li>
-              <li>Lentificação cognitiva é um dos sintomas mais relatados em episódios depressivos</li>
-            </ul>
-          </Card>
-
-          <div className="flex gap-2">
-            <button
-              onClick={() => setTask("menu")}
-              className="flex-1 rounded-lg border border-border px-4 py-2 text-sm text-muted"
-            >
-              Voltar
-            </button>
-            <button
-              onClick={() => {
-                setResult({ reactionTimeMs: null, digitSpan: null, timestamp: new Date().toISOString() });
-                setTask("menu");
-              }}
-              className="flex-1 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white"
-            >
-              Refazer testes
-            </button>
           </div>
-        </div>
+          <GaugeBar
+            value={result.reactionTimeMs!}
+            min={150}
+            max={800}
+            zones={[
+              { end: 250, color: "bg-green-500" },
+              { end: 350, color: "bg-green-400" },
+              { end: 500, color: "bg-amber-400" },
+              { end: 700, color: "bg-orange-400" },
+              { end: 800, color: "bg-red-400" },
+            ]}
+          />
+          <div className="flex justify-between text-[9px] text-muted">
+            <span>150ms</span>
+            <span>250</span>
+            <span>350</span>
+            <span>500</span>
+            <span>700+</span>
+          </div>
+          <p className="mt-3 text-xs leading-relaxed text-muted">{reactionInfo.detail}</p>
+          <p className="mt-1 text-[10px] text-muted italic">
+            Ref: adultos saudáveis 250–350ms (Deary et al., 2001)
+          </p>
+        </Card>
       )}
+
+      {/* Digit Span */}
+      {hasDigits && digitInfo && (
+        <Card>
+          <div className="flex items-start justify-between">
+            <div>
+              <h3 className="text-sm font-semibold">Span de Dígitos</h3>
+              <p className="mt-0.5 text-xs text-muted">Memória de trabalho</p>
+            </div>
+            <div className="text-right">
+              <span className={`text-2xl font-bold ${digitInfo.color}`}>
+                {result.digitSpan}
+              </span>
+              <div className={`text-xs font-medium ${digitInfo.color}`}>
+                {digitInfo.emoji} {digitInfo.label}
+              </div>
+            </div>
+          </div>
+          <GaugeBar
+            value={result.digitSpan!}
+            min={2}
+            max={11}
+            zones={[
+              { end: 4, color: "bg-red-400" },
+              { end: 5, color: "bg-orange-400" },
+              { end: 7, color: "bg-amber-400" },
+              { end: 9, color: "bg-green-400" },
+              { end: 11, color: "bg-green-500" },
+            ]}
+          />
+          <div className="flex justify-between text-[9px] text-muted">
+            <span>2</span>
+            <span>4</span>
+            <span>5</span>
+            <span>7</span>
+            <span>9+</span>
+          </div>
+          <p className="mt-3 text-xs leading-relaxed text-muted">{digitInfo.detail}</p>
+          <p className="mt-1 text-[10px] text-muted italic">
+            Ref: média 7±2 (Miller, 1956). TAB em eutimia: ~6 (Bora et al., 2009)
+          </p>
+        </Card>
+      )}
+
+      {/* Summary */}
+      <Card>
+        <h3 className="mb-1 text-sm font-semibold">Interpretação</h3>
+        <p className="text-xs leading-relaxed text-muted">{summaryMessage}</p>
+        <div className="mt-3 rounded-lg bg-surface-alt p-3">
+          <h4 className="text-xs font-semibold mb-1">O que pode influenciar seus resultados:</h4>
+          <ul className="space-y-0.5 text-[11px] text-muted">
+            <li>• <strong>Sono:</strong> privação de sono reduz velocidade e memória</li>
+            <li>• <strong>Humor:</strong> episódios depressivos causam lentificação cognitiva</li>
+            <li>• <strong>Medicação:</strong> estabilizadores e antipsicóticos podem afetar tempo de reação</li>
+            <li>• <strong>Hora do dia:</strong> o desempenho cognitivo varia ao longo do dia</li>
+            <li>• <strong>Prática:</strong> refazer o teste regularmente ajuda a acompanhar tendências</li>
+          </ul>
+        </div>
+      </Card>
+
+      {/* Suggestions */}
+      <Card>
+        <h3 className="mb-1 text-sm font-semibold">Dica</h3>
+        <p className="text-xs leading-relaxed text-muted">
+          Faça este teste periodicamente (1–2x por semana, sempre no mesmo horário) para acompanhar
+          sua função cognitiva ao longo do tempo. Variações podem ajudar a identificar mudanças no
+          seu estado de humor antes que se tornem evidentes.
+        </p>
+        <p className="mt-2 text-[10px] text-muted italic">
+          Estes resultados são indicativos e não substituem avaliação neuropsicológica profissional.
+        </p>
+      </Card>
+
+      {/* Actions */}
+      <div className="flex gap-2">
+        <button
+          onClick={onBack}
+          className="flex-1 rounded-lg border border-border px-4 py-2 text-sm text-muted"
+        >
+          Voltar
+        </button>
+        <button
+          onClick={onReset}
+          className="flex-1 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white"
+        >
+          Refazer testes
+        </button>
+      </div>
     </div>
   );
 }

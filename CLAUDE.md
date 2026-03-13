@@ -24,8 +24,14 @@
 ## Regras de Dados — Sono
 - **Cochilo**: registro < 1h → exibido no histórico (tag "cochilo", roxo) mas **excluído** das métricas
 - **Sono real**: registro >= 1h → incluído em todas as métricas (média, regularidade, variabilidade, alertas, correlações)
+- **Registro incompleto**: campo `excluded: true` no SleepLog → excluído de métricas/heatmap, visível no histórico (dimmed, tag "excluído"). Toggle via `PATCH /api/sono/excluir`. Registros 1-4.5h mostram tag "incompleto?" como sugestão.
 - Todos os registros aparecem no histórico para revisão clínica
 - Histórico configurável pelo usuário: 7, 15, 30 noites ou 3 meses (via `?noites=N`)
+
+## Domínios
+- **Produção**: suportebipolar.com (Vercel + Cloudflare DNS, proxy OFF)
+- **Legacy**: redebipolar.com (ainda ativo)
+- **HAE Worker**: hae-proxy on Cloudflare Workers → suportebipolar.com/api/integrations/health-export
 
 ## Insights — Arquitetura
 - Página: `src/app/(app)/insights/page.tsx` (Server Component)

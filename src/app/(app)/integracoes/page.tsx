@@ -259,11 +259,11 @@ export default function IntegraçõesPage() {
               <label className="text-xs text-muted">URL do endpoint</label>
               <div className="mt-1 flex items-center gap-2">
                 <div className="flex-1 rounded bg-surface-alt px-3 py-2 text-xs font-mono break-all">
-                  https://hae-proxy.rede-bipolar.workers.dev
+                  https://hae-proxy.suporte-bipolar.workers.dev
                 </div>
                 <button
                   onClick={() => {
-                    navigator.clipboard.writeText("https://hae-proxy.rede-bipolar.workers.dev");
+                    navigator.clipboard.writeText("https://hae-proxy.suporte-bipolar.workers.dev");
                     setCopied("url"); setTimeout(() => setCopied(false), 2000);
                   }}
                   className="rounded bg-primary px-3 py-2 text-xs text-white whitespace-nowrap"

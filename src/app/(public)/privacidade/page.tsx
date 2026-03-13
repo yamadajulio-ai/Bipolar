@@ -57,7 +57,7 @@ export default function PrivacidadePage() {
           <h2 className="mb-2 text-lg font-semibold">6. Contato do encarregado (DPO)</h2>
           <p className="text-sm text-muted">
             Para dúvidas sobre privacidade ou solicitações relacionadas aos seus dados, entre
-            em contato: <strong>privacidade@redebipolar.com</strong> (placeholder).
+            em contato: <strong>privacidade@suportebipolar.com</strong> (placeholder).
           </p>
         </section>
       </main>

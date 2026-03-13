@@ -1,4 +1,4 @@
-// Rede Bipolar — Service Worker v2
+// Suporte Bipolar — Service Worker v2
 // Three-cache strategy: static (cache-first), API (stale-while-revalidate), offline (pre-cache)
 
 const CACHE_STATIC = "rb-static-v2";

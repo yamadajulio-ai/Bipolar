@@ -3,4 +3,4 @@ main = "src/index.ts"
 compatibility_date = "2024-12-01"
 
 [vars]
-TARGET_URL = "https://www.redebipolar.com.br/api/integrations/health-export"
+TARGET_URL = "https://www.suportebipolar.com/api/integrations/health-export"

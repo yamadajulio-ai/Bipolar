@@ -121,7 +121,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         <div className="mb-6 text-center">
           <Link href="/" className="text-xl font-bold text-foreground no-underline">
-            Rede Bipolar
+            Suporte Bipolar
           </Link>
           <p className="mt-2 text-sm text-muted">Entre na sua conta</p>
         </div>

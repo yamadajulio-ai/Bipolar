@@ -222,11 +222,11 @@ export default function AcessoProfissionalPage() {
           </summary>
           <div className="mt-2 space-y-2 text-xs text-muted">
             <p>
-              <strong>Controlador:</strong> Rede Bipolar. Para exercer seus
+              <strong>Controlador:</strong> Suporte Bipolar. Para exercer seus
               direitos de titular (acesso, correção, exclusão, portabilidade),
               entre em contato pelo e-mail{" "}
-              <a href="mailto:privacidade@redebipolar.com.br" className="underline">
-                privacidade@redebipolar.com.br
+              <a href="mailto:privacidade@suportebipolar.com" className="underline">
+                privacidade@suportebipolar.com
               </a>.
             </p>
             <p>
@@ -254,8 +254,8 @@ export default function AcessoProfissionalPage() {
               <strong>Encarregado:</strong> Dispensado conforme Resolução
               CD/ANPD nº 2/2022 (agente de tratamento de pequeno porte). Canal
               para exercer seus direitos de titular:{" "}
-              <a href="mailto:privacidade@redebipolar.com.br" className="underline">
-                privacidade@redebipolar.com.br
+              <a href="mailto:privacidade@suportebipolar.com" className="underline">
+                privacidade@suportebipolar.com
               </a>.
             </p>
           </div>

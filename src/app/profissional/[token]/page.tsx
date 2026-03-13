@@ -155,7 +155,7 @@ export default function ProfessionalDashboard() {
       <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4 dark:bg-gray-950">
         <Card className="w-full max-w-md">
           <h1 className="mb-2 text-center text-xl font-bold">
-            Rede Bipolar — Painel do Profissional
+            Suporte Bipolar — Painel do Profissional
           </h1>
           <p className="mb-6 text-center text-sm text-muted">
             Digite o PIN fornecido pelo paciente para acessar os dados.
@@ -222,7 +222,7 @@ export default function ProfessionalDashboard() {
               </button>
               <div className="text-right text-xs text-muted">
                 <p>Gerado em {formatDate(report.generatedAt)}</p>
-                <p>Rede Bipolar</p>
+                <p>Suporte Bipolar</p>
               </div>
             </div>
           </div>
@@ -597,7 +597,7 @@ export default function ProfessionalDashboard() {
         )}
 
         <p className="mt-6 text-center text-[10px] text-muted">
-          Dados gerados automaticamente pela Rede Bipolar.
+          Dados gerados automaticamente pela Suporte Bipolar.
           Indicadores heurísticos educacionais — uso clínico requer interpretação profissional.
           Paciente autorizou compartilhamento conforme a LGPD e termos de consentimento aplicáveis.
         </p>

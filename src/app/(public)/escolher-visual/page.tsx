@@ -45,7 +45,7 @@ function PreviewAurora() {
   return (
     <div className="overflow-hidden rounded-xl text-[11px]" style={{ background: "linear-gradient(160deg, #fdf2f8 0%, #ede9fe 35%, #dbeafe 70%, #f0fdf4 100%)" }}>
       <div className="flex items-center justify-between px-4 py-2.5" style={{ background: "rgba(255,255,255,0.55)", backdropFilter: "blur(12px)" }}>
-        <span className="font-bold text-xs" style={{ background: "linear-gradient(135deg, #a855f7, #3b82f6)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Rede Bipolar</span>
+        <span className="font-bold text-xs" style={{ background: "linear-gradient(135deg, #a855f7, #3b82f6)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Suporte Bipolar</span>
         <div className="flex gap-2 text-[10px]">
           <span className="text-[#6b7280]">Entrar</span>
           <span className="rounded-full px-3 py-0.5 text-white font-medium" style={{ background: "linear-gradient(135deg, #a855f7, #6366f1)" }}>Criar conta</span>
@@ -104,7 +104,7 @@ function PreviewTerra() {
   return (
     <div className="overflow-hidden rounded-xl text-[11px]" style={{ background: "linear-gradient(180deg, #e8d5b8 0%, #f5ebe0 40%, #faf6f1 100%)" }}>
       <div className="flex items-center justify-between px-4 py-2.5" style={{ background: "rgba(93,64,55,0.08)" }}>
-        <span className="font-bold text-xs text-[#5d4037]">Rede Bipolar</span>
+        <span className="font-bold text-xs text-[#5d4037]">Suporte Bipolar</span>
         <div className="flex gap-2 text-[10px]">
           <span className="text-[#8d6e63]">Entrar</span>
           <span className="bg-[#5d4037] text-white rounded-full px-3 py-0.5">Criar conta</span>
@@ -166,7 +166,7 @@ function PreviewNoite() {
   return (
     <div className="overflow-hidden rounded-xl text-[11px]" style={{ background: "linear-gradient(180deg, #0c1222 0%, #162036 60%, #1a2744 100%)" }}>
       <div className="flex items-center justify-between px-4 py-2.5" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-        <span className="font-bold text-xs text-[#93c5fd]">Rede Bipolar</span>
+        <span className="font-bold text-xs text-[#93c5fd]">Suporte Bipolar</span>
         <div className="flex gap-2 text-[10px]">
           <span className="text-[#64748b]">Entrar</span>
           <span className="rounded-full px-3 py-0.5 text-white" style={{ background: "linear-gradient(135deg, #3b82f6, #6366f1)" }}>Criar conta</span>
@@ -249,7 +249,7 @@ function PreviewJardim() {
   return (
     <div className="overflow-hidden rounded-xl bg-white text-[#14532d] text-[11px]">
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#dcfce7]">
-        <span className="font-bold text-xs text-[#15803d]">Rede Bipolar</span>
+        <span className="font-bold text-xs text-[#15803d]">Suporte Bipolar</span>
         <div className="flex gap-2 text-[10px]">
           <span className="text-[#6b7280]">Entrar</span>
           <span className="bg-[#15803d] text-white rounded-xl px-3 py-0.5 font-medium">Criar conta</span>
@@ -315,7 +315,7 @@ function PreviewEditorial() {
   return (
     <div className="overflow-hidden rounded-xl bg-[#fafaf9] text-[#111] text-[11px]">
       <div className="flex items-center justify-between px-5 py-3 bg-white border-b border-[#e5e5e5]">
-        <span className="font-black text-xs tracking-tight">REDE BIPOLAR</span>
+        <span className="font-black text-xs tracking-tight">SUPORTE BIPOLAR</span>
         <div className="flex gap-3 text-[10px]">
           <span className="text-[#a3a3a3] font-medium">Entrar</span>
           <span className="font-bold text-[#ea580c]">Criar conta</span>

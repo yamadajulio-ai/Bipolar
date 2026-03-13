@@ -43,7 +43,7 @@ export function InstallBanner() {
     >
       <div className="flex items-start justify-between gap-2">
         <div className="text-sm text-foreground">
-          <p className="font-medium">Instale o Rede Bipolar</p>
+          <p className="font-medium">Instale o Suporte Bipolar</p>
           <p className="mt-1 text-muted">
             Toque em{" "}
             <svg

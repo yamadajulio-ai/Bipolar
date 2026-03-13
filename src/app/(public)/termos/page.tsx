@@ -12,7 +12,7 @@ export default function TermosPage() {
         <section className="mb-6">
           <h2 className="mb-2 text-lg font-semibold">1. Natureza do serviço</h2>
           <p className="text-sm text-muted">
-            O Rede Bipolar é uma plataforma educacional e de auto-organização. Todo o conteúdo
+            O Suporte Bipolar é uma plataforma educacional e de auto-organização. Todo o conteúdo
             disponibilizado tem caráter exclusivamente informativo e educacional.
             <strong> Este serviço NÃO substitui consultas, diagnósticos ou tratamentos
             médicos e psicológicos.</strong>
@@ -47,7 +47,7 @@ export default function TermosPage() {
         <section className="mb-6">
           <h2 className="mb-2 text-lg font-semibold">5. Limitação de responsabilidade</h2>
           <p className="text-sm text-muted">
-            O Rede Bipolar não se responsabiliza por decisões tomadas com base no conteúdo
+            O Suporte Bipolar não se responsabiliza por decisões tomadas com base no conteúdo
             da plataforma. Sempre consulte profissionais de saúde qualificados para orientações
             clínicas.
           </p>
@@ -65,7 +65,7 @@ export default function TermosPage() {
         <section className="mb-6">
           <h2 className="mb-2 text-lg font-semibold">7. Contato</h2>
           <p className="text-sm text-muted">
-            Dúvidas sobre estes termos: <strong>contato@redebipolar.com</strong> (placeholder).
+            Dúvidas sobre estes termos: <strong>contato@suportebipolar.com</strong> (placeholder).
           </p>
         </section>
       </main>

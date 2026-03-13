@@ -20,14 +20,14 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Rede Bipolar — Juntos pelo equilíbrio",
+  title: "Suporte Bipolar — Juntos pelo equilíbrio",
   description:
     "Seu painel de estabilidade: rotina, sono, humor, finanças e corpo. Ferramentas para pessoas com Transtorno Afetivo Bipolar e suas famílias.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Rede Bipolar",
+    title: "Suporte Bipolar",
   },
   icons: {
     icon: [
@@ -40,33 +40,33 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "pt_BR",
-    url: "https://redebipolar.com",
-    siteName: "Rede Bipolar",
-    title: "Rede Bipolar — Seu painel de estabilidade",
+    url: "https://suportebipolar.com",
+    siteName: "Suporte Bipolar",
+    title: "Suporte Bipolar — Seu painel de estabilidade",
     description:
       "Rotina, sono, humor, finanças e corpo em um só lugar. Feito para quem vive com Transtorno Afetivo Bipolar.",
     images: [
       {
-        url: "https://redebipolar.com/og-image.png",
+        url: "https://suportebipolar.com/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Rede Bipolar — Juntos pelo equilíbrio",
+        alt: "Suporte Bipolar — Juntos pelo equilíbrio",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Rede Bipolar — Seu painel de estabilidade",
+    title: "Suporte Bipolar — Seu painel de estabilidade",
     description:
       "Rotina, sono, humor, finanças e corpo em um só lugar. Feito para quem vive com Transtorno Afetivo Bipolar.",
-    images: ["https://redebipolar.com/og-image.png"],
+    images: ["https://suportebipolar.com/og-image.png"],
   },
   robots: {
     index: true,
     follow: true,
   },
   alternates: {
-    canonical: "https://redebipolar.com",
+    canonical: "https://suportebipolar.com",
   },
 };
 
@@ -84,8 +84,8 @@ export default function RootLayout({
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "WebApplication",
-              name: "Rede Bipolar",
-              url: "https://redebipolar.com",
+              name: "Suporte Bipolar",
+              url: "https://suportebipolar.com",
               description:
                 "Ferramentas de auto-organização para pessoas com Transtorno Afetivo Bipolar",
               applicationCategory: "HealthApplication",

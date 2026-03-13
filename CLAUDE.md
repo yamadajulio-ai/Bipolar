@@ -1,4 +1,4 @@
-# Rede Bipolar — Projeto
+# Suporte Bipolar — Projeto
 
 ## Budget
 - **Budget total: $10.000 USD** — Priorizar QUALIDADE sempre, sem economizar em soluções.

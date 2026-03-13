@@ -5,6 +5,7 @@ import { Alert } from "@/components/Alert";
 import { InsightsCharts } from "@/components/planner/InsightsCharts";
 import { NightHistorySelector } from "@/components/insights/NightHistorySelector";
 import { computeInsights, formatSleepDuration } from "@/lib/insights/computeInsights";
+import { SleepHistoryCard } from "@/components/insights/SleepHistoryCard";
 import { MoodThermometer } from "@/components/insights/MoodThermometer";
 import type { ClinicalAlert, PlannerBlockInput, CombinedPattern, RiskScore, DataConfidence, CorrelationResult, EpisodePrediction as EpisodePredictionType, CyclingAnalysis as CyclingAnalysisType, SeasonalityAnalysis as SeasonalityAnalysisType, HeatmapDay } from "@/lib/insights/computeInsights";
 import { MetricLabel } from "@/components/insights/MetricLabel";
@@ -178,9 +179,9 @@ export default async function InsightsPage({
   // Entries for core metrics (30d) vs full 90d for heatmap/cycling/seasonality
   const entries = allEntries.filter((e) => e.date >= cutoff30Str);
 
-  // For insights computation: last 30 days, only real sleep (>= 1h). Under 1h = nap.
+  // For insights computation: last 30 days, only real sleep (>= 1h), not excluded. Under 1h = nap.
   const sleepLogsForInsights = allSleepLogs.filter(
-    (l) => l.date >= cutoff30Str && l.totalHours >= 1,
+    (l) => l.date >= cutoff30Str && l.totalHours >= 1 && !l.excluded,
   );
 
   // Convert PlannerBlock DateTime with correct timezone
@@ -193,7 +194,9 @@ export default async function InsightsPage({
     };
   });
 
-  const insights = computeInsights(sleepLogsForInsights, entries, rhythms, plannerBlocks, now, TZ, allEntries, allSleepLogs, financialTxs);
+  // For heatmap/cycling: exclude user-excluded records but keep cochilos for display
+  const allSleepLogsFiltered = allSleepLogs.filter((l) => !l.excluded);
+  const insights = computeInsights(sleepLogsForInsights, entries, rhythms, plannerBlocks, now, TZ, allEntries, allSleepLogsFiltered, financialTxs);
 
   // Filter anchors that have data for the IPSRT section
   const anchorsWithData = Object.entries(insights.rhythm.anchors)
@@ -419,72 +422,9 @@ export default async function InsightsPage({
               </Suspense>
             </div>
             <div className="space-y-2">
-              {lastNights.map((log) => {
-                const isNap = log.totalHours < 1;
-                const isShort = !isNap && log.totalHours < 6;
-                const isGood = log.totalHours >= 7;
-                const durationPct = Math.min(100, Math.max(8, (log.totalHours / 10) * 100));
-                const dateObj = new Date(log.date + "T12:00:00");
-                const weekday = dateObj.toLocaleDateString("pt-BR", { weekday: "short" });
-                const dateLabel = dateObj.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
-
-                return (
-                  <div
-                    key={log.id}
-                    className={`rounded-lg border p-3 ${
-                      isNap
-                        ? "border-purple-200 bg-purple-50/40"
-                        : isShort
-                          ? "border-red-200 bg-red-50/50"
-                          : isGood
-                            ? "border-emerald-200/50 bg-emerald-50/30"
-                            : "border-border bg-surface"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1.5">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium capitalize">{weekday}</span>
-                        <span className="text-xs text-muted">{dateLabel}</span>
-                        {isNap && (
-                          <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-medium text-purple-700">
-                            cochilo
-                          </span>
-                        )}
-                      </div>
-                      <span className={`text-sm font-bold tabular-nums ${
-                        isNap ? "text-purple-600"
-                          : isShort ? "text-red-600"
-                          : isGood ? "text-emerald-700"
-                          : "text-foreground"
-                      }`}>
-                        {formatSleepDuration(log.totalHours)}
-                      </span>
-                    </div>
-
-                    {/* Duration bar */}
-                    <div className="h-1.5 w-full rounded-full bg-black/10 mb-1.5">
-                      <div
-                        className={`h-1.5 rounded-full transition-all ${
-                          isNap ? "bg-purple-400" : isShort ? "bg-red-400" : isGood ? "bg-emerald-400" : "bg-amber-400"
-                        }`}
-                        style={{ width: `${durationPct}%` }}
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between text-[11px] text-muted">
-                      <span>{log.bedtime} → {log.wakeTime}</span>
-                      <div className="flex items-center gap-3">
-                        {log.hrv != null && (
-                          <span>HRV <strong className="text-foreground">{log.hrv}</strong>ms</span>
-                        )}
-                        {log.heartRate != null && (
-                          <span>FC <strong className="text-foreground">{log.heartRate}</strong>bpm</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+              {lastNights.map((log) => (
+                <SleepHistoryCard key={log.id} log={log} />
+              ))}
             </div>
           </div>
         )}

@@ -65,9 +65,11 @@ export async function GET(request: NextRequest) {
     session.userId = user.id;
     session.email = user.email;
     session.isLoggedIn = true;
+    session.onboarded = user.onboarded;
     await session.save();
 
-    const response = NextResponse.redirect(new URL("/hoje", request.url));
+    const redirectTo = user.onboarded ? "/hoje" : "/onboarding";
+    const response = NextResponse.redirect(new URL(redirectTo, request.url));
     response.cookies.delete("google-login-state");
     return response;
   } catch (err) {

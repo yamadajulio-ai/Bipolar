@@ -14,6 +14,7 @@ model User {
   authProvider     String             @default("email")
   googleSub        String?            @unique
   name             String?
+  onboarded        Boolean            @default(false)
   createdAt        DateTime           @default(now())
   entries          DiaryEntry[]
   views            ContentView[]

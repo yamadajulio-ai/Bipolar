@@ -39,13 +39,14 @@ function LoginForm() {
         body: JSON.stringify(data),
       });
 
+      const body = await res.json();
+
       if (!res.ok) {
-        const body = await res.json();
         setError(body.error || "Erro ao fazer login.");
         return;
       }
 
-      router.push("/app");
+      router.push(body.onboarded === false ? "/onboarding" : "/hoje");
       router.refresh();
     } catch {
       setError("Erro de conexão. Tente novamente.");

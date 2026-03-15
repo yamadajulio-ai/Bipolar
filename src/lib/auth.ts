@@ -6,6 +6,7 @@ export interface SessionData {
   userId: string;
   email: string;
   isLoggedIn: boolean;
+  onboarded?: boolean;
 }
 
 const sessionOptions = {

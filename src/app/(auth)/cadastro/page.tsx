@@ -55,7 +55,7 @@ export default function CadastroPage() {
         return;
       }
 
-      router.push("/app");
+      router.push("/onboarding");
       router.refresh();
     } catch {
       setError("Erro de conexão. Tente novamente.");

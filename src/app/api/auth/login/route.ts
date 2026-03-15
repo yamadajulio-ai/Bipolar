@@ -59,9 +59,10 @@ export async function POST(request: NextRequest) {
     session.userId = user.id;
     session.email = user.email;
     session.isLoggedIn = true;
+    session.onboarded = user.onboarded;
     await session.save();
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, onboarded: user.onboarded });
   } catch {
     return NextResponse.json(
       { error: "Erro interno do servidor." },

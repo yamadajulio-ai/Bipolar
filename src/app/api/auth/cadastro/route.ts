@@ -72,6 +72,7 @@ export async function POST(request: NextRequest) {
     session.userId = user.id;
     session.email = user.email;
     session.isLoggedIn = true;
+    session.onboarded = false;
     await session.save();
 
     return NextResponse.json({ success: true }, { status: 201 });

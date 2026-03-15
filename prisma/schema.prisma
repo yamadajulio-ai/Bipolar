@@ -39,6 +39,7 @@ model User {
   lifeChartEvents       LifeChartEvent[]
   functioningAssessments FunctioningAssessment[]
   cognitiveTests         CognitiveTest[]
+  pushSubscriptions      PushSubscription[]
 }
 
 model DiaryEntry {
@@ -469,6 +470,22 @@ model FunctioningAssessment {
   user        User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, date])
+  @@index([userId])
+}
+
+// ── Push Subscriptions (Web Push) ────────────────────────────────
+
+model PushSubscription {
+  id        String   @id @default(uuid())
+  userId    String
+  endpoint  String
+  p256dh    String   // Base64-encoded P-256 public key
+  auth      String   // Base64-encoded auth secret
+  createdAt DateTime @default(now())
+
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, endpoint])
   @@index([userId])
 }
 

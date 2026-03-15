@@ -193,3 +193,47 @@ function isCacheableApi(url) {
     (path) => url.pathname === path || url.pathname.startsWith(path + "/")
   );
 }
+
+// --- Web Push ---
+
+self.addEventListener("push", (event) => {
+  if (!event.data) return;
+
+  let payload;
+  try {
+    payload = event.data.json();
+  } catch {
+    payload = { title: "Suporte Bipolar", body: event.data.text() };
+  }
+
+  const title = payload.title || "Suporte Bipolar";
+  const options = {
+    body: payload.body || "",
+    icon: "/icon-192.png",
+    badge: "/favicon.png",
+    tag: payload.tag || "reminder",
+    data: { url: payload.url || "/hoje" },
+    vibrate: [100, 50, 100],
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+
+  const targetUrl = event.notification.data?.url || "/hoje";
+
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+      // Focus existing window if found
+      for (const client of clients) {
+        if (new URL(client.url).pathname === targetUrl && "focus" in client) {
+          return client.focus();
+        }
+      }
+      // Otherwise open new window
+      return self.clients.openWindow(targetUrl);
+    })
+  );
+});

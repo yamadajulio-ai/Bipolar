@@ -192,14 +192,74 @@ export function MonthlyReport({ data }: MonthlyReportProps) {
         </div>
       )}
 
-      {/* Print button (hidden in print) */}
-      <div className="text-center print:hidden">
+      {/* Topics for consultation */}
+      <div className="print:break-inside-avoid rounded-lg border-2 border-primary/30 bg-primary/5 p-4">
+        <h2 className="mb-2 font-semibold text-foreground">Tópicos para discutir com o profissional</h2>
+        <ul className="space-y-1 text-sm text-muted">
+          {stats.avgMood !== null && stats.avgMood <= 2 && (
+            <li>• Humor predominantemente baixo no mês (média {stats.avgMood}/5)</li>
+          )}
+          {stats.avgMood !== null && stats.avgMood >= 4 && (
+            <li>• Humor predominantemente elevado no mês (média {stats.avgMood}/5)</li>
+          )}
+          {stats.avgSleep !== null && stats.avgSleep < 6 && (
+            <li>• Sono abaixo de 6h em média — possível privação</li>
+          )}
+          {stats.avgSleep !== null && stats.avgSleep > 10 && (
+            <li>• Sono acima de 10h em média — possível hipersonia</li>
+          )}
+          {stats.avgPhq9 !== undefined && stats.avgPhq9 !== null && stats.avgPhq9 >= 10 && (
+            <li>• PHQ-9 médio ≥ 10 — sintomas depressivos moderados a graves</li>
+          )}
+          {stats.avgAsrm !== undefined && stats.avgAsrm !== null && stats.avgAsrm >= 6 && (
+            <li>• ASRM médio ≥ 6 — possíveis sintomas maníacos/hipomaníacos</li>
+          )}
+          {stats.medicationAdherence !== null && stats.medicationAdherence < 70 && (
+            <li>• Adesão à medicação abaixo de 70% — discutir barreiras</li>
+          )}
+          {topWarnings.length > 0 && (
+            <li>• Sinais de alerta recorrentes: {topWarnings.slice(0, 3).map(([key]) => {
+              const sign = WARNING_SIGNS.find((s) => s.key === key);
+              return sign?.label || key;
+            }).join(", ")}</li>
+          )}
+          {data.lifeChartEvents && data.lifeChartEvents.length > 0 && (
+            <li>• {data.lifeChartEvents.length} evento(s) significativo(s) no período</li>
+          )}
+          {stats.totalDiaryEntries === 0 && (
+            <li>• Nenhum registro de humor no mês — discutir motivação/barreiras</li>
+          )}
+          {stats.avgMood !== null && stats.avgMood > 2 && stats.avgMood < 4 && stats.totalDiaryEntries >= 7 && (
+            <li>• Humor estável dentro da faixa de eutimia — manter acompanhamento</li>
+          )}
+        </ul>
+        <p className="mt-3 text-[10px] text-muted italic">
+          Estes tópicos são gerados automaticamente com base nos seus dados e têm caráter
+          sugestivo. A interpretação clínica deve ser feita pelo profissional.
+        </p>
+      </div>
+
+      {/* Print / Share buttons */}
+      <div className="flex gap-3 justify-center print:hidden">
         <button
           onClick={() => window.print()}
           className="rounded-lg bg-primary px-6 py-2 font-medium text-white hover:bg-primary-dark"
         >
-          Imprimir / Salvar PDF
+          Salvar como PDF
         </button>
+        {typeof navigator !== "undefined" && "share" in navigator && (
+          <button
+            onClick={() => {
+              navigator.share?.({
+                title: `Relatório Mensal — ${data.month}`,
+                text: `Relatório de acompanhamento bipolar — ${new Date(data.month + "-15").toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}`,
+              }).catch(() => {});
+            }}
+            className="rounded-lg border border-border px-6 py-2 text-sm text-muted hover:border-primary/50"
+          >
+            Compartilhar
+          </button>
+        )}
       </div>
     </div>
   );

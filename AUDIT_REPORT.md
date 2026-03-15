@@ -1,20 +1,27 @@
-# Rede Bipolar — Relatório Completo para Auditoria
+# Suporte Bipolar — Relatório Completo para Auditoria GPT PRO
+
+> Atualizado em: 15/03/2026
+> Domínio: https://suportebipolar.com (produção) | https://redebipolar.com (legacy)
+
+---
 
 ## 1. Visão Geral
 
-**Nome:** Rede Bipolar
-**URL:** https://bipolar-yamadajulio-ais-projects.vercel.app (Vercel)
+**Nome:** Suporte Bipolar (rebrand de "Rede Bipolar" em 13/03/2026)
+**URL Produção:** https://suportebipolar.com
+**URL Legacy:** https://redebipolar.com
 **Repositório:** github.com/yamadajulio-ai/Bipolar
 **Público-alvo:** Brasileiros com transtorno bipolar (mobile-first, iPhone)
 **Idioma:** pt-BR
 **Princípios:** IPSRT, PROMAN/USP, linguagem clínica cuidadosa
+**Budget:** $10.000 USD — prioridade máxima em qualidade
 
 ## 2. Stack Técnica
 
 | Tecnologia | Versão |
 |-----------|--------|
-| Next.js | 16.1.6 (App Router, Server Components) |
-| React | 19.2.3 |
+| Next.js | 15 (App Router, Server Components) |
+| React | 19 |
 | TypeScript | ^5 |
 | Tailwind CSS | ^4 |
 | Prisma + PostgreSQL | Neon (^6.19.2) |
@@ -25,6 +32,7 @@
 | Zod | ^4.3.6 |
 | Vitest | ^4.0.18 (101 testes) |
 | Deploy | Vercel (auto-deploy on push to main) |
+| DNS/CDN | Cloudflare (proxy OFF, DNS only) |
 | Package Manager | pnpm |
 
 ## 3. Paleta de Cores (CSS Variables)
@@ -45,15 +53,13 @@
 --info: #527a6e;          /* teal info */
 ```
 
-Inspiração visual: vitorcavenaghi.com.br (estética healthcare teal/forest green)
-
-## 4. Estrutura de Páginas (50 páginas)
+## 4. Estrutura de Páginas (46 rotas)
 
 ### Páginas Públicas (4)
 | Rota | Descrição |
 |------|-----------|
 | `/` | Landing page com hero, features e CTAs |
-| `/escolher-visual` | Seletor de tema visual (4 opções) |
+| `/escolher-visual` | Seletor de tema visual |
 | `/termos` | Termos de uso |
 | `/privacidade` | Política de privacidade (LGPD) |
 
@@ -66,19 +72,20 @@ Inspiração visual: vitorcavenaghi.com.br (estética healthcare teal/forest gre
 ### Dashboard & Navegação (3)
 | Rota | Descrição |
 |------|-----------|
-| `/hoje` | Dashboard principal — status do dia, alertas contextuais, streak, gráfico 7d |
-| `/mais` | Hub de navegação com todas as seções |
+| `/hoje` | Dashboard: status do dia, ações rápidas (check-in/sono), resumo (humor/energia/medicação/streak), dados do corpo (passos/HRV/FC 7d), próximas atividades, alertas contextuais, notícias (PubMed + Google News), gráfico 7d, card integrações pendentes |
+| `/mais` | Hub de navegação — 5 seções: Registros, Avaliações, Bem-estar, Aprendizado, Configurações |
 | `/offline` | Fallback offline com CVV 188 |
 
-### Registros Diários (6)
+### Registros Diários (7)
 | Rota | Descrição |
 |------|-----------|
-| `/checkin` | Check-in rápido (humor 1-5, energia, ansiedade, sono, medicação, sinais de alerta) |
+| `/checkin` | Check-in rápido (humor 1-5, energia, ansiedade, irritabilidade, sono, medicação "Já tomei"/"Não tomei"/"Ainda não", 15 sinais de alerta ISBD/STEP-BD) |
 | `/diario` | Histórico do diário de humor |
 | `/diario/novo` | Novo registro de diário |
 | `/sono` | Histórico de sono |
-| `/sono/novo` | Novo registro de sono (hora dormir/acordar, qualidade, rotina) |
-| `/rotina/novo` | Registro de âncoras IPSRT (acordar, 1o contato, atividade, jantar, dormir) |
+| `/sono/novo` | Novo registro de sono (hora dormir/acordar, qualidade 0-100, rotina pré-sono) |
+| `/rotina` | Histórico de âncoras diárias |
+| `/rotina/novo` | Registro de âncoras IPSRT (acordar, 1º contato, atividade principal, jantar, dormir) |
 
 ### Tendências & Insights (6)
 | Rota | Descrição |
@@ -86,37 +93,37 @@ Inspiração visual: vitorcavenaghi.com.br (estética healthcare teal/forest gre
 | `/diario/tendencias` | Gráficos de humor/sono, distribuição, alertas |
 | `/sono/tendencias` | Análise de sono (média, qualidade, variância) |
 | `/rotina/tendencias` | Regularidade de ritmo (SRM-like) |
-| `/insights` | Painel completo: Termômetro Humor (M/D dual-score EWMA), Social Jet Lag, SRM Window Score, Ciclagem Rápida (DSM-5), Predição de Episódio, Heatmap 90d, 15 Warning Signs ISBD/STEP-BD |
+| `/insights` | **Painel principal:** Termômetro Humor (M/D dual-score EWMA), Social Jet Lag, SRM Window Score, Ciclagem Rápida (DSM-5), Predição de Episódio, Heatmap 90d, Warning Signs, Histórico de sono (7/15/30/90 noites) com exclusão de registros incompletos |
 | `/circadiano` | Análise circadiana (cronótipo, midpoint, dark therapy) |
 | `/cognitivo` | Microtarefas cognitivas (tempo de reação, digit span) |
 
-### Avaliações Clínicas (3)
+### Avaliações Clínicas (4)
 | Rota | Descrição |
 |------|-----------|
-| `/avaliacao-semanal` | Wizard 4 steps: ASRM (5 items) + PHQ-9 (9 items, safety flow item 9) + FAST short (6 domínios) |
-| `/life-chart` | Eventos significativos NIMH (7 tipos: medicação, estressor, viagem, hospitalização, terapia, menstrual, outro) |
-| `/relatorio` | Relatório mensal com ASRM/PHQ-9/FAST + eventos + tendências |
+| `/avaliacao-semanal` | Wizard 4 steps: ASRM (5 items, 0-4) + PHQ-9 (9 items, item 9 safety flow) + FAST short (6 domínios) |
+| `/life-chart` | Eventos significativos NIMH (7 tipos: med_change, stressor, travel, hospitalization, therapy, menstrual, other) |
+| `/funcionamento` | FAST short (6 domínios, 1-5) |
+| `/relatorio` | Relatório mensal: ASRM/PHQ-9/FAST médias + eventos significativos + tendências |
 
 ### Bem-estar (4)
 | Rota | Descrição |
 |------|-----------|
-| `/exercicios` | Lista de exercícios de respiração e aterramento |
-| `/exercicios/respiracao/[tipo]` | Timer de respiração guiada (4-7-8, box, etc.) |
-| `/exercicios/aterramento/[tipo]` | Aterramento guiado (5 sentidos, body scan) |
-| `/sons` | Player de sons ambiente (white/pink/brown noise, chuva) |
+| `/exercicios` | Lista de exercícios |
+| `/exercicios/respiracao/[tipo]` | Respiração guiada (4-7-8, box, diafragmática) |
+| `/exercicios/aterramento/[tipo]` | Aterramento guiado (5 sentidos, body scan muscular) |
+| `/sons` | Player de sons ambiente |
 
 ### Emergência (3)
 | Rota | Descrição |
 |------|-----------|
-| `/sos` | SOS: respiração rápida, grounding guiado, contatos de crise, logging |
+| `/sos` | SOS: respiração rápida, grounding guiado, contatos de crise, CVV 188/192, logging de ações |
 | `/plano-de-crise` | Visualizar plano de crise |
-| `/plano-de-crise/editar` | Editar plano de crise |
+| `/plano-de-crise/editar` | Editar plano de crise (contatos, medicações, hospital, coping) |
 
-### Planejamento (2)
+### Planejamento (1)
 | Rota | Descrição |
 |------|-----------|
-| `/planejador` | Planejador semanal com Google Calendar + IPSRT |
-| `/rotina` | Histórico de âncoras diárias |
+| `/planejador` | Calendário semanal IPSRT: blocos ANCHOR/FLEX/RISK, energia (0-10), estimulação (LOW/MED/HIGH), recorrência, exceções, sync Google Calendar bidirecional |
 
 ### Educação (5)
 | Rota | Descrição |
@@ -127,223 +134,380 @@ Inspiração visual: vitorcavenaghi.com.br (estética healthcare teal/forest gre
 | `/cursos/[cursoSlug]` | Overview do curso |
 | `/cursos/[cursoSlug]/[aulaSlug]` | Aula individual |
 
-### Configurações & Perfil (8)
+### Financeiro (1)
 | Rota | Descrição |
 |------|-----------|
-| `/conta` | Conta (LGPD: export, deletar) |
-| `/conta/lembretes` | Lembretes (acordar, sono, diário, respiração) |
-| `/perfil` | Perfil socioeconômico (5 perguntas, recomendações CAPS/SUS/CRAS) |
-| `/integracoes` | Google Calendar + Health Auto Export (Apple Health) |
-| `/acesso-profissional` | Acesso profissional (token + PIN bcrypt) |
-| `/financeiro` | Financeiro (CSV import, categorias, correlação humor-gasto) |
-| `/noticias` | Feed de notícias científicas |
-| `/familias` | Guia para famílias |
+| `/financeiro` | Tracking financeiro: manual + import Mobills CSV/XLSX, categorias fixed/variable, anomalias (spending_spike, frequency_spike, sustained_increase), correlação humor-gasto Spearman, transações noturnas, 12 meses histórico, feedback de alertas |
 
-### Acesso Profissional (1)
+### Configurações & Perfil (6)
 | Rota | Descrição |
 |------|-----------|
-| `/profissional/[token]` | Dashboard read-only para profissional (dados brutos + insights + SOS + assessments + life chart) |
+| `/conta` | Conta (LGPD: export JSON, deletar conta) |
+| `/conta/lembretes` | Lembretes configuráveis (acordar, sono, diário, respiração) |
+| `/perfil` | Perfil socioeconômico (5 perguntas → recomendações CAPS/SUS/CRAS) |
+| `/integracoes` | Google Calendar + Apple Health (HAE) + Mobills |
+| `/acesso-profissional` | Gerar/revogar token+PIN para profissional |
+| `/noticias` | Feed de notícias científicas (PubMed + Google News) |
 
-## 5. APIs (45 endpoints)
+### Outras (3)
+| Rota | Descrição |
+|------|-----------|
+| `/familias` | Guia para famílias/cuidadores |
+| `/como-usar` | Tutorial de uso |
+| `/profissional/[token]` | Dashboard read-only para profissional (dados brutos + insights + SOS + weekly assessments + life chart + functioning) |
 
-### Autenticação
+## 5. APIs (50+ endpoints)
+
+### Autenticação (10)
 - `POST /api/auth/login` — Login com rate limiting
 - `POST /api/auth/cadastro` — Registro com age gate + consent
 - `POST /api/auth/logout` — Logout + session destroy
-- `GET /api/auth/google` — OAuth Google Calendar
-- `GET /api/auth/google/callback` — Callback Google Calendar
-- `GET /api/auth/google-login` — Login via Google
+- `POST /api/auth/google-login` — Login via Google
 - `GET /api/auth/google-login/callback` — Callback login Google
-- `DELETE /api/auth/google/disconnect` — Desconectar Google
+- `POST /api/auth/google/route` — Refresh token Google
+- `GET /api/auth/google/callback` — Callback Google Calendar OAuth
+- `POST /api/auth/google/disconnect` — Desconectar Google
 - `GET /api/auth/export` — Export LGPD (JSON completo)
-- `POST /api/auth/excluir-conta` — Deletar conta (cascade)
+- `POST /api/auth/excluir-conta` — Deletar conta (cascade + session destroy)
 
-### Dados de Saúde
+### Dados de Saúde (14)
 - `GET/POST /api/diario` — CRUD diário de humor
-- `GET /api/diario/tendencias` — Tendências do diário
-- `GET/POST /api/sono` — CRUD sono
-- `GET /api/sono/tendencias` — Tendências de sono
-- `GET/POST/PUT /api/rotina` — Ritmo circadiano
-- `GET /api/rotina/tendencias` — Regularidade de ritmo
-- `GET/POST /api/sos` — Eventos SOS
-- `GET/POST/PUT /api/avaliacao-semanal` — ASRM + PHQ-9 + FAST
-- `GET/POST/PUT/DELETE /api/life-chart` — Life Chart events
-- `GET/POST/PUT /api/funcionamento` — FAST (6 domínios)
+- `GET/POST /api/diario/tendencias` — Tendências do diário
+- `GET/POST /api/sono` — CRUD sono (suporta ?days=N, default 90)
+- `PATCH /api/sono/excluir` — Toggle excluded flag em SleepLog
+- `GET/POST /api/sono/tendencias` — Tendências de sono
+- `GET/POST /api/rotina` — Ritmo circadiano
+- `GET/POST /api/rotina/tendencias` — Regularidade de ritmo
+- `POST /api/sos` — Eventos SOS (opened, called_188, called_192, called_contact, breathing, grounding)
+- `GET/POST /api/avaliacao-semanal` — ASRM + PHQ-9 + FAST
+- `GET/POST /api/life-chart` — Life Chart events
+- `DELETE /api/life-chart/[id]` — Deletar evento
+- `GET/POST /api/funcionamento` — FAST (6 domínios)
+- `POST /api/exercicios` — Log sessão exercício
 
-### Planejamento
-- `GET/POST /api/planner/blocks` — Blocos do planejador
-- `GET/PUT/DELETE /api/planner/blocks/[id]` — CRUD bloco específico
-- `POST/GET /api/planner/blocks/[id]/exceptions` — Exceções recorrência
-- `GET/POST/PUT /api/planner/rules` — Regras IPSRT
+### Planejamento (6)
+- `GET/POST /api/planner/blocks` — Blocos do planejador (com expansão recorrência)
+- `GET/PATCH/DELETE /api/planner/blocks/[id]` — CRUD bloco
+- `POST/GET/PATCH/DELETE /api/planner/blocks/[id]/exceptions` — Exceções recorrência
+- `GET/POST /api/planner/rules` — Regras IPSRT
 
-### Integrações
-- `GET/POST /api/google/sync` — Sync Google Calendar
-- `GET/POST /api/integrations/health-export` — Webhook HAE
+### Integrações (6)
+- `POST/GET /api/google/sync` — Sync Google Calendar (incremental syncToken + full ?full=1)
+- `POST /api/integrations/health-export` — Webhook HAE (Apple Health via Cloudflare Worker)
 - `POST /api/integrations/health-export/import` — Import manual
 - `GET /api/integrations/health-export/status` — Status importações
 - `GET/POST /api/integrations/settings` — Config integrações
 
-### Outros
-- `GET/POST/PUT /api/lembretes` — Lembretes
-- `GET/POST /api/exercicios` — Sessões de exercício
-- `GET/POST/PUT /api/plano-de-crise` — Plano de crise
-- `GET/POST /api/cursos/progresso` — Progresso de cursos
+### Financeiro (7)
+- `GET/POST /api/financeiro` — Transações
+- `GET/PATCH/DELETE /api/financeiro/[id]` — CRUD transação
+- `GET /api/financeiro/resumo` — Analytics (median+MAD, anomalias, correlação humor-gasto Spearman, sustained increase)
+- `GET /api/financeiro/range` — Range por data
+- `GET /api/financeiro/historico` — 12 meses
+- `POST /api/financeiro/import` — Bulk import CSV/XLSX (batch 50)
+- `POST /api/financeiro/feedback` — Feedback de alertas (idempotente)
+
+### Outros (7+)
+- `GET/POST /api/lembretes` — Lembretes
+- `GET/POST /api/plano-de-crise` — Plano de crise
 - `GET /api/cursos/aula` — Conteúdo de aula
-- `GET/POST/PUT /api/perfil-socioeconomico` — Perfil socioeconômico
-- `GET/POST /api/acesso-profissional` — Criar acesso profissional
-- `POST /api/acesso-profissional/[token]` — Validar PIN profissional
-- `GET/POST /api/financeiro` — Transações financeiras
-- `DELETE /api/financeiro/[id]` — Deletar transação
-- `POST /api/financeiro/import` — Import CSV/XLSX
-- `GET /api/financeiro/resumo` — Resumo financeiro
-- `GET /api/noticias` — Notícias científicas
+- `POST /api/cursos/progresso` — Progresso de cursos
+- `GET/POST /api/perfil-socioeconomico` — Perfil socioeconômico
+- `POST /api/acesso-profissional` — Gerar acesso profissional
+- `GET /api/acesso-profissional/[token]` — Dados do paciente (read-only)
+- `DELETE /api/acesso-profissional/[token]` — Revogar acesso
+- `GET /api/noticias` — Notícias (PubMed + Google News)
 - `GET /api/insights-summary` — Resumo para dashboard
 - `GET /api/relatorio` — Relatório mensal
-- `GET /api/cron/purge-access-logs` — Purge LGPD (90d, Vercel Cron)
+- `POST /api/cron/purge-access-logs` — Purge LGPD (90d, Vercel Cron 03:00 UTC)
 
-## 6. Banco de Dados (25 modelos Prisma)
+## 6. Banco de Dados (21 modelos Prisma)
 
 | Modelo | Propósito |
 |--------|-----------|
-| User | Usuários (email, senha, Google OAuth) |
-| DiaryEntry | Diário de humor (mood 1-5, energia, ansiedade, medicação, sinais de alerta) |
-| SleepLog | Registros de sono (hora, qualidade 0-100, HRV, rotina pré-sono) |
-| DailyRhythm | Âncoras IPSRT (5 âncoras diárias) |
+| User | Usuários (email, senha, Google OAuth, googleSub) |
+| DiaryEntry | Diário de humor (mood 1-5, energia 1-5, ansiedade 1-5, irritability 1-5, medicação, sinais de alerta JSON, note) |
+| SleepLog | Registros de sono (date, bedtime/wakeTime HH:MM, totalHours, quality 0-100, awakenings, hrv ms, heartRate bpm, **excluded bool**, preRoutine JSON, notes) |
+| DailyRhythm | Âncoras IPSRT (5 âncoras diárias: wakeTime, firstContact, mainActivityStart, dinnerTime, bedtime) |
 | ExerciseSession | Sessões de exercício (tipo, duração) |
-| CrisisPlan | Plano de crise (contatos, medicações, coping) |
-| PlannerBlock | Blocos do planejador (título, categoria, energia, Google Event) |
-| PlannerRecurrence | Recorrência de blocos (freq, dias, até) |
-| PlannerException | Exceções de recorrência |
-| StabilityRule | Regras IPSRT (horários alvo, buffer, cutoff) |
-| GoogleAccount | Tokens Google (AES-256-GCM encrypted) |
-| IntegrationKey | Chaves de API (HAE) |
-| HealthMetric | Métricas de saúde importadas |
-| NewsArticle | Artigos de notícias |
-| RateLimit | Rate limiting (atômico via $transaction) |
-| ProfessionalAccess | Acesso profissional (token, PIN bcrypt, LGPD consent) |
-| AccessLog | Log de acessos profissionais |
-| SocioeconomicProfile | Perfil socioeconômico (5 campos) |
-| SOSEvent | Eventos SOS (action, timestamp) |
-| FinancialTransaction | Transações financeiras (CSV import) |
-| Consent | Consentimentos LGPD (scope, data) |
-| WeeklyAssessment | Avaliação semanal (ASRM, PHQ-9, FAST) |
-| LifeChartEvent | Eventos Life Chart NIMH (7 tipos) |
-| FunctioningAssessment | FAST short (6 domínios, 1-5) |
-| ReminderSettings | Configurações de lembretes |
-| ContentView | Views de conteúdo educacional |
-| CourseProgress | Progresso de cursos |
+| CrisisPlan | Plano de crise (trustedContacts JSON, professionalName/Phone, medications JSON, preferredHospital, copingStrategies JSON) |
+| PlannerBlock | Blocos do planejador (title, category 8 tipos, kind ANCHOR/FLEX/RISK, energyCost 0-10, stimulation LOW/MED/HIGH, googleEventId, googleColor, sourceType app/google) |
+| PlannerRecurrence | Recorrência (freq NONE/DAILY/WEEKLY, interval, weekDays, until) |
+| PlannerException | Exceções de recorrência (isCancelled, overrides) |
+| StabilityRule | Regras IPSRT (lateEventCutoffMin, windDownMin, minBufferBeforeSleep, maxLateNightsPerWeek, targetSleepTimeMin, targetWakeTimeMin) |
+| GoogleAccount | Tokens Google (AES-256-GCM encrypted, syncToken, lastSyncAt) |
+| IntegrationKey | Chaves HAE (apiKey unique, lastPayloadDebug) |
+| HealthMetric | Métricas importadas (steps, active_calories, blood_oxygen) |
+| NewsArticle | Cache de notícias (PubMed, Google News) |
+| RateLimit | Rate limiting atômico ($transaction) |
+| ProfessionalAccess | Acesso profissional (token unique, pinHash bcrypt, failedPinAttempts, lockedUntil, shareSosEvents) |
+| AccessLog | Audit trail profissional (pin_validated, data_viewed, pin_failed, locked) |
+| SocioeconomicProfile | Perfil socioeconômico (careAccess, medicationSource, consultFrequency, hasEmergencyContact, livingSituation) |
+| SOSEvent | Eventos SOS (action: opened/called_188/called_192/called_contact/breathing/grounding) |
+| FinancialTransaction | Transações (amount, category, account, occurredAt DateTime, source manual/mobills_csv) |
+| AlertFeedback | Feedback alertas financeiros (@@unique userId+alertType+alertDate) |
+| Consent | LGPD (scope: health_data/terms_of_use, ipAddress masked) |
+| WeeklyAssessment | ASRM (5 items, total 0-20) + PHQ-9 (9 items, total 0-27, item9 separado) + FAST short (6 domains, avg) |
+| LifeChartEvent | NIMH Life Chart (7 tipos: med_change, stressor, travel, hospitalization, therapy, menstrual, other) |
+| FunctioningAssessment | FAST short (work, social, selfcare, finances, cognition, leisure, 1-5 each) |
+| ReminderSettings | Lembretes (wakeReminder, sleepReminder, diaryReminder, breathingReminder HH:MM, enabled) |
+| ContentView | Views de conteúdo (slug, viewedAt) |
+| CourseProgress | Progresso de cursos (courseSlug, lessonSlug, completedAt) |
 
-## 7. Componentes (58 componentes em 57 arquivos)
+## 7. Componentes (56+ componentes)
 
-### Core UI (19)
-Card, FormField, Alert, ScaleSelector, Header, Footer, BottomNav, Greeting, ServiceWorkerRegister, InstallBanner, SOSButton, WarningSignsChecklist, SleepRoutineChecklist, AlertasPadrao, RegularityMeter, CrisisPlanForm, CrisisPlanCard, RhythmForm, ReminderManager
+### Core UI
+Card, FormField, Alert, ScaleSelector, Header, Footer, BottomNav, Greeting, ServiceWorkerRegister, InstallBanner, DeleteAccountButton
 
-### Dashboard (5)
+### Dashboard
 TodayStatus, QuickActions, ContextualSuggestions, DashboardChartWrapper, MiniTrendChart
 
-### Gráficos (5)
-PeriodSelector, RhythmChart, SleepChart, MoodDistribution, MoodSleepChart
+### Gráficos
+PeriodSelector, RhythmChart, SleepChart, MoodDistribution, MoodSleepChart, FinanceCharts (CategoryChart, MoodSpendingChart, YearlyComparisonChart)
 
-### Insights (9)
-NightHistorySelector, MetricLabel, SafetyNudge, Sparkline, MoodThermometer, EpisodePrediction, InfoTooltip, CalendarHeatmap, CyclingAnalysis
+### Insights (Motor Analítico)
+NightHistorySelector, SleepHistoryCard, MetricLabel, SafetyNudge, Sparkline, MoodThermometer, EpisodePrediction, InfoTooltip, CalendarHeatmap, CyclingAnalysis
 
-### Exercícios (4)
-BreathingTimer, ProgressSteps, GroundingGuide, BreathingCircle
+### Exercícios & SOS
+BreathingTimer, BreathingCircle, ProgressSteps, GroundingGuide, QuickBreathing
 
-### Relatório (2)
-MonthSelector, MonthlyReport
+### Planejador
+TodayBlocks, WeeklyView, InsightsCharts, GoogleCalendarSync
 
-### Outros (14)
-SoundPlayer, ImportCSV, TransactionList, CategoryChart, MoodSpendingChart, NewsFeed, GoogleCalendarSync, TodayBlocks, WeeklyView, InsightsCharts, QuickBreathing, DeleteAccountButton
+### Relatório & Outros
+MonthSelector, MonthlyReport, SoundPlayer, ImportCSV, TransactionList, NewsFeed, RhythmForm, SleepRoutineChecklist, WarningSignsChecklist, CrisisPlanForm, CrisisPlanCard, ReminderManager, RegularityMeter
 
-## 8. Segurança & LGPD
+## 8. Motor de Insights (computeInsights.ts ~1800 linhas, 40 testes)
 
-### Implementado
-- **Autenticação:** iron-session + bcryptjs + Google OAuth
-- **CSRF:** Sec-Fetch-Site + Origin no middleware (exceções: cron, integrations, profissional)
-- **Rate Limiting:** Atômico via Prisma $transaction
-- **LGPD — Consentimento:** Modelo Consent (health_data, terms_of_use), age gate 18+
-- **LGPD — Export:** GET /api/auth/export (JSON completo)
-- **LGPD — Exclusão:** DELETE cascade + session destroy
-- **LGPD — IP Masking:** IPv4 /24 + IPv6 /64 via maskIp()
-- **LGPD — Purge:** Cron 90d access logs (fail-closed)
-- **Google Tokens:** AES-256-GCM encryption
-- **Profissional:** PIN bcrypt, token expiration, failed attempts lock, LGPD consent
+Features calculadas server-side:
+- **Termômetro de Humor:** Dual-score M/D (0-100), EWMA α=0.4, 5 zonas (depressão severa/leve/eutimia/hipomania/mania), flag misto (forte/provável), instabilidade, ansiedade como sinal de distress
+- **Social Jet Lag:** Weekday vs weekend sleep midpoint difference (threshold 83min)
+- **SRM Window Score:** ±45min regularity (inspirado no Social Rhythm Metric)
+- **Ciclagem Rápida:** Detecção DSM-5 (≥4 episódios/ano)
+- **Predição de Episódio:** Risk scoring mania/depressão (0-100) com sinais, clamped defensivo
+- **Heatmap 90d:** Humor, sono, energia com cores contextuais, keyboard nav, timezone-safe
+- **15 Warning Signs:** ISBD/STEP-BD (currentStreak para ativos, longestStreak para histórico)
+- **Correlações:** Spearman (Pearson on ranks, correto com empates), strength labels
+- **Data Confidence:** Badges baseados em quantidade de dados
+- **Circadian Analysis:** Chronotype estimation (regex + bounds check)
+- **Medication Response Rate:** Denominador = 30 dias
+- **Normalize Bedtime:** Cutoff 720min (12:00)
 
-### Sentry (Error Tracking)
-- PII scrubbing: URLs, span data, breadcrumbs
+## 9. Segurança & LGPD
+
+### Autenticação & Defesa
+- iron-session + bcryptjs + Google OAuth
+- CSRF: Sec-Fetch-Site + Origin no middleware (exceções: cron, integrations, profissional)
+- Rate Limiting: Atômico via Prisma $transaction
+- Google Tokens: AES-256-GCM encryption (src/lib/crypto.ts)
+- PIN profissional: bcrypt hash, failed attempts lock, token expiry
+
+### LGPD Compliance
+- **Consentimento:** Modelo Consent (health_data, terms_of_use), age gate 18+, health consent checkbox no cadastro
+- **Export:** GET /api/auth/export (JSON completo de todos os dados)
+- **Exclusão:** DELETE cascade + session destroy, DeleteAccountButton com confirmação + cache purge
+- **IP Masking:** IPv4 /24 + IPv6 /64 + fallback [masked] via maskIp()
+- **Purge:** Cron 90d access logs (fail-closed: !process.env.CRON_SECRET), resposta genérica { ok: true }
+
+### Sentry Error Tracking
+- PII scrubbing: scrubUrl(), scrubSpanData(), beforeBreadcrumb em 3 configs
 - Header whitelist: content-type, user-agent, accept only
 - Request body/query/cookies: filtered
 - Error boundaries: error.tsx, global-error.tsx
 
-## 9. PWA
+## 10. PWA
 
 - Service Worker v2: 3 caches (static cache-first, API stale-while-revalidate 5min, offline pre-cache)
 - APIs cacheáveis: /api/diario, /api/sono, /api/rotina, /api/insights-summary, /api/lembretes
-- SW update toast: detecta nova versão e mostra banner
-- Manifest: icons (512, 192, maskable), shortcuts (Check-in, SOS)
-- InstallBanner: banner educacional iOS Safari
+- SW update toast: detecta nova versão → banner "Atualizar"
+- SW auto-purge on 401/403
+- Manifest: icons (512, 192, maskable separados), shortcuts (Check-in, SOS), categories, id
+- InstallBanner: banner educacional iOS Safari (após 2ª visita, dismissível 30d)
 - Offline page: SVG acessível, CVV 188
 
-## 10. Integrações
+## 11. Integrações
 
-| Integração | Status |
-|-----------|--------|
-| Google Calendar | Funcional (OAuth, sync, eventos no planejador) |
-| Apple Health (HAE) | Funcional (webhook + import manual via Health Auto Export) |
-| Mobills (Financeiro) | Import CSV/XLSX |
+| Integração | Status | Detalhes |
+|-----------|--------|----------|
+| Apple Health (HAE) | ✅ Funcional | Cloudflare Worker proxy → webhook Vercel, sleep stages (Core/Deep/REM/Awake), HR, HRV, steps, calories, blood_oxygen. Timezone-safe (America/Sao_Paulo). Night splitting (60min awake gap). Nap detection (<1h). Batch upserts ($transaction). maxDuration=60. |
+| Google Calendar | ✅ Funcional | OAuth, incremental sync (syncToken), full sync (?full=1), color mapping 1-24, auto-sync ao abrir + cada 5min |
+| Mobills (Financeiro) | ✅ Funcional | Import CSV/XLSX, batch 50, maxDuration=30 |
 
-## 11. Acessibilidade (A11y)
+## 12. Acessibilidade (A11y)
 
-- `:focus-visible` global
-- Skip-to-content link
-- ScaleSelector: `role="group"` + `aria-pressed`
-- `--muted` contraste AA (~5.2:1)
-- Header: `aria-expanded`, `aria-controls`, `aria-current="page"`
-- CalendarHeatmap: keyboard nav, aria-label legend
-- InfoTooltip: `role="tooltip"` + `aria-describedby` + hover support
-- SOS: `aria-live="assertive"`
-- BreathingCircle: `prefers-reduced-motion`
+- `:focus-visible` global em globals.css
+- Skip-to-content link no app layout (#main-content)
+- ScaleSelector: `role="group"` + `aria-labelledby` + `aria-pressed`
+- `--muted` contraste AA (~5.2:1 ratio)
+- Header: `aria-expanded`, `aria-controls`, `aria-label` nav landmarks, `aria-current="page"`
+- CalendarHeatmap: keyboard nav, aria-label legend descritivo
+- InfoTooltip: `role="tooltip"` + `aria-expanded` + `aria-describedby` com useId
+- SOS: `aria-live="assertive"` para mudanças de view
+- BreathingCircle: `prefers-reduced-motion` desativa animação
+- Avaliação semanal: progress bar `role="progressbar"` + aria-valuenow/label
+- Check-in: `htmlFor`/`id` inputs, medication `role="group"`, warning signs `aria-expanded`
+- Life Chart: `htmlFor`/`id` em 4 campos, event type `role="group"` + `aria-pressed`
+- Recharts financeiro: sr-only text + `role="img"` + `aria-label`
+- Alert ARIA: `role="status"` para info/warning, `role="alert"` para danger
 
-## 12. Testes
+## 13. Testes
 
 - Framework: Vitest 4.0.18
 - 101 testes em 5 arquivos
 - `computeInsights.test.ts`: 40 testes (sleep, mood, thermometer, risk, prediction, cycling, heatmap, rhythm, chart)
-
-## 13. Motor de Insights (computeInsights.ts ~1800 linhas)
-
-Features calculadas server-side:
-- **Termômetro de Humor:** Dual-score M/D (0-100), EWMA α=0.4, 5 zonas, flag misto (forte/provável), instabilidade
-- **Social Jet Lag:** Weekday vs weekend sleep midpoint difference
-- **SRM Window Score:** ±45min regularity (inspired by Social Rhythm Metric)
-- **Ciclagem Rápida:** Detecção DSM-5 (≥4 episódios/ano)
-- **Predição de Episódio:** Risk scoring mania/depressão com sinais e recomendações
-- **Heatmap 90d:** Humor, sono, energia com cores contextuais
-- **15 Warning Signs:** ISBD/STEP-BD baseados
-- **Correlações:** Spearman (ranks com empates)
-- **Data Confidence:** Badges baseados em quantidade de dados
+- `healthExport.test.ts`: Parser HAE
+- `expandRecurrence.test.ts`: Expansão de recorrência do planejador
+- `parseMobillsCsv.test.ts`: Parser CSV Mobills
+- `dateUtils.test.ts`: Utilidades de data
 
 ## 14. Navegação
 
-### Mobile (BottomNav — 5 tabs)
-Hoje | Check-in | Sono | Insights | Mais
+### Mobile (BottomNav — 5 tabs fixo no rodapé)
+Hoje | Check-in | Sono | Insights | Menu
 
-### Desktop (Header — 5 links + SOS + Sair)
-Hoje | Check-in | Sono | Insights | Mais | [SOS] | [Sair]
+### Desktop (Header — links + SOS + Sair)
+Hoje | Check-in | Sono | Insights | Mais | [SOS vermelho] | [Sair]
 
-### Página "Mais" (24 itens)
-Acesso a todas as features não presentes na nav principal.
+### Página "Mais" — 5 seções categorizadas
+- **Registros:** Diário, Rotina, Planejador, Life Chart, Financeiro
+- **Avaliações:** Avaliação Semanal, Funcionamento, Relatório Mensal
+- **Bem-estar:** Exercícios, Sons, SOS, Plano de Crise
+- **Aprendizado:** Conteúdos, Cursos, Notícias, Famílias, Como Usar
+- **Configurações:** Conta, Lembretes, Perfil, Integrações, Acesso Profissional
 
-## 15. Perguntas para o Auditor
+## 15. Dados de Sono — Regras de Negócio
 
-1. **Visual:** A paleta teal transmite confiança para saúde mental? A landing page converte? Mobile-first está bem executado?
-2. **UX:** A navegação (5 tabs + "Mais") é intuitiva? O dashboard (/hoje) tem informação suficiente sem sobrecarregar?
-3. **Features:** Alguma feature essencial está faltando para o público-alvo? Alguma feature atual é desnecessária?
-4. **Clínico:** Os instrumentos (ASRM, PHQ-9, FAST) estão bem integrados? O safety flow do PHQ-9 item 9 é adequado?
-5. **Integrações:** Vale investir em mais integrações (Fitbit, Samsung Health, Google Fit)?
-6. **Monetização:** O app está pronto para um modelo freemium? O que deveria ser premium?
-7. **Segurança:** A implementação LGPD cobre os requisitos legais brasileiros?
-8. **Performance:** Server Components estão sendo usados corretamente? Há oportunidades de otimização?
-9. **Acessibilidade:** Está em nível AA? O que falta para AAA?
-10. **Competitividade:** Como se compara a apps como Daylio, eMoods, Bearable?
+| Tipo | Critério | Métricas | Histórico | Visual |
+|------|----------|----------|-----------|--------|
+| Cochilo | < 1h | ❌ Excluído | ✅ Visível | Tag "cochilo" roxo |
+| Sono real | ≥ 1h | ✅ Incluído | ✅ Visível | Barra colorida por duração |
+| Incompleto? | 1h-4.5h | ✅ Incluído (até exclusão manual) | ✅ Visível | Tag "incompleto?" amarelo |
+| Excluído | `excluded: true` | ❌ Excluído | ✅ Visível (dimmed) | Tag "excluído" + botão toggle |
+
+- Toggle via `PATCH /api/sono/excluir` (SleepLog.excluded field)
+- Histórico configurável: 7, 15, 30 noites ou 3 meses (via `?noites=N`)
+- HAE: timezone-safe (America/Sao_Paulo), night splitting (gap 60min awake), multi-source dedup
+
+---
+
+## 16. ANÁLISE COMPETITIVA — Soma Psico (somapsico.com)
+
+### O que é o Soma Psico
+Plataforma de **gestão clínica para profissionais de saúde mental** (psicólogos, psiquiatras). App disponível iOS + Android. Rating 4.7/5 (33 avaliações na App Store). Free. Developer: Soma Technology LTDA.
+
+### Features do Soma Psico
+1. **Prontuário eletrônico** — Registro completo de pacientes
+2. **Anamnese** — Documentação de intake assessment
+3. **Agenda inteligente integrada ao WhatsApp** — Agendamento de sessões com notificação WhatsApp
+4. **Teleconsultas** — Videochamadas seguras com qualidade de vídeo
+5. **Gestão de documentos** — Gerenciamento de docs do paciente
+6. **Controle financeiro** — Gestão financeira para o profissional/clínica
+7. **Acesso para secretárias** — Multi-role (clínicas com secretária)
+8. **Análise de diários de humor com IA** — IA analisa diários de humor dos pacientes
+9. **LGPD compliant** — Acesso controlado, conformidade
+10. **Push notifications** — Notificações
+11. **Criptografia ponta-a-ponta** — End-to-end encryption
+12. **Tour/onboarding** — Onboarding guiado
+
+### Diferença Fundamental de Posicionamento
+
+| Aspecto | Suporte Bipolar | Soma Psico |
+|---------|----------------|------------|
+| **Público** | Paciente (auto-gestão) | Profissional (gestão clínica) |
+| **Foco** | Transtorno bipolar específico | Saúde mental geral |
+| **Modelo** | Self-tracking + insights | Prontuário + teleconsulta + agenda |
+| **Relação** | Paciente → Dados | Profissional → Pacientes |
+| **IA** | Motor de insights (EWMA, Spearman, DSM-5) | Análise de diários de humor |
+| **Integrações** | Apple Health, Google Calendar, Mobills | WhatsApp |
+| **Instrumentos** | ASRM, PHQ-9, FAST, NIMH Life Chart | Anamnese genérica |
+
+### Features que o Soma Psico TEM e nós NÃO TEMOS
+
+| Feature Soma | Equivalente nosso? | Gap real? |
+|-------------|-------------------|-----------|
+| Teleconsulta (videochamada) | ❌ Não temos | ⚠️ Possível — mas nosso foco é self-management, não consulta. O acesso profissional (token+PIN) já permite compartilhar dados com o psiquiatra. |
+| Agenda WhatsApp | ❌ Não temos | ⚠️ Lembretes por push/email, não WhatsApp. WhatsApp seria mais eficaz no Brasil. |
+| Prontuário eletrônico | ❌ Dashboard profissional é read-only | 🟡 Nosso dashboard profissional poderia evoluir para incluir anotações do profissional. |
+| Análise de humor com IA | 🟡 Parcial — motor de insights é baseado em estatística, não LLM | ⚠️ Gap: poderíamos usar LLM para gerar interpretações narrativas dos dados. |
+| E2E encryption | ❌ AES-256-GCM para tokens Google, mas não E2E para dados | 🟡 Dados em repouso no PostgreSQL. E2E seria overengineering para uma webapp. |
+| Multi-role (secretária) | ❌ N/A | ❌ Não aplicável — somos patient-facing |
+| Onboarding tour guiado | ❌ Temos /como-usar mas não tour interativo | ⚠️ Gap real — um onboarding step-by-step no primeiro login melhoraria retenção |
+
+### Features que NÓS TEMOS e o Soma Psico NÃO TEM
+
+| Feature nossa | Vantagem |
+|--------------|----------|
+| Termômetro de Humor (EWMA bipolar) | Motor analítico específico para bipolar com 5 zonas e detecção de estado misto |
+| Predição de Episódio | Risk scoring mania/depressão (0-100) com base em padrões |
+| Ciclagem Rápida DSM-5 | Detecção automática de padrão de ciclagem |
+| Social Jet Lag | Análise circadiana weekday vs weekend |
+| Integração Apple Health | Dados automáticos de sono, HR, HRV, passos |
+| ASRM + PHQ-9 + FAST | Instrumentos validados integrados com safety flow |
+| NIMH Life Chart | Eventos significativos com timeline |
+| SOS com logging | Sistema de emergência com grounding guiado |
+| Plano de Crise | Contatos, medicações, coping strategies |
+| Correlação humor-gastos | Spearman correlation com alertas financeiros |
+| Heatmap 90 dias | Visualização de padrões de longo prazo |
+| 15 Warning Signs | ISBD/STEP-BD prodrome detection |
+| PWA com offline | Funciona offline com CVV 188 acessível |
+| Perfil socioeconômico | Recomendações CAPS/SUS/CRAS automatizadas |
+
+## 17. GAP ANALYSIS — Features que AINDA NÃO TEMOS (priorizado)
+
+### P0 — Gaps Críticos (melhorariam muito o produto)
+
+1. **Lembretes via WhatsApp** — No Brasil, WhatsApp é mais eficaz que push notification. Integrar com WhatsApp Business API para lembretes de medicação, check-in, sono.
+
+2. **Onboarding tour interativo** — Primeiro login deveria guiar o usuário pelas features principais (check-in, sono, insights, SOS). Melhora retenção D1/D7.
+
+3. **IA narrativa para insights** — Usar LLM para gerar interpretação em linguagem natural dos dados (ex: "Nos últimos 7 dias seu sono ficou 2h abaixo da média e há correlação com queda de humor. Considere conversar com seu profissional."). Diferencial competitivo.
+
+4. **Resultados dos testes cognitivos** — A página `/cognitivo` existe mas não mostra resultados interpretados após completar o teste. Gap UX real.
+
+### P1 — Gaps Importantes
+
+5. **Notificações push nativas** — Web Push API para PWA. Atualmente lembretes existem mas não disparam push real.
+
+6. **Compartilhamento de relatório em PDF** — Gerar PDF do relatório mensal para levar na consulta psiquiátrica. Muito pedido por pacientes.
+
+7. **Gamificação leve** — Streaks visuais, conquistas por consistência (7 dias seguidos, 30 dias). Melhora adesão.
+
+8. **Suporte a múltiplos idiomas** — Expansão para espanhol (América Latina tem mercado similar).
+
+### P2 — Nice-to-have
+
+9. **Diário de voz** — Gravação de áudio rápida quando não quer digitar (transcrição via Whisper).
+10. **Widget iOS** — Widget de check-in rápido para home screen.
+11. **Export para profissional em formato FHIR/HL7** — Interoperabilidade com sistemas de prontuário.
+12. **Suporte a Apple Watch nativo** — Complication para check-in rápido.
+
+## 18. Brand & Identidade Visual
+
+- **Nome:** Suporte Bipolar
+- **Domínio:** suportebipolar.com
+- **Logo:** Cérebro com nós/dots + texto "SUPORTE BIPOLAR"
+- **Ícone:** Cérebro puro (sem texto) — icon-512, icon-192, apple-touch
+- **Favicon:** "SB" em fundo teal (icon.svg, favicon.ico, favicon.png)
+- **OG Image:** Logo + "Seu painel de estabilidade"
+- **Theme color:** #527a6e
+
+## 19. Infraestrutura
+
+- **Vercel:** Deploy automático on push to main, maxDuration 60s (Pro)
+- **Cloudflare:** DNS (proxy OFF para SSL Vercel), Worker hae-proxy
+- **Neon:** PostgreSQL serverless
+- **Sentry:** Error tracking com PII scrubbing
+- **GitHub:** Repositório privado
+
+## 20. Perguntas para o Auditor GPT PRO
+
+1. **Competitivo:** O Soma Psico é um concorrente direto ou complementar? Devemos investir em features para profissionais ou manter foco no paciente?
+2. **IA:** Vale implementar interpretação narrativa dos insights com LLM? Qual o risco de linguagem clínica inadequada?
+3. **WhatsApp:** Lembretes via WhatsApp Business API justificam o custo/complexidade vs push notifications?
+4. **Onboarding:** Qual formato de tour seria ideal para nosso público (bipolar, mobile-first)?
+5. **Monetização:** Com 46 páginas, 50+ APIs e 21 modelos, o app está pronto para freemium? O que deveria ser premium?
+6. **Cognitivo:** Os testes cognitivos (tempo de reação, digit span) precisam de resultados interpretados? Qual o risco de over-interpretation?
+7. **PDF:** Relatório em PDF para levar na consulta — é prioridade alta para o público-alvo?
+8. **Mobile:** Vale investir em app nativo (React Native) ou manter PWA?
+9. **Segurança:** A implementação LGPD cobre os requisitos legais? Precisa de DPO?
+10. **Escalabilidade:** A arquitetura (Next.js + Prisma + Neon) suporta crescimento para 10K+ usuários simultâneos?

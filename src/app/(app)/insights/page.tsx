@@ -14,6 +14,7 @@ import { EpisodePrediction } from "@/components/insights/EpisodePrediction";
 import { CyclingAnalysis } from "@/components/insights/CyclingAnalysis";
 import { CalendarHeatmap } from "@/components/insights/CalendarHeatmap";
 import { Sparkline } from "@/components/insights/Sparkline";
+import { NarrativeSection } from "@/components/insights/NarrativeSection";
 import Link from "next/link";
 import { Suspense } from "react";
 
@@ -236,6 +237,11 @@ export default async function InsightsPage({
           ))}
         </div>
       )}
+
+      {/* ── Resumo IA ───────────────────────────────────────────── */}
+      <div className="mb-6">
+        <NarrativeSection />
+      </div>
 
       {/* ── Seção 1: Seu Sono ───────────────────────────────────── */}
       <section className="mb-8">

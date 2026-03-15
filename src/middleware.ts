@@ -38,6 +38,9 @@ function checkCsrf(request: NextRequest): NextResponse | null {
   // Allow external integrations that authenticate via API key
   if (request.nextUrl.pathname.startsWith("/api/integrations")) return null;
 
+  // Allow WhatsApp webhook (Meta verifies via verify_token)
+  if (request.nextUrl.pathname.startsWith("/api/whatsapp/webhook")) return null;
+
   // Allow professional access (public endpoint, auth'd via token+PIN)
   if (request.nextUrl.pathname.startsWith("/api/acesso-profissional/") &&
       !request.nextUrl.pathname.endsWith("/acesso-profissional")) return null;

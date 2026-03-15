@@ -129,21 +129,33 @@ export default function SOSPage() {
 
         {/* Trusted contacts from crisis plan */}
         {contacts.map((c, i) => (
-          <a
-            key={i}
-            href={`tel:${c.phone}`}
-            onClick={() => logSOS("called_contact")}
-            aria-label={`Ligar para ${c.name}`}
-            className="block rounded-xl bg-amber-700 p-5 text-center no-underline transition-colors hover:bg-amber-600"
-          >
+          <div key={i} className="rounded-xl bg-amber-700 p-5 text-center">
             <span className="text-2xl font-bold text-white">{c.name}</span>
             <br />
             <span className="text-lg text-amber-100">{c.phone}</span>
             <br />
-            <span className="text-sm text-amber-200">
-              Contato de confiança
-            </span>
-          </a>
+            <span className="text-sm text-amber-200">Contato de confiança</span>
+            <div className="mt-3 flex gap-2 justify-center">
+              <a
+                href={`tel:${c.phone}`}
+                onClick={() => logSOS("called_contact")}
+                aria-label={`Ligar para ${c.name}`}
+                className="rounded-lg bg-white/20 px-4 py-2 text-sm font-medium text-white no-underline hover:bg-white/30"
+              >
+                Ligar
+              </a>
+              <a
+                href={`https://wa.me/${c.phone.replace(/\D/g, "")}?text=${encodeURIComponent("Preciso de ajuda. Estou em um momento difícil.")}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => logSOS("called_contact")}
+                aria-label={`Enviar WhatsApp para ${c.name}`}
+                className="rounded-lg bg-[#25D366]/80 px-4 py-2 text-sm font-medium text-white no-underline hover:bg-[#25D366]"
+              >
+                WhatsApp
+              </a>
+            </div>
+          </div>
         ))}
 
         {professionalPhone && (

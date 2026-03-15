@@ -6,6 +6,9 @@ import { Card } from "@/components/Card";
 import { Greeting } from "@/components/Greeting";
 import { ContextualSuggestions } from "@/components/dashboard/ContextualSuggestions";
 import { DashboardChartWrapper } from "@/components/dashboard/DashboardChartWrapper";
+import { StreakBadge } from "@/components/StreakBadge";
+import { AchievementGrid } from "@/components/AchievementGrid";
+import { computeCurrentStreak, computeLongestStreak, computeAchievements } from "@/lib/streaks";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -44,7 +47,7 @@ export default async function HojePage() {
   last7Days.setDate(last7Days.getDate() - 7);
   const cutoffStr = localDateStr(last7Days);
 
-  const [todayEntry, todaySleep, todayRhythm, recentEntries, lastEntry, streakDates, upcomingBlocks] = await Promise.all([
+  const [todayEntry, todaySleep, todayRhythm, recentEntries, lastEntry, streakDates, sleepStreakDates, upcomingBlocks] = await Promise.all([
     prisma.diaryEntry.findFirst({
       where: { userId: session.userId, date: today },
       select: { mood: true, sleepHours: true, energyLevel: true, tookMedication: true },
@@ -73,6 +76,12 @@ export default async function HojePage() {
       select: { date: true },
       take: 90,
     }),
+    prisma.sleepLog.findMany({
+      where: { userId: session.userId },
+      orderBy: { date: "desc" },
+      select: { date: true },
+      take: 90,
+    }),
     prisma.plannerBlock.findMany({
       where: {
         userId: session.userId,
@@ -84,16 +93,22 @@ export default async function HojePage() {
     }),
   ]);
 
-  // Streak
-  let streak = 0;
-  {
-    const dateSet = new Set(streakDates.map((d) => d.date));
-    const d = new Date(today + "T12:00:00");
-    while (dateSet.has(localDateStr(d))) {
-      streak++;
-      d.setDate(d.getDate() - 1);
-    }
-  }
+  // Streaks & Achievements
+  const checkinDates = streakDates.map((d) => d.date);
+  const sleepDatesArr = sleepStreakDates.map((d) => d.date);
+  const checkinStreak = computeCurrentStreak(checkinDates, today);
+  const sleepStreak = computeCurrentStreak(sleepDatesArr, today);
+  const bestCheckinStreak = computeLongestStreak([...checkinDates].reverse());
+  const bestSleepStreak = computeLongestStreak([...sleepDatesArr].reverse());
+  const achievements = computeAchievements({
+    checkinStreak,
+    sleepStreak,
+    bestCheckinStreak,
+    bestSleepStreak,
+    totalCheckins: checkinDates.length,
+    totalSleepLogs: sleepDatesArr.length,
+  });
+  const streak = checkinStreak; // backward compat
 
   // Days since last entry
   let daysSinceLastEntry: number | null = null;
@@ -330,10 +345,9 @@ export default async function HojePage() {
                 {todayEntry.tookMedication === "sim" ? "Já tomou" : todayEntry.tookMedication === "nao" ? "Não tomou" : todayEntry.tookMedication === "nao_sei" ? "Ainda não" : "Não informado"}
               </span>
             </div>
-            {streak > 0 && (
-              <div className="flex items-center justify-between border-t border-border pt-3">
-                <span className="text-sm text-muted">Dias seguidos com check-in</span>
-                <span className="text-sm font-medium text-primary">{streak} {streak === 1 ? "dia" : "dias"}</span>
+            {(checkinStreak > 0 || sleepStreak > 0) && (
+              <div className="border-t border-border pt-3">
+                <StreakBadge checkinStreak={checkinStreak} sleepStreak={sleepStreak} bestCheckinStreak={bestCheckinStreak} />
               </div>
             )}
           </div>
@@ -433,6 +447,13 @@ export default async function HojePage() {
               </a>
             ))}
           </div>
+        </Card>
+      )}
+
+      {/* === CONQUISTAS === */}
+      {achievements.some((a) => a.unlocked) && (
+        <Card>
+          <AchievementGrid achievements={achievements} />
         </Card>
       )}
 

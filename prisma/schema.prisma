@@ -37,6 +37,7 @@ model User {
   weeklyAssessments     WeeklyAssessment[]
   lifeChartEvents       LifeChartEvent[]
   functioningAssessments FunctioningAssessment[]
+  cognitiveTests         CognitiveTest[]
 }
 
 model DiaryEntry {
@@ -468,4 +469,18 @@ model FunctioningAssessment {
 
   @@unique([userId, date])
   @@index([userId])
+}
+
+// ── Testes Cognitivos ────────────────────────────────────────────
+
+model CognitiveTest {
+  id             String   @id @default(uuid())
+  userId         String
+  reactionTimeMs Int?     // Median of 5 trials (ms)
+  digitSpan      Int?     // Max span reached
+  createdAt      DateTime @default(now())
+
+  user           User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }

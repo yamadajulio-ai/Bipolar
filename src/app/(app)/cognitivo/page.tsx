@@ -11,6 +11,13 @@ interface TaskResult {
   timestamp: string;
 }
 
+interface HistoryEntry {
+  id: string;
+  reactionTimeMs: number | null;
+  digitSpan: number | null;
+  createdAt: string;
+}
+
 export default function CognitivoPage() {
   const [task, setTask] = useState<Task>("menu");
   const [result, setResult] = useState<TaskResult>({
@@ -18,6 +25,16 @@ export default function CognitivoPage() {
     digitSpan: null,
     timestamp: new Date().toISOString(),
   });
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/cognitivo?days=90")
+      .then((r) => (r.ok ? r.json() : []))
+      .then(setHistory)
+      .catch(() => {})
+      .finally(() => setLoadingHistory(false));
+  }, []);
 
   return (
     <div className="mx-auto max-w-lg">
@@ -56,6 +73,19 @@ export default function CognitivoPage() {
               Ver resultados
             </button>
           )}
+
+          {/* History */}
+          {!loadingHistory && history.length > 0 && (
+            <div className="mt-6">
+              <h2 className="mb-3 text-sm font-semibold">Histórico recente</h2>
+              <div className="space-y-2">
+                {history.slice(0, 10).map((entry) => (
+                  <HistoryCard key={entry.id} entry={entry} />
+                ))}
+              </div>
+            </div>
+          )}
+
           <p className="text-center text-[10px] text-muted">
             Baseado em paradigmas de neuropsicologia cognitiva. Alterações cognitivas são comuns
             em episódios bipolares (Bora et al., 2009). Resultados são indicativos — não diagnósticos.
@@ -91,10 +121,97 @@ export default function CognitivoPage() {
             setResult({ reactionTimeMs: null, digitSpan: null, timestamp: new Date().toISOString() });
             setTask("menu");
           }}
+          onSaved={(entry) => setHistory((h) => [entry, ...h])}
         />
       )}
     </div>
   );
+}
+
+// ── History Card ───────────────────────────────────────────────
+
+function HistoryCard({ entry }: { entry: HistoryEntry }) {
+  const date = new Date(entry.createdAt);
+  const dateStr = date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+  const reactionInfo = entry.reactionTimeMs !== null ? getReactionLevel(entry.reactionTimeMs) : null;
+  const digitInfo = entry.digitSpan !== null ? getDigitLevel(entry.digitSpan) : null;
+
+  return (
+    <div className="flex items-center justify-between rounded-lg border border-border bg-surface px-3 py-2">
+      <span className="text-xs text-muted">{dateStr}</span>
+      <div className="flex gap-3">
+        {reactionInfo && (
+          <span className={`text-xs font-medium ${reactionInfo.color}`}>
+            {reactionInfo.emoji} {entry.reactionTimeMs}ms
+          </span>
+        )}
+        {digitInfo && (
+          <span className={`text-xs font-medium ${digitInfo.color}`}>
+            {digitInfo.emoji} Span {entry.digitSpan}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Trend Summary ──────────────────────────────────────────────
+
+function TrendSummary({ history, currentResult }: { history: HistoryEntry[]; currentResult: TaskResult }) {
+  const reactionHistory = history.filter((h) => h.reactionTimeMs !== null).slice(0, 5);
+  const digitHistory = history.filter((h) => h.digitSpan !== null).slice(0, 5);
+
+  if (reactionHistory.length < 2 && digitHistory.length < 2) return null;
+
+  const reactionTrend = reactionHistory.length >= 2 && currentResult.reactionTimeMs !== null
+    ? getTrend(reactionHistory.map((h) => h.reactionTimeMs!), currentResult.reactionTimeMs, true)
+    : null;
+
+  const digitTrend = digitHistory.length >= 2 && currentResult.digitSpan !== null
+    ? getTrend(digitHistory.map((h) => h.digitSpan!), currentResult.digitSpan, false)
+    : null;
+
+  if (!reactionTrend && !digitTrend) return null;
+
+  return (
+    <Card>
+      <h3 className="mb-1 text-sm font-semibold">Comparação com seus testes anteriores</h3>
+      <div className="space-y-1">
+        {reactionTrend && (
+          <p className="text-xs text-muted">
+            <strong>Tempo de Reação:</strong> {reactionTrend}
+          </p>
+        )}
+        {digitTrend && (
+          <p className="text-xs text-muted">
+            <strong>Span de Dígitos:</strong> {digitTrend}
+          </p>
+        )}
+      </div>
+      <p className="mt-2 text-[10px] text-muted italic">
+        Comparação com sua mediana das últimas sessões. Variação normal entre sessões é esperada.
+      </p>
+    </Card>
+  );
+}
+
+function getTrend(pastValues: number[], current: number, lowerIsBetter: boolean): string {
+  const sorted = [...pastValues].sort((a, b) => a - b);
+  const median = sorted[Math.floor(sorted.length / 2)];
+  const diff = current - median;
+  const pctChange = Math.round((Math.abs(diff) / median) * 100);
+
+  if (pctChange < 10) return "Estável em relação às sessões anteriores.";
+
+  if (lowerIsBetter) {
+    return diff < 0
+      ? `Melhorou ${pctChange}% em relação à sua mediana recente (${median}ms).`
+      : `Aumentou ${pctChange}% em relação à sua mediana recente (${median}ms). Fadiga ou medicação podem influenciar.`;
+  } else {
+    return diff > 0
+      ? `Melhorou ${pctChange}% em relação à sua mediana recente (${median}).`
+      : `Reduziu ${pctChange}% em relação à sua mediana recente (${median}). Normal em dias de maior fadiga.`;
+  }
 }
 
 // ── Results Screen ──────────────────────────────────────────
@@ -137,33 +254,37 @@ function GaugeBar({ value, min, max, zones }: { value: number; min: number; max:
   );
 }
 
-function ResultsScreen({ result, onBack, onReset }: { result: TaskResult; onBack: () => void; onReset: () => void }) {
-  const [saving, setSaving] = useState(false);
+function ResultsScreen({ result, onBack, onReset, onSaved }: { result: TaskResult; onBack: () => void; onReset: () => void; onSaved: (entry: HistoryEntry) => void }) {
   const [saved, setSaved] = useState(false);
+  const saveAttempted = useRef(false);
 
   const hasReaction = result.reactionTimeMs !== null;
   const hasDigits = result.digitSpan !== null;
   const reactionInfo = hasReaction ? getReactionLevel(result.reactionTimeMs!) : null;
   const digitInfo = hasDigits ? getDigitLevel(result.digitSpan!) : null;
 
-  async function handleSave() {
-    setSaving(true);
-    try {
-      const res = await fetch("/api/cognitivo", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          reactionTimeMs: result.reactionTimeMs,
-          digitSpan: result.digitSpan,
-        }),
-      });
-      if (res.ok) setSaved(true);
-    } catch {
-      // silently fail
-    } finally {
-      setSaving(false);
-    }
-  }
+  // Auto-save on mount
+  useEffect(() => {
+    if (saveAttempted.current) return;
+    saveAttempted.current = true;
+
+    fetch("/api/cognitivo", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        reactionTimeMs: result.reactionTimeMs,
+        digitSpan: result.digitSpan,
+      }),
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data) {
+          setSaved(true);
+          onSaved(data);
+        }
+      })
+      .catch(() => {});
+  }, [result, onSaved]);
 
   // Summary message
   let summaryMessage = "";
@@ -185,7 +306,10 @@ function ResultsScreen({ result, onBack, onReset }: { result: TaskResult; onBack
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-bold">Seus Resultados</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-bold">Seus Resultados</h2>
+        {saved && <span className="text-xs text-green-500">Salvo</span>}
+      </div>
 
       {/* Reaction Time */}
       {hasReaction && reactionInfo && (
@@ -288,6 +412,9 @@ function ResultsScreen({ result, onBack, onReset }: { result: TaskResult; onBack
           </ul>
         </div>
       </Card>
+
+      {/* Trend comparison */}
+      <TrendSummary history={[]} currentResult={result} />
 
       {/* Suggestions */}
       <Card>

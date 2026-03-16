@@ -3,13 +3,15 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { QuickBreathing } from "@/components/sos/QuickBreathing";
+import { SOSChatbot } from "@/components/sos/SOSChatbot";
 
-type View = "main" | "breathing" | "grounding";
+type View = "main" | "breathing" | "grounding" | "chat";
 
 const VIEW_LABELS: Record<View, string> = {
   main: "Tela principal de emergência",
   breathing: "Exercício de respiração guiada",
   grounding: "Exercício de aterramento",
+  chat: "Companheiro de espera",
 };
 
 interface TrustedContact {
@@ -81,6 +83,15 @@ export default function SOSPage() {
     );
   }
 
+  if (view === "chat") {
+    return (
+      <>
+        {liveRegion}
+        <SOSChatbot onClose={() => setView("main")} />
+      </>
+    );
+  }
+
   // Main view — emergency numbers immediately visible (no intermediate menu)
   return (
     <div className="mx-auto max-w-lg rounded-2xl bg-gray-900 p-8 text-white">
@@ -110,22 +121,36 @@ export default function SOSPage() {
           </span>
         </a>
 
-        <a
-          href="tel:188"
-          onClick={() => logSOS("called_188")}
-          aria-label="Ligar para o CVV 188"
-          className="block rounded-xl bg-red-800 p-6 text-center no-underline transition-colors hover:bg-red-700"
-        >
-          <span className="text-4xl font-bold text-white">188</span>
-          <br />
-          <span className="text-lg text-red-100">
-            CVV — Centro de Valorização da Vida
-          </span>
-          <br />
-          <span className="text-sm text-red-200">
-            Preciso conversar agora · 24h · gratuito · sigilo garantido
-          </span>
-        </a>
+        <div className="rounded-xl bg-red-800 p-6 text-center">
+          <a
+            href="tel:188"
+            onClick={() => logSOS("called_188")}
+            aria-label="Ligar para o CVV 188"
+            className="block no-underline"
+          >
+            <span className="text-4xl font-bold text-white">188</span>
+            <br />
+            <span className="text-lg text-red-100">
+              CVV — Centro de Valorização da Vida
+            </span>
+            <br />
+            <span className="text-sm text-red-200">
+              Preciso conversar agora · 24h · gratuito · sigilo garantido
+            </span>
+          </a>
+          <button
+            onClick={() => {
+              setView("chat");
+              logSOS("chat_while_waiting");
+            }}
+            className="mt-3 inline-flex items-center gap-2 rounded-lg bg-white/15 px-4 py-2 text-sm text-red-100 transition-colors hover:bg-white/25"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+              <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
+            </svg>
+            Conversar enquanto espero o atendimento
+          </button>
+        </div>
 
         {/* Trusted contacts from crisis plan */}
         {contacts.map((c, i) => (
@@ -283,6 +308,20 @@ export default function SOSPage() {
             <br />
             <span className="text-sm text-indigo-200">
               Aterramento guiado passo a passo
+            </span>
+          </button>
+
+          <button
+            onClick={() => {
+              setView("chat");
+              logSOS("chat_from_tools");
+            }}
+            className="w-full rounded-xl bg-teal-800 p-5 text-left transition-colors hover:bg-teal-700"
+          >
+            <span className="text-lg font-bold">Preciso conversar com alguém</span>
+            <br />
+            <span className="text-sm text-teal-200">
+              Chat de acolhimento por texto ou voz
             </span>
           </button>
 

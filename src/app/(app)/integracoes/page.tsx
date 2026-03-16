@@ -252,10 +252,14 @@ export default function IntegraçõesPage() {
           </div>
         </div>
 
+        <div className="rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-3 py-2 mb-3 text-xs text-amber-800 dark:text-amber-300">
+          Requer <strong>iPhone</strong> com Apple Health. Não funciona apenas com Android.
+        </div>
+
         <div className="rounded-lg bg-emerald-50 dark:bg-emerald-950/30 p-4 text-sm space-y-3">
           <p className="text-muted">
-            O Amazfit Active 2 sincroniza <strong>sono, frequência cardíaca, HRV, passos e SpO2</strong> com o Apple Health via app Zepp.
-            Depois, o Health Auto Export envia tudo para cá automaticamente.
+            O Amazfit Active 2 sincroniza <strong>sono, frequência cardíaca, passos e calorias</strong> com o Apple Health via app Zepp.
+            <strong> HRV e SpO2</strong> também são enviados, mas a cobertura pode variar conforme configuração do relógio.
           </p>
 
           <div className="space-y-2">
@@ -269,13 +273,21 @@ export default function IntegraçõesPage() {
                 Pareie o Amazfit Active 2 pelo Zepp
               </li>
               <li>
+                No Zepp, ative o <strong>monitoramento contínuo</strong> de FC e SpO2
+                <p className="ml-5 mt-1 text-xs italic">Saúde → Monitoramento de FC → Automático / SpO2 → Monitoramento 24h</p>
+              </li>
+              <li>
                 No Zepp, vá em <strong>Perfil → Dados do Apple Health</strong> e ative <strong>todas as categorias</strong>
                 <p className="ml-5 mt-1 text-xs italic">Sono, FC, HRV, Passos, SpO2, Calorias — tudo deve estar verde</p>
               </li>
               <li>
-                {healthKey ? (
+                {healthKey && syncStatus && syncStatus.records.length > 0 ? (
                   <span className="text-green-700 dark:text-green-400">
-                    ✓ Health Auto Export já configurado — seus dados do Amazfit já estão sendo sincronizados!
+                    &#10003; Health Auto Export configurado e recebendo dados ({syncStatus.records.length} registro(s) de sono)
+                  </span>
+                ) : healthKey ? (
+                  <span className="text-amber-700 dark:text-amber-400">
+                    Health Auto Export configurado, mas ainda sem dados recebidos. Verifique as permissões no Apple Health e aguarde a primeira sincronização.
                   </span>
                 ) : (
                   <span>Configure o <strong>Health Auto Export</strong> abaixo para enviar os dados do Apple Health para cá</span>
@@ -289,10 +301,27 @@ export default function IntegraçõesPage() {
             <p className="font-mono text-center py-1">
               Amazfit → Zepp → Apple Health → HAE → Suporte Bipolar
             </p>
-            <p className="mt-1.5">
-              Sono e FC sincronizam automaticamente. HRV pode levar até 24h na primeira vez.
-            </p>
           </div>
+
+          <details className="text-xs text-muted">
+            <summary className="cursor-pointer font-medium text-foreground">Cobertura de métricas e limitações</summary>
+            <div className="mt-2 space-y-1.5 pl-1">
+              <p><strong>Confiáveis:</strong> sono (estágios podem variar), FC, passos, calorias ativas</p>
+              <p><strong>Cobertura variável:</strong> HRV (baseline estável após ~7 dias de uso noturno; Amazfit usa RMSSD, Apple Health usa SDNN) e SpO2 (requer monitoramento 24h ativado no Zepp)</p>
+              <p><strong>Latência:</strong> dados dependem do Zepp sincronizar com o Apple Health, e do HAE exportar. Pode levar minutos a horas. Manter Background App Refresh ligado e Low Power Mode desligado.</p>
+            </div>
+          </details>
+
+          <details className="text-xs text-muted">
+            <summary className="cursor-pointer font-medium text-foreground">Não está funcionando?</summary>
+            <div className="mt-2 space-y-1.5 pl-1">
+              <p>1. Verifique em <strong>Apple Health → Perfil → Apps</strong> se Zepp e Health Auto Export têm permissão de leitura/escrita</p>
+              <p>2. Abra o app Zepp e aguarde a sincronização (ícone de loading no topo)</p>
+              <p>3. Desative o <strong>Modo Economia de Energia</strong> do iPhone</p>
+              <p>4. Ative <strong>Atualização em 2º Plano</strong> para Zepp e Health Auto Export (Ajustes → Geral)</p>
+              <p>5. Com o iPhone bloqueado, o HAE pode atrasar. Abra o app periodicamente para garantir o envio</p>
+            </div>
+          </details>
         </div>
       </Card>
 
@@ -301,7 +330,8 @@ export default function IntegraçõesPage() {
         <h2 className="mb-2 text-lg font-semibold">Health Auto Export</h2>
         <p className="mb-4 text-sm text-muted">
           O app Health Auto Export no iPhone envia dados do Apple Health para cá automaticamente.
-          Funciona com <strong>Apple Watch, Amazfit</strong> ou qualquer dispositivo que sincronize com o Apple Health.
+          Compatível com <strong>Apple Watch, Amazfit</strong> e outros wearables cujo app no iPhone escreva métricas no Apple Health.
+          A cobertura de dados varia por fabricante e modelo.
         </p>
 
         {healthKey ? (

@@ -260,7 +260,7 @@ const GENERIC_METRIC_DEFS: GenericMetricDef[] = [
     aggregation: "sum",
   },
   {
-    names: new Set(["blood_oxygen", "Blood Oxygen", "bloodOxygen", "oxygen_saturation"]),
+    names: new Set(["blood_oxygen", "Blood Oxygen", "bloodOxygen", "oxygen_saturation", "blood_oxygen_saturation", "Blood Oxygen Saturation"]),
     units: new Set(["%"]),
     metricKey: "blood_oxygen",
     canonicalUnit: "%",

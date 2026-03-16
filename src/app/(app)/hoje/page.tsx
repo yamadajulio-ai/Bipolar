@@ -148,7 +148,7 @@ export default async function HojePage() {
     newsArticles = allNews.slice(0, 3);
   } catch { /* news fetch failed silently */ }
 
-  // Latest health metrics from Apple Watch (last 7 days)
+  // Latest health metrics from wearable (last 7 days)
   const healthCutoff = new Date();
   healthCutoff.setDate(healthCutoff.getDate() - 7);
   const healthCutoffStr = localDateStr(healthCutoff);
@@ -239,8 +239,8 @@ export default async function HojePage() {
           hasHae ? (
             <Card className="border-amber-200 bg-amber-50/50 text-center py-5">
               <div className="text-2xl mb-1">&#9202;</div>
-              <p className="font-semibold text-amber-700">Aguardando Apple Watch</p>
-              <p className="text-xs text-amber-600 mt-1">Os dados de sono chegam automaticamente</p>
+              <p className="font-semibold text-amber-700">Aguardando wearable</p>
+              <p className="text-xs text-amber-600 mt-1">Os dados de sono chegam automaticamente via Apple Watch ou Amazfit</p>
             </Card>
           ) : (
             <Link href="/sono/novo" className="block no-underline">
@@ -292,7 +292,7 @@ export default async function HojePage() {
                 <svg className="h-6 w-6 text-red-500" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M16.365 1.43c0 1.14-.493 2.27-1.177 3.08-.744.9-1.99 1.57-2.987 1.57-.18 0-.36-.02-.53-.06.018-.18.04-.36.04-.55 0-1.12.535-2.22 1.235-3.02C13.666 1.66 14.98 1 16.12 1c.18 0 .36.01.53.02-.01.14-.01.28-.01.41h-.274zm3.44 5.89c-.16.09-2.61 1.53-2.585 4.56.03 3.6 3.14 4.8 3.17 4.81-.02.08-.5 1.7-1.63 3.36-.98 1.45-2 2.9-3.6 2.93-1.57.03-2.08-.94-3.88-.94s-2.39.91-3.87.97c-1.55.06-2.73-1.57-3.72-3.01C1.6 17.18.27 12.84 2.44 9.73c1.07-1.54 2.99-2.52 5.07-2.55 1.52-.03 2.95 1.03 3.88 1.03.93 0 2.67-1.27 4.5-1.08.77.03 2.92.31 4.3 2.33-.11.07-2.56 1.51-2.54 4.49l-.36-.18z" />
                 </svg>
-                <span className="text-xs font-medium text-red-700">Apple Watch</span>
+                <span className="text-xs font-medium text-red-700">Wearable</span>
               </Link>
             )}
             {!hasGoogleCal && (
@@ -392,7 +392,7 @@ export default async function HojePage() {
         </Card>
       )}
 
-      {/* === DADOS DO CORPO (Apple Watch) === */}
+      {/* === DADOS DO CORPO (Wearable) === */}
       {hasHealthData && (
         <Card>
           <div className="mb-3 flex items-center justify-between">

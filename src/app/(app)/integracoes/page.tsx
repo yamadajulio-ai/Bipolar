@@ -240,12 +240,68 @@ export default function IntegraçõesPage() {
         Conecte serviços externos para sincronizar dados automaticamente.
       </p>
 
+      {/* Amazfit Active 2 */}
+      <Card className="mb-6">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><rect x="6" y="2" width="12" height="20" rx="3"/><circle cx="12" cy="12" r="3"/><path d="M12 6v2"/></svg>
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold">Amazfit Active 2</h2>
+            <p className="text-xs text-muted">Alternativa acessível ao Apple Watch</p>
+          </div>
+        </div>
+
+        <div className="rounded-lg bg-emerald-50 dark:bg-emerald-950/30 p-4 text-sm space-y-3">
+          <p className="text-muted">
+            O Amazfit Active 2 sincroniza <strong>sono, frequência cardíaca, HRV, passos e SpO2</strong> com o Apple Health via app Zepp.
+            Depois, o Health Auto Export envia tudo para cá automaticamente.
+          </p>
+
+          <div className="space-y-2">
+            <p className="font-medium text-foreground">Configuração (uma vez):</p>
+            <ol className="list-decimal list-inside space-y-2 text-muted">
+              <li>
+                Instale o app <strong>Zepp</strong> no iPhone
+                <span className="ml-1 text-xs">(gratuito na App Store)</span>
+              </li>
+              <li>
+                Pareie o Amazfit Active 2 pelo Zepp
+              </li>
+              <li>
+                No Zepp, vá em <strong>Perfil → Dados do Apple Health</strong> e ative <strong>todas as categorias</strong>
+                <p className="ml-5 mt-1 text-xs italic">Sono, FC, HRV, Passos, SpO2, Calorias — tudo deve estar verde</p>
+              </li>
+              <li>
+                {healthKey ? (
+                  <span className="text-green-700 dark:text-green-400">
+                    ✓ Health Auto Export já configurado — seus dados do Amazfit já estão sendo sincronizados!
+                  </span>
+                ) : (
+                  <span>Configure o <strong>Health Auto Export</strong> abaixo para enviar os dados do Apple Health para cá</span>
+                )}
+              </li>
+            </ol>
+          </div>
+
+          <div className="rounded bg-white/60 dark:bg-white/5 p-3 text-xs text-muted">
+            <p className="font-medium text-foreground mb-1">Fluxo de dados:</p>
+            <p className="font-mono text-center py-1">
+              Amazfit → Zepp → Apple Health → HAE → Suporte Bipolar
+            </p>
+            <p className="mt-1.5">
+              Sono e FC sincronizam automaticamente. HRV pode levar até 24h na primeira vez.
+            </p>
+          </div>
+        </div>
+      </Card>
+
       {/* Health Auto Export */}
       <Card className="mb-6">
         <h2 className="mb-2 text-lg font-semibold">Health Auto Export</h2>
         <p className="mb-4 text-sm text-muted">
           O app Health Auto Export no iPhone envia dados do Apple Health para cá automaticamente.
-          Você precisa do app instalado (premium) no iPhone.
+          Funciona com <strong>Apple Watch, Amazfit</strong> ou qualquer dispositivo que sincronize com o Apple Health.
         </p>
 
         {healthKey ? (

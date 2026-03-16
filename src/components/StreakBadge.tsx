@@ -32,7 +32,7 @@ export function StreakBadge({ checkinStreak, sleepStreak, bestCheckinStreak }: S
       {checkinStreak > 0 && (
         <div className="flex items-center gap-2 rounded-full bg-primary/10 px-3.5 py-1.5">
           <span className="text-lg" role="img" aria-label="Dias de check-in">
-            {checkinStreak >= 30 ? "🏆" : checkinStreak >= 14 ? "💪" : checkinStreak >= 7 ? "⭐" : "📊"}
+            {checkinStreak >= 30 ? "⭐" : checkinStreak >= 14 ? "🧭" : checkinStreak >= 7 ? "🌿" : "📊"}
           </span>
           <div className="flex flex-col">
             <span className="text-sm font-bold text-primary leading-tight">

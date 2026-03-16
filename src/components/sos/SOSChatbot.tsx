@@ -69,18 +69,32 @@ export function SOSChatbot({ onClose }: { onClose: () => void }) {
     };
   }, []);
 
-  // Session timeout: 30 minutes → suggest closing
+  // Handoff reminders: 10 min intermediate + 20 min session timeout
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const reminder10 = setTimeout(() => {
       setMessages((prev) => [
         ...prev,
         {
           role: "system",
-          content: "Já faz um tempo que estamos conversando. O 188 pode atender a qualquer momento — mantenha a ligação ativa se puder. Se precisar de ajuda imediata, ligue 192 (SAMU).",
+          content: "Enquanto conversamos, o 188 pode atender a qualquer momento. Mantenha a ligação ativa se puder.",
         },
       ]);
-    }, 30 * 60 * 1000);
-    return () => clearTimeout(timer);
+    }, 10 * 60 * 1000);
+
+    const reminder20 = setTimeout(() => {
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "system",
+          content: "Já faz um tempo que estamos conversando. Este chat é temporário — o ideal é o atendimento humano do 188 ou de um profissional. Se precisar de ajuda imediata, ligue 192 (SAMU).",
+        },
+      ]);
+    }, 20 * 60 * 1000);
+
+    return () => {
+      clearTimeout(reminder10);
+      clearTimeout(reminder20);
+    };
   }, []);
 
   const sendMessages = useCallback(async (allMessages: Message[]) => {
@@ -256,7 +270,7 @@ export function SOSChatbot({ onClose }: { onClose: () => void }) {
               <p>&#8226; Eu sou uma <strong>inteligência artificial</strong>, não uma pessoa.</p>
               <p>&#8226; Não substituo o CVV (188) nem profissionais de saúde.</p>
               <p>&#8226; Estou aqui para te ouvir brevemente enquanto o atendimento humano não chega.</p>
-              <p>&#8226; Suas mensagens são enviadas para processamento por IA e <strong>não são armazenadas</strong> no app.</p>
+              <p>&#8226; Suas mensagens são processadas por IA de terceiro (Anthropic) para gerar respostas e <strong>não são armazenadas</strong> no app.</p>
             </div>
 
             <p className="text-gray-400 text-xs">

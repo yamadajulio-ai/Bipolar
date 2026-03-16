@@ -93,8 +93,8 @@ export default function LembretesPage() {
 
       <Alert variant="info" className="mb-4">
         Configure lembretes para receber notificacoes no navegador.
-        No plano atual, os lembretes sao enviados uma vez por dia (pela manha).
-        Para notificacoes em horarios especificos, e necessario manter o app aberto.
+        No plano atual, os lembretes sao enviados uma vez por dia pela manha (entre 6h e 7h, sem horario exato).
+        Para receber notificacoes, o app precisa estar instalado na Tela Inicial do iPhone (Compartilhar → Adicionar a Tela Inicial).
       </Alert>
 
       {message && (

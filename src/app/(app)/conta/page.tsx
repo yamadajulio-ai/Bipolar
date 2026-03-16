@@ -2,6 +2,7 @@ import { getSession } from "@/lib/auth";
 import { Card } from "@/components/Card";
 import { Alert } from "@/components/Alert";
 import { DeleteAccountButton } from "@/components/conta/DeleteAccountButton";
+import { DisplayPreferences } from "@/components/conta/DisplayPreferences";
 
 export default async function ContaPage() {
   const session = await getSession();
@@ -29,6 +30,10 @@ export default async function ContaPage() {
         >
           Exportar meus dados (JSON)
         </a>
+      </Card>
+
+      <Card className="mb-6">
+        <DisplayPreferences />
       </Card>
 
       <Card className="mb-6">

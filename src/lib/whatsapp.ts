@@ -9,14 +9,29 @@
  * - WHATSAPP_TOKEN: permanent access token from Meta Business
  * - WHATSAPP_PHONE_NUMBER_ID: the phone number ID from Meta dashboard
  * - WHATSAPP_VERIFY_TOKEN: webhook verification token (you choose)
+ * - WHATSAPP_APP_SECRET: Meta App Secret for webhook signature validation
  */
+
+import { parsePhoneNumberFromString } from "libphonenumber-js";
 
 const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN;
 const WHATSAPP_PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
 const WHATSAPP_API_URL = "https://graph.facebook.com/v21.0";
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://suportebipolar.com";
+
 export function isWhatsAppConfigured(): boolean {
   return !!(WHATSAPP_TOKEN && WHATSAPP_PHONE_NUMBER_ID);
+}
+
+/**
+ * Normalize a phone number to E.164 format, defaulting to BR country code.
+ * Returns null if the number is invalid.
+ */
+export function normalizePhone(phone: string, defaultCountry: "BR" = "BR"): string | null {
+  const parsed = parsePhoneNumberFromString(phone, defaultCountry);
+  if (!parsed?.isValid()) return null;
+  return parsed.number; // E.164, e.g. "+5511999999999"
 }
 
 /**
@@ -28,7 +43,12 @@ export function generateWhatsAppLink(phone?: string, text?: string): string {
   if (text) params.set("text", text);
 
   if (phone) {
-    // Remove non-digits
+    const normalized = normalizePhone(phone);
+    if (normalized) {
+      // wa.me uses number without '+' prefix
+      return `https://wa.me/${normalized.replace("+", "")}?${params.toString()}`;
+    }
+    // Fallback: strip non-digits (best effort for invalid numbers)
     const cleaned = phone.replace(/\D/g, "");
     return `https://wa.me/${cleaned}?${params.toString()}`;
   }
@@ -40,7 +60,7 @@ export function generateWhatsAppLink(phone?: string, text?: string): string {
  * Generate a check-in reminder text for WhatsApp sharing.
  */
 export function generateCheckinReminderText(): string {
-  return "Hora do check-in! Como está seu humor e energia hoje? Abra o Suporte Bipolar: https://suportebipolar.com/checkin";
+  return `Hora do check-in! Como está seu humor e energia hoje? Abra o Suporte Bipolar: ${APP_URL}/checkin`;
 }
 
 /**
@@ -76,6 +96,11 @@ export async function sendWhatsAppTemplate(
     return { success: false, error: "WhatsApp não configurado" };
   }
 
+  const normalized = normalizePhone(to);
+  if (!normalized) {
+    return { success: false, error: "Número de telefone inválido" };
+  }
+
   try {
     const res = await fetch(
       `${WHATSAPP_API_URL}/${WHATSAPP_PHONE_NUMBER_ID}/messages`,
@@ -87,7 +112,7 @@ export async function sendWhatsAppTemplate(
         },
         body: JSON.stringify({
           messaging_product: "whatsapp",
-          to: to.replace(/\D/g, ""),
+          to: normalized.replace("+", ""),
           type: "template",
           template: {
             name: templateName,
@@ -101,13 +126,13 @@ export async function sendWhatsAppTemplate(
     const data = await res.json();
 
     if (!res.ok) {
-      console.error("WhatsApp API error:", data);
+      console.error("WhatsApp API error:", data?.error?.message || "Unknown");
       return { success: false, error: data.error?.message || "Erro ao enviar" };
     }
 
     return { success: true, messageId: data.messages?.[0]?.id };
   } catch (err) {
-    console.error("WhatsApp send error:", err);
+    console.error("WhatsApp send error:", err instanceof Error ? err.message : "Unknown");
     return { success: false, error: "Erro de conexão" };
   }
 }
@@ -126,6 +151,11 @@ export async function sendWhatsAppText(
     return { success: false, error: "Texto obrigatório" };
   }
 
+  const normalized = normalizePhone(msg.to);
+  if (!normalized) {
+    return { success: false, error: "Número de telefone inválido" };
+  }
+
   try {
     const res = await fetch(
       `${WHATSAPP_API_URL}/${WHATSAPP_PHONE_NUMBER_ID}/messages`,
@@ -137,7 +167,7 @@ export async function sendWhatsAppText(
         },
         body: JSON.stringify({
           messaging_product: "whatsapp",
-          to: msg.to.replace(/\D/g, ""),
+          to: normalized.replace("+", ""),
           type: "text",
           text: { body: msg.text },
         }),
@@ -152,7 +182,7 @@ export async function sendWhatsAppText(
 
     return { success: true, messageId: data.messages?.[0]?.id };
   } catch (err) {
-    console.error("WhatsApp send error:", err);
+    console.error("WhatsApp send error:", err instanceof Error ? err.message : "Unknown");
     return { success: false, error: "Erro de conexão" };
   }
 }

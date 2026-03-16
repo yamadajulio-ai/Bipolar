@@ -12,6 +12,13 @@ export interface NarrativeResult {
   generatedAt: string;   // ISO date
 }
 
+const SAFE_FALLBACK: NarrativeResult = {
+  summary: "Não foi possível gerar a análise narrativa neste momento. Consulte os dados numéricos nos cards acima e converse com seu profissional de saúde sobre as tendências observadas.",
+  highlights: [],
+  suggestions: ["Revise os dados numéricos dos insights acima", "Converse com seu profissional sobre as tendências"],
+  generatedAt: new Date().toISOString(),
+};
+
 /**
  * Summarize InsightsResult into a structured JSON object suitable for the prompt.
  * We strip large arrays (heatmap, chart data) to stay within token budget.
@@ -104,44 +111,59 @@ REGRAS OBRIGATÓRIAS:
 5. Relacione sono, humor, ritmo e medicação entre si quando houver correlação.
 6. Para scores de risco elevado, incentive contato com o profissional sem causar pânico.
 7. Respostas SEMPRE em pt-BR.
+8. NUNCA infira causalidade clínica de uma correlação estatística.
+9. NUNCA sugira ajuste de medicação ou comportamento como se fosse recomendação clínica.
 
-FORMATO DE RESPOSTA (JSON estrito):
-{
-  "summary": "2-3 parágrafos narrativos conectando os principais achados",
-  "highlights": ["3-5 pontos-chave como frases curtas"],
-  "suggestions": ["2-3 sugestões práticas e acionáveis"]
-}`;
+Responda APENAS com JSON válido no formato:
+{"summary": "string", "highlights": ["string"], "suggestions": ["string"]}`;
 
   const userPrompt = `Analise os seguintes dados de monitoramento dos últimos 30 dias e gere uma narrativa interpretativa para o paciente:\n\n${JSON.stringify(data, null, 2)}`;
 
-  const response = await anthropic.messages.create({
-    model: "claude-sonnet-4-20250514",
-    max_tokens: 1024,
-    system: systemPrompt,
-    messages: [{ role: "user", content: userPrompt }],
-  });
-
-  const text = response.content[0].type === "text" ? response.content[0].text : "";
-
   try {
-    // Extract JSON from response (may have markdown fences)
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error("No JSON in response");
-    const parsed = JSON.parse(jsonMatch[0]);
+    const response = await anthropic.messages.create({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 1024,
+      system: systemPrompt,
+      messages: [{ role: "user", content: userPrompt }],
+    });
+
+    const text = response.content[0].type === "text" ? response.content[0].text : "";
+
+    // Try parsing the response as JSON directly first
+    let parsed: Record<string, unknown> | null = null;
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      // If direct parse fails, try extracting JSON from markdown fences
+      const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (jsonMatch?.[1]) {
+        try {
+          parsed = JSON.parse(jsonMatch[1].trim());
+        } catch {
+          // Last resort: find outermost braces
+          const braceMatch = text.match(/\{[\s\S]*\}/);
+          if (braceMatch) {
+            parsed = JSON.parse(braceMatch[0]);
+          }
+        }
+      }
+    }
+
+    if (!parsed) return SAFE_FALLBACK;
+
+    const summary = typeof parsed.summary === "string" ? parsed.summary : "";
+    const highlights = Array.isArray(parsed.highlights) ? parsed.highlights.filter((h): h is string => typeof h === "string") : [];
+    const suggestions = Array.isArray(parsed.suggestions) ? parsed.suggestions.filter((s): s is string => typeof s === "string") : [];
+
+    if (!summary && highlights.length === 0) return SAFE_FALLBACK;
 
     return {
-      summary: parsed.summary || "",
-      highlights: Array.isArray(parsed.highlights) ? parsed.highlights : [],
-      suggestions: Array.isArray(parsed.suggestions) ? parsed.suggestions : [],
+      summary,
+      highlights,
+      suggestions,
       generatedAt: new Date().toISOString(),
     };
   } catch {
-    // Fallback: safe generic message instead of raw LLM text
-    return {
-      summary: "Não foi possível gerar a análise narrativa neste momento. Consulte os dados numéricos nos cards acima e converse com seu profissional de saúde sobre as tendências observadas.",
-      highlights: [],
-      suggestions: ["Revise os dados numéricos dos insights acima", "Converse com seu profissional sobre as tendências"],
-      generatedAt: new Date().toISOString(),
-    };
+    return SAFE_FALLBACK;
   }
 }

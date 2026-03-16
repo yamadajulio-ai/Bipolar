@@ -92,8 +92,9 @@ export default function LembretesPage() {
       <h1 className="mb-6 text-2xl font-bold">Lembretes</h1>
 
       <Alert variant="info" className="mb-4">
-        Configure horarios para receber lembretes no navegador. E necessario
-        permitir notificacoes quando solicitado.
+        Configure lembretes para receber notificacoes no navegador.
+        No plano atual, os lembretes sao enviados uma vez por dia (pela manha).
+        Para notificacoes em horarios especificos, e necessario manter o app aberto.
       </Alert>
 
       {message && (

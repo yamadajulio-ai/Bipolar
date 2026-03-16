@@ -136,11 +136,11 @@ FORMATO DE RESPOSTA (JSON estrito):
       generatedAt: new Date().toISOString(),
     };
   } catch {
-    // Fallback: use the raw text as summary
+    // Fallback: safe generic message instead of raw LLM text
     return {
-      summary: text.slice(0, 2000),
+      summary: "Não foi possível gerar a análise narrativa neste momento. Consulte os dados numéricos nos cards acima e converse com seu profissional de saúde sobre as tendências observadas.",
       highlights: [],
-      suggestions: [],
+      suggestions: ["Revise os dados numéricos dos insights acima", "Converse com seu profissional sobre as tendências"],
       generatedAt: new Date().toISOString(),
     };
   }

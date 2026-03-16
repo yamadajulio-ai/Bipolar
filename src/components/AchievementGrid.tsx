@@ -1,20 +1,41 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import type { Achievement } from "@/lib/streaks";
 
 interface AchievementGridProps {
   achievements: Achievement[];
 }
 
+const HIDE_KEY = "sb_hide_achievements";
+
 export function AchievementGrid({ achievements }: AchievementGridProps) {
+  const [hidden, setHidden] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && localStorage.getItem(HIDE_KEY) === "1") {
+      setHidden(true);
+    }
+  }, []);
+
   const unlocked = achievements.filter((a) => a.unlocked);
   const locked = achievements.filter((a) => !a.unlocked);
 
+  if (hidden) return null;
   if (unlocked.length === 0 && locked.length === 0) return null;
 
   return (
     <div>
-      <h3 className="mb-3 text-sm font-semibold text-foreground">Conquistas</h3>
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-foreground">Conquistas</h3>
+        <button
+          onClick={() => { localStorage.setItem(HIDE_KEY, "1"); setHidden(true); }}
+          className="text-[10px] text-muted hover:text-foreground"
+          aria-label="Esconder conquistas"
+        >
+          Esconder
+        </button>
+      </div>
       <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
         {unlocked.map((a) => (
           <div

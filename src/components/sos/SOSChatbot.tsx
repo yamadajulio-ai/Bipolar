@@ -3,14 +3,13 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 interface Message {
-  role: "user" | "assistant";
+  role: "user" | "assistant" | "system";
   content: string;
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type SpeechRec = any;
 
-// Check if browser supports Web Speech API
 function hasSpeechRecognition(): boolean {
   if (typeof window === "undefined") return false;
   return !!(
@@ -33,6 +32,9 @@ function getSpeechRecognition(): SpeechRec | null {
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
+// Static fallback when API is unavailable
+const STATIC_FALLBACK = "O serviço de chat está temporariamente indisponível. Se precisar de ajuda agora, ligue 192 (SAMU) ou 188 (CVV). Você também pode usar a respiração guiada ou o aterramento nesta mesma página.";
+
 export function SOSChatbot({ onClose }: { onClose: () => void }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -44,8 +46,9 @@ export function SOSChatbot({ onClose }: { onClose: () => void }) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const recognitionRef = useRef<SpeechRec | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const sessionStartRef = useRef(Date.now());
 
-  // Auto-scroll to bottom
+  // Auto-scroll
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -57,12 +60,27 @@ export function SOSChatbot({ onClose }: { onClose: () => void }) {
     inputRef.current?.focus();
   }, []);
 
-  // Cleanup on unmount
+  // Cleanup
   useEffect(() => {
     return () => {
       abortRef.current?.abort();
-      recognitionRef.current?.abort();
+      recognitionRef.current?.abort?.();
+      recognitionRef.current?.stop?.();
     };
+  }, []);
+
+  // Session timeout: 30 minutes → suggest closing
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "system",
+          content: "Já faz um tempo que estamos conversando. O 188 pode atender a qualquer momento — mantenha a ligação ativa se puder. Se precisar de ajuda imediata, ligue 192 (SAMU).",
+        },
+      ]);
+    }, 30 * 60 * 1000);
+    return () => clearTimeout(timer);
   }, []);
 
   const sendMessages = useCallback(async (allMessages: Message[]) => {
@@ -70,17 +88,30 @@ export function SOSChatbot({ onClose }: { onClose: () => void }) {
     setError(null);
     abortRef.current = new AbortController();
 
+    // Only send user/assistant messages to API (not system)
+    const apiMessages = allMessages
+      .filter((m) => m.role === "user" || m.role === "assistant")
+      .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
+
     try {
       const res = await fetch("/api/sos/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: allMessages }),
+        body: JSON.stringify({ messages: apiMessages }),
         signal: abortRef.current.signal,
       });
 
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || "Erro ao conectar");
+      // Handle JSON fallback response (API unavailable)
+      const contentType = res.headers.get("content-type") || "";
+      if (contentType.includes("application/json")) {
+        const body = await res.json();
+        if (body.fallback) {
+          setMessages((prev) => [...prev, { role: "assistant", content: body.text || STATIC_FALLBACK }]);
+          return;
+        }
+        if (!res.ok) {
+          throw new Error(body.error || "Erro ao conectar");
+        }
       }
 
       const reader = res.body?.getReader();
@@ -89,7 +120,6 @@ export function SOSChatbot({ onClose }: { onClose: () => void }) {
       const decoder = new TextDecoder();
       let assistantText = "";
 
-      // Add empty assistant message to fill via streaming
       setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
 
       while (true) {
@@ -106,7 +136,6 @@ export function SOSChatbot({ onClose }: { onClose: () => void }) {
 
           try {
             const parsed = JSON.parse(data);
-            if (parsed.error) throw new Error(parsed.error);
             if (parsed.text) {
               assistantText += parsed.text;
               const text = assistantText;
@@ -117,19 +146,18 @@ export function SOSChatbot({ onClose }: { onClose: () => void }) {
               });
             }
           } catch {
-            // Skip malformed chunks
+            // Skip malformed
           }
         }
       }
     } catch (err) {
       if ((err as Error).name === "AbortError") return;
-      setError((err as Error).message || "Erro de conexão. Tente novamente.");
-      // Remove empty assistant message on error
+      // On any error, show static fallback instead of raw error
       setMessages((prev) => {
-        if (prev.length > 0 && prev[prev.length - 1].role === "assistant" && !prev[prev.length - 1].content) {
-          return prev.slice(0, -1);
-        }
-        return prev;
+        const cleaned = prev[prev.length - 1]?.role === "assistant" && !prev[prev.length - 1]?.content
+          ? prev.slice(0, -1)
+          : prev;
+        return [...cleaned, { role: "assistant", content: STATIC_FALLBACK }];
       });
     } finally {
       setStreaming(false);
@@ -175,24 +203,25 @@ export function SOSChatbot({ onClose }: { onClose: () => void }) {
       setListening(false);
     };
 
-    recognition.onerror = () => {
-      setListening(false);
-    };
-
-    recognition.onend = () => {
-      setListening(false);
-    };
-
+    recognition.onerror = () => setListening(false);
+    recognition.onend = () => setListening(false);
     recognition.start();
   }
 
+  const elapsedMin = Math.floor((Date.now() - sessionStartRef.current) / 60000);
+
   return (
-    <div className="mx-auto flex max-w-lg flex-col rounded-2xl bg-gray-900 text-white" style={{ height: "calc(100vh - 120px)", minHeight: "400px" }}>
+    <div
+      className="mx-auto flex max-w-lg flex-col rounded-2xl bg-gray-900 text-white"
+      style={{ height: "calc(100vh - 120px)", minHeight: "400px" }}
+      role="log"
+      aria-label="Chat de acolhimento"
+    >
       {/* Header */}
       <div className="flex items-center justify-between border-b border-gray-700 px-4 py-3">
         <div>
           <h2 className="text-lg font-bold">Companheiro de espera</h2>
-          <p className="text-xs text-gray-400">Estou aqui enquanto o atendimento não chega</p>
+          <p className="text-xs text-gray-400">IA de acolhimento temporário</p>
         </div>
         <button
           onClick={onClose}
@@ -203,28 +232,35 @@ export function SOSChatbot({ onClose }: { onClose: () => void }) {
         </button>
       </div>
 
-      {/* Emergency banner */}
-      <div className="bg-red-900/60 px-4 py-2 text-center text-xs text-red-200">
-        Se houver risco imediato, ligue{" "}
+      {/* Emergency banner — always visible */}
+      <div className="bg-red-900/60 px-4 py-2 text-center text-xs text-red-200" role="status">
+        Risco imediato? Ligue{" "}
         <a href="tel:192" className="font-bold text-white underline">192</a> (SAMU).
-        CVV:{" "}
-        <a href="tel:188" className="font-bold text-white underline">188</a>
+        Conversar:{" "}
+        <a href="tel:188" className="font-bold text-white underline">188</a> (CVV)
       </div>
 
       {/* Messages */}
       <div
         ref={scrollRef}
         className="flex-1 overflow-y-auto px-4 py-4 space-y-3"
+        aria-live="polite"
       >
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center space-y-3 py-8">
-            <div className="text-4xl">&#128172;</div>
-            <p className="text-gray-300 text-sm max-w-xs">
-              Esperar atendimento pode ser angustiante.
-              Estou aqui para te ouvir enquanto isso.
-            </p>
+            <div className="text-4xl" aria-hidden="true">&#128172;</div>
+
+            {/* Explicit AI disclosure */}
+            <div className="rounded-lg bg-gray-800 px-4 py-3 text-left text-xs text-gray-300 max-w-xs space-y-1.5">
+              <p className="font-semibold text-gray-200">Antes de conversar:</p>
+              <p>&#8226; Eu sou uma <strong>inteligência artificial</strong>, não uma pessoa.</p>
+              <p>&#8226; Não substituo o CVV (188) nem profissionais de saúde.</p>
+              <p>&#8226; Estou aqui para te ouvir brevemente enquanto o atendimento humano não chega.</p>
+              <p>&#8226; Suas mensagens são enviadas para processamento por IA e <strong>não são armazenadas</strong> no app.</p>
+            </div>
+
             <p className="text-gray-400 text-xs">
-              Pode digitar ou usar o microfone. Nada é gravado ou armazenado.
+              Pode digitar ou usar o microfone.
             </p>
             <div className="flex flex-wrap justify-center gap-2 mt-2">
               {[
@@ -253,21 +289,27 @@ export function SOSChatbot({ onClose }: { onClose: () => void }) {
             key={i}
             className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
           >
-            <div
-              className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
-                m.role === "user"
-                  ? "bg-blue-700 text-white rounded-br-md"
-                  : "bg-gray-800 text-gray-100 rounded-bl-md"
-              }`}
-            >
-              {m.content || (
-                <span className="inline-flex gap-1">
-                  <span className="animate-pulse">.</span>
-                  <span className="animate-pulse" style={{ animationDelay: "0.2s" }}>.</span>
-                  <span className="animate-pulse" style={{ animationDelay: "0.4s" }}>.</span>
-                </span>
-              )}
-            </div>
+            {m.role === "system" ? (
+              <div className="w-full rounded-lg bg-amber-900/40 px-4 py-2.5 text-center text-xs text-amber-200">
+                {m.content}
+              </div>
+            ) : (
+              <div
+                className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+                  m.role === "user"
+                    ? "bg-blue-700 text-white rounded-br-md"
+                    : "bg-gray-800 text-gray-100 rounded-bl-md"
+                }`}
+              >
+                {m.content || (
+                  <span className="inline-flex gap-1" aria-label="Digitando">
+                    <span className="animate-pulse">.</span>
+                    <span className="animate-pulse" style={{ animationDelay: "0.2s" }}>.</span>
+                    <span className="animate-pulse" style={{ animationDelay: "0.4s" }}>.</span>
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -309,6 +351,7 @@ export function SOSChatbot({ onClose }: { onClose: () => void }) {
             rows={1}
             className="flex-1 resize-none rounded-xl bg-gray-800 px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-600 disabled:opacity-50"
             style={{ maxHeight: "120px" }}
+            aria-label="Mensagem"
           />
           <button
             onClick={handleSend}
@@ -322,7 +365,8 @@ export function SOSChatbot({ onClose }: { onClose: () => void }) {
           </button>
         </div>
         <p className="mt-2 text-center text-[10px] text-gray-500">
-          Este chat não substitui atendimento profissional. Nenhuma mensagem é armazenada.
+          Você está conversando com uma IA. Não substitui atendimento profissional.
+          {elapsedMin >= 5 && ` (${elapsedMin} min)`}
         </p>
       </div>
     </div>

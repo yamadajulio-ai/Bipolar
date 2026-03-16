@@ -240,45 +240,124 @@ export default function IntegraçõesPage() {
         Conecte serviços externos para sincronizar dados automaticamente.
       </p>
 
-      {/* Amazfit Active 2 */}
+      {/* Wearables Compatíveis */}
       <Card className="mb-6">
         <div className="flex items-center gap-3 mb-2">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><rect x="6" y="2" width="12" height="20" rx="3"/><circle cx="12" cy="12" r="3"/><path d="M12 6v2"/></svg>
           </div>
           <div>
-            <h2 className="text-lg font-semibold">Amazfit Active 2</h2>
-            <p className="text-xs text-muted">Alternativa acessível ao Apple Watch</p>
+            <h2 className="text-lg font-semibold">Wearables compatíveis</h2>
+            <p className="text-xs text-muted">Smartwatches e pulseiras que enviam dados automaticamente</p>
           </div>
         </div>
 
         <div className="rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-3 py-2 mb-3 text-xs text-amber-800 dark:text-amber-300">
-          Requer <strong>iPhone</strong> com Apple Health. Não funciona apenas com Android.
+          Requer <strong>iPhone</strong> com Apple Health. Suporte a Android em breve.
         </div>
 
-        <div className="rounded-lg bg-emerald-50 dark:bg-emerald-950/30 p-4 text-sm space-y-3">
+        <div className="rounded-lg bg-emerald-50 dark:bg-emerald-950/30 p-4 text-sm space-y-4">
           <p className="text-muted">
-            O Amazfit Active 2 sincroniza <strong>sono, frequência cardíaca, passos e calorias</strong> com o Apple Health via app Zepp.
-            <strong> HRV e SpO2</strong> também são enviados, mas a cobertura pode variar conforme configuração do relógio.
+            Qualquer wearable cujo app no iPhone escreva dados no Apple Health funciona com o Suporte Bipolar via Health Auto Export.
+            A cobertura de métricas varia por modelo.
           </p>
 
-          <div className="space-y-2">
-            <p className="font-medium text-foreground">Configuração (uma vez):</p>
-            <ol className="list-decimal list-inside space-y-2 text-muted">
+          {/* Device comparison table */}
+          <div className="overflow-x-auto -mx-1">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-emerald-200 dark:border-emerald-800 text-left text-muted">
+                  <th className="pb-2 pr-2">Dispositivo</th>
+                  <th className="pb-2 pr-2">Preço aprox.</th>
+                  <th className="pb-2 pr-2">App iOS</th>
+                  <th className="pb-2 pr-2">Sono</th>
+                  <th className="pb-2 pr-2">FC</th>
+                  <th className="pb-2 pr-2">HRV</th>
+                  <th className="pb-2">SpO2</th>
+                </tr>
+              </thead>
+              <tbody className="text-muted">
+                <tr className="border-b border-emerald-100 dark:border-emerald-900/50">
+                  <td className="py-1.5 pr-2 font-medium text-foreground">Xiaomi Smart Band 9 Active</td>
+                  <td className="py-1.5 pr-2">~R$130</td>
+                  <td className="py-1.5 pr-2">Mi Fitness</td>
+                  <td className="py-1.5 pr-2 text-green-600">&#10003;</td>
+                  <td className="py-1.5 pr-2 text-green-600">&#10003;</td>
+                  <td className="py-1.5 pr-2 text-gray-400">&#8212;</td>
+                  <td className="py-1.5 text-green-600">&#10003;</td>
+                </tr>
+                <tr className="border-b border-emerald-100 dark:border-emerald-900/50">
+                  <td className="py-1.5 pr-2 font-medium text-foreground">Redmi Watch 5 Active</td>
+                  <td className="py-1.5 pr-2">~R$200</td>
+                  <td className="py-1.5 pr-2">Mi Fitness</td>
+                  <td className="py-1.5 pr-2 text-green-600">&#10003;</td>
+                  <td className="py-1.5 pr-2 text-green-600">&#10003;</td>
+                  <td className="py-1.5 pr-2 text-gray-400">&#8212;</td>
+                  <td className="py-1.5 text-green-600">&#10003;</td>
+                </tr>
+                <tr className="border-b border-emerald-100 dark:border-emerald-900/50">
+                  <td className="py-1.5 pr-2 font-medium text-foreground">Amazfit Bip 6</td>
+                  <td className="py-1.5 pr-2">~R$350</td>
+                  <td className="py-1.5 pr-2">Zepp</td>
+                  <td className="py-1.5 pr-2 text-green-600">&#10003;</td>
+                  <td className="py-1.5 pr-2 text-green-600">&#10003;</td>
+                  <td className="py-1.5 pr-2 text-amber-500">~</td>
+                  <td className="py-1.5 text-green-600">&#10003;</td>
+                </tr>
+                <tr className="border-b border-emerald-100 dark:border-emerald-900/50">
+                  <td className="py-1.5 pr-2 font-medium text-foreground">HUAWEI Band 10</td>
+                  <td className="py-1.5 pr-2">~R$300</td>
+                  <td className="py-1.5 pr-2">Huawei Health</td>
+                  <td className="py-1.5 pr-2 text-green-600">&#10003;</td>
+                  <td className="py-1.5 pr-2 text-green-600">&#10003;</td>
+                  <td className="py-1.5 pr-2 text-amber-500">~</td>
+                  <td className="py-1.5 text-green-600">&#10003;</td>
+                </tr>
+                <tr className="border-b border-emerald-100 dark:border-emerald-900/50">
+                  <td className="py-1.5 pr-2 font-medium text-foreground">Amazfit Active 2</td>
+                  <td className="py-1.5 pr-2">~R$800</td>
+                  <td className="py-1.5 pr-2">Zepp</td>
+                  <td className="py-1.5 pr-2 text-green-600">&#10003;</td>
+                  <td className="py-1.5 pr-2 text-green-600">&#10003;</td>
+                  <td className="py-1.5 pr-2 text-amber-500">~</td>
+                  <td className="py-1.5 text-green-600">&#10003;</td>
+                </tr>
+                <tr>
+                  <td className="py-1.5 pr-2 font-medium text-foreground">Apple Watch SE</td>
+                  <td className="py-1.5 pr-2">~R$2.500</td>
+                  <td className="py-1.5 pr-2">Nativo</td>
+                  <td className="py-1.5 pr-2 text-green-600">&#10003;</td>
+                  <td className="py-1.5 pr-2 text-green-600">&#10003;</td>
+                  <td className="py-1.5 pr-2 text-green-600">&#10003;</td>
+                  <td className="py-1.5 text-green-600">&#10003;</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p className="text-xs text-muted">
+            <strong>&#10003;</strong> = confiável &nbsp; <strong className="text-amber-500">~</strong> = cobertura variável (validar antes) &nbsp; <strong className="text-gray-400">&#8212;</strong> = não disponível
+          </p>
+          <p className="text-xs text-muted">
+            <strong>Recomendação custo-benefício:</strong> para sono, FC e passos, a Xiaomi Smart Band 9 Active (~R$130) é suficiente.
+            HRV exige modelos a partir de ~R$300 e a cobertura via Apple Health pode variar.
+          </p>
+
+          {/* Setup guide */}
+          <details className="text-sm">
+            <summary className="cursor-pointer font-medium text-foreground">Como configurar seu wearable</summary>
+            <ol className="list-decimal list-inside space-y-2 text-muted mt-3">
               <li>
-                Instale o app <strong>Zepp</strong> no iPhone
-                <span className="ml-1 text-xs">(gratuito na App Store)</span>
+                Instale o app do fabricante no iPhone
+                <p className="ml-5 mt-1 text-xs italic">Xiaomi/Redmi: Mi Fitness &nbsp;|&nbsp; Amazfit: Zepp &nbsp;|&nbsp; Huawei: Huawei Health</p>
+              </li>
+              <li>Pareie o dispositivo pelo app</li>
+              <li>
+                Ative a sincronização com o <strong>Apple Health</strong> no app
+                <p className="ml-5 mt-1 text-xs italic">Cada app tem a opção em Perfil ou Configurações. Ative todas as categorias de saúde.</p>
               </li>
               <li>
-                Pareie o Amazfit Active 2 pelo Zepp
-              </li>
-              <li>
-                No Zepp, ative o <strong>monitoramento contínuo</strong> de FC e SpO2
-                <p className="ml-5 mt-1 text-xs italic">Saúde → Monitoramento de FC → Automático / SpO2 → Monitoramento 24h</p>
-              </li>
-              <li>
-                No Zepp, vá em <strong>Perfil → Dados do Apple Health</strong> e ative <strong>todas as categorias</strong>
-                <p className="ml-5 mt-1 text-xs italic">Sono, FC, HRV, Passos, SpO2, Calorias — tudo deve estar verde</p>
+                Se o dispositivo tem FC e SpO2, ative o <strong>monitoramento contínuo</strong>
+                <p className="ml-5 mt-1 text-xs italic">Sem isso, os dados podem ser esparsos ou apenas manuais.</p>
               </li>
               <li>
                 {healthKey && syncStatus && syncStatus.records.length > 0 ? (
@@ -294,32 +373,33 @@ export default function IntegraçõesPage() {
                 )}
               </li>
             </ol>
-          </div>
+          </details>
 
           <div className="rounded bg-white/60 dark:bg-white/5 p-3 text-xs text-muted">
             <p className="font-medium text-foreground mb-1">Fluxo de dados:</p>
             <p className="font-mono text-center py-1">
-              Amazfit → Zepp → Apple Health → HAE → Suporte Bipolar
+              Wearable → App do fabricante → Apple Health → HAE → Suporte Bipolar
             </p>
           </div>
 
           <details className="text-xs text-muted">
             <summary className="cursor-pointer font-medium text-foreground">Cobertura de métricas e limitações</summary>
             <div className="mt-2 space-y-1.5 pl-1">
-              <p><strong>Confiáveis:</strong> sono (estágios podem variar), FC, passos, calorias ativas</p>
-              <p><strong>Cobertura variável:</strong> HRV (baseline estável após ~7 dias de uso noturno; Amazfit usa RMSSD, Apple Health usa SDNN) e SpO2 (requer monitoramento 24h ativado no Zepp)</p>
-              <p><strong>Latência:</strong> dados dependem do Zepp sincronizar com o Apple Health, e do HAE exportar. Pode levar minutos a horas. Manter Background App Refresh ligado e Low Power Mode desligado.</p>
+              <p><strong>Confiáveis:</strong> sono (estágios podem variar por modelo), FC de repouso, passos, calorias ativas</p>
+              <p><strong>Cobertura variável:</strong> HRV (baseline estável após ~7 dias; fabricantes podem usar RMSSD enquanto Apple Health usa SDNN) e SpO2 (requer monitoramento contínuo ativado no app)</p>
+              <p><strong>Latência:</strong> dados dependem do app do fabricante sincronizar com o Apple Health, e do HAE exportar. Pode levar minutos a horas.</p>
+              <p><strong>Sem HRV?</strong> Sem problema — sono, horários e FC de repouso já entregam os insights mais importantes para estabilidade bipolar.</p>
             </div>
           </details>
 
           <details className="text-xs text-muted">
             <summary className="cursor-pointer font-medium text-foreground">Não está funcionando?</summary>
             <div className="mt-2 space-y-1.5 pl-1">
-              <p>1. Verifique em <strong>Apple Health → Perfil → Apps</strong> se Zepp e Health Auto Export têm permissão de leitura/escrita</p>
-              <p>2. Abra o app Zepp e aguarde a sincronização (ícone de loading no topo)</p>
+              <p>1. Verifique em <strong>Apple Health → Perfil → Apps</strong> se o app do wearable e o Health Auto Export têm permissão de leitura/escrita</p>
+              <p>2. Abra o app do wearable e aguarde a sincronização</p>
               <p>3. Desative o <strong>Modo Economia de Energia</strong> do iPhone</p>
-              <p>4. Ative <strong>Atualização em 2º Plano</strong> para Zepp e Health Auto Export (Ajustes → Geral)</p>
-              <p>5. Com o iPhone bloqueado, o HAE pode atrasar. Abra o app periodicamente para garantir o envio</p>
+              <p>4. Ative <strong>Atualização em 2º Plano</strong> para o app do wearable e Health Auto Export (Ajustes → Geral)</p>
+              <p>5. Com o iPhone bloqueado, o HAE pode atrasar. Abra os apps periodicamente para garantir o envio</p>
             </div>
           </details>
         </div>

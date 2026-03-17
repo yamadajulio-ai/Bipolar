@@ -42,10 +42,34 @@ const EXPLICIT_CRISIS: RegExp[] = [
   // Overdose / intoxication — with articles and gender variants
   /\bengol(ir|i)\s*(um\s*monte\s*de\s*|muit[oa]s?\s*|vari[oa]s?\s*|[oa]s\s*)?(comprimidos?|remedios?|pilulas?)\b/i,
   /\btomei\s*(muit[oa]s?|vari[oa]s?|um\s*monte\s*de)\s*(remedios?|comprimidos?|pilulas?)\b/i,
-  /\bmisturei\s*(remedio|remedios?|medicamento|medicacao|alcool|bebida)\b/i,
+  // Intent to overdose (future tense: "vou tomar")
+  /\b(vou|quero)\s*tomar\s*(muit[oa]s?|vari[oa]s?|tod[oa]s?\s*([oa]s\s*)?|um\s*monte\s*de)\s*(remedios?|comprimidos?|pilulas?)\b/i,
+  // Mixing medication with alcohol — requires medical term (avoids "misturei bebida com energético")
+  /\bmisturei\s*(remedio|remedios?|medicamento|medicacao)\b/i,
+  /\bmisturei\s*(alcool|bebida|cerveja|vinho)\s*(com\s*)?(remedio|remedios?|medicamento|medicacao)\b/i,
+  /\b(vou|quero)\s*misturar\s*(remedio|remedios?|medicamento|medicacao)\b/i,
+  /\b(vou|quero)\s*misturar\s*(alcool|bebida)\s*(com\s*)?(remedio|remedios?|medicamento|medicacao)\b/i,
+  // Poison / blister pack ingestion
+  /\b(tomei|bebi|engoli)\s*veneno\b/i,
+  /\b(engoli|tomei)\s*(a\s*)?cartela\s*(inteira|toda)\b/i,
   /\b(comprei\s*(uma\s*)?arma)\b/i,
   // Farewell (unambiguous)
   /\b(carta\s*de\s*despedida|adeus\s*pra\s*sempre)\b/i,
+];
+
+// ── Benign overrides ────────────────────────────────────────────
+// Phrases that contain crisis keywords but are clearly benign.
+// If ANY of these match, the EXPLICIT hit is suppressed for that text.
+// This prevents false escalation on colloquial pt-BR expressions.
+const BENIGN_OVERRIDES: RegExp[] = [
+  // "vou me matar de trabalhar/rir/estudar" — hyperbole
+  /me\s*matar\s*de\s*(rir|trabalh|estud|corr|cans|fome|saudade|vergonha)/i,
+  // "me joguei no sofá/na cama/na piscina" — physical action, not self-harm
+  /me\s*jog(ar|uei|ou)\s*(n[oa]\s*(sofa|cama|piscina|chao|agua|rio|mar|jogo|time))/i,
+  // "queria desaparecer da reunião/do trabalho" — figurative
+  /desaparecer\s*(da\s*reuniao|do\s*trabalho|do\s*grupo|da\s*festa|da\s*escola|da\s*aula|do\s*chat)/i,
+  // "tomei/engoli pílulas de vitamina" — supplement, not overdose
+  /(comprimidos?|pilulas?|remedios?)\s*de\s*vitamina/i,
 ];
 
 // CONTEXTUAL: ambiguous words/phrases that only indicate crisis when combined
@@ -105,9 +129,14 @@ function detectCrisisInTexts(texts: string[]): boolean {
   const normalized = texts.map(normalizeCrisisText);
 
   // Tier 1: Any explicit pattern in ANY message → immediate crisis (latched)
-  const hasExplicit = normalized.some((t) =>
-    EXPLICIT_CRISIS.some((p) => p.test(t)),
-  );
+  // BUT suppress if the text matches a known benign override (e.g., "me matar de rir")
+  const hasExplicit = normalized.some((t) => {
+    const matchesExplicit = EXPLICIT_CRISIS.some((p) => p.test(t));
+    if (!matchesExplicit) return false;
+    // Check if benign override cancels the match
+    const isBenign = BENIGN_OVERRIDES.some((b) => b.test(t));
+    return !isBenign;
+  });
   if (hasExplicit) return true;
 
   // Tier 2: Contextual patterns — only check recent window (last 6 messages)

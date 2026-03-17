@@ -124,6 +124,26 @@ function normalizeStage(stage: string): SleepStageType {
 
 // ── Main parser ─────────────────────────────────────────────────
 
+// ── Validation helpers ──────────────────────────────────────────
+
+/** Check if a value is a finite number within bounds. */
+function isValidNumber(v: unknown, min: number, max: number): v is number {
+  return typeof v === "number" && Number.isFinite(v) && v >= min && v <= max;
+}
+
+/** Parse an ISO timestamp string, returning null if invalid or unreasonable. */
+function parseTimestamp(s: unknown): Date | null {
+  if (typeof s !== "string" || s.length < 10) return null;
+  const d = new Date(s);
+  if (isNaN(d.getTime())) return null;
+  // Reject dates before 2020 or more than 48h in the future
+  const now = Date.now();
+  if (d.getTime() < 1577836800000 || d.getTime() > now + 172800000) return null;
+  return d;
+}
+
+// ── Main parser ─────────────────────────────────────────────────
+
 export function parseHealthConnectPayload(body: unknown): HealthConnectResult {
   const payload = body as HCPayload;
   const result: HealthConnectResult = {
@@ -145,10 +165,9 @@ export function parseHealthConnectPayload(body: unknown): HealthConnectResult {
   if (Array.isArray(payload.steps)) {
     const stepsByDay = new Map<string, number>();
     for (const step of payload.steps) {
-      if (typeof step.count !== "number" || step.count <= 0) continue;
-      // Use end_time for the day
-      const d = new Date(step.end_time || step.start_time);
-      if (isNaN(d.getTime())) continue;
+      if (!isValidNumber(step.count, 1, 200000)) continue;
+      const d = parseTimestamp(step.end_time) ?? parseTimestamp(step.start_time);
+      if (!d) continue;
       const day = toYMD(d);
       stepsByDay.set(day, (stepsByDay.get(day) ?? 0) + step.count);
     }
@@ -163,9 +182,9 @@ export function parseHealthConnectPayload(body: unknown): HealthConnectResult {
   if (Array.isArray(payload.active_calories)) {
     const calsByDay = new Map<string, number>();
     for (const cal of payload.active_calories) {
-      if (typeof cal.calories !== "number" || cal.calories <= 0) continue;
-      const d = new Date(cal.end_time || cal.start_time);
-      if (isNaN(d.getTime())) continue;
+      if (!isValidNumber(cal.calories, 0.1, 10000)) continue;
+      const d = parseTimestamp(cal.end_time) ?? parseTimestamp(cal.start_time);
+      if (!d) continue;
       const day = toYMD(d);
       calsByDay.set(day, (calsByDay.get(day) ?? 0) + cal.calories);
     }
@@ -180,9 +199,9 @@ export function parseHealthConnectPayload(body: unknown): HealthConnectResult {
   if (Array.isArray(payload.oxygen_saturation)) {
     const spo2ByDay = new Map<string, number[]>();
     for (const ox of payload.oxygen_saturation) {
-      if (typeof ox.percentage !== "number" || ox.percentage < 50 || ox.percentage > 100) continue;
-      const d = new Date(ox.time);
-      if (isNaN(d.getTime())) continue;
+      if (!isValidNumber(ox.percentage, 50, 100)) continue;
+      const d = parseTimestamp(ox.time);
+      if (!d) continue;
       const day = toYMD(d);
       const arr = spo2ByDay.get(day) ?? [];
       arr.push(ox.percentage);
@@ -203,16 +222,16 @@ function parseSleepSession(
   session: HCSleep,
   payload: HCPayload,
 ): ProcessedSleepNight | null {
-  if (!session.session_end_time || typeof session.duration_seconds !== "number") return null;
+  if (!session.session_end_time || !isValidNumber(session.duration_seconds, 0, 86400)) return null;
+
+  const endTime = parseTimestamp(session.session_end_time);
+  if (!endTime) return null;
 
   const totalSeconds = session.duration_seconds;
   const totalHours = totalSeconds / 3600;
 
-  // Skip sessions < 30 min (not real sleep)
-  if (totalHours < 0.5) return null;
-
-  const endTime = new Date(session.session_end_time);
-  if (isNaN(endTime.getTime())) return null;
+  // Skip sessions < 30 min (not real sleep) or > 24h (invalid)
+  if (totalHours < 0.5 || totalHours > 24) return null;
 
   const startTime = new Date(endTime.getTime() - totalSeconds * 1000);
   const wakeDate = toYMD(endTime);
@@ -267,9 +286,10 @@ function parseSleepSession(
   // Find HRV readings during sleep window
   if (Array.isArray(payload.heart_rate_variability)) {
     const sleepHrvs = payload.heart_rate_variability.filter((h) => {
-      const t = new Date(h.time).getTime();
-      return t >= startTime.getTime() && t <= endTime.getTime() &&
-        typeof h.rmssd_millis === "number" && h.rmssd_millis >= 1 && h.rmssd_millis <= 300;
+      const t = parseTimestamp(h.time);
+      if (!t) return false;
+      return t.getTime() >= startTime.getTime() && t.getTime() <= endTime.getTime() &&
+        isValidNumber(h.rmssd_millis, 1, 300);
     });
     if (sleepHrvs.length > 0) {
       hrv = Math.round(sleepHrvs.reduce((s, h) => s + h.rmssd_millis, 0) / sleepHrvs.length);
@@ -283,9 +303,10 @@ function parseSleepSession(
 
   if (Array.isArray(hrSource)) {
     const sleepHrs = hrSource.filter((h) => {
-      const t = new Date(h.time).getTime();
-      return t >= startTime.getTime() && t <= endTime.getTime() &&
-        typeof h.bpm === "number" && h.bpm >= 30 && h.bpm <= 200;
+      const t = parseTimestamp(h.time);
+      if (!t) return false;
+      return t.getTime() >= startTime.getTime() && t.getTime() <= endTime.getTime() &&
+        isValidNumber(h.bpm, 30, 200);
     });
     if (sleepHrs.length > 0) {
       // Use minimum HR during sleep as resting approximation

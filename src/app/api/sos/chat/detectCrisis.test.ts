@@ -280,6 +280,77 @@ describe("detectCrisisInTexts", () => {
     });
   });
 
+  // ── Round 9 — overdose intent, poison, benign overrides ─────────
+
+  describe("Round 9 — future intent overdose must detect", () => {
+    it.each([
+      "vou tomar vários comprimidos",
+      "vou tomar varios comprimidos",
+      "vou tomar muitas pílulas",
+      "vou tomar muitos remédios",
+      "vou tomar todos os remédios",
+      "vou tomar todas as pílulas",
+      "quero tomar todos os comprimidos",
+      "vou misturar remédio com álcool",
+      "vou misturar medicamento com bebida",
+      "quero misturar remédio com bebida",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("Round 9 — poison/blister pack must detect", () => {
+    it.each([
+      "tomei veneno",
+      "bebi veneno",
+      "engoli veneno",
+      "engoli a cartela inteira",
+      "tomei a cartela toda",
+      "engoli a cartela toda",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("Round 9 — misturei requires medical term (no FP on benign mixing)", () => {
+    it("'misturei remédio' → true", () => {
+      expect(detect("misturei remédio")).toBe(true);
+    });
+    it("'misturei medicamento' → true", () => {
+      expect(detect("misturei medicamento")).toBe(true);
+    });
+    it("'misturei álcool com remédio' → true", () => {
+      expect(detect("misturei álcool com remédio")).toBe(true);
+    });
+    it("'misturei bebida com medicamento' → true", () => {
+      expect(detect("misturei bebida com medicamento")).toBe(true);
+    });
+    it("'misturei bebida com energético' → false (no medical term)", () => {
+      expect(detect("misturei bebida com energético")).toBe(false);
+    });
+    it("'misturei cerveja com suco' → false", () => {
+      expect(detect("misturei cerveja com suco")).toBe(false);
+    });
+  });
+
+  describe("Round 9 — benign overrides prevent false positives", () => {
+    it.each([
+      "vou me matar de trabalhar",
+      "vou me matar de rir",
+      "vou me matar de estudar",
+      "me joguei no sofá",
+      "me joguei na cama",
+      "me joguei na piscina",
+      "queria desaparecer da reunião",
+      "queria desaparecer do trabalho",
+      "queria desaparecer do grupo",
+      "tomei muitas pílulas de vitamina",
+      "engoli as pílulas de vitamina",
+    ])("does NOT detect: %s", (text) => {
+      expect(detect(text)).toBe(false);
+    });
+  });
+
   describe("Round 8 — contextual window prevents false-positive accumulation", () => {
     it("benign contextual words across 10+ messages do NOT trigger (ponte msg1 + faca msg10)", () => {
       const messages = [

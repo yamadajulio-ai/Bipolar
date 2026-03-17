@@ -83,6 +83,15 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    // Body size limit: reject payloads > 5MB to prevent memory abuse
+    const contentLength = request.headers.get("content-length");
+    if (contentLength && parseInt(contentLength, 10) > 5_000_000) {
+      return NextResponse.json(
+        { error: "Payload muito grande", detail: "Máximo 5MB por requisição" },
+        { status: 413 },
+      );
+    }
+
     const body = await request.json();
 
     const debugInfo = {

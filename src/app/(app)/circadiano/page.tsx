@@ -48,7 +48,7 @@ const DARK_THERAPY_TIPS = [
   {
     title: "Horário regular de sono",
     detail:
-      "Manter horários consistentes para dormir e acordar é a base da IPSRT. Irregularidade circadiana pode estar associada a maior risco de episódios em algumas pessoas.",
+      "Manter horários consistentes para dormir e acordar é a base da Terapia de Ritmos Sociais (IPSRT). Irregularidade circadiana pode estar associada a maior risco de episódios em algumas pessoas.",
     reference: "Frank et al., 2005 — Archives of General Psychiatry",
     icon: "⏰",
   },

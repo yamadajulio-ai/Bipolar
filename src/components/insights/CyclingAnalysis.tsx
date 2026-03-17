@@ -81,7 +81,7 @@ export function CyclingAnalysis({ data }: Props) {
 
       <p className="mt-3 text-center text-[10px] text-foreground/50">
         Detecção baseada em padrões de humor e energia. Não constitui diagnóstico.
-        Referência: DSM-5 (ciclagem rápida = ≥4 episódios/ano).
+        Ciclagem rápida = 4 ou mais episódios em um ano (critério diagnóstico internacional).
       </p>
     </div>
   );

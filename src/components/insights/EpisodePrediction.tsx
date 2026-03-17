@@ -110,7 +110,7 @@ export function EpisodePrediction({ data }: Props) {
       )}
 
       <p className="mt-3 text-center text-[10px] text-foreground/50">
-        Baseado em sinais prodrômicos (ISBD/STEP-BD). Indicador educacional — não substitui avaliação profissional.
+        Baseado em sinais que costumam aparecer antes de episódios. Indicador educacional — não substitui avaliação profissional.
         {data.daysUsed} dias analisados.
       </p>
     </div>

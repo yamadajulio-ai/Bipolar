@@ -119,7 +119,7 @@ export default function LifeChartPage() {
         <div>
           <h1 className="text-2xl font-bold">Life Chart</h1>
           <p className="text-sm text-muted">
-            Eventos significativos — NIMH Life Chart simplificado
+            Registre eventos importantes da sua vida que podem influenciar o humor
           </p>
         </div>
         <button
@@ -276,8 +276,8 @@ export default function LifeChartPage() {
       )}
 
       <p className="mt-6 text-center text-[10px] text-muted">
-        Baseado no NIMH Life Chart Method (Denicoff et al., 1997). Eventos servem como
-        marcadores para correlacionar com episódios de humor.
+        Registrar eventos ajuda a entender o que pode ter influenciado mudanças no seu humor.
+        Baseado em método clínico internacional (NIMH Life Chart).
       </p>
     </div>
   );

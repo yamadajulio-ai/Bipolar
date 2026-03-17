@@ -61,8 +61,8 @@ const METRIC_INFO: Record<string, { title: string; content: string; tip?: string
 
   // Rhythm metrics
   regularidadeGeral: {
-    title: "Regularidade geral (IPSRT)",
-    content: "Média ponderada da regularidade de 5 âncoras do dia: acordar, contato social, atividade principal, jantar e dormir. Baseado na Terapia de Ritmos Sociais (Ellen Frank, Pittsburgh).",
+    title: "Regularidade dos seus horários",
+    content: "Mede o quão regulares são seus 5 horários-âncora: acordar, contato social, atividade principal, jantar e dormir. Horários consistentes protegem contra episódios.",
     tip: "Comece estabilizando UMA âncora por vez. Horário de acordar é a mais impactante.",
   },
 };

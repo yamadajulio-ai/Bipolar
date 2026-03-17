@@ -92,8 +92,8 @@ export function MonthlyReport({ data }: MonthlyReportProps) {
           <StatCard label="Adesão medicação" value={`${stats.medicationAdherence}%`} subtitle={`Dos ${stats.totalDiaryEntries} registro(s) feitos`} />
         )}
         {stats.totalWeeklyAssessments ? <StatCard label="Avaliações semanais" value={stats.totalWeeklyAssessments} /> : null}
-        {stats.avgAsrm !== null && stats.avgAsrm !== undefined && <StatCard label="ASRM médio" value={`${stats.avgAsrm}/20`} />}
-        {stats.avgPhq9 !== null && stats.avgPhq9 !== undefined && <StatCard label="PHQ-9 médio" value={`${stats.avgPhq9}/27`} />}
+        {stats.avgAsrm !== null && stats.avgAsrm !== undefined && <StatCard label="Mania (média)" value={`${stats.avgAsrm}/20`} />}
+        {stats.avgPhq9 !== null && stats.avgPhq9 !== undefined && <StatCard label="Depressão (média)" value={`${stats.avgPhq9}/27`} />}
         {stats.avgFunctioning !== null && stats.avgFunctioning !== undefined && <StatCard label="Funcionamento" value={`${stats.avgFunctioning}/5`} />}
       </div>
 
@@ -159,8 +159,8 @@ export function MonthlyReport({ data }: MonthlyReportProps) {
               <div key={w.date} className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm">
                 <span className="text-muted">{new Date(w.date + "T12:00:00Z").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", timeZone: "UTC" })}</span>
                 <div className="flex gap-3 text-xs">
-                  {w.asrmTotal !== null && <span>ASRM: <strong>{w.asrmTotal}</strong></span>}
-                  {w.phq9Total !== null && <span>PHQ-9: <strong>{w.phq9Total}</strong></span>}
+                  {w.asrmTotal !== null && <span>Mania: <strong>{w.asrmTotal}</strong></span>}
+                  {w.phq9Total !== null && <span>Depressão: <strong>{w.phq9Total}</strong></span>}
                   {w.fastAvg !== null && <span>Func: <strong>{w.fastAvg.toFixed(1)}</strong></span>}
                 </div>
               </div>
@@ -209,10 +209,10 @@ export function MonthlyReport({ data }: MonthlyReportProps) {
             <li>• Sono acima de 10h em média — possível hipersonia</li>
           )}
           {stats.avgPhq9 !== undefined && stats.avgPhq9 !== null && stats.avgPhq9 >= 10 && (
-            <li>• PHQ-9 médio ≥ 10 — sintomas depressivos moderados a graves</li>
+            <li>• Pontuação de depressão média ≥ 10 — sintomas moderados a graves</li>
           )}
           {stats.avgAsrm !== undefined && stats.avgAsrm !== null && stats.avgAsrm >= 6 && (
-            <li>• ASRM médio ≥ 6 — possíveis sintomas maníacos/hipomaníacos</li>
+            <li>• Pontuação de mania média ≥ 6 — possíveis sintomas maníacos/hipomaníacos</li>
           )}
           {stats.medicationAdherence !== null && stats.medicationAdherence < 70 && (
             <li>• Adesão à medicação abaixo de 70% — discutir barreiras</li>

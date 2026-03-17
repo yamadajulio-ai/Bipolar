@@ -243,7 +243,7 @@ export default async function InsightsPage({
     <div className="max-w-2xl mx-auto">
       <h1 className="mb-1 text-2xl font-bold">Insights</h1>
       <p className="mb-4 text-xs text-muted">
-        Baseado em protocolos IPSRT e pesquisas PROMAN/USP · Não substitui avaliação profissional
+        Baseado em pesquisas clínicas e protocolos de estabilidade · Não substitui avaliação profissional
       </p>
 
       {/* ── Safety Nudge (always on top when risk is high) ──────── */}
@@ -298,7 +298,7 @@ export default async function InsightsPage({
                 </ul>
               )}
               <p className="mt-2 text-[10px] text-muted italic">
-                Indicador heurístico educacional — não substitui avaliação profissional.
+                Indicador educacional baseado nos seus dados — não substitui avaliação profissional.
               </p>
             </Card>
           )}
@@ -873,7 +873,7 @@ export default async function InsightsPage({
               <Card className="mb-4">
                 <h3 className="mb-2 text-sm font-semibold">O que é o Ritmo Social?</h3>
                 <p className="mb-3 text-sm text-muted">
-                  A IPSRT monitora 5 atividades-âncora: horário de acordar, primeiro contato social,
+                  Monitoramos 5 atividades-âncora do seu dia: horário de acordar, primeiro contato social,
                   início da atividade principal, jantar e horário de dormir. Quanto mais regulares, maior a estabilidade.
                 </p>
                 <Link
@@ -981,7 +981,7 @@ export default async function InsightsPage({
                   )}
                 </div>
                 <p className="mt-3 text-[10px] text-muted italic">
-                  Método: Spearman rank correlation. n={insights.chart.correlation?.n ?? insights.chart.lagCorrelation?.n ?? 0} dias.
+                  Método estatístico de correlação por ranking. Baseado em {insights.chart.correlation?.n ?? insights.chart.lagCorrelation?.n ?? 0} dias de dados.
                   Correlações fracas são comuns com poucos dados.
                 </p>
               </Card>
@@ -1013,7 +1013,7 @@ export default async function InsightsPage({
                 <Card className="h-full hover:border-primary/50 transition-colors">
                   <p className="text-sm font-medium">Avaliação Semanal</p>
                   <p className="mt-1 text-[11px] text-muted">
-                    ASRM + PHQ-9 — escalas validadas para mania e depressão
+                    Questionários validados para mania e depressão
                   </p>
                 </Card>
               </Link>
@@ -1050,28 +1050,28 @@ export default async function InsightsPage({
               <h2 className="mb-2 text-sm font-semibold">Sobre a metodologia</h2>
               <div className="space-y-2 text-xs text-muted">
                 <p>
-                  <span className="font-medium text-foreground/70">Termômetro:</span> Score dual mania/depressão (0-100), suavizado com EWMA (α=0.4).
-                  5 zonas: depressão severa → eutimia → mania. Features mistas detectadas quando ambos os scores estão elevados.
+                  <span className="font-medium text-foreground/70">Termômetro de humor:</span> Calcula uma pontuação de mania e depressão (0-100) usando uma média que dá mais peso aos dias recentes.
+                  Divide em 5 zonas, de depressão severa até mania. Detecta estados mistos quando ambas as pontuações estão altas.
                 </p>
                 <p>
-                  <span className="font-medium text-foreground/70">Risco:</span> Score heurístico baseado em combinação de fatores (sono, humor, medicação, sinais de alerta, gastos).
-                  Não é um instrumento diagnóstico — serve como guia educacional.
+                  <span className="font-medium text-foreground/70">Indicador de risco:</span> Combina seus dados de sono, humor, medicação, sinais de alerta e gastos para estimar seu estado geral.
+                  Não é um instrumento diagnóstico — serve como guia educacional para você e seu profissional.
                 </p>
                 <p>
-                  <span className="font-medium text-foreground/70">Correlações:</span> Spearman rank (resiliente a outliers).
-                  Força capped em &quot;fraca&quot; para n &lt; 14 dias.
+                  <span className="font-medium text-foreground/70">Correlações:</span> Usamos um método estatístico que mede se duas coisas variam juntas (ex: sono e humor).
+                  Com menos de 14 dias de dados, a força máxima mostrada é &quot;fraca&quot; por precaução.
                 </p>
                 <p>
-                  <span className="font-medium text-foreground/70">Ritmo Social:</span> Inspirado na IPSRT (Frank, 2005). Regularidade = % de dias dentro de ±45min da mediana.
-                  Social Jet Lag = diferença entre ponto médio de sono em dias úteis vs fim de semana (Wittmann, 2006).
+                  <span className="font-medium text-foreground/70">Ritmo Social:</span> Baseado na Terapia de Ritmos Sociais (IPSRT). Mede a % de dias em que seus horários ficaram dentro de ±45min do seu padrão.
+                  Social Jet Lag = diferença entre seu horário de sono em dias úteis vs fim de semana.
                 </p>
                 <p>
-                  <span className="font-medium text-foreground/70">Ciclagem Rápida:</span> Critério DSM-5 (≥4 episódios em 12 meses).
-                  Episódios detectados por humor ≥4 (mania) ou ≤2 (depressão) por ≥2 dias consecutivos.
+                  <span className="font-medium text-foreground/70">Ciclagem Rápida:</span> Detecta se houve 4 ou mais episódios em 12 meses (critério diagnóstico internacional).
+                  Episódios identificados por humor consistentemente alto ou baixo por 2+ dias seguidos.
                 </p>
                 <p>
-                  Baseado em pesquisas do PROMAN/USP (Prof. Beny Lafer), protocolos IPSRT, BAP 2016, CANMAT e critérios DSM-5.
-                  Escalas ASRM (Altman), PHQ-9 (Kroenke). <strong>Não substitui avaliação profissional.</strong>
+                  Referências: PROMAN/USP, IPSRT (Frank, 2005), BAP 2016, CANMAT, DSM-5, ASRM (Altman), PHQ-9 (Kroenke).
+                  <strong> Não substitui avaliação profissional.</strong>
                 </p>
               </div>
             </Card>
@@ -1080,7 +1080,7 @@ export default async function InsightsPage({
       </InsightsTabs>
 
       <p className="text-center text-xs text-muted mt-4 mb-8">
-        Baseado em pesquisas do PROMAN/USP, protocolos IPSRT e critérios do DSM-5. Não substitui avaliação profissional.
+        Baseado em pesquisas clínicas e protocolos internacionais de estabilidade. Não substitui avaliação profissional.
       </p>
     </div>
   );

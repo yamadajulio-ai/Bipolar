@@ -145,7 +145,7 @@ export default function OnboardingPage() {
                   <div className="text-3xl text-center">📋</div>
                   <h3 className="text-sm font-semibold text-center">Avaliação semanal</h3>
                   <p className="text-xs text-muted text-center">
-                    Uma vez por semana, responda 3 questionários rápidos (ASRM, PHQ-9, FAST).
+                    Uma vez por semana, responda 3 questionários rápidos sobre mania, depressão e funcionamento.
                     Gera relatórios prontos para levar à consulta.
                   </p>
                 </>
@@ -153,7 +153,7 @@ export default function OnboardingPage() {
               {goal === "routine" && (
                 <>
                   <div className="text-3xl text-center">⏰</div>
-                  <h3 className="text-sm font-semibold text-center">Âncoras IPSRT</h3>
+                  <h3 className="text-sm font-semibold text-center">Horários-âncora</h3>
                   <p className="text-xs text-muted text-center">
                     Registre 5 momentos-chave do dia: acordar, primeiro contato social,
                     atividade principal, jantar e dormir. O app mede sua regularidade.

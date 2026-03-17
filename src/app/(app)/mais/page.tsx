@@ -15,14 +15,14 @@ const sections: { title: string; items: ModuleItem[] }[] = [
       { href: "/diario/tendencias", label: "Tendências do Diário", description: "Gráficos e alertas de padrão" },
       { href: "/sono", label: "Sono", description: "Registro detalhado de sono" },
       { href: "/sono/tendencias", label: "Tendências de Sono", description: "Regularidade e qualidade" },
-      { href: "/rotina", label: "Rotina", description: "Rastreador de ritmo social (IPSRT)" },
+      { href: "/rotina", label: "Rotina", description: "Seus horários-âncora do dia" },
       { href: "/rotina/tendencias", label: "Tendências de Rotina", description: "Regularidade de âncoras" },
     ],
   },
   {
     title: "Avaliações",
     items: [
-      { href: "/avaliacao-semanal", label: "Avaliação Semanal", description: "ASRM, PHQ-9 e funcionamento" },
+      { href: "/avaliacao-semanal", label: "Avaliação Semanal", description: "Mania, depressão e funcionamento" },
       { href: "/life-chart", label: "Life Chart", description: "Registro de eventos significativos" },
       { href: "/circadiano", label: "Circadiano", description: "Análise do seu ritmo circadiano" },
       { href: "/cognitivo", label: "Cognitivo", description: "Tarefas de tempo de reação e memória" },

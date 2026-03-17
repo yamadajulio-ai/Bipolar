@@ -633,7 +633,7 @@ export default async function HojePage() {
           {anchors.length > 0 && (
             <div className={upcomingBlocks.length > 0 ? "mb-3 pb-3 border-b border-border" : ""}>
               <div className="flex items-center justify-between mb-2">
-                <h2 className="text-sm font-semibold text-foreground">Rotina IPSRT</h2>
+                <h2 className="text-sm font-semibold text-foreground">Seus horários-âncora</h2>
                 <Link href="/rotina" className="text-xs text-primary hover:underline">Editar</Link>
               </div>
               <div className="flex flex-wrap gap-1.5">

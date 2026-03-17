@@ -347,7 +347,7 @@ export default function FinanceiroPage() {
           {/* Correlation cards */}
           {(summary.sameDayCorrelation || summary.lagCorrelation) && (
             <Card>
-              <h3 className="mb-2 text-sm font-medium">Correlação gasto-humor (Spearman)</h3>
+              <h3 className="mb-2 text-sm font-medium">Relação entre gastos e humor</h3>
               <div className="space-y-2">
                 {summary.sameDayCorrelation && (
                   <CorrelationCard

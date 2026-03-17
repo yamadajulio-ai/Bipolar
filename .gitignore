@@ -52,3 +52,5 @@ next-env.d.ts
 # prompt files (GPT audit, features, etc.)
 prompt-gpt-*.md
 IDEIAS REDE BIPOLAR.txt
+
+.env*.local

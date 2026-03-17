@@ -247,7 +247,7 @@ export default async function HojePage() {
 
   // Determine primary CTA
   let primaryCta = { href: "/checkin", label: "Fazer check-in", verb: "Registrar humor e energia" };
-  if (riskLevel === "atencao_alta" || zone === "mania" || zone === "depressao") {
+  if (zone === "mania" || zone === "depressao") {
     primaryCta = { href: "/plano-de-crise", label: "Revisar plano de crise", verb: "Revise seu plano de segurança" };
   } else if (!todayEntry) {
     primaryCta = { href: "/checkin", label: "Fazer check-in", verb: "Registrar humor e energia" };
@@ -261,8 +261,8 @@ export default async function HojePage() {
   interface Task { label: string; href: string; done: boolean; priority: number }
   const tasks: Task[] = [];
 
-  // Safety first
-  if (riskLevel === "atencao_alta") {
+  // Safety first (mania/depression zones still reach here even though atencao_alta goes to crisis mode)
+  if (zone === "mania" || zone === "depressao") {
     tasks.push({ label: "Revisar plano de crise", href: "/plano-de-crise", done: false, priority: 0 });
   }
 
@@ -350,6 +350,102 @@ export default async function HojePage() {
   const showSafetyNudge = riskLevel === "atencao_alta" ||
     (Array.isArray(warningSigns) && warningSigns.includes("pensamentos_suicidas"));
 
+  // Crisis/simplified mode: auto-trigger when high risk
+  const crisisMode = showSafetyNudge;
+
+  // === CRISIS MODE: show simplified UI ===
+  if (crisisMode) {
+    return (
+      <div className="space-y-4">
+        <Greeting />
+        <SafetyNudge />
+
+        <Card className="border-red-300 bg-red-50/50">
+          <p className="text-sm font-semibold text-red-800 mb-1">Modo simplificado ativado</p>
+          <p className="text-xs text-red-700/80">
+            Detectamos sinais que merecem atenção. A interface está simplificada para facilitar o que é mais importante agora.
+          </p>
+        </Card>
+
+        <div className="space-y-3">
+          {/* 1. Plano de crise */}
+          <Link href="/plano-de-crise" className="block no-underline">
+            <Card className="border-red-200 bg-red-50/30 hover:bg-red-50 transition-colors py-5">
+              <div className="flex items-center gap-4">
+                <span className="text-2xl">🛡️</span>
+                <div>
+                  <p className="font-semibold text-foreground">Revisar plano de crise</p>
+                  <p className="text-xs text-muted mt-0.5">Seu plano de segurança personalizado</p>
+                </div>
+              </div>
+            </Card>
+          </Link>
+
+          {/* 2. SOS / Emergência */}
+          <Link href="/sos" className="block no-underline">
+            <Card className="border-red-300 bg-red-100/50 hover:bg-red-100 transition-colors py-5">
+              <div className="flex items-center gap-4">
+                <span className="text-2xl">🆘</span>
+                <div>
+                  <p className="font-semibold text-red-800">SOS — Preciso de ajuda agora</p>
+                  <p className="text-xs text-red-700 mt-0.5">Grounding, contatos de emergência, CVV 188</p>
+                </div>
+              </div>
+            </Card>
+          </Link>
+
+          {/* 3. Medicação */}
+          <Link href="/checkin" className="block no-underline">
+            <Card className="border-border hover:bg-surface-alt transition-colors py-5">
+              <div className="flex items-center gap-4">
+                <span className="text-2xl">💊</span>
+                <div>
+                  <p className="font-semibold text-foreground">Registrar medicação</p>
+                  <p className="text-xs text-muted mt-0.5">
+                    {todayEntry?.tookMedication === "sim" ? "Já registrado hoje ✓" : "Importante manter a adesão"}
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </Link>
+
+          {/* 4. Check-in rápido */}
+          <Link href="/checkin" className="block no-underline">
+            <Card className="border-border hover:bg-surface-alt transition-colors py-5">
+              <div className="flex items-center gap-4">
+                <span className="text-2xl">📝</span>
+                <div>
+                  <p className="font-semibold text-foreground">Check-in rápido</p>
+                  <p className="text-xs text-muted mt-0.5">
+                    {todayEntry ? "Já feito hoje ✓" : "Registrar como você está"}
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </Link>
+
+          {/* 5. Contato de confiança */}
+          <a href="tel:188" className="block no-underline">
+            <Card className="border-amber-200 bg-amber-50/30 hover:bg-amber-50 transition-colors py-5">
+              <div className="flex items-center gap-4">
+                <span className="text-2xl">📞</span>
+                <div>
+                  <p className="font-semibold text-foreground">Ligar para alguém</p>
+                  <p className="text-xs text-muted mt-0.5">CVV 188 (24h) · SAMU 192 · Ou seu contato de confiança</p>
+                </div>
+              </div>
+            </Card>
+          </a>
+        </div>
+
+        <p className="text-[10px] text-center text-muted italic px-4">
+          Este modo é ativado automaticamente quando detectamos sinais que merecem atenção.
+          Ele não substitui avaliação profissional. Quando o padrão se estabilizar, a interface volta ao normal.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <Greeting />
@@ -405,11 +501,7 @@ export default async function HojePage() {
           {/* Primary CTA */}
           <Link
             href={primaryCta.href}
-            className={`block w-full text-center rounded-lg py-2.5 text-sm font-semibold no-underline transition-colors ${
-              riskLevel === "atencao_alta"
-                ? "bg-red-600 text-white hover:bg-red-700"
-                : "bg-primary text-white hover:bg-primary/90"
-            }`}
+            className="block w-full text-center rounded-lg py-2.5 text-sm font-semibold no-underline transition-colors bg-primary text-white hover:bg-primary/90"
           >
             {primaryCta.label}
           </Link>

@@ -279,7 +279,7 @@ export default function IntegraçõesPage() {
               <tbody className="text-muted">
                 <tr className="border-b border-emerald-100 dark:border-emerald-900/50">
                   <td className="py-1.5 pr-2 font-medium text-foreground">Xiaomi Smart Band 9 Active</td>
-                  <td className="py-1.5 pr-2">~R$130</td>
+                  <td className="py-1.5 pr-2">R$200–300</td>
                   <td className="py-1.5 pr-2">Mi Fitness</td>
                   <td className="py-1.5 pr-2 text-green-600">&#10003;</td>
                   <td className="py-1.5 pr-2 text-green-600">&#10003;</td>
@@ -288,7 +288,7 @@ export default function IntegraçõesPage() {
                 </tr>
                 <tr className="border-b border-emerald-100 dark:border-emerald-900/50">
                   <td className="py-1.5 pr-2 font-medium text-foreground">Redmi Watch 5 Active</td>
-                  <td className="py-1.5 pr-2">~R$200</td>
+                  <td className="py-1.5 pr-2">R$200–300</td>
                   <td className="py-1.5 pr-2">Mi Fitness</td>
                   <td className="py-1.5 pr-2 text-green-600">&#10003;</td>
                   <td className="py-1.5 pr-2 text-green-600">&#10003;</td>
@@ -296,17 +296,8 @@ export default function IntegraçõesPage() {
                   <td className="py-1.5 text-green-600">&#10003;</td>
                 </tr>
                 <tr className="border-b border-emerald-100 dark:border-emerald-900/50">
-                  <td className="py-1.5 pr-2 font-medium text-foreground">Amazfit Bip 6</td>
-                  <td className="py-1.5 pr-2">~R$350</td>
-                  <td className="py-1.5 pr-2">Zepp</td>
-                  <td className="py-1.5 pr-2 text-green-600">&#10003;</td>
-                  <td className="py-1.5 pr-2 text-green-600">&#10003;</td>
-                  <td className="py-1.5 pr-2 text-amber-500">~</td>
-                  <td className="py-1.5 text-green-600">&#10003;</td>
-                </tr>
-                <tr className="border-b border-emerald-100 dark:border-emerald-900/50">
-                  <td className="py-1.5 pr-2 font-medium text-foreground">HUAWEI Band 10</td>
-                  <td className="py-1.5 pr-2">~R$300</td>
+                  <td className="py-1.5 pr-2 font-medium text-foreground">HUAWEI Band 9</td>
+                  <td className="py-1.5 pr-2">R$300–450</td>
                   <td className="py-1.5 pr-2">Huawei Health</td>
                   <td className="py-1.5 pr-2 text-green-600">&#10003;</td>
                   <td className="py-1.5 pr-2 text-green-600">&#10003;</td>
@@ -314,8 +305,17 @@ export default function IntegraçõesPage() {
                   <td className="py-1.5 text-green-600">&#10003;</td>
                 </tr>
                 <tr className="border-b border-emerald-100 dark:border-emerald-900/50">
+                  <td className="py-1.5 pr-2 font-medium text-foreground">Amazfit Bip 6</td>
+                  <td className="py-1.5 pr-2">R$300–450</td>
+                  <td className="py-1.5 pr-2">Zepp</td>
+                  <td className="py-1.5 pr-2 text-green-600">&#10003;</td>
+                  <td className="py-1.5 pr-2 text-green-600">&#10003;</td>
+                  <td className="py-1.5 pr-2 text-amber-500">~</td>
+                  <td className="py-1.5 text-green-600">&#10003;</td>
+                </tr>
+                <tr className="border-b border-emerald-100 dark:border-emerald-900/50">
                   <td className="py-1.5 pr-2 font-medium text-foreground">Amazfit Active 2</td>
-                  <td className="py-1.5 pr-2">~R$800</td>
+                  <td className="py-1.5 pr-2">R$700–1.000</td>
                   <td className="py-1.5 pr-2">Zepp</td>
                   <td className="py-1.5 pr-2 text-green-600">&#10003;</td>
                   <td className="py-1.5 pr-2 text-green-600">&#10003;</td>
@@ -323,8 +323,8 @@ export default function IntegraçõesPage() {
                   <td className="py-1.5 text-green-600">&#10003;</td>
                 </tr>
                 <tr>
-                  <td className="py-1.5 pr-2 font-medium text-foreground">Apple Watch SE</td>
-                  <td className="py-1.5 pr-2">~R$2.500</td>
+                  <td className="py-1.5 pr-2 font-medium text-foreground">Apple Watch SE 3</td>
+                  <td className="py-1.5 pr-2">R$2.500–3.500</td>
                   <td className="py-1.5 pr-2">Nativo</td>
                   <td className="py-1.5 pr-2 text-green-600">&#10003;</td>
                   <td className="py-1.5 pr-2 text-green-600">&#10003;</td>
@@ -338,7 +338,10 @@ export default function IntegraçõesPage() {
             <strong>&#10003;</strong> = confiável &nbsp; <strong className="text-amber-500">~</strong> = cobertura variável (validar antes) &nbsp; <strong className="text-gray-400">&#8212;</strong> = não disponível
           </p>
           <p className="text-xs text-muted">
-            <strong>Recomendação custo-benefício:</strong> para sono, FC e passos, a Xiaomi Smart Band 9 Active (~R$130) é suficiente.
+            Preços de referência do varejo brasileiro (mar/2026). Podem variar por loja e promoção.
+          </p>
+          <p className="text-xs text-muted">
+            <strong>Recomendação custo-benefício:</strong> para sono, FC e passos, a Xiaomi Smart Band 9 Active (a partir de ~R$200) é suficiente.
             HRV exige modelos a partir de ~R$300 e a cobertura via Apple Health pode variar.
           </p>
 

@@ -44,13 +44,13 @@ export function generateWhatsAppLink(phone?: string, text?: string): string {
 
   if (phone) {
     const normalized = normalizePhone(phone);
-    if (normalized) {
-      // wa.me uses number without '+' prefix
-      return `https://wa.me/${normalized.replace("+", "")}?${params.toString()}`;
+    if (!normalized) {
+      // Invalid phone — return base wa.me without number rather than
+      // generating a potentially broken link with raw digits
+      return `https://wa.me/?${params.toString()}`;
     }
-    // Fallback: strip non-digits (best effort for invalid numbers)
-    const cleaned = phone.replace(/\D/g, "");
-    return `https://wa.me/${cleaned}?${params.toString()}`;
+    // wa.me uses number without '+' prefix
+    return `https://wa.me/${normalized.replace("+", "")}?${params.toString()}`;
   }
 
   return `https://wa.me/?${params.toString()}`;

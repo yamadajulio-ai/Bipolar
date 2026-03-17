@@ -11,28 +11,49 @@ export const maxDuration = 30;
 // "não" and "nao", "remédio" and "remedio", etc.
 // This runs BEFORE the LLM and BEFORE rate limiting to ensure crisis
 // users ALWAYS get the static safe response, even if rate-limited.
+//
+// Patterns are split into EXPLICIT (always trigger) and CONTEXTUAL
+// (only trigger when combined with harm context or multiple hits).
+// This reduces false positives like "tenho um plano para o projeto"
+// or "moro perto da ponte" while still catching real crises.
 
-const CRISIS_PATTERNS: RegExp[] = [
-  // Suicidal ideation
+// EXPLICIT: unambiguous crisis language — always triggers bypass
+const EXPLICIT_CRISIS: RegExp[] = [
+  // Suicidal ideation (clear intent)
   /\b(me\s*matar|quero\s*morrer|vou\s*morrer|desejo\s*de\s*morrer|penso\s*em\s*morrer)\b/i,
-  /\b(acabar\s*com\s*tudo|por\s*fim\s*(a|em)\s*tudo|encerrar\s*tudo)\b/i,
   /\b(nao\s*aguento\s*mais\s*viver|cansad[oa]\s*de\s*viver|sem\s*razao\s*(pra|para)\s*viver)\b/i,
-  /\b(queria?\s*sumir|quero\s*desaparecer|melhor\s*sem\s*mim)\b/i,
   /\b(nao\s*quero\s*acordar|nao\s*vejo\s*saida|dar\s*cabo\s*da\s*minha\s*vida)\b/i,
   /\b(acabar\s*com\s*(a\s*)?minha\s*vida)\b/i,
-  // Self-harm
+  /\b(queria?\s*sumir|quero\s*desaparecer|melhor\s*sem\s*mim)\b/i,
+  /\b(vou\s*fazer\s*(uma\s*)?besteira)\b/i,
+  /\b(nao\s*queria\s*estar\s*aqui)\b/i,
+  // Self-harm (active)
+  /\b(me\s*cortei|estou\s*sangrando|tomei\s*remedios?\s*todos?)\b/i,
   /\b(me\s*cortar|me\s*machucar|auto\s*lesao|autolesao|me\s*ferir)\b/i,
-  /\b(estou\s*sangrando|me\s*cortei|tomei\s*remedios?\s*todos?)\b/i,
-  // Means / plan
-  /\b(pular\s*d[aeo]|me\s*jogar|me\s*enforcar|corda|veneno|arma|faca|ponte|predio)\b/i,
+  // Means with clear intent
+  /\b(pular\s*d[aeo]|me\s*jogar|me\s*enforcar)\b/i,
   /\b(overdose|tomar\s*tudo|engolir\s*comprimidos?)\b/i,
-  /\b(comprei\s*(uma\s*)?arma|tenho\s*um\s*plano|vou\s*fazer\s*(uma\s*)?besteira)\b/i,
-  // Intoxication
-  /\b(estou\s*bebad[oa]|bebi\s*muito|misturei\s*remedio|misturei\s*alcool)\b/i,
-  // Farewell
-  /\b(carta\s*de\s*despedida|adeus\s*pra\s*sempre|testamento)\b/i,
+  /\b(comprei\s*(uma\s*)?arma)\b/i,
+  // Farewell (unambiguous)
+  /\b(carta\s*de\s*despedida|adeus\s*pra\s*sempre)\b/i,
   /\b(cuidem?\s*d[aeo]s?\s*meu[s]?\s*(filh|pet|gat|cachorr))/i,
+  // Full expressions
+  /\b(acabar\s*com\s*tudo|por\s*fim\s*(a|em)\s*tudo|encerrar\s*tudo)\b/i,
 ];
+
+// CONTEXTUAL: ambiguous words that only indicate crisis when combined
+// with harm-related context or when multiple appear together.
+// Avoids false positives like "tenho um plano para o projeto",
+// "moro perto da ponte", "tenho uma faca na cozinha".
+const CONTEXTUAL_CRISIS: RegExp[] = [
+  /\b(corda|veneno|arma|faca|ponte|predio)\b/i,
+  /\btenho\s*um\s*plano\b/i,
+  /\btestamento\b/i,
+  /\b(estou\s*bebad[oa]|bebi\s*muito|misturei\s*remedio|misturei\s*alcool)\b/i,
+];
+
+// Context markers that elevate contextual hits to crisis
+const HARM_CONTEXT: RegExp = /\b(morrer|minha\s*vida|sumir|me\s*machucar|me\s*ferir|me\s*matar|suicid|acabar|nao\s*aguento)\b/i;
 
 const CRISIS_RESPONSE =
   "Estou aqui com você. Isso é uma emergência — por favor ligue 192 (SAMU) agora. " +
@@ -51,16 +72,34 @@ function normalizeCrisisText(text: string): string {
 }
 
 /**
- * Scan multiple texts for crisis keywords.
- * We check the last N user messages (not just the last one) to catch
- * contextual crisis escalation across turns.
+ * Scan multiple texts for crisis keywords using two-tier detection:
+ * - EXPLICIT patterns: always trigger (unambiguous crisis language)
+ * - CONTEXTUAL patterns: only trigger when 2+ contextual hits appear,
+ *   or 1 contextual hit + harm context in any recent message.
+ *
+ * We check the last 6 user messages to catch contextual escalation.
  */
 function detectCrisisInTexts(texts: string[]): boolean {
-  return texts.some((text) => {
-    const normalized = normalizeCrisisText(text);
-    return CRISIS_PATTERNS.some((p) => p.test(normalized));
-  });
+  const normalized = texts.map(normalizeCrisisText);
+
+  // Tier 1: Any explicit pattern in any message → immediate crisis
+  const hasExplicit = normalized.some((t) =>
+    EXPLICIT_CRISIS.some((p) => p.test(t)),
+  );
+  if (hasExplicit) return true;
+
+  // Tier 2: Contextual patterns need corroboration
+  const contextualHits = normalized.filter((t) =>
+    CONTEXTUAL_CRISIS.some((p) => p.test(t)),
+  ).length;
+  const hasHarmContext = normalized.some((t) => HARM_CONTEXT.test(t));
+
+  // 2+ contextual hits across messages, or 1 contextual + harm context
+  return contextualHits >= 2 || (contextualHits >= 1 && hasHarmContext);
 }
+
+// Export for testing
+export { detectCrisisInTexts as _detectCrisisInTexts };
 
 // ── System prompt ────────────────────────────────────────────────
 

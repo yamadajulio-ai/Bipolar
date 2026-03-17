@@ -2,15 +2,19 @@ import webPush from "web-push";
 
 let vapidConfigured = false;
 
-function ensureVapid() {
-  if (vapidConfigured) return;
+/**
+ * Lazily configure VAPID credentials at runtime.
+ * Returns false if env vars are missing (push disabled).
+ */
+function ensureVapid(): boolean {
+  if (vapidConfigured) return true;
   const pub = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   const priv = process.env.VAPID_PRIVATE_KEY;
   const subject = process.env.VAPID_SUBJECT || "mailto:contato@suportebipolar.com";
-  if (pub && priv) {
-    webPush.setVapidDetails(subject, pub, priv);
-    vapidConfigured = true;
-  }
+  if (!pub || !priv) return false;
+  webPush.setVapidDetails(subject, pub, priv);
+  vapidConfigured = true;
+  return true;
 }
 
 export interface PushPayload {
@@ -24,7 +28,10 @@ export async function sendPush(
   subscription: { endpoint: string; p256dh: string; auth: string },
   payload: PushPayload,
 ): Promise<boolean> {
-  ensureVapid();
+  if (!ensureVapid()) {
+    // VAPID not configured — push is disabled, return early
+    return false;
+  }
   try {
     await webPush.sendNotification(
       {
@@ -35,7 +42,7 @@ export async function sendPush(
         },
       },
       JSON.stringify(payload),
-      { TTL: 3600 },
+      { TTL: 14400 }, // 4 hours — adequate for morning reminders
     );
     return true;
   } catch (err: unknown) {

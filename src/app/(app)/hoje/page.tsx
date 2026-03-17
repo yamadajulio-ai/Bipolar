@@ -4,13 +4,16 @@ import { localToday, localDateStr } from "@/lib/dateUtils";
 import { getNews } from "@/lib/news";
 import { Card } from "@/components/Card";
 import { Greeting } from "@/components/Greeting";
-import { ContextualSuggestions } from "@/components/dashboard/ContextualSuggestions";
 import { DashboardChartWrapper } from "@/components/dashboard/DashboardChartWrapper";
 import { StreakBadge } from "@/components/StreakBadge";
-import { AchievementGrid } from "@/components/AchievementGrid";
-import { computeCurrentStreak, computeLongestStreak, computeAchievements } from "@/lib/streaks";
+import { computeCurrentStreak, computeLongestStreak } from "@/lib/streaks";
+import { computeInsights } from "@/lib/insights/computeInsights";
+import type { PlannerBlockInput } from "@/lib/insights/computeInsights";
+import { SafetyNudge } from "@/components/insights/SafetyNudge";
 import Link from "next/link";
 import Image from "next/image";
+
+const TZ = "America/Sao_Paulo";
 
 function formatSleepDuration(hours: number): string {
   const totalMin = Math.round(hours * 60);
@@ -36,437 +39,587 @@ const energyLabels: Record<number, { text: string; color: string }> = {
   5: { text: "Muito alta", color: "text-red-600" },
 };
 
+// Zone configuration: colors, labels, CTAs
+const ZONE_CONFIG = {
+  depressao: {
+    bg: "bg-blue-900/10 border-blue-800/30",
+    chip: "bg-blue-100 text-blue-900 border border-blue-300",
+    label: "Atenção — sinais de depressão",
+    icon: "↓",
+  },
+  depressao_leve: {
+    bg: "bg-blue-50 border-blue-200",
+    chip: "bg-blue-100 text-blue-800 border border-blue-200",
+    label: "Observe — humor mais baixo",
+    icon: "↓",
+  },
+  eutimia: {
+    bg: "bg-emerald-50/50 border-emerald-200",
+    chip: "bg-emerald-100 text-emerald-800 border border-emerald-200",
+    label: "Estável",
+    icon: "→",
+  },
+  hipomania: {
+    bg: "bg-amber-50 border-amber-200",
+    chip: "bg-amber-100 text-amber-800 border border-amber-200",
+    label: "Observe — humor elevado",
+    icon: "↑",
+  },
+  mania: {
+    bg: "bg-red-50 border-red-300",
+    chip: "bg-red-100 text-red-800 border border-red-300",
+    label: "Atenção — sinais de mania",
+    icon: "↑",
+  },
+} as const;
+
+const RISK_CONFIG = {
+  ok: {
+    bg: "bg-emerald-50/50 border-emerald-200",
+    chip: "bg-emerald-100 text-emerald-800 border border-emerald-200",
+    label: "Estável",
+  },
+  atencao: {
+    bg: "bg-amber-50 border-amber-200",
+    chip: "bg-amber-100 text-amber-800 border border-amber-200",
+    label: "Observe",
+  },
+  atencao_alta: {
+    bg: "bg-red-50 border-red-300",
+    chip: "bg-red-100 text-red-800 border border-red-300",
+    label: "Atenção",
+  },
+} as const;
+
 export default async function HojePage() {
   const session = await getSession();
+  const now = new Date();
   const today = localToday();
-
-  const dayStart = new Date(today + "T00:00:00");
   const dayEnd = new Date(today + "T23:59:59");
 
-  const last7Days = new Date();
-  last7Days.setDate(last7Days.getDate() - 7);
-  const cutoffStr = localDateStr(last7Days);
+  // Cutoffs for data fetching
+  const cutoff30 = new Date(now);
+  cutoff30.setDate(cutoff30.getDate() - 30);
+  const cutoff30Str = cutoff30.toLocaleDateString("sv-SE", { timeZone: TZ });
 
-  const [todayEntry, todaySleep, todayRhythm, recentEntries, lastEntry, streakDates, sleepStreakDates, upcomingBlocks] = await Promise.all([
+  const cutoff7 = new Date(now);
+  cutoff7.setDate(cutoff7.getDate() - 7);
+  const cutoff7Str = localDateStr(cutoff7);
+
+  // === Fetch all data in parallel ===
+  const [
+    todayEntry, todaySleep, todayRhythm,
+    allEntries30, allSleepLogs30, rhythms30, rawPlannerBlocks30, financialTxs30,
+    streakDates, sleepStreakDates,
+    upcomingBlocks,
+    latestMetrics, recentSleepLogs7,
+    googleCal, haeKey, financialTx,
+    lastWeeklyAssessment,
+  ] = await Promise.all([
+    // Today's data
     prisma.diaryEntry.findFirst({
       where: { userId: session.userId, date: today },
-      select: { mood: true, sleepHours: true, energyLevel: true, tookMedication: true },
+      select: { mood: true, sleepHours: true, energyLevel: true, tookMedication: true, warningSigns: true },
     }),
     prisma.sleepLog.findFirst({
       where: { userId: session.userId, date: today },
-      select: { totalHours: true },
+      select: { totalHours: true, quality: true },
     }),
     prisma.dailyRhythm.findFirst({
       where: { userId: session.userId, date: today },
       select: { wakeTime: true, firstContact: true, mainActivityStart: true, dinnerTime: true, bedtime: true },
     }),
+    // 30d data for insights computation
     prisma.diaryEntry.findMany({
-      where: { userId: session.userId, date: { gte: cutoffStr } },
-      select: { date: true, mood: true, sleepHours: true },
+      where: { userId: session.userId, date: { gte: cutoff30Str } },
       orderBy: { date: "asc" },
     }),
-    prisma.diaryEntry.findFirst({
-      where: { userId: session.userId },
-      orderBy: { date: "desc" },
-      select: { date: true },
-    }),
-    prisma.diaryEntry.findMany({
-      where: { userId: session.userId },
-      orderBy: { date: "desc" },
-      select: { date: true },
-      take: 90,
-    }),
     prisma.sleepLog.findMany({
-      where: { userId: session.userId },
-      orderBy: { date: "desc" },
-      select: { date: true },
-      take: 90,
+      where: { userId: session.userId, date: { gte: cutoff30Str } },
+      orderBy: { date: "asc" },
+    }),
+    prisma.dailyRhythm.findMany({
+      where: { userId: session.userId, date: { gte: cutoff30Str } },
+      orderBy: { date: "asc" },
     }),
     prisma.plannerBlock.findMany({
-      where: {
-        userId: session.userId,
-        startAt: { gte: new Date(), lte: dayEnd },
-      },
-      select: { title: true, startAt: true, endAt: true },
+      where: { userId: session.userId, startAt: { gte: cutoff30 }, category: { in: ["social", "trabalho", "refeicao"] } },
+      select: { startAt: true, category: true },
+      orderBy: { startAt: "asc" },
+    }),
+    prisma.financialTransaction.findMany({
+      where: { userId: session.userId, date: { gte: cutoff30Str } },
+      select: { date: true, amount: true },
+    }),
+    // Streaks
+    prisma.diaryEntry.findMany({ where: { userId: session.userId }, orderBy: { date: "desc" }, select: { date: true }, take: 90 }),
+    prisma.sleepLog.findMany({ where: { userId: session.userId }, orderBy: { date: "desc" }, select: { date: true }, take: 90 }),
+    // Upcoming blocks
+    prisma.plannerBlock.findMany({
+      where: { userId: session.userId, startAt: { gte: new Date(), lte: dayEnd } },
+      select: { title: true, startAt: true },
       orderBy: { startAt: "asc" },
       take: 3,
     }),
-  ]);
-
-  // Streaks & Achievements
-  const checkinDates = streakDates.map((d) => d.date);
-  const sleepDatesArr = sleepStreakDates.map((d) => d.date);
-  const checkinStreak = computeCurrentStreak(checkinDates, today);
-  const sleepStreak = computeCurrentStreak(sleepDatesArr, today);
-  const bestCheckinStreak = computeLongestStreak([...checkinDates].reverse());
-  const bestSleepStreak = computeLongestStreak([...sleepDatesArr].reverse());
-  const achievements = computeAchievements({
-    checkinStreak,
-    sleepStreak,
-    bestCheckinStreak,
-    bestSleepStreak,
-    totalCheckins: checkinDates.length,
-    totalSleepLogs: sleepDatesArr.length,
-  });
-  const streak = checkinStreak; // backward compat
-
-  // Days since last entry
-  let daysSinceLastEntry: number | null = null;
-  if (lastEntry) {
-    const todayParts = today.split("-").map(Number);
-    const lastParts = lastEntry.date.split("-").map(Number);
-    const todayDate = Date.UTC(todayParts[0], todayParts[1] - 1, todayParts[2]);
-    const lastDate = Date.UTC(lastParts[0], lastParts[1] - 1, lastParts[2]);
-    daysSinceLastEntry = Math.round((todayDate - lastDate) / (1000 * 60 * 60 * 24));
-  }
-
-  // Alerts
-  const recentAlerts: string[] = [];
-  if (recentEntries.length >= 3) {
-    const last3 = recentEntries.slice(-3);
-    if (last3[0].sleepHours > last3[1].sleepHours && last3[1].sleepHours > last3[2].sleepHours) {
-      recentAlerts.push("Seu sono está diminuindo progressivamente. Alterações no sono podem preceder episódios. Este alerta é automático e não substitui avaliação profissional.");
-    }
-    if (last3.every((e) => e.mood >= 4)) {
-      recentAlerts.push("Sinais de humor elevado persistente nos últimos dias. Converse com seu profissional de saúde. Este alerta é automático e não substitui avaliação profissional.");
-    }
-    if (last3.every((e) => e.mood <= 2)) {
-      recentAlerts.push("Sinais de humor baixo persistente nos últimos dias. Considere conversar com seu profissional de saúde. Este alerta é automático e não substitui avaliação profissional.");
-    }
-  }
-
-  const chartData = recentEntries.map((e) => ({
-    date: e.date,
-    mood: e.mood,
-    sleepHours: e.sleepHours,
-  }));
-
-  // News (top 3) + Health metrics
-  let newsArticles: { title: string; url: string; sourceName: string | null; publishedAt: Date }[] = [];
-  try {
-    const allNews = await getNews();
-    newsArticles = allNews.slice(0, 3);
-  } catch { /* news fetch failed silently */ }
-
-  // Latest health metrics from wearable (last 7 days)
-  const healthCutoff = new Date();
-  healthCutoff.setDate(healthCutoff.getDate() - 7);
-  const healthCutoffStr = localDateStr(healthCutoff);
-  const [latestMetrics, recentSleepLogs, googleCal, haeKey, financialTx] = await Promise.all([
+    // Health metrics (7d)
     prisma.healthMetric.findMany({
-      where: { userId: session.userId, date: { gte: healthCutoffStr } },
+      where: { userId: session.userId, date: { gte: cutoff7Str } },
       orderBy: { date: "desc" },
       take: 30,
     }),
     prisma.sleepLog.findMany({
-      where: { userId: session.userId, date: { gte: healthCutoffStr }, totalHours: { gte: 1 } },
+      where: { userId: session.userId, date: { gte: cutoff7Str }, totalHours: { gte: 1 } },
       orderBy: { date: "desc" },
       take: 7,
-      select: { date: true, totalHours: true, hrv: true, heartRate: true, quality: true },
+      select: { hrv: true, heartRate: true },
     }),
+    // Integration status
     prisma.googleAccount.findFirst({ where: { userId: session.userId }, select: { id: true } }),
     prisma.integrationKey.findFirst({ where: { userId: session.userId, service: "health_auto_export", enabled: true }, select: { id: true } }),
     prisma.financialTransaction.findFirst({ where: { userId: session.userId }, select: { id: true } }),
+    // Last weekly assessment (for "para fazer" section)
+    prisma.weeklyAssessment.findFirst({ where: { userId: session.userId }, orderBy: { createdAt: "desc" }, select: { createdAt: true } }),
   ]);
 
-  const hasGoogleCal = !!googleCal;
-  const hasHae = !!haeKey;
-  const hasFinancial = !!financialTx;
-  const hasMissingIntegrations = !hasGoogleCal || !hasHae || !hasFinancial;
+  // === Compute Insights (Risk Radar data) ===
+  const sleepLogsForInsights = allSleepLogs30.filter(l => l.totalHours >= 1 && !l.excluded);
+  const entries30 = allEntries30.filter(e => e.date >= cutoff30Str);
 
-  // Aggregate health metrics for display
+  const plannerBlocks: PlannerBlockInput[] = rawPlannerBlocks30.map(b => {
+    const d = new Date(b.startAt);
+    return {
+      date: d.toLocaleDateString("sv-SE", { timeZone: TZ }),
+      timeHHMM: d.toLocaleTimeString("sv-SE", { timeZone: TZ, hour: "2-digit", minute: "2-digit", hour12: false }),
+      category: b.category,
+    };
+  });
+
+  const insights = computeInsights(sleepLogsForInsights, entries30, rhythms30, plannerBlocks, now, TZ, allEntries30, allSleepLogs30.filter(l => !l.excluded), financialTxs30);
+
+  const { risk, thermometer, combinedPatterns, sleep: sleepInsights } = insights;
+
+  // === Streaks ===
+  const checkinDates = streakDates.map(d => d.date);
+  const sleepDatesArr = sleepStreakDates.map(d => d.date);
+  const checkinStreak = computeCurrentStreak(checkinDates, today);
+  const sleepStreak = computeCurrentStreak(sleepDatesArr, today);
+  const bestCheckinStreak = computeLongestStreak([...checkinDates].reverse());
+
+  // === Determine zone + risk for Risk Radar ===
+  const hasEnoughData = (risk !== null && thermometer !== null);
+  const zone = thermometer?.zone ?? "eutimia";
+  const zoneConfig = ZONE_CONFIG[zone];
+  const riskLevel = risk?.level ?? "ok";
+  const riskConfig = RISK_CONFIG[riskLevel];
+
+  // Use the higher severity between zone and risk for the hero card
+  const severityOrder = { ok: 0, eutimia: 0, depressao_leve: 1, hipomania: 1, atencao: 1, depressao: 2, mania: 2, atencao_alta: 2 };
+  const zoneSeverity = severityOrder[zone] ?? 0;
+  const riskSeverity = severityOrder[riskLevel] ?? 0;
+  const useZone = zoneSeverity >= riskSeverity;
+  const heroBg = useZone ? zoneConfig.bg : riskConfig.bg;
+  const heroChip = useZone ? zoneConfig.chip : riskConfig.chip;
+  const heroLabel = useZone ? zoneConfig.label : riskConfig.label;
+
+  // Collect drivers (max 3)
+  const drivers: string[] = [];
+  if (risk?.factors) {
+    for (const f of risk.factors) {
+      if (drivers.length >= 3) break;
+      drivers.push(f);
+    }
+  }
+  if (thermometer?.factors && drivers.length < 3) {
+    for (const f of thermometer.factors) {
+      if (drivers.length >= 3) break;
+      if (!drivers.some(d => d.includes(f.slice(0, 15)))) drivers.push(f);
+    }
+  }
+
+  // Determine primary CTA
+  let primaryCta = { href: "/checkin", label: "Fazer check-in", verb: "Registrar humor e energia" };
+  if (riskLevel === "atencao_alta" || zone === "mania" || zone === "depressao") {
+    primaryCta = { href: "/plano-de-crise", label: "Revisar plano de crise", verb: "Revise seu plano de segurança" };
+  } else if (!todayEntry) {
+    primaryCta = { href: "/checkin", label: "Fazer check-in", verb: "Registrar humor e energia" };
+  } else if (!todaySleep && !haeKey) {
+    primaryCta = { href: "/sono/novo", label: "Registrar sono", verb: "Como foi a noite passada?" };
+  } else {
+    primaryCta = { href: "/insights", label: "Ver insights", verb: "Veja seus padrões recentes" };
+  }
+
+  // === "Para fazer hoje" tasks ===
+  interface Task { label: string; href: string; done: boolean; priority: number }
+  const tasks: Task[] = [];
+
+  // Safety first
+  if (riskLevel === "atencao_alta") {
+    tasks.push({ label: "Revisar plano de crise", href: "/plano-de-crise", done: false, priority: 0 });
+  }
+
+  // Medication
+  if (todayEntry?.tookMedication === "nao" || todayEntry?.tookMedication === "nao_sei") {
+    tasks.push({ label: "Tomar medicação", href: "/checkin", done: false, priority: 1 });
+  } else if (todayEntry?.tookMedication === "sim") {
+    tasks.push({ label: "Medicação tomada", href: "/checkin", done: true, priority: 1 });
+  }
+
+  // Check-in
+  tasks.push({ label: "Check-in diário", href: "/checkin", done: !!todayEntry, priority: 2 });
+
+  // Sleep
+  if (haeKey) {
+    tasks.push({ label: "Sono (wearable)", href: "/sono", done: !!todaySleep, priority: 3 });
+  } else {
+    tasks.push({ label: "Registrar sono", href: "/sono/novo", done: !!todaySleep, priority: 3 });
+  }
+
+  // Weekly assessment (due if >7 days since last)
+  const weeklyDue = !lastWeeklyAssessment ||
+    (now.getTime() - lastWeeklyAssessment.createdAt.getTime()) > 7 * 24 * 60 * 60 * 1000;
+  if (weeklyDue) {
+    tasks.push({ label: "Avaliação semanal", href: "/avaliacao-semanal", done: false, priority: 4 });
+  }
+
+  tasks.sort((a, b) => a.priority - b.priority);
+  const visibleTasks = tasks.slice(0, 5);
+
+  // === Health data (7d aggregates) ===
   const avgSteps = (() => {
-    const steps = latestMetrics.filter((m) => m.metric === "steps");
+    const steps = latestMetrics.filter(m => m.metric === "steps");
     if (steps.length === 0) return null;
     return Math.round(steps.reduce((s, m) => s + m.value, 0) / steps.length);
   })();
   const avgHrv = (() => {
-    const hrvLogs = recentSleepLogs.filter((s) => s.hrv !== null);
+    const hrvLogs = recentSleepLogs7.filter(s => s.hrv !== null);
     if (hrvLogs.length === 0) return null;
     return Math.round(hrvLogs.reduce((s, l) => s + (l.hrv || 0), 0) / hrvLogs.length);
   })();
   const avgHr = (() => {
-    const hrLogs = recentSleepLogs.filter((s) => s.heartRate !== null);
+    const hrLogs = recentSleepLogs7.filter(s => s.heartRate !== null);
     if (hrLogs.length === 0) return null;
     return Math.round(hrLogs.reduce((s, l) => s + (l.heartRate || 0), 0) / hrLogs.length);
   })();
   const hasHealthData = avgSteps !== null || avgHrv !== null || avgHr !== null;
 
-  // Anchors
+  // === Integration checks ===
+  const hasGoogleCal = !!googleCal;
+  const hasHae = !!haeKey;
+  const hasFinancial = !!financialTx;
+  const missingIntegrations = [
+    !hasHae && { label: "Wearable", href: "/integracoes", bg: "bg-red-50 hover:bg-red-100", textColor: "text-red-700" },
+    !hasGoogleCal && { label: "Google Agenda", href: "/planejador", bg: "bg-blue-50 hover:bg-blue-100", textColor: "text-blue-700" },
+    !hasFinancial && { label: "Mobills", href: "/financeiro", bg: "bg-green-50 hover:bg-green-100", textColor: "text-green-700" },
+  ].filter(Boolean) as { label: string; href: string; bg: string; textColor: string }[];
+
+  // === Anchors ===
   const anchors: { label: string; time: string }[] = [];
   if (todayRhythm) {
     if (todayRhythm.wakeTime) anchors.push({ label: "Acordar", time: todayRhythm.wakeTime });
-    if (todayRhythm.firstContact) anchors.push({ label: "1o contato social", time: todayRhythm.firstContact });
-    if (todayRhythm.mainActivityStart) anchors.push({ label: "Atividade principal", time: todayRhythm.mainActivityStart });
+    if (todayRhythm.firstContact) anchors.push({ label: "Contato social", time: todayRhythm.firstContact });
+    if (todayRhythm.mainActivityStart) anchors.push({ label: "Atividade", time: todayRhythm.mainActivityStart });
     if (todayRhythm.dinnerTime) anchors.push({ label: "Jantar", time: todayRhythm.dinnerTime });
     if (todayRhythm.bedtime) anchors.push({ label: "Dormir", time: todayRhythm.bedtime });
   }
 
+  // === Chart data (7d) ===
+  const chartEntries = allEntries30.filter(e => e.date >= cutoff7Str);
+  const chartData = chartEntries.map(e => ({ date: e.date, mood: e.mood, sleepHours: e.sleepHours }));
+
+  // === News ===
+  let newsArticles: { title: string; url: string; sourceName: string | null; publishedAt: Date }[] = [];
+  try {
+    const allNews = await getNews();
+    newsArticles = allNews.slice(0, 3);
+  } catch { /* silent */ }
+
   const formatBlockTime = (d: Date) =>
-    d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" });
+    d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: TZ });
+
+  // High risk safety check (for SafetyNudge)
+  const warningSigns = todayEntry?.warningSigns as string[] | null | undefined;
+  const showSafetyNudge = riskLevel === "atencao_alta" ||
+    (Array.isArray(warningSigns) && warningSigns.includes("pensamentos_suicidas"));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <Greeting />
 
-      {/* Contextual alerts */}
-      <ContextualSuggestions
-        hasTodayEntry={!!todayEntry}
-        hasTodaySleep={!!todaySleep}
-        daysSinceLastEntry={daysSinceLastEntry}
-        recentAlerts={recentAlerts}
-      />
+      {/* === SAFETY NUDGE (highest priority) === */}
+      {showSafetyNudge && <SafetyNudge />}
 
-      {/* === AÇÕES PRINCIPAIS === */}
-      <div className="grid grid-cols-2 gap-3">
-        {!todayEntry ? (
-          <Link href="/checkin" className="block no-underline">
-            <Card className="border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors text-center py-5">
-              <div className="text-2xl mb-1">&#9997;&#65039;</div>
-              <p className="font-semibold text-foreground">Check-in diário</p>
-              <p className="text-xs text-muted mt-1">Registrar humor, energia e medicação</p>
-            </Card>
-          </Link>
-        ) : (
-          <Card className="border-emerald-200 bg-emerald-50/50 text-center py-5">
-            <div className="text-2xl mb-1">&#9989;</div>
-            <p className="font-semibold text-emerald-700">Check-in feito</p>
-            <p className="text-xs text-emerald-600 mt-1">Humor, energia e medicação registrados</p>
-          </Card>
-        )}
-
-        {!todaySleep ? (
-          hasHae ? (
-            <Card className="border-amber-200 bg-amber-50/50 text-center py-5">
-              <div className="text-2xl mb-1">&#9202;</div>
-              <p className="font-semibold text-amber-700">Aguardando wearable</p>
-              <p className="text-xs text-amber-600 mt-1">Os dados de sono chegam automaticamente via Apple Watch ou Amazfit</p>
-            </Card>
-          ) : (
-            <Link href="/sono/novo" className="block no-underline">
-              <Card className="border-primary/20 bg-primary/5 hover:bg-primary/10 transition-colors text-center py-5">
-                <div className="text-2xl mb-1">&#127769;</div>
-                <p className="font-semibold text-foreground">Registrar sono</p>
-                <p className="text-xs text-muted mt-1">Como foi a noite passada?</p>
-              </Card>
+      {/* === 1. RISK RADAR (Hero) === */}
+      {hasEnoughData ? (
+        <Card className={`${heroBg} border`}>
+          <div className="flex items-start justify-between mb-3">
+            <div>
+              <span className={`inline-block rounded-full px-3 py-1 text-xs font-bold ${heroChip}`}>
+                {heroLabel}
+              </span>
+              {thermometer?.mixedFeatures && (
+                <span className="ml-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200">
+                  Traços mistos
+                </span>
+              )}
+            </div>
+            <Link href="/insights" className="text-xs text-primary hover:underline">
+              Detalhes
             </Link>
-          )
-        ) : (
-          <Card className="border-emerald-200 bg-emerald-50/50 text-center py-5">
-            <div className="text-2xl mb-1">&#9989;</div>
-            <p className="font-semibold text-emerald-700">Sono registrado</p>
-            <p className="text-xs text-emerald-600 mt-1">{formatSleepDuration(todaySleep.totalHours)} dormidas</p>
-          </Card>
-        )}
-      </div>
+          </div>
 
-      {/* === AGENDA - ROTINA (acesso rápido) === */}
-      <Link href="/planejador" className="block no-underline">
-        <Card className="border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors flex items-center gap-4 py-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/15">
-            <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" className="text-primary">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-              <line x1="16" y1="2" x2="16" y2="6" />
-              <line x1="8" y1="2" x2="8" y2="6" />
-              <line x1="3" y1="10" x2="21" y2="10" />
-            </svg>
-          </div>
-          <div>
-            <p className="font-semibold text-foreground">Agenda - Rotina</p>
-            <p className="text-xs text-muted mt-0.5">Veja sua semana e eventos do Google Calendar</p>
-          </div>
-          <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" className="ml-auto text-muted shrink-0">
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
+          {/* Drivers */}
+          {drivers.length > 0 && (
+            <ul className="space-y-1.5 mb-3">
+              {drivers.map((d, i) => {
+                const isProtective = d.toLowerCase().includes("protetor") || d.toLowerCase().includes("boa adesão");
+                return (
+                  <li key={i} className="text-xs flex items-start gap-1.5 text-foreground/80">
+                    <span className="mt-0.5 shrink-0">{isProtective ? "✓" : "•"}</span>
+                    {d}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+
+          {/* Combined patterns */}
+          {combinedPatterns.length > 0 && (
+            <div className="mb-3 space-y-1">
+              {combinedPatterns.slice(0, 2).map((p, i) => (
+                <div key={i} className={`text-xs rounded px-2 py-1 ${p.variant === "danger" ? "bg-red-100/60 text-red-800" : p.variant === "warning" ? "bg-amber-100/60 text-amber-800" : "bg-blue-100/60 text-blue-800"}`}>
+                  <span className="font-medium">{p.title}:</span> {p.message}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Primary CTA */}
+          <Link
+            href={primaryCta.href}
+            className={`block w-full text-center rounded-lg py-2.5 text-sm font-semibold no-underline transition-colors ${
+              riskLevel === "atencao_alta"
+                ? "bg-red-600 text-white hover:bg-red-700"
+                : "bg-primary text-white hover:bg-primary/90"
+            }`}
+          >
+            {primaryCta.label}
+          </Link>
+          <p className="mt-1.5 text-[10px] text-center text-muted italic">
+            Indicador educacional · Não substitui avaliação profissional
+          </p>
         </Card>
-      </Link>
-
-      {/* === INTEGRAÇÕES PENDENTES (topo se faltam) === */}
-      {hasMissingIntegrations && (
-        <Card>
-          <h2 className="mb-3 text-sm font-semibold text-foreground">Configure suas integrações</h2>
-          <p className="mb-3 text-xs text-muted">Conecte para ter dados automáticos e insights mais completos.</p>
-          <div className="grid grid-cols-3 gap-2">
-            {!hasHae && (
-              <Link href="/integracoes" className="flex flex-col items-center gap-1.5 rounded-lg bg-red-50 p-3 no-underline hover:bg-red-100 transition-colors">
-                <svg className="h-6 w-6 text-red-500" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M16.365 1.43c0 1.14-.493 2.27-1.177 3.08-.744.9-1.99 1.57-2.987 1.57-.18 0-.36-.02-.53-.06.018-.18.04-.36.04-.55 0-1.12.535-2.22 1.235-3.02C13.666 1.66 14.98 1 16.12 1c.18 0 .36.01.53.02-.01.14-.01.28-.01.41h-.274zm3.44 5.89c-.16.09-2.61 1.53-2.585 4.56.03 3.6 3.14 4.8 3.17 4.81-.02.08-.5 1.7-1.63 3.36-.98 1.45-2 2.9-3.6 2.93-1.57.03-2.08-.94-3.88-.94s-2.39.91-3.87.97c-1.55.06-2.73-1.57-3.72-3.01C1.6 17.18.27 12.84 2.44 9.73c1.07-1.54 2.99-2.52 5.07-2.55 1.52-.03 2.95 1.03 3.88 1.03.93 0 2.67-1.27 4.5-1.08.77.03 2.92.31 4.3 2.33-.11.07-2.56 1.51-2.54 4.49l-.36-.18z" />
-                </svg>
-                <span className="text-xs font-medium text-red-700">Wearable</span>
-              </Link>
-            )}
-            {!hasGoogleCal && (
-              <Link href="/planejador" className="flex flex-col items-center gap-1.5 rounded-lg bg-blue-50 p-3 no-underline hover:bg-blue-100 transition-colors">
-                <svg className="h-6 w-6" viewBox="0 0 24 24">
-                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
-                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
-                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-                </svg>
-                <span className="text-xs font-medium text-blue-700">Google Agenda</span>
-              </Link>
-            )}
-            {!hasFinancial && (
-              <Link href="/financeiro" className="flex flex-col items-center gap-1.5 rounded-lg bg-green-50 p-3 no-underline hover:bg-green-100 transition-colors">
-                <Image src="/mobills-logo.png" alt="Mobills" width={24} height={24} className="object-contain" />
-                <span className="text-xs font-medium text-green-700">Mobills</span>
-              </Link>
-            )}
+      ) : (
+        /* Onboarding state: no enough data yet */
+        <Card className="bg-primary/5 border-primary/20">
+          <p className="text-sm font-semibold text-foreground mb-1">Bem-vindo ao Suporte Bipolar</p>
+          <p className="text-xs text-muted mb-3">
+            Faça check-ins e registre o sono por 7 dias para ativar seu painel de estabilidade.
+          </p>
+          <div className="flex items-center gap-2">
+            <div className="flex-1 h-1.5 bg-border rounded-full overflow-hidden">
+              <div
+                className="h-full bg-primary rounded-full transition-all"
+                style={{ width: `${Math.min(100, ((entries30.length + sleepLogsForInsights.length) / 14) * 100)}%` }}
+              />
+            </div>
+            <span className="text-[10px] text-muted">{entries30.length + sleepLogsForInsights.length}/14</span>
           </div>
         </Card>
       )}
 
-      {/* === RESUMO DO DIA === */}
+      {/* === 2. PARA FAZER HOJE === */}
+      <Card>
+        <h2 className="text-sm font-semibold text-foreground mb-3">Para fazer hoje</h2>
+        <div className="space-y-2">
+          {visibleTasks.map((t, i) => (
+            <Link key={i} href={t.href} className="flex items-center gap-3 no-underline group">
+              <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] ${
+                t.done ? "bg-emerald-100 border-emerald-300 text-emerald-700" : "border-border text-transparent group-hover:border-primary"
+              }`}>
+                {t.done ? "✓" : ""}
+              </span>
+              <span className={`text-sm ${t.done ? "text-muted line-through" : "text-foreground group-hover:text-primary"}`}>
+                {t.label}
+              </span>
+            </Link>
+          ))}
+        </div>
+      </Card>
+
+      {/* === 3. SEU ESTADO HOJE === */}
       {todayEntry && (
         <Card>
-          <h2 className="mb-4 text-sm font-semibold text-foreground">Resumo de hoje</h2>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted">Humor (check-in)</span>
-              <span className={`text-sm font-medium ${moodLabels[todayEntry.mood]?.color || "text-foreground"}`}>
-                {todayEntry.mood}/5 — {moodLabels[todayEntry.mood]?.text || ""}
-              </span>
+          <h2 className="text-sm font-semibold text-foreground mb-3">Seu estado hoje</h2>
+          <div className="grid grid-cols-2 gap-2">
+            {/* Humor */}
+            <div className="rounded-lg bg-surface-alt p-3">
+              <p className="text-[10px] text-muted uppercase tracking-wide">Humor</p>
+              <p className={`text-sm font-semibold mt-0.5 ${moodLabels[todayEntry.mood]?.color || "text-foreground"}`}>
+                {moodLabels[todayEntry.mood]?.text || `${todayEntry.mood}/5`}
+              </p>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted">Sono (noite passada)</span>
-              <span className="text-sm font-medium text-foreground">
-                {todaySleep ? formatSleepDuration(todaySleep.totalHours) : "Não registrado"}
-              </span>
+            {/* Energia */}
+            <div className="rounded-lg bg-surface-alt p-3">
+              <p className="text-[10px] text-muted uppercase tracking-wide">Energia</p>
+              <p className={`text-sm font-semibold mt-0.5 ${todayEntry.energyLevel ? (energyLabels[todayEntry.energyLevel]?.color || "text-foreground") : "text-muted"}`}>
+                {todayEntry.energyLevel ? energyLabels[todayEntry.energyLevel]?.text || `${todayEntry.energyLevel}/5` : "—"}
+              </p>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted">Energia (check-in)</span>
-              <span className={`text-sm font-medium ${todayEntry.energyLevel ? (energyLabels[todayEntry.energyLevel]?.color || "text-foreground") : "text-muted"}`}>
-                {todayEntry.energyLevel ? `${todayEntry.energyLevel}/5 — ${energyLabels[todayEntry.energyLevel]?.text || ""}` : "Não informado"}
-              </span>
+            {/* Sono */}
+            <div className="rounded-lg bg-surface-alt p-3">
+              <p className="text-[10px] text-muted uppercase tracking-wide">Sono</p>
+              <p className="text-sm font-semibold mt-0.5 text-foreground">
+                {todaySleep ? formatSleepDuration(todaySleep.totalHours) : "—"}
+              </p>
+              {todaySleep && sleepInsights.avgDuration !== null && (
+                <p className="text-[10px] text-muted">
+                  {todaySleep.totalHours >= sleepInsights.avgDuration
+                    ? `+${formatSleepDuration(todaySleep.totalHours - sleepInsights.avgDuration)} vs padrão`
+                    : `−${formatSleepDuration(sleepInsights.avgDuration - todaySleep.totalHours)} vs padrão`}
+                </p>
+              )}
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted">Medicação</span>
-              <span className={`text-sm font-medium ${todayEntry.tookMedication === "sim" ? "text-emerald-700" : todayEntry.tookMedication === "nao" ? "text-red-600" : "text-amber-600"}`}>
-                {todayEntry.tookMedication === "sim" ? "Já tomou" : todayEntry.tookMedication === "nao" ? "Não tomou" : todayEntry.tookMedication === "nao_sei" ? "Ainda não" : "Não informado"}
-              </span>
+            {/* Medicação */}
+            <div className="rounded-lg bg-surface-alt p-3">
+              <p className="text-[10px] text-muted uppercase tracking-wide">Medicação</p>
+              <p className={`text-sm font-semibold mt-0.5 ${
+                todayEntry.tookMedication === "sim" ? "text-emerald-700" :
+                todayEntry.tookMedication === "nao" ? "text-red-600" : "text-amber-600"
+              }`}>
+                {todayEntry.tookMedication === "sim" ? "Já tomou" :
+                 todayEntry.tookMedication === "nao" ? "Não tomou" : "Ainda não"}
+              </p>
             </div>
-            {(checkinStreak > 0 || sleepStreak > 0) && (
-              <div className="border-t border-border pt-3">
-                <StreakBadge checkinStreak={checkinStreak} sleepStreak={sleepStreak} bestCheckinStreak={bestCheckinStreak} />
-              </div>
-            )}
           </div>
+          {/* Streak (subtle) */}
+          {(checkinStreak > 0 || sleepStreak > 0) && (
+            <div className="mt-3 pt-3 border-t border-border">
+              <StreakBadge checkinStreak={checkinStreak} sleepStreak={sleepStreak} bestCheckinStreak={bestCheckinStreak} />
+            </div>
+          )}
         </Card>
       )}
 
-      {/* === ÂNCORAS DO DIA === */}
-      {anchors.length > 0 && (
+      {/* === 4. ROTINA + PRÓXIMAS ATIVIDADES (compact) === */}
+      {(anchors.length > 0 || upcomingBlocks.length > 0) && (
         <Card>
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-foreground">Rotina de hoje</h2>
-            <Link href="/rotina" className="text-xs text-primary hover:underline">Editar</Link>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {anchors.map((a) => (
-              <div key={a.label} className="rounded-lg bg-primary/10 px-3 py-1.5 text-sm">
-                <span className="font-medium text-primary-dark">{a.time}</span>
-                <span className="ml-1.5 text-primary">{a.label}</span>
+          {anchors.length > 0 && (
+            <div className={upcomingBlocks.length > 0 ? "mb-3 pb-3 border-b border-border" : ""}>
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-sm font-semibold text-foreground">Rotina IPSRT</h2>
+                <Link href="/rotina" className="text-xs text-primary hover:underline">Editar</Link>
               </div>
-            ))}
-          </div>
+              <div className="flex flex-wrap gap-1.5">
+                {anchors.map(a => (
+                  <span key={a.label} className="rounded bg-primary/10 px-2 py-1 text-xs">
+                    <span className="font-medium text-primary-dark">{a.time}</span>
+                    <span className="ml-1 text-primary">{a.label}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          {upcomingBlocks.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-sm font-semibold text-foreground">Próximas atividades</h2>
+                <Link href="/planejador" className="text-xs text-primary hover:underline">Agenda</Link>
+              </div>
+              <div className="space-y-1.5">
+                {upcomingBlocks.map((b, i) => (
+                  <div key={i} className="flex items-center gap-2 text-sm">
+                    <span className="text-xs font-medium text-muted w-12">{formatBlockTime(b.startAt)}</span>
+                    <span className="text-foreground">{b.title}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </Card>
       )}
 
-      {/* === PRÓXIMAS ATIVIDADES === */}
-      {upcomingBlocks.length > 0 && (
-        <Card>
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-foreground">Próximas atividades</h2>
-            <Link href="/planejador" className="text-xs text-primary hover:underline">Ver agenda</Link>
-          </div>
-          <div className="space-y-2">
-            {upcomingBlocks.map((b, i) => (
-              <div key={i} className="flex items-center gap-3 rounded-lg bg-surface-alt px-3 py-2">
-                <span className="text-xs font-medium text-muted whitespace-nowrap">
-                  {formatBlockTime(b.startAt)}
-                </span>
-                <span className="text-sm text-foreground">{b.title}</span>
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
-
-      {/* === DADOS DO CORPO (Wearable) === */}
+      {/* === 5. DADOS DO CORPO (compact) === */}
       {hasHealthData && (
         <Card>
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-foreground">Dados do corpo (7 dias)</h2>
-            <Link href="/integracoes" className="text-xs text-primary hover:underline">Configurar</Link>
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-sm font-semibold text-foreground">Corpo (7 dias)</h2>
+            <Link href="/integracoes" className="text-xs text-primary hover:underline">Config</Link>
           </div>
-          <div className="grid grid-cols-3 gap-3 text-center">
+          <div className="grid grid-cols-3 gap-2 text-center">
             {avgSteps !== null && (
-              <div className="rounded-lg bg-blue-50 p-3">
-                <p className="text-lg font-semibold text-blue-700">{avgSteps.toLocaleString("pt-BR")}</p>
-                <p className="text-xs text-blue-600">Passos/dia</p>
+              <div className="rounded-lg bg-blue-50/70 p-2">
+                <p className="text-base font-semibold text-blue-700">{avgSteps.toLocaleString("pt-BR")}</p>
+                <p className="text-[10px] text-blue-600">Passos/dia</p>
               </div>
             )}
             {avgHrv !== null && (
-              <div className="rounded-lg bg-purple-50 p-3">
-                <p className="text-lg font-semibold text-purple-700">{avgHrv} ms</p>
-                <p className="text-xs text-purple-600">HRV (sono)</p>
+              <div className="rounded-lg bg-purple-50/70 p-2">
+                <p className="text-base font-semibold text-purple-700">{avgHrv} ms</p>
+                <p className="text-[10px] text-purple-600">HRV</p>
               </div>
             )}
             {avgHr !== null && (
-              <div className="rounded-lg bg-red-50 p-3">
-                <p className="text-lg font-semibold text-red-700">{avgHr} bpm</p>
-                <p className="text-xs text-red-600">FC repouso</p>
+              <div className="rounded-lg bg-red-50/70 p-2">
+                <p className="text-base font-semibold text-red-700">{avgHr} bpm</p>
+                <p className="text-[10px] text-red-600">FC repouso</p>
               </div>
             )}
           </div>
-          <p className="mt-2 text-xs text-muted">Via Apple Health (Health Auto Export)</p>
         </Card>
       )}
 
-      {/* === NOTÍCIAS === */}
+      {/* === 6. GRÁFICO 7 DIAS === */}
+      {chartData.length >= 2 && (
+        <Card>
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-sm font-semibold text-foreground">Últimos 7 dias</h2>
+            <Link href="/insights" className="text-xs text-primary hover:underline">Insights</Link>
+          </div>
+          <DashboardChartWrapper data={chartData} />
+        </Card>
+      )}
+
+      {/* === 7. INTEGRAÇÕES PENDENTES (below fold) === */}
+      {missingIntegrations.length > 0 && (
+        <Card>
+          <h2 className="text-sm font-semibold text-foreground mb-2">Ativar integrações</h2>
+          <p className="text-xs text-muted mb-2">Dados automáticos melhoram seus insights.</p>
+          <div className="flex gap-2">
+            {missingIntegrations.map(ig => (
+              <Link key={ig.label} href={ig.href} className={`flex-1 flex flex-col items-center gap-1 rounded-lg ${ig.bg} p-2.5 no-underline transition-colors`}>
+                {ig.label === "Wearable" && (
+                  <svg className="h-5 w-5 text-red-500" fill="currentColor" viewBox="0 0 24 24"><path d="M16.365 1.43c0 1.14-.493 2.27-1.177 3.08-.744.9-1.99 1.57-2.987 1.57-.18 0-.36-.02-.53-.06.018-.18.04-.36.04-.55 0-1.12.535-2.22 1.235-3.02C13.666 1.66 14.98 1 16.12 1c.18 0 .36.01.53.02-.01.14-.01.28-.01.41h-.274zm3.44 5.89c-.16.09-2.61 1.53-2.585 4.56.03 3.6 3.14 4.8 3.17 4.81-.02.08-.5 1.7-1.63 3.36-.98 1.45-2 2.9-3.6 2.93-1.57.03-2.08-.94-3.88-.94s-2.39.91-3.87.97c-1.55.06-2.73-1.57-3.72-3.01C1.6 17.18.27 12.84 2.44 9.73c1.07-1.54 2.99-2.52 5.07-2.55 1.52-.03 2.95 1.03 3.88 1.03.93 0 2.67-1.27 4.5-1.08.77.03 2.92.31 4.3 2.33-.11.07-2.56 1.51-2.54 4.49l-.36-.18z" /></svg>
+                )}
+                {ig.label === "Google Agenda" && (
+                  <svg className="h-5 w-5" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" /><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" /><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" /><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" /></svg>
+                )}
+                {ig.label === "Mobills" && (
+                  <Image src="/mobills-logo.png" alt="Mobills" width={20} height={20} className="object-contain" />
+                )}
+                <span className={`text-[10px] font-medium ${ig.textColor}`}>{ig.label}</span>
+              </Link>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {/* === 8. NOTÍCIAS (bottom) === */}
       {newsArticles.length > 0 && (
         <Card>
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-foreground">Notícias e estudos</h2>
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-sm font-semibold text-foreground">Notícias</h2>
             <Link href="/noticias" className="text-xs text-primary hover:underline">Ver todas</Link>
           </div>
-          <div className="space-y-3">
-            {newsArticles.map((article) => (
-              <a
-                key={article.url}
-                href={article.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block rounded-lg bg-surface-alt p-3 no-underline hover:bg-primary/5 transition-colors"
-              >
-                <p className="text-sm font-medium text-foreground line-clamp-2">{article.title}</p>
-                <p className="mt-1 text-xs text-muted">
-                  {article.sourceName || "PubMed"} &middot;{" "}
-                  {article.publishedAt.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}
+          <div className="space-y-2">
+            {newsArticles.map(article => (
+              <a key={article.url} href={article.url} target="_blank" rel="noopener noreferrer" className="block rounded-lg bg-surface-alt p-2.5 no-underline hover:bg-primary/5 transition-colors">
+                <p className="text-xs font-medium text-foreground line-clamp-2">{article.title}</p>
+                <p className="mt-0.5 text-[10px] text-muted">
+                  {article.sourceName || "PubMed"} · {article.publishedAt.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}
                 </p>
               </a>
             ))}
           </div>
-        </Card>
-      )}
-
-      {/* === CONQUISTAS === */}
-      {achievements.some((a) => a.unlocked) && (
-        <Card>
-          <AchievementGrid achievements={achievements} />
-        </Card>
-      )}
-
-      {/* === GRÁFICO 7 DIAS (último bloco) === */}
-      {chartData.length >= 2 && (
-        <Card>
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-foreground">Últimos 7 dias</h2>
-            <Link href="/insights" className="text-xs text-primary hover:underline">
-              Ver insights completos
-            </Link>
-          </div>
-          <DashboardChartWrapper data={chartData} />
         </Card>
       )}
     </div>

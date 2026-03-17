@@ -98,8 +98,9 @@ export function ReminderManager() {
   useEffect(() => {
     if (typeof window === "undefined" || !("Notification" in window)) return;
 
-    // If already granted, just register the push subscription silently
+    // If already granted, register the push subscription silently
     if (Notification.permission === "granted") {
+      localStorage.setItem("sb_notification_asked", "1");
       registerPushSubscription().then((ok) => {
         pushRegisteredRef.current = ok;
       });
@@ -107,15 +108,17 @@ export function ReminderManager() {
     }
 
     // If already denied or already asked, do nothing
-    if (Notification.permission === "denied") return;
+    if (Notification.permission === "denied") {
+      localStorage.setItem("sb_notification_asked", "1");
+      return;
+    }
     if (localStorage.getItem("sb_notification_asked")) return;
 
-    // Only stop asking after the user ACCEPTS.
-    // If denied, we'll ask again next session (browser throttles repeated prompts anyway).
+    // Ask once — mark as asked regardless of the user's choice
     const timer = setTimeout(() => {
       Notification.requestPermission().then((permission) => {
+        localStorage.setItem("sb_notification_asked", "1");
         if (permission === "granted") {
-          localStorage.setItem("sb_notification_asked", "1");
           registerPushSubscription().then((ok) => {
             pushRegisteredRef.current = ok;
           });

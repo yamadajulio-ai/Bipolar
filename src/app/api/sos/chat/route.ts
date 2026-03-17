@@ -29,10 +29,14 @@ const EXPLICIT_CRISIS: RegExp[] = [
   /\b(vou|quero|quer(o|ia))\s*acabar\s*comigo\b/i,
   /\b(melhor\s*sem\s*mim)\b/i,
   /\bseria\s*melhor\s*morrer\b/i,
-  // Suicide family — "suicidar", "cometer suicídio", "tirar minha vida", "por fim à minha vida"
-  /\b(me\s*)?suicidar\b/i,
+  // Suicide family — "suicidar" (self-ref), "cometer suicídio", "tirar minha vida"
+  /\bme\s*suicidar\b/i,
   /\bcometer\s*suicidio\b/i,
   /\b(penso|pensando|pensei)\s*em\s*suicidio\b/i,
+  // Clinical language — "ideação suicida", "pensamentos suicidas", "estou suicida"
+  /\bideacao\s*suicida\b/i,
+  /\bpensamentos?\s*suicidas?\b/i,
+  /\bestou\s*suicida\b/i,
   // "tirar minha vida" — requires self-reference (minha/própria) to avoid "tirar a vida dele"
   /\b(quer(o|ia)|vou)\s*(tirar|por\s*(um\s*)?fim\s*(a|[aa]|n[oa]))\s*(a\s*)?(minha\s*(propria\s*)?|a\s*propria\s*)vida\b/i,
   /\btirar\s*(a\s*)?(minha\s*(propria\s*)?|a\s*propria\s*)vida\b/i,
@@ -92,14 +96,24 @@ const BENIGN_OVERRIDES: RegExp[] = [
   /nao\s*(quero|vou|queria|ia)\s*tirar\s*(a\s*)?(minha|a\s*propria)/i,
   /nao\s*(quero|vou|queria|ia)\s*desaparecer/i,
   /nao\s*(quero|vou|queria|ia)\s*fazer\s*(uma\s*)?besteira/i,
+  // ── Negation overrides for self-harm and means ──
+  /nao\s*(quero|vou|queria|ia)\s*me\s*cortar/i,
+  /nao\s*(quero|vou|queria|ia)\s*me\s*machucar/i,
+  /nao\s*(quero|vou|queria|ia)\s*me\s*ferir/i,
+  /nao\s*(quero|vou|queria|ia)\s*me\s*enforcar/i,
+  /nao\s*(quero|vou|queria|ia)\s*me\s*envenenar/i,
+  /nao\s*(quero|vou|queria|ia)\s*cortar\s*(os?\s*|meus?\s*)?pulsos?/i,
+  /nao\s*(quero|vou|queria|ia)\s*(tomar|engolir)\s*(tudo|veneno|cartela)/i,
+  /nao\s*(penso|pensei|pensando)\s*em\s*suicidio/i,
   // ── Hyperbole overrides ──
-  // "vou me matar de trabalhar/rir" + "me matar pra/para/por/trabalhando"
+  // "vou me matar de trabalhar/rir"
   /me\s*matar?\s*de\s*(rir|trabalh|estud|corr|cans|fome|saudade|vergonha|calor|tedio)/i,
-  /me\s*matar?\s*(pra|para|por)\s/i,
+  // "me matar pra/para/por" — only benign continuations (work, study, money)
+  /me\s*matar?\s*(pra|para|por)\s*(pagar|sustentar|trabalh|estud|ganhar|esse\s*projeto|essa\s*empresa)/i,
   /me\s*matar?\s*trabalhando/i,
-  // "me mato de rir/trabalhar" + "me mato pra/para/por"
+  // "me mato de rir/trabalhar" + "me mato pra/para/por" (benign only)
   /me\s*mato\s*de\s*(rir|trabalh|estud|corr|cans|fome|saudade|vergonha|calor|tedio)/i,
-  /me\s*mato\s*(pra|para|por)\s/i,
+  /me\s*mato\s*(pra|para|por)\s*(pagar|sustentar|trabalh|estud|ganhar|esse\s*projeto|essa\s*empresa)/i,
   // "acabar comigo de vergonha/rir" — hyperbole
   /acabar\s*comigo\s*de\s*(rir|trabalh|vergonha|saudade|fome|cans|calor|tedio)/i,
   // "vou morrer de calor/fome/rir/vergonha" — hyperbole, NOT suicidal
@@ -155,13 +169,14 @@ const CONTEXTUAL_CRISIS: RegExp[] = [
   /\btomei\s*tudo\b/i,
   /\bquer(o|ia)\s*desaparecer\b/i,
   /\bvou\s*fazer\s*(uma\s*)?besteira\b/i,
+  /\bsuicidar\b/i, // bare "suicidar" without "me" (third party context)
 ];
 
 // Context markers that elevate contextual hits to crisis.
 // IMPORTANT: Terms here must NOT overlap with CONTEXTUAL_CRISIS patterns
 // to avoid self-validation (e.g., "vou morrer" + morrer in HARM_CONTEXT = false positive).
-// Removed: morrer, suicid (now in CONTEXTUAL themselves)
-const HARM_CONTEXT: RegExp = /\b(minha\s*vida|me\s*machucar|me\s*ferir|me\s*matar|nao\s*aguento|sofr(er|endo|imento)|desesperad[oa]|sem\s*esperanca|me\s*cortar|me\s*mato)\b/i;
+// Removed: morrer, suicid, minha vida (too broad — "mudou minha vida" is benign)
+const HARM_CONTEXT: RegExp = /\b(me\s*machucar|me\s*ferir|me\s*matar|nao\s*aguento|sofr(er|endo|imento)|desesperad[oa]|sem\s*esperanca|me\s*cortar|me\s*mato|acabar\s*com(igo|\s*minha\s*vida))\b/i;
 
 const CRISIS_RESPONSE =
   "Estou aqui com você. Isso é uma emergência — por favor ligue 192 (SAMU) agora. " +

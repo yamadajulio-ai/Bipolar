@@ -817,6 +817,95 @@ describe("detectCrisisInTexts", () => {
     });
   });
 
+  // ── Round 17 — HARM_CONTEXT narrowed, clinical language, negation for self-harm ──
+
+  describe("Round 17 — HARM_CONTEXT 'minha vida' removed to prevent FP", () => {
+    it.each([
+      "li um artigo sobre suicídio que mudou minha vida",
+      "a prevenção do suicídio salvou minha vida",
+      "suicídio é tema da minha vida acadêmica",
+    ])("does NOT detect: %s", (text) => {
+      expect(detect(text)).toBe(false);
+    });
+  });
+
+  describe("Round 17 — clinical language must detect (EXPLICIT)", () => {
+    it.each([
+      "tenho ideação suicida",
+      "estou com ideação suicida",
+      "pensamentos suicidas",
+      "tenho pensamentos suicidas",
+      "estou suicida",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("Round 17 — negation overrides for self-harm must NOT detect", () => {
+    it.each([
+      "não quero me cortar",
+      "não vou me machucar",
+      "não quero me ferir",
+      "não vou me enforcar",
+      "não quero me envenenar",
+      "não vou cortar meus pulsos",
+      "não quero tomar tudo",
+      "não quero engolir veneno",
+      "não penso em suicídio",
+      "não pensei em suicídio",
+    ])("does NOT detect: %s", (text) => {
+      expect(detect(text)).toBe(false);
+    });
+  });
+
+  describe("Round 17 — negation + real crisis in same message still detects", () => {
+    it.each([
+      "não quero me cortar, mas tomei todos os remédios",
+      "não penso em suicídio, mas quero morrer",
+      "não vou me machucar, mas não aguento mais viver",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("Round 17 — suicidar without 'me' moved to CONTEXTUAL (third-party)", () => {
+    it.each([
+      "ele quer se suicidar",
+      "meu amigo falou em suicidar",
+    ])("does NOT detect alone: %s", (text) => {
+      expect(detect(text)).toBe(false);
+    });
+    it("detects with self-ref: quero me suicidar", () => {
+      expect(detect("quero me suicidar")).toBe(true);
+    });
+  });
+
+  describe("Round 17 — 'me matar por/pra' real crisis vs benign", () => {
+    it.each([
+      "quero me matar por não aguentar mais",
+      "quero me matar porque não suporto",
+      "vou me matar por causa da dor",
+    ])("detects (real crisis — no benign continuation): %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+    it.each([
+      "me mato pra pagar as contas",
+      "me mato para sustentar minha família",
+      "vou me matar pra estudar pra prova",
+    ])("does NOT detect (benign work/money): %s", (text) => {
+      expect(detect(text)).toBe(false);
+    });
+  });
+
+  describe("Round 17 — acabar com minha vida in HARM_CONTEXT validates contextual", () => {
+    it("detects: tomei tudo + acabar com minha vida", () => {
+      expect(detectMulti(["tomei tudo", "quero acabar com minha vida"])).toBe(true);
+    });
+    it("detects: vou morrer + acabar comigo", () => {
+      expect(detectMulti(["vou morrer", "quero acabar comigo"])).toBe(true);
+    });
+  });
+
   describe("Round 8 — contextual window prevents false-positive accumulation", () => {
     it("benign contextual words across 10+ messages do NOT trigger (ponte msg1 + faca msg10)", () => {
       const messages = [

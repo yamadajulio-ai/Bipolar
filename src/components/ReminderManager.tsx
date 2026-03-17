@@ -110,12 +110,12 @@ export function ReminderManager() {
     if (Notification.permission === "denied") return;
     if (localStorage.getItem("sb_notification_asked")) return;
 
-    // Ask only once — set flag AFTER the user responds, not before
-    // Use a small delay so the page loads first (better UX than immediate prompt)
+    // Only stop asking after the user ACCEPTS.
+    // If denied, we'll ask again next session (browser throttles repeated prompts anyway).
     const timer = setTimeout(() => {
       Notification.requestPermission().then((permission) => {
-        localStorage.setItem("sb_notification_asked", "1");
         if (permission === "granted") {
+          localStorage.setItem("sb_notification_asked", "1");
           registerPushSubscription().then((ok) => {
             pushRegisteredRef.current = ok;
           });

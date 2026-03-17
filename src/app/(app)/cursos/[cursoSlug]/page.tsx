@@ -38,9 +38,34 @@ export default async function CursoPage({
       <div>
         <h1 className="text-2xl font-bold">{course.title}</h1>
         <p className="text-sm text-muted mt-1">{course.description}</p>
-        <p className="text-xs text-muted mt-2">
-          {completedSlugs.size} de {lessons.length} aulas concluídas
-        </p>
+        {/* Visual progress */}
+        {(() => {
+          const pct = lessons.length > 0 ? Math.round((completedSlugs.size / lessons.length) * 100) : 0;
+          const isComplete = completedSlugs.size >= lessons.length;
+          return (
+            <div className="mt-3">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs text-muted">
+                  {completedSlugs.size} de {lessons.length} aulas concluídas
+                </span>
+                <span className={`text-xs font-bold ${isComplete ? "text-green-600" : "text-muted"}`}>
+                  {isComplete ? "Completo!" : `${pct}%`}
+                </span>
+              </div>
+              <div className="h-2.5 w-full rounded-full bg-black/10">
+                <div
+                  className={`h-2.5 rounded-full transition-all ${isComplete ? "bg-green-500" : "bg-primary"}`}
+                  style={{ width: `${Math.max(pct > 0 ? 3 : 0, pct)}%` }}
+                  role="progressbar"
+                  aria-valuenow={pct}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-label={`${completedSlugs.size} de ${lessons.length} aulas concluídas`}
+                />
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       <Alert variant="info">
@@ -58,8 +83,12 @@ export default async function CursoPage({
             >
               <Card className={`transition-shadow hover:shadow-md ${done ? "border-l-4 border-l-success" : ""}`}>
                 <div className="flex items-center gap-3">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-surface-alt text-xs font-semibold text-muted">
-                    {lesson.lessonNumber}
+                  <span className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${
+                    done
+                      ? "bg-green-100 text-green-700"
+                      : "bg-surface-alt text-muted"
+                  }`}>
+                    {done ? "✓" : lesson.lessonNumber}
                   </span>
                   <div className="flex-1">
                     <h3 className="font-medium text-foreground">

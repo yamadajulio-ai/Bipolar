@@ -37,14 +37,42 @@ export default async function CursosPage() {
         <div className="space-y-3">
           {courses.map((course) => {
             const completed = progressByCourse[course.slug] || 0;
+            const pct = course.totalLessons > 0 ? Math.round((completed / course.totalLessons) * 100) : 0;
+            const isComplete = completed >= course.totalLessons;
             return (
               <Link key={course.slug} href={`/cursos/${course.slug}`} className="no-underline block">
-                <Card className="transition-shadow hover:shadow-md">
-                  <h2 className="font-semibold text-foreground">{course.title}</h2>
-                  <p className="text-sm text-muted mt-1">{course.description}</p>
-                  <p className="text-xs text-muted mt-2">
-                    {completed} de {course.totalLessons} aulas concluídas
-                  </p>
+                <Card className={`transition-shadow hover:shadow-md ${isComplete ? "border-l-4 border-l-green-500" : ""}`}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1">
+                      <h2 className="font-semibold text-foreground">{course.title}</h2>
+                      <p className="text-sm text-muted mt-1">{course.description}</p>
+                    </div>
+                    {isComplete && (
+                      <span className="flex-shrink-0 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-bold text-green-800">
+                        Completo
+                      </span>
+                    )}
+                  </div>
+                  {/* Progress bar */}
+                  <div className="mt-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[11px] text-muted">
+                        {completed} de {course.totalLessons} aulas
+                      </span>
+                      <span className="text-[11px] font-medium text-muted">{pct}%</span>
+                    </div>
+                    <div className="h-2 w-full rounded-full bg-black/10">
+                      <div
+                        className={`h-2 rounded-full transition-all ${isComplete ? "bg-green-500" : "bg-primary"}`}
+                        style={{ width: `${Math.max(pct > 0 ? 3 : 0, pct)}%` }}
+                        role="progressbar"
+                        aria-valuenow={pct}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-label={`${completed} de ${course.totalLessons} aulas concluídas`}
+                      />
+                    </div>
+                  </div>
                 </Card>
               </Link>
             );

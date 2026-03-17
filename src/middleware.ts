@@ -24,6 +24,8 @@ const protectedPaths = [
   "/noticias",
 ];
 const authPaths = ["/login", "/cadastro"];
+// Paths that should redirect logged-in users to /hoje (landing pages)
+const landingPaths = ["/"];
 
 /** CSRF: Reject cross-origin mutating requests to /api (defense-in-depth). */
 function checkCsrf(request: NextRequest): NextResponse | null {
@@ -95,6 +97,12 @@ export function middleware(request: NextRequest) {
   }
 
   if (isAuthPage && sessionCookie) {
+    return NextResponse.redirect(new URL("/hoje", request.url));
+  }
+
+  // Redirect logged-in users from landing page to dashboard
+  const isLanding = landingPaths.includes(pathname);
+  if (isLanding && sessionCookie) {
     return NextResponse.redirect(new URL("/hoje", request.url));
   }
 

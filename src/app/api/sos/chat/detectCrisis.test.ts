@@ -351,6 +351,59 @@ describe("detectCrisisInTexts", () => {
     });
   });
 
+  describe("Round 11 — benign override must NOT suppress other crisis phrases in same message", () => {
+    it.each([
+      "quero morrer, vou me matar de trabalhar",
+      "não quero mais viver, queria desaparecer do trabalho",
+      "tomei muitos remédios e pílulas de vitamina",
+      "vou me enforcar, me joguei no sofá ontem",
+      "cansei de viver, mas me joguei na cama e dormi",
+    ])("detects crisis even with benign phrase: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("Round 11 — me joguei no rio/mar/água must detect", () => {
+    it.each([
+      "me joguei no rio",
+      "me joguei no mar",
+      "me joguei na água",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("Round 11 — remaining benign overrides still work", () => {
+    it.each([
+      "me joguei no sofá",
+      "me joguei na cama",
+      "me joguei no jogo",
+      "vou me matar de rir",
+      "queria desaparecer da reunião",
+      "tomei pílulas de vitamina",
+    ])("does NOT detect: %s", (text) => {
+      expect(detect(text)).toBe(false);
+    });
+  });
+
+  describe("Round 11 — poison/cartela/medicamento intent must detect", () => {
+    it.each([
+      "vou beber veneno",
+      "quero beber veneno",
+      "vou engolir a cartela inteira",
+      "vou tomar uma cartela inteira",
+      "tomei todos os comprimidos",
+      "tomei todas as pílulas",
+      "engoli todas as pílulas",
+      "engoli todos os comprimidos",
+      "tomei muitos medicamentos",
+      "engoli muitos medicamentos",
+      "vou tomar muitos medicamentos",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
   describe("Round 8 — contextual window prevents false-positive accumulation", () => {
     it("benign contextual words across 10+ messages do NOT trigger (ponte msg1 + faca msg10)", () => {
       const messages = [

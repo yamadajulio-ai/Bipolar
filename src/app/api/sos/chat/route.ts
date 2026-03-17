@@ -40,10 +40,10 @@ const EXPLICIT_CRISIS: RegExp[] = [
   /\b(pul(ar|ei|ou)\s*d[aeo]|me\s*jog(ar|uei|ou)|me\s*enforc(ar|ou)|me\s*enforquei)\b/i,
   /\b(overdose|tomar\s*tudo)\b/i,
   // Overdose / intoxication — with articles and gender variants
-  /\bengol(ir|i)\s*(um\s*monte\s*de\s*|muit[oa]s?\s*|vari[oa]s?\s*|[oa]s\s*)?(comprimidos?|remedios?|pilulas?)\b/i,
-  /\btomei\s*(muit[oa]s?|vari[oa]s?|um\s*monte\s*de)\s*(remedios?|comprimidos?|pilulas?)\b/i,
+  /\bengol(ir|i)\s*(um\s*monte\s*de\s*|muit[oa]s?\s*|vari[oa]s?\s*|tod[oa]s?\s*([oa]s\s*)?|[oa]s\s*)?(comprimidos?|remedios?|pilulas?|medicamentos?)\b/i,
+  /\btomei\s*(muit[oa]s?|vari[oa]s?|um\s*monte\s*de)\s*(remedios?|comprimidos?|pilulas?|medicamentos?)\b/i,
   // Intent to overdose (future tense: "vou tomar")
-  /\b(vou|quero)\s*tomar\s*(muit[oa]s?|vari[oa]s?|tod[oa]s?\s*([oa]s\s*)?|um\s*monte\s*de)\s*(remedios?|comprimidos?|pilulas?)\b/i,
+  /\b(vou|quero)\s*tomar\s*(muit[oa]s?|vari[oa]s?|tod[oa]s?\s*([oa]s\s*)?|um\s*monte\s*de)\s*(remedios?|comprimidos?|pilulas?|medicamentos?)\b/i,
   // Mixing medication with alcohol — requires medical term (avoids "misturei bebida com energético")
   /\bmisturei\s*(remedio|remedios?|medicamento|medicacao)\b/i,
   /\bmisturei\s*(alcool|bebida|cerveja|vinho)\s*(com\s*)?(remedio|remedios?|medicamento|medicacao)\b/i,
@@ -51,7 +51,11 @@ const EXPLICIT_CRISIS: RegExp[] = [
   /\b(vou|quero)\s*misturar\s*(alcool|bebida)\s*(com\s*)?(remedio|remedios?|medicamento|medicacao)\b/i,
   // Poison / blister pack ingestion
   /\b(tomei|bebi|engoli)\s*veneno\b/i,
+  /\b(vou|quero)\s*(beber|tomar|engolir)\s*veneno\b/i,
   /\b(engoli|tomei)\s*(a\s*)?cartela\s*(inteira|toda)\b/i,
+  /\b(vou|quero)\s*(engolir|tomar)\s*(uma\s*|a\s*)?cartela\s*(inteira|toda)\b/i,
+  // "tomei todos os comprimidos/pílulas"
+  /\btomei\s*tod[oa]s?\s*([oa]s\s*)?(comprimidos?|pilulas?)\b/i,
   /\b(comprei\s*(uma\s*)?arma)\b/i,
   // Farewell (unambiguous)
   /\b(carta\s*de\s*despedida|adeus\s*pra\s*sempre)\b/i,
@@ -59,13 +63,13 @@ const EXPLICIT_CRISIS: RegExp[] = [
 
 // ── Benign overrides ────────────────────────────────────────────
 // Phrases that contain crisis keywords but are clearly benign.
-// If ANY of these match, the EXPLICIT hit is suppressed for that text.
+// Benign overrides only neutralize the specific crisis phrase they cover;
 // This prevents false escalation on colloquial pt-BR expressions.
 const BENIGN_OVERRIDES: RegExp[] = [
   // "vou me matar de trabalhar/rir/estudar" — hyperbole
   /me\s*matar\s*de\s*(rir|trabalh|estud|corr|cans|fome|saudade|vergonha)/i,
   // "me joguei no sofá/na cama/na piscina" — physical action, not self-harm
-  /me\s*jog(ar|uei|ou)\s*(n[oa]\s*(sofa|cama|piscina|chao|agua|rio|mar|jogo|time))/i,
+  /me\s*jog(ar|uei|ou)\s*(n[oa]\s*(sofa|cama|piscina|chao|jogo|time))/i,
   // "queria desaparecer da reunião/do trabalho" — figurative
   /desaparecer\s*(da\s*reuniao|do\s*trabalho|do\s*grupo|da\s*festa|da\s*escola|da\s*aula|do\s*chat)/i,
   // "tomei/engoli pílulas de vitamina" — supplement, not overdose
@@ -131,11 +135,19 @@ function detectCrisisInTexts(texts: string[]): boolean {
   // Tier 1: Any explicit pattern in ANY message → immediate crisis (latched)
   // BUT suppress if the text matches a known benign override (e.g., "me matar de rir")
   const hasExplicit = normalized.some((t) => {
-    const matchesExplicit = EXPLICIT_CRISIS.some((p) => p.test(t));
-    if (!matchesExplicit) return false;
-    // Check if benign override cancels the match
+    const explicitMatches = EXPLICIT_CRISIS.filter((p) => p.test(t));
+    if (explicitMatches.length === 0) return false;
+    // If text has benign context, only suppress if ALL explicit matches are "explained" by the benign context
     const isBenign = BENIGN_OVERRIDES.some((b) => b.test(t));
-    return !isBenign;
+    if (!isBenign) return true; // no benign override at all → crisis
+    // Benign override present — remove benign parts from text, then re-check for remaining explicit matches
+    let sanitized = t;
+    for (const b of BENIGN_OVERRIDES) {
+      sanitized = sanitized.replace(b, " ");
+    }
+    sanitized = sanitized.trim();
+    // If any explicit pattern still matches the sanitized text, it's real crisis
+    return EXPLICIT_CRISIS.some((p) => p.test(sanitized));
   });
   if (hasExplicit) return true;
 

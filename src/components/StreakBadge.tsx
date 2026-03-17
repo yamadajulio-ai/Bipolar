@@ -71,3 +71,7 @@ export function StreakBadge({ checkinStreak, sleepStreak, bestCheckinStreak }: S
     </div>
   );
 }
+
+/* Note: StreakBadge is placed BELOW all clinical alerts in the dashboard.
+   It frames consistency as a health tool, not a game. Crisis mode hides it entirely.
+   Per audit: gamification never above clinical alerts. */

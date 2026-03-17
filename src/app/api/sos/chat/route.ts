@@ -27,13 +27,12 @@ const EXPLICIT_CRISIS: RegExp[] = [
   /\bdar\s*cabo\s*da\s*minha\s*vida\b/i,
   /\b(acabar\s*com\s*(a\s*)?minha\s*vida)\b/i,
   /\b(vou|quero|quer(o|ia))\s*acabar\s*comigo\b/i,
-  /\bquer(o|ia)\s*desaparecer\b/i,
   /\b(melhor\s*sem\s*mim)\b/i,
-  /\b(vou\s*fazer\s*(uma\s*)?besteira)\b/i,
   /\bseria\s*melhor\s*morrer\b/i,
   // Suicide family — "suicidar", "cometer suicídio", "tirar minha vida", "por fim à minha vida"
   /\b(me\s*)?suicidar\b/i,
   /\bcometer\s*suicidio\b/i,
+  /\b(penso|pensando|pensei)\s*em\s*suicidio\b/i,
   // "tirar minha vida" — requires self-reference (minha/própria) to avoid "tirar a vida dele"
   /\b(quer(o|ia)|vou)\s*(tirar|por\s*(um\s*)?fim\s*(a|[aa]|n[oa]))\s*(a\s*)?(minha\s*(propria\s*)?|a\s*propria\s*)vida\b/i,
   /\btirar\s*(a\s*)?(minha\s*(propria\s*)?|a\s*propria\s*)vida\b/i,
@@ -83,10 +82,24 @@ const EXPLICIT_CRISIS: RegExp[] = [
 // Benign overrides only neutralize the specific crisis phrase they cover;
 // This prevents false escalation on colloquial pt-BR expressions.
 const BENIGN_OVERRIDES: RegExp[] = [
-  // "vou me matar de trabalhar/rir/estudar" — hyperbole
+  // ── Negation overrides: "não quero morrer", "não vou me matar" etc. ──
+  // These express fear/relief/refusal, not intent. Suppresses the inner match.
+  /nao\s*(quero|vou|queria|ia)\s*morrer/i,
+  /nao\s*(quero|vou|queria|ia)\s*me\s*matar/i,
+  /nao\s*(quero|vou|queria|ia)\s*me\s*suicidar/i,
+  /nao\s*penso\s*em\s*morrer/i,
+  /nao\s*(quero|vou|queria|ia)\s*acabar\s*comigo/i,
+  /nao\s*(quero|vou|queria|ia)\s*tirar\s*(a\s*)?(minha|a\s*propria)/i,
+  /nao\s*(quero|vou|queria|ia)\s*desaparecer/i,
+  /nao\s*(quero|vou|queria|ia)\s*fazer\s*(uma\s*)?besteira/i,
+  // ── Hyperbole overrides ──
+  // "vou me matar de trabalhar/rir" + "me matar pra/para/por/trabalhando"
   /me\s*matar?\s*de\s*(rir|trabalh|estud|corr|cans|fome|saudade|vergonha|calor|tedio)/i,
-  // "me mato de rir/trabalhar" — also hyperbole (present tense)
+  /me\s*matar?\s*(pra|para|por)\s/i,
+  /me\s*matar?\s*trabalhando/i,
+  // "me mato de rir/trabalhar" + "me mato pra/para/por"
   /me\s*mato\s*de\s*(rir|trabalh|estud|corr|cans|fome|saudade|vergonha|calor|tedio)/i,
+  /me\s*mato\s*(pra|para|por)\s/i,
   // "acabar comigo de vergonha/rir" — hyperbole
   /acabar\s*comigo\s*de\s*(rir|trabalh|vergonha|saudade|fome|cans|calor|tedio)/i,
   // "vou morrer de calor/fome/rir/vergonha" — hyperbole, NOT suicidal
@@ -131,7 +144,7 @@ const CONTEXTUAL_CRISIS: RegExp[] = [
   /\btestamento\b/i,
   /\b(estou\s*bebad[oa]|bebi\s*muito)\b/i,
   // Ambiguous without context — need corroboration
-  /\bqueria?\s*sumir\b/i,
+  /\b(quero|queria|vou)\s*sumir\b/i,
   /\bnao\s*queria\s*estar\s*aqui\b/i,
   /\bcuidem?\s*d[aeo]s?\s*meu[s]?\s*(filh|pet|gat|cachorr)/i,
   /\b(acabar\s*com\s*tudo|por\s*fim\s*(a|em)\s*tudo|encerrar\s*tudo)\b/i,
@@ -140,6 +153,8 @@ const CONTEXTUAL_CRISIS: RegExp[] = [
   /\bnao\s*quero\s*acordar\b/i,
   /\bsuicidio\b/i,
   /\btomei\s*tudo\b/i,
+  /\bquer(o|ia)\s*desaparecer\b/i,
+  /\bvou\s*fazer\s*(uma\s*)?besteira\b/i,
 ];
 
 // Context markers that elevate contextual hits to crisis.

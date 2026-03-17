@@ -25,10 +25,7 @@ describe("detectCrisisInTexts", () => {
       "vou dar cabo da minha vida",
       "acabar com a minha vida",
       "acabar com minha vida",
-      "quero desaparecer",
       "seria melhor sem mim",
-      "vou fazer besteira",
-      "vou fazer uma besteira",
     ])("detects: %s", (text) => {
       expect(detect(text)).toBe(true);
     });
@@ -270,7 +267,6 @@ describe("detectCrisisInTexts", () => {
       "me joguei",
       "pulei da ponte",
       "pulei do prédio",
-      "queria desaparecer",
     ])("detects: %s", (text) => {
       expect(detect(text)).toBe(true);
     });
@@ -727,6 +723,96 @@ describe("detectCrisisInTexts", () => {
       "tomei tudo que o médico receitou",
       "tomei tudo de água depois da corrida",
     ])("does NOT detect alone: %s", (text) => {
+      expect(detect(text)).toBe(false);
+    });
+  });
+
+  // ── Round 16 — negation overrides, penso em suicídio, desaparecer/besteira to CONTEXTUAL ──
+
+  describe("Round 16 — negation overrides must NOT detect", () => {
+    it.each([
+      "não quero morrer",
+      "não vou me matar",
+      "não vou me suicidar",
+      "não penso em morrer",
+      "não quero acabar comigo",
+      "não quero tirar minha vida",
+      "não quero desaparecer",
+      "não vou fazer besteira",
+      "não queria morrer",
+    ])("does NOT detect: %s", (text) => {
+      expect(detect(text)).toBe(false);
+    });
+  });
+
+  describe("Round 16 — negation + real crisis in same message still detects", () => {
+    it.each([
+      "não quero morrer, mas quero me matar",
+      "não vou me matar, mas tomei todos os remédios",
+      "não quero desaparecer, mas não aguento mais viver",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("Round 16 — penso/pensando em suicídio must detect", () => {
+    it.each([
+      "penso em suicídio",
+      "estou pensando em suicídio",
+      "pensei em suicídio",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("Round 16 — quero/vou sumir now covered in CONTEXTUAL", () => {
+    it("does NOT detect alone: quero sumir", () => {
+      expect(detect("quero sumir")).toBe(false);
+    });
+    it("does NOT detect alone: vou sumir", () => {
+      expect(detect("vou sumir")).toBe(false);
+    });
+    it("detects with harm context: quero sumir + sofrendo", () => {
+      expect(detectMulti(["quero sumir", "estou sofrendo demais"])).toBe(true);
+    });
+    it("detects with harm context: vou sumir + sem esperança", () => {
+      expect(detectMulti(["vou sumir", "sem esperança nenhuma"])).toBe(true);
+    });
+  });
+
+  describe("Round 16 — desaparecer moved to CONTEXTUAL", () => {
+    it.each([
+      "quero desaparecer",
+      "quero desaparecer por um tempo",
+      "quero desaparecer da internet",
+    ])("does NOT detect alone: %s", (text) => {
+      expect(detect(text)).toBe(false);
+    });
+    it("detects with harm context: quero desaparecer + desesperada", () => {
+      expect(detectMulti(["quero desaparecer", "estou desesperada"])).toBe(true);
+    });
+  });
+
+  describe("Round 16 — fazer besteira moved to CONTEXTUAL", () => {
+    it.each([
+      "vou fazer besteira",
+      "vou fazer uma besteira",
+      "vou fazer uma besteira e mandar mensagem pro ex",
+    ])("does NOT detect alone: %s", (text) => {
+      expect(detect(text)).toBe(false);
+    });
+    it("detects with harm context: vou fazer besteira + não aguento", () => {
+      expect(detectMulti(["vou fazer besteira", "não aguento mais"])).toBe(true);
+    });
+  });
+
+  describe("Round 16 — me mato pra/para/por overrides must NOT detect", () => {
+    it.each([
+      "me mato pra pagar as contas",
+      "me mato para sustentar meus filhos",
+      "me mato por essa empresa",
+      "vou me matar trabalhando nesse projeto",
+    ])("does NOT detect: %s", (text) => {
       expect(detect(text)).toBe(false);
     });
   });

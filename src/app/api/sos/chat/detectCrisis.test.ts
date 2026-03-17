@@ -404,6 +404,72 @@ describe("detectCrisisInTexts", () => {
     });
   });
 
+  describe("Round 12 — veneno with articles must detect", () => {
+    it.each([
+      "vou beber o veneno",
+      "quero beber o veneno",
+      "bebi o veneno",
+      "vou beber um pouco de veneno",
+      "tomei o veneno",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("Round 12 — cartela do remédio must detect", () => {
+    it.each([
+      "vou engolir a cartela do remédio",
+      "vou tomar a cartela do remédio",
+      "engoli a cartela do remédio",
+      "tomei a cartela do remédio",
+      "tomei todos os medicamentos",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("Round 12 — missing ideation variants must detect", () => {
+    it.each([
+      "queria morrer",
+      "eu me mato hoje",
+      "vou acabar comigo",
+      "quero acabar comigo",
+      "não quero viver",
+      "não queria viver",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("Round 12 — future mixing cerveja/vinho must detect", () => {
+    it.each([
+      "vou misturar cerveja com remédio",
+      "vou misturar vinho com medicamento",
+      "quero misturar cerveja com remédio",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("Round 12 — pulei benign override prevents false positive", () => {
+    it.each([
+      "pulei do ônibus",
+      "pulei do sofá",
+      "pulei da cama",
+    ])("does NOT detect: %s", (text) => {
+      expect(detect(text)).toBe(false);
+    });
+  });
+
+  describe("Round 12 — double benign in same message stays false", () => {
+    it.each([
+      "vou me matar de rir e me matar de trabalhar",
+      "me joguei na cama e me joguei no sofá",
+    ])("does NOT detect: %s", (text) => {
+      expect(detect(text)).toBe(false);
+    });
+  });
+
   describe("Round 8 — contextual window prevents false-positive accumulation", () => {
     it("benign contextual words across 10+ messages do NOT trigger (ponte msg1 + faca msg10)", () => {
       const messages = [

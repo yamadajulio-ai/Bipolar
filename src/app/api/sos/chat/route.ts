@@ -21,11 +21,12 @@ export const maxDuration = 30;
 // These phrases have no plausible benign interpretation in this context.
 const EXPLICIT_CRISIS: RegExp[] = [
   // Suicidal ideation (clear intent)
-  /\b(me\s*matar|quero\s*morrer|vou\s*morrer|desejo\s*de\s*morrer|penso\s*em\s*morrer)\b/i,
+  /\b(me\s*matar|me\s*mato|quer(o|ia)\s*morrer|vou\s*morrer|desejo\s*de\s*morrer|penso\s*em\s*morrer)\b/i,
   /\b(nao\s*aguento\s*mais\s*viver|cansad[oa]\s*de\s*viver|cansei\s*de\s*viver|sem\s*razao\s*(pra|para)\s*viver)\b/i,
-  /\bnao\s*quer(o|ia)\s*mais\s*viver\b/i,
+  /\bnao\s*quer(o|ia)\s*(mais\s*)?viver\b/i,
   /\b(nao\s*quero\s*acordar|nao\s*vejo\s*saida|dar\s*cabo\s*da\s*minha\s*vida)\b/i,
   /\b(acabar\s*com\s*(a\s*)?minha\s*vida)\b/i,
+  /\b(vou|quero|quer(o|ia))\s*acabar\s*comigo\b/i,
   /\bquer(o|ia)\s*desaparecer\b/i,
   /\b(melhor\s*sem\s*mim)\b/i,
   /\b(vou\s*fazer\s*(uma\s*)?besteira)\b/i,
@@ -48,14 +49,14 @@ const EXPLICIT_CRISIS: RegExp[] = [
   /\bmisturei\s*(remedio|remedios?|medicamento|medicacao)\b/i,
   /\bmisturei\s*(alcool|bebida|cerveja|vinho)\s*(com\s*)?(remedio|remedios?|medicamento|medicacao)\b/i,
   /\b(vou|quero)\s*misturar\s*(remedio|remedios?|medicamento|medicacao)\b/i,
-  /\b(vou|quero)\s*misturar\s*(alcool|bebida)\s*(com\s*)?(remedio|remedios?|medicamento|medicacao)\b/i,
+  /\b(vou|quero)\s*misturar\s*(alcool|bebida|cerveja|vinho)\s*(com\s*)?(remedio|remedios?|medicamento|medicacao)\b/i,
   // Poison / blister pack ingestion
-  /\b(tomei|bebi|engoli)\s*veneno\b/i,
-  /\b(vou|quero)\s*(beber|tomar|engolir)\s*veneno\b/i,
-  /\b(engoli|tomei)\s*(a\s*)?cartela\s*(inteira|toda)\b/i,
-  /\b(vou|quero)\s*(engolir|tomar)\s*(uma\s*|a\s*)?cartela\s*(inteira|toda)\b/i,
+  /\b(tomei|bebi|engoli)\s*(o\s*|um\s*pouco\s*de\s*)?veneno\b/i,
+  /\b(vou|quero)\s*(beber|tomar|engolir)\s*(o\s*|um\s*pouco\s*de\s*)?veneno\b/i,
+  /\b(engoli|tomei)\s*(a\s*)?cartela\s*(inteira|toda|d[oa]\s*(remedio|remedios?|medicamento|medicamentos?))\b/i,
+  /\b(vou|quero)\s*(engolir|tomar)\s*(uma\s*|a\s*)?cartela\s*(inteira|toda|d[oa]\s*(remedio|remedios?|medicamento|medicamentos?))\b/i,
   // "tomei todos os comprimidos/pílulas"
-  /\btomei\s*tod[oa]s?\s*([oa]s\s*)?(comprimidos?|pilulas?)\b/i,
+  /\btomei\s*tod[oa]s?\s*([oa]s\s*)?(comprimidos?|pilulas?|remedios?|medicamentos?)\b/i,
   /\b(comprei\s*(uma\s*)?arma)\b/i,
   // Farewell (unambiguous)
   /\b(carta\s*de\s*despedida|adeus\s*pra\s*sempre)\b/i,
@@ -74,6 +75,8 @@ const BENIGN_OVERRIDES: RegExp[] = [
   /desaparecer\s*(da\s*reuniao|do\s*trabalho|do\s*grupo|da\s*festa|da\s*escola|da\s*aula|do\s*chat)/i,
   // "tomei/engoli pílulas de vitamina" — supplement, not overdose
   /(comprimidos?|pilulas?|remedios?)\s*de\s*vitamina/i,
+  // "pulei do ônibus/sofá/cama" — benign physical action, not self-harm
+  /pul(ar|ei|ou)\s*d[aeo]\s*(onibus|sofa|cama|muro|barco|cavalo|bicicleta|trampolim|escada|arvore|cerca)/i,
 ];
 
 // CONTEXTUAL: ambiguous words/phrases that only indicate crisis when combined
@@ -143,7 +146,8 @@ function detectCrisisInTexts(texts: string[]): boolean {
     // Benign override present — remove benign parts from text, then re-check for remaining explicit matches
     let sanitized = t;
     for (const b of BENIGN_OVERRIDES) {
-      sanitized = sanitized.replace(b, " ");
+      const globalB = new RegExp(b.source, b.flags.includes('g') ? b.flags : b.flags + 'g');
+      sanitized = sanitized.replace(globalB, " ");
     }
     sanitized = sanitized.trim();
     // If any explicit pattern still matches the sanitized text, it's real crisis

@@ -23,6 +23,9 @@ export const metadata: Metadata = {
   title: "Suporte Bipolar — Juntos pelo equilíbrio",
   description:
     "Seu painel de estabilidade: rotina, sono, humor, finanças e corpo. Ferramentas para pessoas com Transtorno Afetivo Bipolar e suas famílias.",
+  verification: {
+    google: "AAA3yfmYp14DN--PF0B-YOf6-n80AVMzPt5igjY37Gs",
+  },
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,

@@ -198,6 +198,15 @@ export default async function HojePage() {
 
   const { risk, thermometer, combinedPatterns, sleep: sleepInsights } = insights;
 
+  // === Financial signals detection ===
+  const financialDrivers = risk?.factors.filter(f =>
+    f.toLowerCase().includes("gasto") || f.toLowerCase().includes("financ")
+  ) ?? [];
+  const hasFinancialSignal = financialDrivers.length > 0;
+  const hasFinancialWithContext = risk?.factors.some(f =>
+    f.toLowerCase().includes("gasto atípico + sono") || f.toLowerCase().includes("gasto atípico + energia")
+  ) ?? false;
+
   // === Streaks ===
   const checkinDates = streakDates.map(d => d.date);
   const sleepDatesArr = sleepStreakDates.map(d => d.date);
@@ -424,6 +433,32 @@ export default async function HojePage() {
             </div>
             <span className="text-[10px] text-muted">{entries30.length + sleepLogsForInsights.length}/14</span>
           </div>
+        </Card>
+      )}
+
+      {/* === SINAIS DE GASTOS (when financial anomaly detected) === */}
+      {hasFinancialSignal && hasFinancial && (
+        <Card className={`border ${hasFinancialWithContext ? "border-amber-300 bg-amber-50/50" : "border-border bg-surface-alt/50"}`}>
+          <div className="flex items-start justify-between mb-2">
+            <h2 className="text-sm font-semibold text-foreground">Sinais de gastos</h2>
+            <Link href="/financeiro" className="text-xs text-primary hover:underline">Detalhes</Link>
+          </div>
+          <div className="space-y-1.5">
+            {financialDrivers.map((d, i) => (
+              <p key={i} className="text-xs text-foreground/80">
+                <span className="mr-1">{hasFinancialWithContext ? "⚠" : "•"}</span>
+                {d}
+              </p>
+            ))}
+          </div>
+          {hasFinancialWithContext && (
+            <p className="mt-2 text-xs text-amber-700">
+              Mudanças nos gastos junto com alterações de sono ou energia podem ser um sinal comportamental. Observe e converse com seu profissional se persistir.
+            </p>
+          )}
+          <p className="mt-1.5 text-[10px] text-muted italic">
+            Sinal complementar · Não é diagnóstico e pode ter várias explicações
+          </p>
         </Card>
       )}
 

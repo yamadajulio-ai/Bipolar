@@ -165,6 +165,7 @@ export function parseHealthConnectPayload(body: unknown): HealthConnectResult {
   if (Array.isArray(payload.steps)) {
     const stepsByDay = new Map<string, number>();
     for (const step of payload.steps) {
+      if (!step || typeof step !== "object") continue;
       if (!isValidNumber(step.count, 1, 200000)) continue;
       const d = parseTimestamp(step.end_time) ?? parseTimestamp(step.start_time);
       if (!d) continue;
@@ -182,6 +183,7 @@ export function parseHealthConnectPayload(body: unknown): HealthConnectResult {
   if (Array.isArray(payload.active_calories)) {
     const calsByDay = new Map<string, number>();
     for (const cal of payload.active_calories) {
+      if (!cal || typeof cal !== "object") continue;
       if (!isValidNumber(cal.calories, 0.1, 10000)) continue;
       const d = parseTimestamp(cal.end_time) ?? parseTimestamp(cal.start_time);
       if (!d) continue;
@@ -199,6 +201,7 @@ export function parseHealthConnectPayload(body: unknown): HealthConnectResult {
   if (Array.isArray(payload.oxygen_saturation)) {
     const spo2ByDay = new Map<string, number[]>();
     for (const ox of payload.oxygen_saturation) {
+      if (!ox || typeof ox !== "object") continue;
       if (!isValidNumber(ox.percentage, 50, 100)) continue;
       const d = parseTimestamp(ox.time);
       if (!d) continue;
@@ -242,33 +245,36 @@ function parseSleepSession(
   let quality = 50; // default when no stage data
   let awakenings = 0;
 
-  const hasStages = Array.isArray(session.stages) && session.stages.length > 0;
+  const stagesArray = Array.isArray(session.stages) ? session.stages : [];
+  let deepSec = 0;
+  let remSec = 0;
+  let awakeSec = 0;
+  let wasAwake = false;
+  let validStageCount = 0;
+
+  for (const stage of stagesArray) {
+    if (!stage || typeof stage !== "object") continue;
+    if (typeof stage.stage !== "string") continue;
+    const dur = isValidNumber(stage.duration_seconds, 0, 86400) ? stage.duration_seconds : 0;
+    if (dur <= 0) continue;
+
+    validStageCount++;
+    const type = normalizeStage(stage.stage);
+
+    if (type === "deep") deepSec += dur;
+    else if (type === "rem") remSec += dur;
+    else if (type === "awake") {
+      awakeSec += dur;
+      if (!wasAwake) awakenings++;
+      wasAwake = true;
+      continue;
+    }
+    wasAwake = false;
+  }
+
+  const hasStages = validStageCount > 0;
 
   if (hasStages) {
-    let deepSec = 0;
-    let remSec = 0;
-    let awakeSec = 0;
-    let wasAwake = false;
-
-    for (const stage of session.stages) {
-      // Validate stage fields
-      if (typeof stage.stage !== "string") continue;
-      const dur = isValidNumber(stage.duration_seconds, 0, 86400) ? stage.duration_seconds : 0;
-      if (dur <= 0) continue;
-
-      const type = normalizeStage(stage.stage);
-
-      if (type === "deep") deepSec += dur;
-      else if (type === "rem") remSec += dur;
-      else if (type === "awake") {
-        awakeSec += dur;
-        if (!wasAwake) awakenings++;
-        wasAwake = true;
-        continue;
-      }
-      wasAwake = false;
-    }
-
     // Quality: deep+REM ratio (target 40-50% of sleep), awakenings penalty
     const sleepSeconds = totalSeconds - awakeSec;
     if (sleepSeconds > 0) {
@@ -292,6 +298,7 @@ function parseSleepSession(
   // Find HRV readings during sleep window
   if (Array.isArray(payload.heart_rate_variability)) {
     const sleepHrvs = payload.heart_rate_variability.filter((h) => {
+      if (!h || typeof h !== "object") return false;
       const t = parseTimestamp(h.time);
       if (!t) return false;
       return t.getTime() >= startTime.getTime() && t.getTime() <= endTime.getTime() &&
@@ -307,6 +314,7 @@ function parseSleepSession(
   for (const source of hrSources) {
     if (!Array.isArray(source)) continue;
     const sleepHrs = source.filter((h) => {
+      if (!h || typeof h !== "object") return false;
       const t = parseTimestamp(h.time);
       if (!t) return false;
       return t.getTime() >= startTime.getTime() && t.getTime() <= endTime.getTime() &&

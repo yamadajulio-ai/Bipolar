@@ -129,12 +129,12 @@ export default function AvaliacaoSemanalPage() {
           </p>
           {asrmTotal >= 6 && (
             <p className="mt-2 text-sm text-amber-400">
-              ASRM {asrmTotal}/20 — pode ser útil compartilhar esse resultado com seu profissional de saúde.
+              Mania: {asrmTotal}/20 — pode ser útil compartilhar esse resultado com seu profissional de saúde.
             </p>
           )}
           {phq9Total >= 10 && (
             <p className="mt-2 text-sm text-blue-400">
-              PHQ-9 {phq9Total}/27 — considere compartilhar esse resultado na sua próxima consulta.
+              Depressão: {phq9Total}/27 — considere compartilhar esse resultado na sua próxima consulta.
             </p>
           )}
           <button
@@ -153,7 +153,7 @@ export default function AvaliacaoSemanalPage() {
     <div className="mx-auto max-w-lg">
       <h1 className="mb-1 text-2xl font-bold">Avaliação Semanal</h1>
       <p className="mb-4 text-sm text-muted">
-        Escalas validadas para acompanhar mania, depressão e funcionamento.
+        Três questionários rápidos para acompanhar como você está: sinais de mania, sinais de depressão e como está funcionando no dia a dia.
       </p>
 
       {error && (
@@ -165,7 +165,7 @@ export default function AvaliacaoSemanalPage() {
       {/* Progress indicator */}
       {(() => {
         const steps: Step[] = ["asrm", "phq9", "fast", "review"];
-        const stepLabels: Record<Step, string> = { asrm: "ASRM", phq9: "PHQ-9", fast: "Funcionamento", review: "Revisão" };
+        const stepLabels: Record<Step, string> = { asrm: "Mania", phq9: "Depressão", fast: "Funcionamento", review: "Revisão" };
         const currentIdx = steps.indexOf(step) + 1;
         return (
           <div
@@ -196,9 +196,11 @@ export default function AvaliacaoSemanalPage() {
       {step === "asrm" && (
         <div className="space-y-4">
           <h2 className="text-lg font-semibold">
-            ASRM — Escala de Mania{" "}
-            <span className="text-xs font-normal text-muted">(Altman)</span>
+            Sinais de Mania
           </h2>
+          <p className="text-sm text-muted mb-1">
+            Avalia se você pode estar com humor elevado, acelerado ou irritável — sinais que podem indicar uma fase de mania ou hipomania.
+          </p>
           <p className="text-xs text-muted">
             Sobre a última semana: qual afirmação melhor descreve você?
           </p>
@@ -232,7 +234,7 @@ export default function AvaliacaoSemanalPage() {
               disabled={!asrmComplete}
               className="rounded-lg bg-primary px-6 py-2 text-sm font-medium text-white hover:bg-primary-dark disabled:opacity-50"
             >
-              Próximo: PHQ-9
+              Próximo: Depressão
             </button>
           </div>
         </div>
@@ -242,9 +244,11 @@ export default function AvaliacaoSemanalPage() {
       {step === "phq9" && (
         <div className="space-y-4">
           <h2 className="text-lg font-semibold">
-            PHQ-9 — Depressão{" "}
-            <span className="text-xs font-normal text-muted">(Kroenke)</span>
+            Sinais de Depressão
           </h2>
+          <p className="text-sm text-muted mb-1">
+            Avalia sintomas de depressão como tristeza, perda de interesse, cansaço e dificuldade de concentração. É o questionário mais usado no mundo para acompanhar depressão.
+          </p>
           <p className="text-xs text-muted">
             Nas últimas 2 semanas, com que frequência você foi incomodado(a) por:
           </p>
@@ -300,9 +304,11 @@ export default function AvaliacaoSemanalPage() {
       {step === "fast" && (
         <div className="space-y-4">
           <h2 className="text-lg font-semibold">
-            Funcionamento{" "}
-            <span className="text-xs font-normal text-muted">(inspirado no FAST — Vieta)</span>
+            Funcionamento no Dia a Dia
           </h2>
+          <p className="text-sm text-muted mb-1">
+            Avalia como o transtorno está impactando sua vida prática: trabalho, relações, autocuidado e organização.
+          </p>
           <p className="text-xs text-muted">
             Na última semana, como foi seu desempenho nessas áreas?
           </p>
@@ -359,7 +365,7 @@ export default function AvaliacaoSemanalPage() {
           <Card>
             <div className="grid grid-cols-3 gap-4 text-center">
               <div>
-                <div className="text-xs text-muted">ASRM</div>
+                <div className="text-xs text-muted">Mania</div>
                 <div
                   className={`text-xl font-bold ${
                     asrmTotal >= 6 ? "text-amber-400" : "text-green-400"
@@ -368,12 +374,14 @@ export default function AvaliacaoSemanalPage() {
                   {asrmTotal}
                   <span className="text-xs font-normal text-muted">/20</span>
                 </div>
-                {asrmTotal >= 6 && (
-                  <div className="text-[10px] text-amber-400">Pontuação acima do ponto de corte</div>
+                {asrmTotal >= 6 ? (
+                  <div className="text-[10px] text-amber-400">Acima do ponto de atenção — vale mencionar na consulta</div>
+                ) : (
+                  <div className="text-[10px] text-green-400">Sem sinais significativos</div>
                 )}
               </div>
               <div>
-                <div className="text-xs text-muted">PHQ-9</div>
+                <div className="text-xs text-muted">Depressão</div>
                 <div
                   className={`text-xl font-bold ${
                     phq9Total >= 15
@@ -390,18 +398,18 @@ export default function AvaliacaoSemanalPage() {
                 </div>
                 <div className="text-[10px] text-muted">
                   {phq9Total < 5
-                    ? "Mínimo"
+                    ? "Sem sinais significativos"
                     : phq9Total < 10
-                      ? "Leve"
+                      ? "Sintomas leves"
                       : phq9Total < 15
-                        ? "Moderado"
+                        ? "Sintomas moderados"
                         : phq9Total < 20
-                          ? "Mod-severo"
-                          : "Severo"}
+                          ? "Sintomas importantes — converse com seu médico"
+                          : "Sintomas severos — procure ajuda"}
                 </div>
               </div>
               <div>
-                <div className="text-xs text-muted">FAST</div>
+                <div className="text-xs text-muted">Dia a dia</div>
                 <div className="text-xl font-bold text-foreground">
                   {fastAvg ?? "—"}
                   <span className="text-xs font-normal text-muted">/5</span>
@@ -444,8 +452,8 @@ export default function AvaliacaoSemanalPage() {
           </div>
 
           <p className="text-center text-[10px] text-muted">
-            Escalas ASRM (Altman et al.) e PHQ-9 (Kroenke et al.) são instrumentos validados.
-            Itens de funcionamento inspirados no FAST (Vieta et al.). Este aplicativo não substitui avaliação profissional.
+            Questionários validados internacionalmente: mania (ASRM, Altman), depressão (PHQ-9, Kroenke),
+            funcionamento (inspirado no FAST, Vieta). Não substitui avaliação profissional.
           </p>
         </div>
       )}

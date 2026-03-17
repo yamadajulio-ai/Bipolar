@@ -237,7 +237,7 @@ describe("detectCrisisInTexts", () => {
   });
 
   describe("Round 6 — crisis latch across conversation", () => {
-    it("crisis in message 1 stays detected after 10+ benign messages", () => {
+    it("EXPLICIT crisis in message 1 stays detected after 10+ benign messages", () => {
       const messages = [
         "quero morrer",
         "sim",
@@ -251,6 +251,78 @@ describe("detectCrisisInTexts", () => {
         "oi",
       ];
       expect(detectMulti(messages)).toBe(true);
+    });
+  });
+
+  // ── Round 8 red team — coverage gaps & contextual window ────────
+
+  describe("Round 8 — missing EXPLICIT variants must detect", () => {
+    it.each([
+      "não quero mais viver",
+      "nao quero mais viver",
+      "não queria mais viver",
+      "nao queria mais viver",
+      "engoli os comprimidos",
+      "engoli os remédios",
+      "engoli as pílulas",
+      "engoli várias pílulas",
+      "engoli varias pilulas",
+      "engoli muitas pílulas",
+      "tomei muitas pílulas",
+      "tomei várias pílulas",
+      "me enforquei",
+      "me joguei",
+      "pulei da ponte",
+      "pulei do prédio",
+      "queria desaparecer",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("Round 8 — contextual window prevents false-positive accumulation", () => {
+    it("benign contextual words across 10+ messages do NOT trigger (ponte msg1 + faca msg10)", () => {
+      const messages = [
+        "passei pela ponte hoje",
+        "fui ao mercado",
+        "almocei com minha mãe",
+        "trabalhei o dia todo",
+        "assisti um filme",
+        "jantei em casa",
+        "fiz exercício",
+        "li um livro",
+        "conversei com amigos",
+        "vi uma faca na cozinha",
+      ];
+      // ponte in msg1 and faca in msg10 — both contextual but >6 messages apart
+      // With windowed contextual (last 6), only faca is in window → 1 hit → false
+      expect(detectMulti(messages)).toBe(false);
+    });
+
+    it("contextual words within 6-message window still trigger", () => {
+      const messages = [
+        "oi",
+        "tudo bem",
+        "pensei na ponte",
+        "e na faca",
+      ];
+      expect(detectMulti(messages)).toBe(true);
+    });
+
+    it("benign accumulation: ponte early + faca late with many messages between → false", () => {
+      const messages = [
+        "tem uma ponte bonita aqui",
+        "sim",
+        "ok",
+        "tá",
+        "hmm",
+        "não sei",
+        "talvez",
+        "vi uma faca na cozinha",
+      ];
+      // ponte is message 1 (outside last 6), faca is message 8 (inside last 6)
+      // Only 1 contextual hit in window → false
+      expect(detectMulti(messages)).toBe(false);
     });
   });
 });

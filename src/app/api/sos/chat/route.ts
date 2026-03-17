@@ -23,22 +23,25 @@ const EXPLICIT_CRISIS: RegExp[] = [
   // Suicidal ideation (clear intent)
   /\b(me\s*matar|quero\s*morrer|vou\s*morrer|desejo\s*de\s*morrer|penso\s*em\s*morrer)\b/i,
   /\b(nao\s*aguento\s*mais\s*viver|cansad[oa]\s*de\s*viver|cansei\s*de\s*viver|sem\s*razao\s*(pra|para)\s*viver)\b/i,
+  /\bnao\s*quer(o|ia)\s*mais\s*viver\b/i,
   /\b(nao\s*quero\s*acordar|nao\s*vejo\s*saida|dar\s*cabo\s*da\s*minha\s*vida)\b/i,
   /\b(acabar\s*com\s*(a\s*)?minha\s*vida)\b/i,
-  /\b(quero\s*desaparecer|melhor\s*sem\s*mim)\b/i,
+  /\bquer(o|ia)\s*desaparecer\b/i,
+  /\b(melhor\s*sem\s*mim)\b/i,
   /\b(vou\s*fazer\s*(uma\s*)?besteira)\b/i,
   // Passive ideation (unambiguous in SOS context)
   /\bdormir\s*e\s*nao\s*acordar\b/i,
   /\bnao\s*quer(o|ia)\s*mais\s*existir\b/i,
   /\bnao\s*quero\s*mais\s*estar\s*aqui\b/i,
-  // Self-harm (active)
+  // Self-harm (active + past tense)
   /\b(me\s*cortei|estou\s*sangrando|tomei\s*remedios?\s*todos?|tomei\s*todos?\s*(os\s*)?remedios?)\b/i,
   /\b(me\s*cortar|me\s*machucar|auto\s*lesao|autolesao|me\s*ferir)\b/i,
-  // Overdose / intoxication (active — broad coverage)
-  /\b(pular\s*d[aeo]|me\s*jogar|me\s*enforcar)\b/i,
+  // Means with intent (infinitive + past tense: joguei, enforquei, pulei)
+  /\b(pul(ar|ei|ou)\s*d[aeo]|me\s*jog(ar|uei|ou)|me\s*enforc(ar|ou)|me\s*enforquei)\b/i,
   /\b(overdose|tomar\s*tudo)\b/i,
-  /\bengol(ir|i)\s*(um\s*monte\s*de\s*|muitos?\s*|varios?\s*)?(comprimidos?|remedios?|pilulas?)\b/i,
-  /\btomei\s*(muitos?|varios?|um\s*monte\s*de)\s*(remedios?|comprimidos?|pilulas?)\b/i,
+  // Overdose / intoxication — with articles and gender variants
+  /\bengol(ir|i)\s*(um\s*monte\s*de\s*|muit[oa]s?\s*|vari[oa]s?\s*|[oa]s\s*)?(comprimidos?|remedios?|pilulas?)\b/i,
+  /\btomei\s*(muit[oa]s?|vari[oa]s?|um\s*monte\s*de)\s*(remedios?|comprimidos?|pilulas?)\b/i,
   /\bmisturei\s*(remedio|remedios?|medicamento|medicacao|alcool|bebida)\b/i,
   /\b(comprei\s*(uma\s*)?arma)\b/i,
   // Farewell (unambiguous)
@@ -93,33 +96,32 @@ function normalizeCrisisText(text: string): string {
 
 /**
  * Scan multiple texts for crisis keywords using two-tier detection:
- * - EXPLICIT patterns: always trigger (unambiguous crisis language)
- * - CONTEXTUAL patterns: only trigger when 2+ contextual hits appear,
- *   or 1 contextual hit + harm context in any recent message.
- *
- * We check ALL user messages (up to 20) so crisis is "latched" for the session.
+ * - EXPLICIT patterns: scanned across ALL messages (latched for session)
+ * - CONTEXTUAL patterns: scanned only in RECENT messages (last 6 turns)
+ *   to avoid false-positive accumulation over long benign conversations.
+ *   Only trigger when 2+ contextual hits or 1 contextual + harm context.
  */
 function detectCrisisInTexts(texts: string[]): boolean {
   const normalized = texts.map(normalizeCrisisText);
 
-  // Tier 1: Any explicit pattern in any message → immediate crisis
+  // Tier 1: Any explicit pattern in ANY message → immediate crisis (latched)
   const hasExplicit = normalized.some((t) =>
     EXPLICIT_CRISIS.some((p) => p.test(t)),
   );
   if (hasExplicit) return true;
 
-  // Tier 2: Contextual patterns need corroboration
-  // Count total pattern matches across ALL messages (not just messages-with-any-hit).
-  // This ensures "tenho um plano e uma faca" (2 patterns in 1 message) triggers correctly.
+  // Tier 2: Contextual patterns — only check recent window (last 6 messages)
+  // to avoid false positives from benign words accumulating over a long conversation.
+  const recentWindow = normalized.slice(-6);
   let contextualHits = 0;
-  for (const t of normalized) {
+  for (const t of recentWindow) {
     for (const p of CONTEXTUAL_CRISIS) {
       if (p.test(t)) contextualHits++;
     }
   }
-  const hasHarmContext = normalized.some((t) => HARM_CONTEXT.test(t));
+  const hasHarmContext = recentWindow.some((t) => HARM_CONTEXT.test(t));
 
-  // 2+ contextual pattern hits across all messages, or 1 contextual + harm context
+  // 2+ contextual pattern hits in recent window, or 1 contextual + harm context
   return contextualHits >= 2 || (contextualHits >= 1 && hasHarmContext);
 }
 

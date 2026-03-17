@@ -65,8 +65,18 @@ function checkCsrf(request: NextRequest): NextResponse | null {
   return null;
 }
 
+// Legacy domains that should redirect to the canonical domain
+const LEGACY_HOSTS = ["redebipolar.com", "www.redebipolar.com", "redebipolar.com.br", "www.redebipolar.com.br"];
+const CANONICAL_ORIGIN = "https://suportebipolar.com";
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // Redirect legacy domains to canonical domain (301 permanent)
+  const host = request.headers.get("host")?.toLowerCase().replace(/:.*$/, "");
+  if (host && LEGACY_HOSTS.includes(host)) {
+    return NextResponse.redirect(`${CANONICAL_ORIGIN}${pathname}${request.nextUrl.search}`, 301);
+  }
 
   // CSRF check for API routes
   if (pathname.startsWith("/api/")) {

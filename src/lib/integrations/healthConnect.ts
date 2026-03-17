@@ -156,6 +156,7 @@ export function parseHealthConnectPayload(body: unknown): HealthConnectResult {
   // 1. Parse sleep sessions
   if (Array.isArray(payload.sleep)) {
     for (const session of payload.sleep) {
+      if (!session || typeof session !== "object") continue;
       const night = parseSleepSession(session, payload);
       if (night) result.sleepNights.push(night);
     }
@@ -258,8 +259,10 @@ function parseSleepSession(
     const dur = isValidNumber(stage.duration_seconds, 0, 86400) ? stage.duration_seconds : 0;
     if (dur <= 0) continue;
 
-    validStageCount++;
     const type = normalizeStage(stage.stage);
+    // Only count recognized stages toward hasStages (skip "unknown" vendor values)
+    if (type === "unknown") continue;
+    validStageCount++;
 
     if (type === "deep") deepSec += dur;
     else if (type === "rem") remSec += dur;

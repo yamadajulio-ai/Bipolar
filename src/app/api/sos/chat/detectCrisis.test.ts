@@ -470,6 +470,74 @@ describe("detectCrisisInTexts", () => {
     });
   });
 
+  // ── Round 13 — suicidar/tirar vida/envenenar/cortar pulsos ─────
+
+  describe("Round 13 — P0: suicide family must detect", () => {
+    it.each([
+      "quero me suicidar",
+      "vou me suicidar",
+      "vou cometer suicídio",
+      "quero tirar minha vida",
+      "vou tirar minha vida",
+      "vou por fim à minha vida",
+      "vou por fim a minha vida",
+      "seria melhor morrer",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("Round 13 — P0: envenenar must detect", () => {
+    it.each([
+      "vou me envenenar",
+      "quero me envenenar",
+      "me envenenei",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("Round 13 — P0: cortar pulsos must detect", () => {
+    it.each([
+      "vou cortar meus pulsos",
+      "cortei meus pulsos",
+      "cortei os pulsos",
+      "vou cortar os pulsos",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("Round 13 — P0: pular na frente do carro/trem must detect", () => {
+    it.each([
+      "vou pular na frente do carro",
+      "vou pular na frente do trem",
+      "pulei na frente do onibus",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("Round 13 — P1: colloquial hyperbole false positives must NOT detect", () => {
+    it.each([
+      "me mato de rir",
+      "eu me mato de trabalhar",
+      "vou acabar comigo de vergonha",
+      "quero acabar comigo de rir",
+    ])("does NOT detect: %s", (text) => {
+      expect(detect(text)).toBe(false);
+    });
+  });
+
+  describe("Round 13 — benign pular na frente (not vehicles) must NOT detect", () => {
+    it.each([
+      "pulei na frente do espelho",
+      "pulei na frente da camera",
+    ])("does NOT detect: %s", (text) => {
+      expect(detect(text)).toBe(false);
+    });
+  });
+
   describe("Round 8 — contextual window prevents false-positive accumulation", () => {
     it("benign contextual words across 10+ messages do NOT trigger (ponte msg1 + faca msg10)", () => {
       const messages = [

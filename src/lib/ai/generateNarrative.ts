@@ -12,12 +12,14 @@ export interface NarrativeResult {
   generatedAt: string;   // ISO date
 }
 
-const SAFE_FALLBACK: NarrativeResult = {
-  summary: "Não foi possível gerar a análise narrativa neste momento. Consulte os dados numéricos nos cards acima e converse com seu profissional de saúde sobre as tendências observadas.",
-  highlights: [],
-  suggestions: ["Revise os dados numéricos dos insights acima", "Converse com seu profissional sobre as tendências"],
-  generatedAt: new Date().toISOString(),
-};
+function getSafeFallback(): NarrativeResult {
+  return {
+    summary: "Não foi possível gerar a análise narrativa neste momento. Consulte os dados numéricos nos cards acima e converse com seu profissional de saúde sobre as tendências observadas.",
+    highlights: [],
+    suggestions: ["Revise os dados numéricos dos insights acima", "Converse com seu profissional sobre as tendências"],
+    generatedAt: new Date().toISOString(),
+  };
+}
 
 /**
  * Summarize InsightsResult into a structured JSON object suitable for the prompt.
@@ -108,7 +110,7 @@ REGRAS OBRIGATÓRIAS:
 2. SEMPRE reforce que a interpretação clínica deve ser feita pelo profissional de saúde.
 3. Use linguagem acolhedora e não-alarmista, mesmo para dados preocupantes.
 4. Seja específico: cite números e tendências dos dados fornecidos.
-5. Relacione sono, humor, ritmo e medicação entre si quando houver correlação.
+5. Descreva coocorrências observadas entre sono, humor, ritmo e medicação, sem inferir efeito clínico.
 6. Para scores de risco elevado, incentive contato com o profissional sem causar pânico.
 7. Respostas SEMPRE em pt-BR.
 8. NUNCA infira causalidade clínica de uma correlação estatística.
@@ -149,13 +151,13 @@ Responda APENAS com JSON válido no formato:
       }
     }
 
-    if (!parsed) return SAFE_FALLBACK;
+    if (!parsed) return getSafeFallback();
 
     const summary = typeof parsed.summary === "string" ? parsed.summary : "";
     const highlights = Array.isArray(parsed.highlights) ? parsed.highlights.filter((h): h is string => typeof h === "string") : [];
     const suggestions = Array.isArray(parsed.suggestions) ? parsed.suggestions.filter((s): s is string => typeof s === "string") : [];
 
-    if (!summary && highlights.length === 0) return SAFE_FALLBACK;
+    if (!summary && highlights.length === 0) return getSafeFallback();
 
     return {
       summary,
@@ -164,6 +166,6 @@ Responda APENAS com JSON válido no formato:
       generatedAt: new Date().toISOString(),
     };
   } catch {
-    return SAFE_FALLBACK;
+    return getSafeFallback();
   }
 }

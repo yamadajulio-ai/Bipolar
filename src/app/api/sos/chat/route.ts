@@ -17,16 +17,16 @@ export const maxDuration = 30;
 // This reduces false positives like "tenho um plano para o projeto"
 // or "moro perto da ponte" while still catching real crises.
 
-// EXPLICIT: unambiguous crisis language — always triggers bypass
+// EXPLICIT: unambiguous crisis language — always triggers bypass.
+// These phrases have no plausible benign interpretation in this context.
 const EXPLICIT_CRISIS: RegExp[] = [
   // Suicidal ideation (clear intent)
   /\b(me\s*matar|quero\s*morrer|vou\s*morrer|desejo\s*de\s*morrer|penso\s*em\s*morrer)\b/i,
   /\b(nao\s*aguento\s*mais\s*viver|cansad[oa]\s*de\s*viver|sem\s*razao\s*(pra|para)\s*viver)\b/i,
   /\b(nao\s*quero\s*acordar|nao\s*vejo\s*saida|dar\s*cabo\s*da\s*minha\s*vida)\b/i,
   /\b(acabar\s*com\s*(a\s*)?minha\s*vida)\b/i,
-  /\b(queria?\s*sumir|quero\s*desaparecer|melhor\s*sem\s*mim)\b/i,
+  /\b(quero\s*desaparecer|melhor\s*sem\s*mim)\b/i,
   /\b(vou\s*fazer\s*(uma\s*)?besteira)\b/i,
-  /\b(nao\s*queria\s*estar\s*aqui)\b/i,
   // Self-harm (active)
   /\b(me\s*cortei|estou\s*sangrando|tomei\s*remedios?\s*todos?)\b/i,
   /\b(me\s*cortar|me\s*machucar|auto\s*lesao|autolesao|me\s*ferir)\b/i,
@@ -36,20 +36,25 @@ const EXPLICIT_CRISIS: RegExp[] = [
   /\b(comprei\s*(uma\s*)?arma)\b/i,
   // Farewell (unambiguous)
   /\b(carta\s*de\s*despedida|adeus\s*pra\s*sempre)\b/i,
-  /\b(cuidem?\s*d[aeo]s?\s*meu[s]?\s*(filh|pet|gat|cachorr))/i,
-  // Full expressions
-  /\b(acabar\s*com\s*tudo|por\s*fim\s*(a|em)\s*tudo|encerrar\s*tudo)\b/i,
 ];
 
-// CONTEXTUAL: ambiguous words that only indicate crisis when combined
+// CONTEXTUAL: ambiguous words/phrases that only indicate crisis when combined
 // with harm-related context or when multiple appear together.
-// Avoids false positives like "tenho um plano para o projeto",
-// "moro perto da ponte", "tenho uma faca na cozinha".
+// Moved here from EXPLICIT to avoid false positives like:
+// - "queria sumir do grupo do WhatsApp"
+// - "não queria estar aqui na reunião"
+// - "cuidem do meu cachorro enquanto viajo"
+// - "vou acabar com tudo no trabalho hoje"
 const CONTEXTUAL_CRISIS: RegExp[] = [
   /\b(corda|veneno|arma|faca|ponte|predio)\b/i,
   /\btenho\s*um\s*plano\b/i,
   /\btestamento\b/i,
   /\b(estou\s*bebad[oa]|bebi\s*muito|misturei\s*remedio|misturei\s*alcool)\b/i,
+  // Ambiguous without context — need corroboration
+  /\bqueria?\s*sumir\b/i,
+  /\bnao\s*queria\s*estar\s*aqui\b/i,
+  /\bcuidem?\s*d[aeo]s?\s*meu[s]?\s*(filh|pet|gat|cachorr)/i,
+  /\b(acabar\s*com\s*tudo|por\s*fim\s*(a|em)\s*tudo|encerrar\s*tudo)\b/i,
 ];
 
 // Context markers that elevate contextual hits to crisis
@@ -89,12 +94,17 @@ function detectCrisisInTexts(texts: string[]): boolean {
   if (hasExplicit) return true;
 
   // Tier 2: Contextual patterns need corroboration
-  const contextualHits = normalized.filter((t) =>
-    CONTEXTUAL_CRISIS.some((p) => p.test(t)),
-  ).length;
+  // Count total pattern matches across ALL messages (not just messages-with-any-hit).
+  // This ensures "tenho um plano e uma faca" (2 patterns in 1 message) triggers correctly.
+  let contextualHits = 0;
+  for (const t of normalized) {
+    for (const p of CONTEXTUAL_CRISIS) {
+      if (p.test(t)) contextualHits++;
+    }
+  }
   const hasHarmContext = normalized.some((t) => HARM_CONTEXT.test(t));
 
-  // 2+ contextual hits across messages, or 1 contextual + harm context
+  // 2+ contextual pattern hits across all messages, or 1 contextual + harm context
   return contextualHits >= 2 || (contextualHits >= 1 && hasHarmContext);
 }
 
@@ -184,23 +194,28 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Parse and validate input FIRST ──
-  let messages: { role: "user" | "assistant"; content: string }[];
+  // SECURITY: Only accept "user" messages from the client.
+  // "assistant" turns are reconstructed server-side from user messages
+  // to prevent prompt injection via synthetic assistant turns.
+  let userMessages: { role: "user"; content: string }[];
   try {
     const body = await req.json();
-    messages = body.messages;
-    if (!Array.isArray(messages) || messages.length === 0) {
+    const raw = body.messages;
+    if (!Array.isArray(raw) || raw.length === 0) {
       return Response.json({ error: "Mensagens inválidas" }, { status: 400 });
     }
-    if (messages.length > 40) {
-      messages = messages.slice(-40);
+    // Extract only user messages — ignore any "assistant"/"system" turns from client
+    userMessages = [];
+    for (const m of raw) {
+      if (m.role !== "user" || typeof m.content !== "string") continue;
+      const content = m.content.length > 2000 ? m.content.slice(0, 2000) : m.content;
+      userMessages.push({ role: "user", content });
     }
-    for (const m of messages) {
-      if (!["user", "assistant"].includes(m.role) || typeof m.content !== "string") {
-        return Response.json({ error: "Formato inválido" }, { status: 400 });
-      }
-      if (m.content.length > 2000) {
-        m.content = m.content.slice(0, 2000);
-      }
+    if (userMessages.length === 0) {
+      return Response.json({ error: "Nenhuma mensagem de usuário" }, { status: 400 });
+    }
+    if (userMessages.length > 20) {
+      userMessages = userMessages.slice(-20);
     }
   } catch {
     return Response.json({ error: "JSON inválido" }, { status: 400 });
@@ -209,15 +224,14 @@ export async function POST(req: NextRequest) {
   // ── LAYER 1: Deterministic crisis detection BEFORE rate limit ──
   // Scan last 6 user messages (not just the last one) to catch
   // contextual escalation like "quero morrer" → "sim" → "já comprei"
-  const recentUserTexts = messages
-    .filter((m) => m.role === "user")
+  const recentUserTexts = userMessages
     .slice(-6)
     .map((m) => m.content);
 
   if (detectCrisisInTexts(recentUserTexts)) {
     // Crisis users ALWAYS get the static response, even if rate-limited
     await logChatMeta(session.userId, {
-      turnCount: messages.length,
+      turnCount: userMessages.length,
       crisisDetected: true,
     });
     return new Response(buildCrisisStream(), { headers: SSE_HEADERS });
@@ -246,6 +260,19 @@ export async function POST(req: NextRequest) {
   }
 
   // ── LAYER 3: LLM streaming response ──
+  // Build alternating user/assistant turns from user-only messages.
+  // We insert placeholder assistant turns between consecutive user messages
+  // so the API receives valid alternating conversation structure.
+  // This prevents prompt injection via forged assistant turns from the client.
+  const llmMessages: { role: "user" | "assistant"; content: string }[] = [];
+  for (let i = 0; i < userMessages.length; i++) {
+    llmMessages.push(userMessages[i]);
+    // Insert placeholder assistant turn between user messages (not after the last one)
+    if (i < userMessages.length - 1) {
+      llmMessages.push({ role: "assistant", content: "Estou ouvindo. Continue, por favor." });
+    }
+  }
+
   const startMs = Date.now();
   const anthropic = new Anthropic({ apiKey });
   let streamError = false;
@@ -258,18 +285,29 @@ export async function POST(req: NextRequest) {
           model: "claude-sonnet-4-20250514",
           max_tokens: 220,
           system: SYSTEM_PROMPT,
-          messages,
+          messages: llmMessages,
         });
 
+        let hasContent = false;
         for await (const event of stream) {
           if (
             event.type === "content_block_delta" &&
             event.delta.type === "text_delta"
           ) {
+            hasContent = true;
             controller.enqueue(
               encoder.encode(`data: ${JSON.stringify({ text: event.delta.text })}\n\n`),
             );
           }
+        }
+
+        // Handle refusal/empty response: if Claude refused or produced no text,
+        // send a safe fallback instead of leaving the user with an empty response
+        if (!hasContent) {
+          const refusalMsg = "Estou aqui com você. Se precisar de ajuda imediata, ligue 192 (SAMU) ou 188 (CVV). Você também pode usar a respiração guiada aqui no app.";
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify({ text: refusalMsg, fallback: true })}\n\n`),
+          );
         }
       } catch {
         streamError = true;
@@ -283,7 +321,7 @@ export async function POST(req: NextRequest) {
         controller.close();
         // Log minimal metadata (no transcripts)
         logChatMeta(session.userId, {
-          turnCount: messages.length,
+          turnCount: userMessages.length,
           crisisDetected: false,
           durationMs: Date.now() - startMs,
           error: streamError,

@@ -71,7 +71,7 @@ export function generateReportShareText(month: string): string {
     month: "long",
     year: "numeric",
   });
-  return `Meu relatório mensal de acompanhamento bipolar — ${monthName}. Gerado pelo Suporte Bipolar.`;
+  return `Meu relatório mensal de acompanhamento — ${monthName}. Gerado pelo Suporte Bipolar.`;
 }
 
 // ── WhatsApp Cloud API (requires Meta Business setup) ──────────

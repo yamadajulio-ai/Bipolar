@@ -45,8 +45,9 @@ const METRIC_LABELS: Record<string, string> = {
 };
 
 function formatSleepDuration(hours: number): string {
-  const h = Math.floor(hours);
-  const m = Math.round((hours - h) * 60);
+  const totalMinutes = Math.round(hours * 60);
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
   if (m === 0) return `${h}h`;
   return `${h}h${String(m).padStart(2, "0")}`;
 }
@@ -258,7 +259,7 @@ export default function IntegraçõesPage() {
 
         <div className="rounded-lg bg-emerald-50 dark:bg-emerald-950/30 p-4 text-sm space-y-4">
           <p className="text-muted">
-            Qualquer wearable cujo app no iPhone escreva dados no Apple Health funciona com o Suporte Bipolar via Health Auto Export.
+            Wearables cujo app no iPhone escreva dados no Apple Health podem funcionar com o Suporte Bipolar via Health Auto Export.
             A cobertura de métricas varia por modelo.
           </p>
 

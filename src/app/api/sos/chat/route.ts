@@ -22,17 +22,17 @@ export const maxDuration = 30;
 const EXPLICIT_CRISIS: RegExp[] = [
   // Suicidal ideation (clear intent)
   /\b(me\s*matar|quero\s*morrer|vou\s*morrer|desejo\s*de\s*morrer|penso\s*em\s*morrer)\b/i,
-  /\b(nao\s*aguento\s*mais\s*viver|cansad[oa]\s*de\s*viver|sem\s*razao\s*(pra|para)\s*viver)\b/i,
+  /\b(nao\s*aguento\s*mais\s*viver|cansad[oa]\s*de\s*viver|cansei\s*de\s*viver|sem\s*razao\s*(pra|para)\s*viver)\b/i,
   /\b(nao\s*quero\s*acordar|nao\s*vejo\s*saida|dar\s*cabo\s*da\s*minha\s*vida)\b/i,
   /\b(acabar\s*com\s*(a\s*)?minha\s*vida)\b/i,
   /\b(quero\s*desaparecer|melhor\s*sem\s*mim)\b/i,
   /\b(vou\s*fazer\s*(uma\s*)?besteira)\b/i,
   // Self-harm (active)
-  /\b(me\s*cortei|estou\s*sangrando|tomei\s*remedios?\s*todos?)\b/i,
+  /\b(me\s*cortei|estou\s*sangrando|tomei\s*remedios?\s*todos?|tomei\s*todos?\s*(os\s*)?remedios?)\b/i,
   /\b(me\s*cortar|me\s*machucar|auto\s*lesao|autolesao|me\s*ferir)\b/i,
   // Means with clear intent
   /\b(pular\s*d[aeo]|me\s*jogar|me\s*enforcar)\b/i,
-  /\b(overdose|tomar\s*tudo|engolir\s*comprimidos?)\b/i,
+  /\b(overdose|tomar\s*tudo|engol(ir|i)\s*comprimidos?)\b/i,
   /\b(comprei\s*(uma\s*)?arma)\b/i,
   // Farewell (unambiguous)
   /\b(carta\s*de\s*despedida|adeus\s*pra\s*sempre)\b/i,
@@ -46,7 +46,13 @@ const EXPLICIT_CRISIS: RegExp[] = [
 // - "cuidem do meu cachorro enquanto viajo"
 // - "vou acabar com tudo no trabalho hoje"
 const CONTEXTUAL_CRISIS: RegExp[] = [
-  /\b(corda|veneno|arma|faca|ponte|predio)\b/i,
+  // Means — each as separate pattern so "ponte e faca" = 2 hits
+  /\bcorda\b/i,
+  /\bveneno\b/i,
+  /\barma\b/i,
+  /\bfaca\b/i,
+  /\bponte\b/i,
+  /\bpredio\b/i,
   /\btenho\s*um\s*plano\b/i,
   /\btestamento\b/i,
   /\b(estou\s*bebad[oa]|bebi\s*muito|misturei\s*remedio|misturei\s*alcool)\b/i,
@@ -57,8 +63,10 @@ const CONTEXTUAL_CRISIS: RegExp[] = [
   /\b(acabar\s*com\s*tudo|por\s*fim\s*(a|em)\s*tudo|encerrar\s*tudo)\b/i,
 ];
 
-// Context markers that elevate contextual hits to crisis
-const HARM_CONTEXT: RegExp = /\b(morrer|minha\s*vida|sumir|me\s*machucar|me\s*ferir|me\s*matar|suicid|acabar|nao\s*aguento)\b/i;
+// Context markers that elevate contextual hits to crisis.
+// IMPORTANT: Terms here must NOT overlap with CONTEXTUAL_CRISIS patterns
+// to avoid self-validation (e.g., "queria sumir" + sumir in HARM_CONTEXT = false positive).
+const HARM_CONTEXT: RegExp = /\b(morrer|minha\s*vida|me\s*machucar|me\s*ferir|me\s*matar|suicid|nao\s*aguento|sofr(er|endo|imento)|desesperad[oa]|sem\s*esperanca)\b/i;
 
 const CRISIS_RESPONSE =
   "Estou aqui com você. Isso é uma emergência — por favor ligue 192 (SAMU) agora. " +

@@ -98,24 +98,32 @@ export function ReminderManager() {
   useEffect(() => {
     if (typeof window === "undefined" || !("Notification" in window)) return;
 
-    // Request notification permission once
-    if (
-      Notification.permission === "default" &&
-      !localStorage.getItem("notification-asked")
-    ) {
-      localStorage.setItem("notification-asked", "1");
+    // If already granted, just register the push subscription silently
+    if (Notification.permission === "granted") {
+      registerPushSubscription().then((ok) => {
+        pushRegisteredRef.current = ok;
+      });
+      return;
+    }
+
+    // If already denied or already asked, do nothing
+    if (Notification.permission === "denied") return;
+    if (localStorage.getItem("sb_notification_asked")) return;
+
+    // Ask only once — set flag AFTER the user responds, not before
+    // Use a small delay so the page loads first (better UX than immediate prompt)
+    const timer = setTimeout(() => {
       Notification.requestPermission().then((permission) => {
+        localStorage.setItem("sb_notification_asked", "1");
         if (permission === "granted") {
           registerPushSubscription().then((ok) => {
             pushRegisteredRef.current = ok;
           });
         }
       });
-    } else if (Notification.permission === "granted") {
-      registerPushSubscription().then((ok) => {
-        pushRegisteredRef.current = ok;
-      });
-    }
+    }, 3000);
+
+    return () => clearTimeout(timer);
   }, []);
 
   // Polling fallback — only fires local notifications if push is NOT registered

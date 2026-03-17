@@ -92,10 +92,10 @@ export const PHQ9_ITEMS = [
 ] as const;
 
 export const PHQ9_FREQUENCY_OPTIONS = [
-  { value: 0, label: "Nenhuma vez" },
-  { value: 1, label: "Vários dias" },
-  { value: 2, label: "Mais da metade dos dias" },
-  { value: 3, label: "Quase todos os dias" },
+  { value: 0, label: "Nenhuma vez", hint: "0 dias" },
+  { value: 1, label: "Vários dias", hint: "1–6 dias" },
+  { value: 2, label: "Mais da metade dos dias", hint: "7–11 dias" },
+  { value: 3, label: "Quase todos os dias", hint: "12–14 dias" },
 ] as const;
 
 // ── FAST short (Functioning Assessment) — 6 key domains ──────────

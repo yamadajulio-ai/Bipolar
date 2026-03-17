@@ -266,6 +266,9 @@ export default function AvaliacaoSemanalPage() {
                     }`}
                   >
                     {opt.label}
+                    {"hint" in opt && opt.hint && (
+                      <span className="block text-[10px] opacity-60 mt-0.5">{opt.hint}</span>
+                    )}
                   </button>
                 ))}
               </div>

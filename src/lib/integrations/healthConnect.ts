@@ -242,15 +242,21 @@ function parseSleepSession(
   let quality = 50; // default when no stage data
   let awakenings = 0;
 
-  if (Array.isArray(session.stages) && session.stages.length > 0) {
+  const hasStages = Array.isArray(session.stages) && session.stages.length > 0;
+
+  if (hasStages) {
     let deepSec = 0;
     let remSec = 0;
     let awakeSec = 0;
     let wasAwake = false;
 
     for (const stage of session.stages) {
+      // Validate stage fields
+      if (typeof stage.stage !== "string") continue;
+      const dur = isValidNumber(stage.duration_seconds, 0, 86400) ? stage.duration_seconds : 0;
+      if (dur <= 0) continue;
+
       const type = normalizeStage(stage.stage);
-      const dur = stage.duration_seconds ?? 0;
 
       if (type === "deep") deepSec += dur;
       else if (type === "rem") remSec += dur;
@@ -296,13 +302,11 @@ function parseSleepSession(
     }
   }
 
-  // Find resting HR readings during sleep window (or from resting_heart_rate)
-  const hrSource = payload.resting_heart_rate?.length
-    ? payload.resting_heart_rate
-    : payload.heart_rate;
-
-  if (Array.isArray(hrSource)) {
-    const sleepHrs = hrSource.filter((h) => {
+  // Try resting_heart_rate first, then heart_rate as fallback
+  const hrSources = [payload.resting_heart_rate, payload.heart_rate].filter(Boolean);
+  for (const source of hrSources) {
+    if (!Array.isArray(source)) continue;
+    const sleepHrs = source.filter((h) => {
       const t = parseTimestamp(h.time);
       if (!t) return false;
       return t.getTime() >= startTime.getTime() && t.getTime() <= endTime.getTime() &&
@@ -311,6 +315,7 @@ function parseSleepSession(
     if (sleepHrs.length > 0) {
       // Use minimum HR during sleep as resting approximation
       heartRate = Math.min(...sleepHrs.map((h) => h.bpm));
+      break; // Use first source that has data in the sleep window
     }
   }
 
@@ -321,6 +326,7 @@ function parseSleepSession(
     totalHours: Math.round(totalHours * 100) / 100,
     quality,
     awakenings,
+    hasStages,
     ...(hrv !== undefined && { hrv }),
     ...(heartRate !== undefined && { heartRate }),
   };

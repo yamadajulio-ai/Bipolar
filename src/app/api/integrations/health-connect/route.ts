@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
   });
   if (!integration || !integration.enabled || integration.service !== "health_connect") {
     return NextResponse.json(
-      { error: "API key inválida", detail: `Key length: ${apiKey.length}, expected: 64` },
+      { error: "API key inválida ou desativada" },
       { status: 401 },
     );
   }
@@ -82,25 +82,36 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Limite de requisições atingido" }, { status: 429 });
   }
 
+  // Body size limit: reject payloads > 5MB to prevent memory abuse
+  const contentLength = request.headers.get("content-length");
+  if (contentLength && parseInt(contentLength, 10) > 5_000_000) {
+    return NextResponse.json(
+      { error: "Payload muito grande", detail: "Máximo 5MB por requisição" },
+      { status: 413 },
+    );
+  }
+
+  let body: unknown;
   try {
-    // Body size limit: reject payloads > 5MB to prevent memory abuse
-    const contentLength = request.headers.get("content-length");
-    if (contentLength && parseInt(contentLength, 10) > 5_000_000) {
-      return NextResponse.json(
-        { error: "Payload muito grande", detail: "Máximo 5MB por requisição" },
-        { status: 413 },
-      );
-    }
+    body = await request.json();
+  } catch {
+    return NextResponse.json(
+      { error: "Payload JSON inválido" },
+      { status: 400 },
+    );
+  }
 
-    const body = await request.json();
+  try {
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const b = body as any;
     const debugInfo = {
-      topLevelKeys: Object.keys(body || {}),
-      sleepCount: Array.isArray(body?.sleep) ? body.sleep.length : 0,
-      stepsCount: Array.isArray(body?.steps) ? body.steps.length : 0,
-      hrCount: Array.isArray(body?.heart_rate) ? body.heart_rate.length : 0,
-      hrvCount: Array.isArray(body?.heart_rate_variability) ? body.heart_rate_variability.length : 0,
-      appVersion: body?.app_version,
+      topLevelKeys: Object.keys(b || {}),
+      sleepCount: Array.isArray(b?.sleep) ? b.sleep.length : 0,
+      stepsCount: Array.isArray(b?.steps) ? b.steps.length : 0,
+      hrCount: Array.isArray(b?.heart_rate) ? b.heart_rate.length : 0,
+      hrvCount: Array.isArray(b?.heart_rate_variability) ? b.heart_rate_variability.length : 0,
+      appVersion: b?.app_version,
     };
 
     console.log("[health-connect] Payload info:", JSON.stringify(debugInfo));
@@ -114,25 +125,25 @@ export async function POST(request: NextRequest) {
     // ── Batch all DB writes in a single transaction ──
     const txOps: PrismaPromise[] = [];
 
-    // Save debug payload
-    if (body?.sleep?.length > 0) {
-      const debugPayload = JSON.stringify({
-        _source: "health_connect",
-        _sleepData: body.sleep,
-        _parsedNights: result.sleepNights,
-        _timestamp: new Date().toISOString(),
-      });
-      txOps.push(
-        prisma.integrationKey.update({
-          where: { apiKey },
-          data: { lastPayloadDebug: debugPayload.slice(0, 50000) },
-        }),
-      );
-    }
+    // Always save debug info for troubleshooting
+    const debugPayload = JSON.stringify({
+      _source: "health_connect",
+      _keys: Object.keys((body as Record<string, unknown>) || {}),
+      _counts: debugInfo,
+      _parsedNights: result.sleepNights,
+      _parsedMetrics: result.genericMetrics.length,
+      _timestamp: new Date().toISOString(),
+    });
+    txOps.push(
+      prisma.integrationKey.update({
+        where: { apiKey },
+        data: { lastPayloadDebug: debugPayload.slice(0, 50000) },
+      }),
+    );
 
     // Upsert sleep nights
     for (const night of result.sleepNights) {
-      const data = {
+      const createData = {
         bedtime: night.bedtime,
         wakeTime: night.wakeTime,
         totalHours: night.totalHours,
@@ -141,13 +152,28 @@ export async function POST(request: NextRequest) {
         hrv: night.hrv ?? null,
         heartRate: night.heartRate ?? null,
       };
+      // For updates, only overwrite fields that have actual values
+      // This prevents a partial payload from nullifying rich data
+      const updateData: Record<string, unknown> = {
+        bedtime: night.bedtime,
+        wakeTime: night.wakeTime,
+        totalHours: night.totalHours,
+      };
+      // Only overwrite quality/awakenings if derived from real stage data
+      if (night.hasStages) {
+        updateData.quality = night.quality;
+        updateData.awakenings = night.awakenings;
+      }
+      if (night.hrv !== undefined) updateData.hrv = night.hrv;
+      if (night.heartRate !== undefined) updateData.heartRate = night.heartRate;
+
       txOps.push(
         prisma.sleepLog.upsert({
           where: {
             userId_date: { userId: integration.userId, date: night.date },
           },
-          update: data,
-          create: { userId: integration.userId, date: night.date, ...data },
+          update: updateData,
+          create: { userId: integration.userId, date: night.date, ...createData },
         }),
       );
     }

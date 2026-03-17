@@ -46,6 +46,7 @@ export interface ProcessedSleepNight {
   awakenings: number;
   hrv?: number;       // Heart Rate Variability SDNN (ms)
   heartRate?: number; // Resting heart rate (bpm)
+  hasStages?: boolean; // Whether quality was derived from real stage data
 }
 
 export interface ProcessedGenericMetric {

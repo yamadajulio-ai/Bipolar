@@ -21,34 +21,37 @@ export const maxDuration = 30;
 // These phrases have no plausible benign interpretation in this context.
 const EXPLICIT_CRISIS: RegExp[] = [
   // Suicidal ideation (clear intent)
-  /\b(me\s*matar|me\s*mato|quer(o|ia)\s*morrer|vou\s*morrer|desejo\s*de\s*morrer|penso\s*em\s*morrer)\b/i,
+  /\b(me\s*matar|me\s*mato|quer(o|ia)\s*morrer|desejo\s*de\s*morrer|penso\s*em\s*morrer)\b/i,
+  /\bvou\s*morrer\b/i, // narrowed — benign "vou morrer de X" handled by override
   /\b(nao\s*aguento\s*mais\s*viver|cansad[oa]\s*de\s*viver|cansei\s*de\s*viver|sem\s*razao\s*(pra|para)\s*viver)\b/i,
   /\bnao\s*quer(o|ia)\s*(mais\s*)?viver\b/i,
-  /\b(nao\s*quero\s*acordar|nao\s*vejo\s*saida|dar\s*cabo\s*da\s*minha\s*vida)\b/i,
+  /\b(nao\s*quero\s*acordar|dar\s*cabo\s*da\s*minha\s*vida)\b/i,
   /\b(acabar\s*com\s*(a\s*)?minha\s*vida)\b/i,
   /\b(vou|quero|quer(o|ia))\s*acabar\s*comigo\b/i,
   /\bquer(o|ia)\s*desaparecer\b/i,
   /\b(melhor\s*sem\s*mim)\b/i,
   /\b(vou\s*fazer\s*(uma\s*)?besteira)\b/i,
-  // Suicide family — "suicidar", "suicídio", "tirar minha vida", "por fim à minha vida"
+  /\bseria\s*melhor\s*morrer\b/i,
+  // Suicide family — "suicidar", "suicídio", "tirar minha/própria vida", "por fim à minha vida"
   /\b(me\s*)?suicidar\b/i,
   /\b(cometer\s*)?suicidio\b/i,
-  /\b(quer(o|ia)|vou)\s*(tirar|por\s*fim\s*[aa])\s*(a\s*)?minha\s*vida\b/i,
-  /\b(tirei|tirando)\s*minha\s*vida\b/i,
-  /\bseria\s*melhor\s*morrer\b/i,
+  /\b(quer(o|ia)|vou)\s*(tirar|por\s*(um\s*)?fim\s*(a|[aa]|n[oa]))\s*(a\s*)?(minha\s*(propria\s*)?)?vida\b/i,
+  /\btirar\s*(a\s*)?(minha\s*(propria\s*)?|a\s*propria\s*)?vida\b/i,
+  /\b(tirei|tirando)\s*(a\s*)?(minha\s*(propria\s*)?|a\s*propria\s*)?vida\b/i,
   // Passive ideation (unambiguous in SOS context)
   /\bdormir\s*e\s*nao\s*acordar\b/i,
-  /\bnao\s*quer(o|ia)\s*mais\s*existir\b/i,
+  /\bnao\s*quer(o|ia)\s*(mais\s*)?existir\b/i,
   /\bnao\s*quero\s*mais\s*estar\s*aqui\b/i,
   // Self-harm (active + past tense)
-  /\b(me\s*cortei|estou\s*sangrando|tomei\s*remedios?\s*todos?|tomei\s*todos?\s*(os\s*)?remedios?)\b/i,
+  /\b(me\s*cortei|tomei\s*remedios?\s*todos?|tomei\s*todos?\s*(os\s*)?remedios?)\b/i,
+  /\bestou\s*sangrando\b/i, // narrowed — benign override for menstruation
   /\b(me\s*cortar|me\s*machucar|auto\s*lesao|autolesao|me\s*ferir)\b/i,
-  // Cutting wrists — "cortar meus pulsos", "cortei meus pulsos"
-  /\b(cort(ar|ei|ou))\s*(os\s*|meus\s*)?pulsos?\b/i,
+  // Cutting wrists — "cortar meu(s) pulso(s)", "cortei meu(s) pulso(s)"
+  /\b(cort(ar|ei|ou))\s*(os?\s*|meus?\s*)?pulsos?\b/i,
   // Means with intent (infinitive + past tense: joguei, enforquei, pulei)
   /\b(pul(ar|ei|ou)\s*d[aeo]|me\s*jog(ar|uei|ou)|me\s*enforc(ar|ou)|me\s*enforquei)\b/i,
   /\b(pul(ar|ei|ou)\s*na\s*frente\s*d[aeo])\b/i,
-  /\b(overdose|tomar\s*tudo)\b/i,
+  /\boverdose\b/i,
   // Overdose / intoxication — with articles and gender variants
   /\bengol(ir|i)\s*(um\s*monte\s*de\s*|muit[oa]s?\s*|vari[oa]s?\s*|tod[oa]s?\s*([oa]s\s*)?|[oa]s\s*)?(comprimidos?|remedios?|pilulas?|medicamentos?)\b/i,
   /\btomei\s*(muit[oa]s?|vari[oa]s?|um\s*monte\s*de)\s*(remedios?|comprimidos?|pilulas?|medicamentos?)\b/i,
@@ -59,15 +62,18 @@ const EXPLICIT_CRISIS: RegExp[] = [
   /\bmisturei\s*(alcool|bebida|cerveja|vinho)\s*(com\s*)?(remedio|remedios?|medicamento|medicacao)\b/i,
   /\b(vou|quero)\s*misturar\s*(remedio|remedios?|medicamento|medicacao)\b/i,
   /\b(vou|quero)\s*misturar\s*(alcool|bebida|cerveja|vinho)\s*(com\s*)?(remedio|remedios?|medicamento|medicacao)\b/i,
-  // Poison / envenenar / blister pack ingestion
+  // "tomar tudo" — only with medication context (avoids "vou tomar tudo de água")
+  /\b(vou|quero)\s*tomar\s*tudo\s*(de\s*)?(remedio|medicamento|comprimido|pilula)/i,
+  /\btomei\s*tudo\b/i,
+  // Poison / envenenar (self-reference only) / blister pack ingestion
   /\b(tomei|bebi|engoli)\s*(o\s*|um\s*pouco\s*de\s*)?veneno\b/i,
   /\b(vou|quero)\s*(beber|tomar|engolir)\s*(o\s*|um\s*pouco\s*de\s*)?veneno\b/i,
-  /\b(me\s*)?(envenenar|envenenei)\b/i,
+  /\bme\s*(envenenar|envenenei)\b/i,
   /\b(engoli|tomei)\s*(a\s*)?cartela\s*(inteira|toda|d[oa]\s*(remedio|remedios?|medicamento|medicamentos?))\b/i,
   /\b(vou|quero)\s*(engolir|tomar)\s*(uma\s*|a\s*)?cartela\s*(inteira|toda|d[oa]\s*(remedio|remedios?|medicamento|medicamentos?))\b/i,
   // "tomei todos os comprimidos/pílulas"
   /\btomei\s*tod[oa]s?\s*([oa]s\s*)?(comprimidos?|pilulas?|remedios?|medicamentos?)\b/i,
-  /\b(comprei\s*(uma\s*)?arma)\b/i,
+  /\b(comprei\s*(uma\s*)?arma)\b/i, // benign override handles "de brinquedo/pressão"
   // Farewell (unambiguous)
   /\b(carta\s*de\s*despedida|adeus\s*pra\s*sempre)\b/i,
 ];
@@ -78,11 +84,17 @@ const EXPLICIT_CRISIS: RegExp[] = [
 // This prevents false escalation on colloquial pt-BR expressions.
 const BENIGN_OVERRIDES: RegExp[] = [
   // "vou me matar de trabalhar/rir/estudar" — hyperbole
-  /me\s*matar?\s*de\s*(rir|trabalh|estud|corr|cans|fome|saudade|vergonha)/i,
+  /me\s*matar?\s*de\s*(rir|trabalh|estud|corr|cans|fome|saudade|vergonha|calor|tedio)/i,
   // "me mato de rir/trabalhar" — also hyperbole (present tense)
-  /me\s*mato\s*de\s*(rir|trabalh|estud|corr|cans|fome|saudade|vergonha)/i,
+  /me\s*mato\s*de\s*(rir|trabalh|estud|corr|cans|fome|saudade|vergonha|calor|tedio)/i,
   // "acabar comigo de vergonha/rir" — hyperbole
-  /acabar\s*comigo\s*de\s*(rir|trabalh|vergonha|saudade|fome|cans)/i,
+  /acabar\s*comigo\s*de\s*(rir|trabalh|vergonha|saudade|fome|cans|calor|tedio)/i,
+  // "vou morrer de calor/fome/rir/vergonha" — hyperbole, NOT suicidal
+  /vou\s*morrer\s*de\s*(calor|fome|rir|vergonha|saudade|cans|sede|tedio|medo|preguica|sono)/i,
+  // "estou sangrando por causa da menstruação/corte no dedo" — medical, not self-harm
+  /sangrando\s*(por\s*causa\s*d|pel|d[aeo]\s*(menstruacao|nariz|gengiva|dedo|mao|corte|ferida))/i,
+  // "comprei uma arma de brinquedo/pressão/airsoft" — not lethal
+  /arma\s*de\s*(brinquedo|pressao|airsoft|fogo\s*de\s*brinquedo|agua|paintball)/i,
   // "me joguei no sofá/na cama/na piscina" — physical action, not self-harm
   /me\s*jog(ar|uei|ou)\s*(n[oa]\s*(sofa|cama|piscina|chao|jogo|time))/i,
   // "queria desaparecer da reunião/do trabalho" — figurative
@@ -93,6 +105,8 @@ const BENIGN_OVERRIDES: RegExp[] = [
   /pul(ar|ei|ou)\s*d[aeo]\s*(onibus|sofa|cama|muro|barco|cavalo|bicicleta|trampolim|escada|arvore|cerca)/i,
   // "pular na frente do espelho/palco" — benign (not "na frente do trem/carro")
   /pul(ar|ei|ou)\s*na\s*frente\s*d[aeo]\s*(espelho|palco|fila|camera)/i,
+  // "vou fazer besteira no trabalho/na prova" — colloquial
+  /fazer\s*(uma\s*)?besteira\s*(n[oa]\s*(trabalho|prova|jogo|escola|empresa|reuniao|entrevista))/i,
 ];
 
 // CONTEXTUAL: ambiguous words/phrases that only indicate crisis when combined
@@ -118,6 +132,7 @@ const CONTEXTUAL_CRISIS: RegExp[] = [
   /\bnao\s*queria\s*estar\s*aqui\b/i,
   /\bcuidem?\s*d[aeo]s?\s*meu[s]?\s*(filh|pet|gat|cachorr)/i,
   /\b(acabar\s*com\s*tudo|por\s*fim\s*(a|em)\s*tudo|encerrar\s*tudo)\b/i,
+  /\bnao\s*vejo\s*saida\b/i,
 ];
 
 // Context markers that elevate contextual hits to crisis.

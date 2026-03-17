@@ -24,7 +24,6 @@ describe("detectCrisisInTexts", () => {
       "quero dormir e não acordar mais",
       "não queria mais existir",
       "não quero mais estar aqui",
-      "não vejo saída",
       "vou dar cabo da minha vida",
       "acabar com a minha vida",
       "acabar com minha vida",
@@ -60,7 +59,7 @@ describe("detectCrisisInTexts", () => {
       "vou me jogar",
       "vou me enforcar",
       "overdose",
-      "vou tomar tudo",
+      "tomei tudo",
       "engolir comprimidos",
       "engoli comprimidos",
       "comprei uma arma",
@@ -503,6 +502,8 @@ describe("detectCrisisInTexts", () => {
       "cortei meus pulsos",
       "cortei os pulsos",
       "vou cortar os pulsos",
+      "cortei meu pulso",
+      "vou cortar meu pulso",
     ])("detects: %s", (text) => {
       expect(detect(text)).toBe(true);
     });
@@ -535,6 +536,109 @@ describe("detectCrisisInTexts", () => {
       "pulei na frente da camera",
     ])("does NOT detect: %s", (text) => {
       expect(detect(text)).toBe(false);
+    });
+  });
+
+  // ── Round 14 — narrowing FP surface + expanded coverage ──────
+
+  describe("Round 14 — P1: tirar a própria vida / por um fim na must detect", () => {
+    it.each([
+      "vou tirar a própria vida",
+      "quero tirar minha própria vida",
+      "vou por um fim na minha vida",
+      "tirar a vida",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("Round 14 — P1: não quero existir must detect", () => {
+    it("detects: não quero existir", () => {
+      expect(detect("não quero existir")).toBe(true);
+    });
+    it("detects: nao quero existir", () => {
+      expect(detect("nao quero existir")).toBe(true);
+    });
+  });
+
+  describe("Round 14 — P1: envenenar without self-ref must NOT detect", () => {
+    it.each([
+      "vou envenenar o rato",
+      "envenenei a comida",
+      "quero envenenar meu cachorro",
+    ])("does NOT detect: %s", (text) => {
+      expect(detect(text)).toBe(false);
+    });
+  });
+
+  describe("Round 14 — benign 'vou morrer de X' must NOT detect", () => {
+    it.each([
+      "vou morrer de calor",
+      "vou morrer de fome",
+      "vou morrer de vergonha",
+      "vou morrer de rir",
+      "vou morrer de saudade",
+    ])("does NOT detect: %s", (text) => {
+      expect(detect(text)).toBe(false);
+    });
+  });
+
+  describe("Round 14 — benign 'vou morrer de X' must NOT suppress real crisis in same message", () => {
+    it.each([
+      "vou morrer de calor, quero me matar",
+      "vou morrer de fome, vou me suicidar",
+    ])("detects crisis even with benign: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("Round 14 — benign 'estou sangrando' variants must NOT detect", () => {
+    it.each([
+      "estou sangrando por causa da menstruação",
+      "estou sangrando do nariz",
+      "estou sangrando pela gengiva",
+    ])("does NOT detect: %s", (text) => {
+      expect(detect(text)).toBe(false);
+    });
+  });
+
+  describe("Round 14 — 'estou sangrando' without benign context still detects", () => {
+    it("detects: estou sangrando", () => {
+      expect(detect("estou sangrando")).toBe(true);
+    });
+  });
+
+  describe("Round 14 — benign 'comprei arma de brinquedo' must NOT detect", () => {
+    it.each([
+      "comprei uma arma de brinquedo",
+      "comprei uma arma de pressão",
+      "comprei arma de airsoft",
+    ])("does NOT detect: %s", (text) => {
+      expect(detect(text)).toBe(false);
+    });
+  });
+
+  describe("Round 14 — 'comprei uma arma' without qualifier still detects", () => {
+    it("detects: comprei uma arma", () => {
+      expect(detect("comprei uma arma")).toBe(true);
+    });
+  });
+
+  describe("Round 14 — 'nao vejo saida' moved to CONTEXTUAL", () => {
+    it("does NOT detect alone: não vejo saída", () => {
+      expect(detect("não vejo saída")).toBe(false);
+    });
+    it("detects with harm context: não vejo saída + sofrendo", () => {
+      expect(detectMulti(["não vejo saída", "estou sofrendo demais"])).toBe(true);
+    });
+  });
+
+  describe("Round 14 — 'tomar tudo' narrowed to med context", () => {
+    it("does NOT detect: vou tomar tudo de água", () => {
+      expect(detect("vou tomar tudo de água")).toBe(false);
+    });
+    it("detects: tomei tudo", () => {
+      expect(detect("tomei tudo")).toBe(true);
     });
   });
 

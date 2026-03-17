@@ -89,34 +89,37 @@ export default function IntegraçõesPage() {
   }, [fetchKeys, fetchSyncStatus]);
 
   const healthKey = keys.find((k) => k.service === "health_auto_export");
+  const hcKey = keys.find((k) => k.service === "health_connect");
 
-  async function handleGenerate() {
+  async function handleGenerate(service: "health_auto_export" | "health_connect" = "health_auto_export") {
     setLoading(true);
     const res = await fetch("/api/integrations/settings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ service: "health_auto_export" }),
+      body: JSON.stringify({ service }),
     });
     if (res.ok) await fetchKeys();
     setLoading(false);
   }
 
-  async function handleToggle() {
-    if (!healthKey) return;
+  async function handleToggle(service: "health_auto_export" | "health_connect" = "health_auto_export") {
+    const key = service === "health_connect" ? hcKey : healthKey;
+    if (!key) return;
     await fetch("/api/integrations/settings", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ service: "health_auto_export", enabled: !healthKey.enabled }),
+      body: JSON.stringify({ service, enabled: !key.enabled }),
     });
     await fetchKeys();
   }
 
-  async function handleRevoke() {
-    if (!confirm("Revogar a chave? O Health Auto Export vai parar de enviar dados.")) return;
+  async function handleRevoke(service: "health_auto_export" | "health_connect" = "health_auto_export") {
+    const label = service === "health_connect" ? "HC Webhook" : "Health Auto Export";
+    if (!confirm(`Revogar a chave? O ${label} vai parar de enviar dados.`)) return;
     await fetch("/api/integrations/settings", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ service: "health_auto_export" }),
+      body: JSON.stringify({ service }),
     });
     await fetchKeys();
   }
@@ -253,8 +256,8 @@ export default function IntegraçõesPage() {
           </div>
         </div>
 
-        <div className="rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-3 py-2 mb-3 text-xs text-amber-800 dark:text-amber-300">
-          Requer <strong>iPhone</strong> com Apple Health. Suporte a Android em breve.
+        <div className="rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 px-3 py-2 mb-3 text-xs text-emerald-800 dark:text-emerald-300">
+          Compatível com <strong>iPhone</strong> (via Health Auto Export) e <strong>Android</strong> (via HC Webhook).
         </div>
 
         <div className="rounded-lg bg-emerald-50 dark:bg-emerald-950/30 p-4 text-sm space-y-4">
@@ -503,13 +506,13 @@ export default function IntegraçõesPage() {
 
             <div className="flex gap-2">
               <button
-                onClick={handleToggle}
+                onClick={() => handleToggle("health_auto_export")}
                 className="rounded border border-border px-3 py-1 text-sm"
               >
                 {healthKey.enabled ? "Desativar" : "Ativar"}
               </button>
               <button
-                onClick={handleRevoke}
+                onClick={() => handleRevoke("health_auto_export")}
                 className="rounded border border-red-300 px-3 py-1 text-sm text-red-600"
               >
                 Revogar chave
@@ -518,11 +521,144 @@ export default function IntegraçõesPage() {
           </div>
         ) : (
           <button
-            onClick={handleGenerate}
+            onClick={() => handleGenerate("health_auto_export")}
             disabled={loading}
             className="rounded bg-primary px-4 py-2 text-sm text-white disabled:opacity-50"
           >
             {loading ? "Gerando..." : "Gerar API Key"}
+          </button>
+        )}
+      </Card>
+
+      {/* Health Connect (Android) */}
+      <Card className="mb-6">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 text-green-700">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><path d="M5 16V8a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v8"/><path d="M7 20h10"/><path d="M9 16v4"/><path d="M15 16v4"/><rect x="2" y="10" width="20" height="6" rx="2"/></svg>
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold">Health Connect (Android)</h2>
+            <p className="text-xs text-muted">Samsung, Xiaomi, Pixel e outros dispositivos Android</p>
+          </div>
+        </div>
+        <p className="mb-4 text-sm text-muted">
+          O app <strong>HC Webhook</strong> envia dados do Health Connect (Android) para cá automaticamente.
+          Compatível com <strong>Samsung Galaxy Watch, Xiaomi Mi Band, Amazfit, Pixel Watch</strong> e qualquer wearable que grave no Health Connect.
+        </p>
+
+        {hcKey ? (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <span className={`inline-block h-2 w-2 rounded-full ${hcKey.enabled ? "bg-green-400" : "bg-gray-400"}`} />
+              <span className="text-sm">{hcKey.enabled ? "Ativo" : "Desativado"}</span>
+            </div>
+
+            <div>
+              <label className="text-xs text-muted">URL do webhook</label>
+              <div className="mt-1 flex items-center gap-2">
+                <div className="flex-1 rounded bg-surface-alt px-3 py-2 text-xs font-mono break-all">
+                  https://www.suportebipolar.com/api/integrations/health-connect
+                </div>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText("https://www.suportebipolar.com/api/integrations/health-connect");
+                    setCopied("url"); setTimeout(() => setCopied(false), 2000);
+                  }}
+                  className="rounded bg-primary px-3 py-2 text-xs text-white whitespace-nowrap"
+                >
+                  {copied === "url" ? "Copiado!" : "Copiar"}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs text-muted">API Key</label>
+              <div className="mt-1 flex items-center gap-2">
+                <div className="flex-1 rounded bg-surface-alt px-3 py-2 text-xs font-mono break-all">
+                  {hcKey.apiKey}
+                </div>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(hcKey.apiKey);
+                    setCopied("key"); setTimeout(() => setCopied(false), 2000);
+                  }}
+                  className="rounded bg-primary px-3 py-2 text-xs text-white"
+                >
+                  {copied === "key" ? "Copiado!" : "Copiar"}
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-4 rounded bg-surface-alt p-3 text-xs text-muted">
+              <p className="font-medium text-foreground mb-1">Como configurar no HC Webhook:</p>
+              <ol className="list-decimal list-inside space-y-1.5">
+                <li>
+                  Baixe o <strong>HC Webhook</strong> no seu Android:
+                  <a href="https://github.com/mcnaveen/health-connect-webhook/releases" target="_blank" rel="noopener noreferrer" className="ml-1 underline text-primary">GitHub Releases</a>
+                </li>
+                <li>Abra o app e conceda permissão ao <strong>Health Connect</strong></li>
+                <li>Ative os tipos de dados: <strong>Sleep, Steps, Heart Rate, Heart Rate Variability</strong></li>
+                <li>Em <strong>Webhooks</strong>, adicione um novo webhook:
+                  <ul className="list-disc list-inside ml-4 mt-1 space-y-0.5">
+                    <li><strong>URL:</strong> cole a URL acima</li>
+                    <li><strong>Headers:</strong> adicione <code className="bg-white/60 dark:bg-white/10 px-1 rounded">Authorization</code> com valor <code className="bg-white/60 dark:bg-white/10 px-1 rounded">Bearer {hcKey.apiKey}</code></li>
+                  </ul>
+                </li>
+                <li>Configure a sincronização automática (recomendado: <strong>30 minutos</strong>)</li>
+                <li>Teste com <strong>Manual Sync</strong> para verificar se está funcionando</li>
+              </ol>
+
+              <p className="mt-3 font-medium text-foreground">Fluxo de dados:</p>
+              <p className="font-mono text-center py-1">
+                Wearable &rarr; App do fabricante &rarr; Health Connect &rarr; HC Webhook &rarr; Suporte Bipolar
+              </p>
+            </div>
+
+            <details className="text-xs text-muted">
+              <summary className="cursor-pointer font-medium text-foreground">Passo a passo: ativar Health Connect</summary>
+              <div className="mt-2 space-y-1.5 pl-1">
+                <p>1. Verifique se seu Android tem o <strong>Health Connect</strong> instalado (Android 14+ vem com ele nativo; Android 9-13 pode baixar da Play Store)</p>
+                <p>2. Abra o app do seu wearable (Samsung Health, Mi Fitness, Zepp, etc.)</p>
+                <p>3. Em Configurações, ative a sincronização com o <strong>Health Connect</strong></p>
+                <p>4. No Health Connect, verifique se o app do wearable tem permissão de escrita</p>
+                <p>5. Verifique se o HC Webhook tem permissão de leitura no Health Connect</p>
+              </div>
+            </details>
+
+            <details className="text-xs text-muted">
+              <summary className="cursor-pointer font-medium text-foreground">Dispositivos Android compatíveis</summary>
+              <div className="mt-2 space-y-1.5 pl-1">
+                <p><strong>Samsung:</strong> Galaxy Watch 4/5/6/7, Galaxy Fit 2/3 (via Samsung Health &rarr; Health Connect)</p>
+                <p><strong>Xiaomi:</strong> Mi Band 7/8/9, Redmi Watch 3/4/5 (via Mi Fitness &rarr; Health Connect)</p>
+                <p><strong>Amazfit:</strong> GTR/GTS/Bip/T-Rex (via Zepp &rarr; Health Connect)</p>
+                <p><strong>Google:</strong> Pixel Watch 1/2/3 (nativo no Health Connect)</p>
+                <p><strong>Huawei:</strong> suporte limitado ao Health Connect (verificar modelo)</p>
+                <p><strong>Outros:</strong> qualquer wearable cujo app Android escreva no Health Connect</p>
+              </div>
+            </details>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => handleToggle("health_connect")}
+                className="rounded border border-border px-3 py-1 text-sm"
+              >
+                {hcKey.enabled ? "Desativar" : "Ativar"}
+              </button>
+              <button
+                onClick={() => handleRevoke("health_connect")}
+                className="rounded border border-red-300 px-3 py-1 text-sm text-red-600"
+              >
+                Revogar chave
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => handleGenerate("health_connect")}
+            disabled={loading}
+            className="rounded bg-primary px-4 py-2 text-sm text-white disabled:opacity-50"
+          >
+            {loading ? "Gerando..." : "Gerar API Key (Android)"}
           </button>
         )}
       </Card>

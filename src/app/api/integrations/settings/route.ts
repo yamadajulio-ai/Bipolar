@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { generateApiKey } from "@/lib/integrations/healthExport";
 
-const VALID_SERVICES = ["health_auto_export"] as const;
+const VALID_SERVICES = ["health_auto_export", "health_connect"] as const;
 
 const createKeySchema = z.object({
   service: z.enum(VALID_SERVICES),

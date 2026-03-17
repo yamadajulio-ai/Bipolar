@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { localToday } from "@/lib/dateUtils";
 import { useRouter } from "next/navigation";
 import { FormField } from "@/components/FormField";
@@ -17,6 +17,104 @@ import {
 } from "@/lib/constants";
 import clsx from "clsx";
 
+/* ── Contextual feedback logic ─────────────────────────── */
+interface SavedData {
+  mood: number;
+  energyLevel: number;
+  anxietyLevel: number;
+  irritability: number;
+  sleepHours: number;
+  tookMedication?: string;
+  warningSigns: string[];
+}
+
+function generateFeedback(data: SavedData): { title: string; message: string; variant: "positive" | "warning" | "neutral" }[] {
+  const tips: { title: string; message: string; variant: "positive" | "warning" | "neutral" }[] = [];
+
+  // High mood + high energy → hypomania watch
+  if (data.mood >= 4 && data.energyLevel >= 4) {
+    tips.push({
+      title: "Humor elevado com muita energia",
+      message: "Pode ser um ótimo dia — mas vale observar se a energia continua subindo nos próximos dias. Manter a rotina é o melhor protetor.",
+      variant: "warning",
+    });
+  }
+
+  // Low mood
+  if (data.mood <= 2) {
+    tips.push({
+      title: "Dia mais difícil",
+      message: "Registrar como se sente já é um passo. Se esse padrão continuar por mais de 3 dias, considere conversar com seu profissional.",
+      variant: "warning",
+    });
+  }
+
+  // Short sleep
+  if (data.sleepHours < 6) {
+    tips.push({
+      title: "Sono curto",
+      message: `Você dormiu ${data.sleepHours}h — abaixo do ideal para estabilidade. Tente descansar mais cedo hoje. Sono curto pode afetar o humor nas próximas 24-48h.`,
+      variant: "warning",
+    });
+  }
+
+  // Excess sleep
+  if (data.sleepHours > 10) {
+    tips.push({
+      title: "Sono longo",
+      message: "Dormir mais de 10h pode estar associado a fases depressivas. Se continuar, vale registrar e conversar com seu médico.",
+      variant: "warning",
+    });
+  }
+
+  // High anxiety + high irritability
+  if (data.anxietyLevel >= 4 && data.irritability >= 4) {
+    tips.push({
+      title: "Ansiedade e irritabilidade altas",
+      message: "Essa combinação pode indicar um estado misto ou estresse intenso. Exercícios de respiração podem ajudar agora — e vale mencionar ao profissional.",
+      variant: "warning",
+    });
+  }
+
+  // Medication taken
+  if (data.tookMedication === "sim") {
+    tips.push({
+      title: "Medicação tomada",
+      message: "Boa adesão ao tratamento é um dos principais fatores protetores contra recaídas.",
+      variant: "positive",
+    });
+  }
+
+  // Medication not taken
+  if (data.tookMedication === "nao") {
+    tips.push({
+      title: "Medicação não tomada",
+      message: "Pular doses pode afetar a estabilidade. Se está tendo dificuldades, converse com seu médico — nunca ajuste sozinho.",
+      variant: "warning",
+    });
+  }
+
+  // Warning signs present
+  if (data.warningSigns.length >= 2) {
+    tips.push({
+      title: `${data.warningSigns.length} sinais de alerta`,
+      message: "Sinais de alerta frequentes podem indicar uma mudança de fase se aproximando. Priorize rotina e sono, e considere contato com seu profissional.",
+      variant: "warning",
+    });
+  }
+
+  // Everything looks good
+  if (tips.length === 0) {
+    tips.push({
+      title: "Registro salvo",
+      message: "Seus indicadores estão dentro do esperado hoje. Manter o hábito de registrar é o que faz a diferença ao longo do tempo.",
+      variant: "positive",
+    });
+  }
+
+  return tips.slice(0, 3); // max 3 tips
+}
+
 export default function NovoDiarioPage() {
   const router = useRouter();
   const [error, setError] = useState("");
@@ -27,8 +125,21 @@ export default function NovoDiarioPage() {
   const [irritability, setIrritability] = useState(1);
   const [tookMedication, setTookMedication] = useState<string | undefined>(undefined);
   const [warningSigns, setWarningSigns] = useState<string[]>([]);
+  const [feedback, setFeedback] = useState<ReturnType<typeof generateFeedback> | null>(null);
 
   const today = localToday();
+
+  const navigateAway = useCallback(() => {
+    router.push("/diario");
+    router.refresh();
+  }, [router]);
+
+  // Auto-redirect after showing feedback
+  useEffect(() => {
+    if (!feedback) return;
+    const timer = setTimeout(navigateAway, 6000);
+    return () => clearTimeout(timer);
+  }, [feedback, navigateAway]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -36,10 +147,11 @@ export default function NovoDiarioPage() {
     setError("");
 
     const formData = new FormData(e.currentTarget);
+    const sleepHours = parseFloat(formData.get("sleepHours") as string);
     const data = {
       date: formData.get("date") as string,
       mood,
-      sleepHours: parseFloat(formData.get("sleepHours") as string),
+      sleepHours,
       note: (formData.get("note") as string) || undefined,
       energyLevel,
       anxietyLevel,
@@ -61,13 +173,53 @@ export default function NovoDiarioPage() {
         return;
       }
 
-      router.push("/diario");
-      router.refresh();
+      // Show contextual feedback instead of immediate redirect
+      const tips = generateFeedback({ mood, energyLevel, anxietyLevel, irritability, sleepHours, tookMedication, warningSigns });
+      setFeedback(tips);
     } catch {
       setError("Erro de conexão. Tente novamente.");
     } finally {
       setLoading(false);
     }
+  }
+
+  // ── Feedback screen (post-save) ──
+  if (feedback) {
+    return (
+      <div className="mx-auto max-w-lg" role="status" aria-live="polite">
+        <h1 className="mb-2 text-2xl font-bold">Check-in salvo</h1>
+        <p className="mb-6 text-sm text-muted">
+          Veja o que seus dados de hoje podem indicar:
+        </p>
+
+        <div className="space-y-3 mb-6">
+          {feedback.map((tip, i) => (
+            <Card
+              key={i}
+              className={`border-l-4 ${
+                tip.variant === "positive" ? "border-l-green-500"
+                  : tip.variant === "warning" ? "border-l-amber-500"
+                  : "border-l-border"
+              }`}
+            >
+              <p className="text-sm font-semibold">{tip.title}</p>
+              <p className="mt-1 text-xs text-muted">{tip.message}</p>
+            </Card>
+          ))}
+        </div>
+
+        <p className="mb-4 text-[10px] text-muted italic text-center">
+          Esses insights são educacionais — não substituem avaliação profissional.
+        </p>
+
+        <button
+          onClick={navigateAway}
+          className="w-full rounded-lg bg-primary px-4 py-3 font-medium text-white hover:bg-primary-dark"
+        >
+          Ver meus registros
+        </button>
+      </div>
+    );
   }
 
   return (

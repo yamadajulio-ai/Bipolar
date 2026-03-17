@@ -18,6 +18,10 @@ export default async function AppLayout({
     redirect("/login");
   }
 
+  // Rolling session: re-save to refresh cookie maxAge (30 days from now)
+  // This prevents session expiration while the user is actively using the app.
+  await session.save();
+
   return (
     <div className="flex min-h-screen flex-col">
       <a

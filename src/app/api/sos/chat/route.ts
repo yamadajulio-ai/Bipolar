@@ -22,22 +22,22 @@ export const maxDuration = 30;
 const EXPLICIT_CRISIS: RegExp[] = [
   // Suicidal ideation (clear intent)
   /\b(me\s*matar|me\s*mato|quer(o|ia)\s*morrer|desejo\s*de\s*morrer|penso\s*em\s*morrer)\b/i,
-  /\bvou\s*morrer\b/i, // narrowed — benign "vou morrer de X" handled by override
   /\b(nao\s*aguento\s*mais\s*viver|cansad[oa]\s*de\s*viver|cansei\s*de\s*viver|sem\s*razao\s*(pra|para)\s*viver)\b/i,
   /\bnao\s*quer(o|ia)\s*(mais\s*)?viver\b/i,
-  /\b(nao\s*quero\s*acordar|dar\s*cabo\s*da\s*minha\s*vida)\b/i,
+  /\bdar\s*cabo\s*da\s*minha\s*vida\b/i,
   /\b(acabar\s*com\s*(a\s*)?minha\s*vida)\b/i,
   /\b(vou|quero|quer(o|ia))\s*acabar\s*comigo\b/i,
   /\bquer(o|ia)\s*desaparecer\b/i,
   /\b(melhor\s*sem\s*mim)\b/i,
   /\b(vou\s*fazer\s*(uma\s*)?besteira)\b/i,
   /\bseria\s*melhor\s*morrer\b/i,
-  // Suicide family — "suicidar", "suicídio", "tirar minha/própria vida", "por fim à minha vida"
+  // Suicide family — "suicidar", "cometer suicídio", "tirar minha vida", "por fim à minha vida"
   /\b(me\s*)?suicidar\b/i,
-  /\b(cometer\s*)?suicidio\b/i,
-  /\b(quer(o|ia)|vou)\s*(tirar|por\s*(um\s*)?fim\s*(a|[aa]|n[oa]))\s*(a\s*)?(minha\s*(propria\s*)?)?vida\b/i,
-  /\btirar\s*(a\s*)?(minha\s*(propria\s*)?|a\s*propria\s*)?vida\b/i,
-  /\b(tirei|tirando)\s*(a\s*)?(minha\s*(propria\s*)?|a\s*propria\s*)?vida\b/i,
+  /\bcometer\s*suicidio\b/i,
+  // "tirar minha vida" — requires self-reference (minha/própria) to avoid "tirar a vida dele"
+  /\b(quer(o|ia)|vou)\s*(tirar|por\s*(um\s*)?fim\s*(a|[aa]|n[oa]))\s*(a\s*)?(minha\s*(propria\s*)?|a\s*propria\s*)vida\b/i,
+  /\btirar\s*(a\s*)?(minha\s*(propria\s*)?|a\s*propria\s*)vida\b/i,
+  /\b(tirei|tirando)\s*(a\s*)?(minha\s*(propria\s*)?|a\s*propria\s*)vida\b/i,
   // Passive ideation (unambiguous in SOS context)
   /\bdormir\s*e\s*nao\s*acordar\b/i,
   /\bnao\s*quer(o|ia)\s*(mais\s*)?existir\b/i,
@@ -62,9 +62,9 @@ const EXPLICIT_CRISIS: RegExp[] = [
   /\bmisturei\s*(alcool|bebida|cerveja|vinho)\s*(com\s*)?(remedio|remedios?|medicamento|medicacao)\b/i,
   /\b(vou|quero)\s*misturar\s*(remedio|remedios?|medicamento|medicacao)\b/i,
   /\b(vou|quero)\s*misturar\s*(alcool|bebida|cerveja|vinho)\s*(com\s*)?(remedio|remedios?|medicamento|medicacao)\b/i,
-  // "tomar tudo" — only with medication context (avoids "vou tomar tudo de água")
+  // "tomar tudo" — only with explicit medication context
   /\b(vou|quero)\s*tomar\s*tudo\s*(de\s*)?(remedio|medicamento|comprimido|pilula)/i,
-  /\btomei\s*tudo\b/i,
+  /\btomei\s*tudo\s*(de\s*)?(remedio|medicamento|comprimido|pilula)/i,
   // Poison / envenenar (self-reference only) / blister pack ingestion
   /\b(tomei|bebi|engoli)\s*(o\s*|um\s*pouco\s*de\s*)?veneno\b/i,
   /\b(vou|quero)\s*(beber|tomar|engolir)\s*(o\s*|um\s*pouco\s*de\s*)?veneno\b/i,
@@ -91,8 +91,11 @@ const BENIGN_OVERRIDES: RegExp[] = [
   /acabar\s*comigo\s*de\s*(rir|trabalh|vergonha|saudade|fome|cans|calor|tedio)/i,
   // "vou morrer de calor/fome/rir/vergonha" — hyperbole, NOT suicidal
   /vou\s*morrer\s*de\s*(calor|fome|rir|vergonha|saudade|cans|sede|tedio|medo|preguica|sono)/i,
-  // "estou sangrando por causa da menstruação/corte no dedo" — medical, not self-harm
-  /sangrando\s*(por\s*causa\s*d|pel|d[aeo]\s*(menstruacao|nariz|gengiva|dedo|mao|corte|ferida))/i,
+  // "estou sangrando por causa da menstruação/nariz" — medical, not self-harm
+  // Tightly bound: requires benign noun directly after preposition
+  /sangrando\s*por\s*causa\s*d[aeo]\s*(menstruacao|nariz|gengiva|dedo|espinha|hemorroida)/i,
+  /sangrando\s*pel[oa]\s*(nariz|gengiva|boca)/i,
+  /sangrando\s*d[aeo]\s*(nariz|gengiva|boca|dedo|ouvido)/i,
   // "comprei uma arma de brinquedo/pressão/airsoft" — not lethal
   /arma\s*de\s*(brinquedo|pressao|airsoft|fogo\s*de\s*brinquedo|agua|paintball)/i,
   // "me joguei no sofá/na cama/na piscina" — physical action, not self-harm
@@ -133,12 +136,17 @@ const CONTEXTUAL_CRISIS: RegExp[] = [
   /\bcuidem?\s*d[aeo]s?\s*meu[s]?\s*(filh|pet|gat|cachorr)/i,
   /\b(acabar\s*com\s*tudo|por\s*fim\s*(a|em)\s*tudo|encerrar\s*tudo)\b/i,
   /\bnao\s*vejo\s*saida\b/i,
+  /\bvou\s*morrer\b/i,
+  /\bnao\s*quero\s*acordar\b/i,
+  /\bsuicidio\b/i,
+  /\btomei\s*tudo\b/i,
 ];
 
 // Context markers that elevate contextual hits to crisis.
 // IMPORTANT: Terms here must NOT overlap with CONTEXTUAL_CRISIS patterns
-// to avoid self-validation (e.g., "queria sumir" + sumir in HARM_CONTEXT = false positive).
-const HARM_CONTEXT: RegExp = /\b(morrer|minha\s*vida|me\s*machucar|me\s*ferir|me\s*matar|suicid|nao\s*aguento|sofr(er|endo|imento)|desesperad[oa]|sem\s*esperanca)\b/i;
+// to avoid self-validation (e.g., "vou morrer" + morrer in HARM_CONTEXT = false positive).
+// Removed: morrer, suicid (now in CONTEXTUAL themselves)
+const HARM_CONTEXT: RegExp = /\b(minha\s*vida|me\s*machucar|me\s*ferir|me\s*matar|nao\s*aguento|sofr(er|endo|imento)|desesperad[oa]|sem\s*esperanca|me\s*cortar|me\s*mato)\b/i;
 
 const CRISIS_RESPONSE =
   "Estou aqui com você. Isso é uma emergência — por favor ligue 192 (SAMU) agora. " +

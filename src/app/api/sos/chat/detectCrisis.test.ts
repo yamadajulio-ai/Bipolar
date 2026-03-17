@@ -12,7 +12,6 @@ describe("detectCrisisInTexts", () => {
     it.each([
       "quero me matar",
       "eu quero morrer",
-      "vou morrer hoje",
       "tenho desejo de morrer",
       "penso em morrer todo dia",
       "não aguento mais viver",
@@ -20,7 +19,6 @@ describe("detectCrisisInTexts", () => {
       "cansei de viver",
       "sem razão pra viver",
       "sem razão para viver",
-      "não quero acordar amanhã",
       "quero dormir e não acordar mais",
       "não queria mais existir",
       "não quero mais estar aqui",
@@ -59,7 +57,6 @@ describe("detectCrisisInTexts", () => {
       "vou me jogar",
       "vou me enforcar",
       "overdose",
-      "tomei tudo",
       "engolir comprimidos",
       "engoli comprimidos",
       "comprei uma arma",
@@ -546,7 +543,6 @@ describe("detectCrisisInTexts", () => {
       "vou tirar a própria vida",
       "quero tirar minha própria vida",
       "vou por um fim na minha vida",
-      "tirar a vida",
     ])("detects: %s", (text) => {
       expect(detect(text)).toBe(true);
     });
@@ -637,8 +633,101 @@ describe("detectCrisisInTexts", () => {
     it("does NOT detect: vou tomar tudo de água", () => {
       expect(detect("vou tomar tudo de água")).toBe(false);
     });
-    it("detects: tomei tudo", () => {
-      expect(detect("tomei tudo")).toBe(true);
+    it("does NOT detect alone: tomei tudo", () => {
+      expect(detect("tomei tudo")).toBe(false);
+    });
+    it("detects: tomei tudo de remédio", () => {
+      expect(detect("tomei tudo de remédio")).toBe(true);
+    });
+    it("detects with harm context: tomei tudo + sofrendo", () => {
+      expect(detectMulti(["tomei tudo", "estou sofrendo demais"])).toBe(true);
+    });
+  });
+
+  // ── Round 15 — narrowing ambiguous EXPLICIT, tightening overrides ──
+
+  describe("Round 15 — suicídio alone moved to CONTEXTUAL", () => {
+    it.each([
+      "prevenção do suicídio é importante",
+      "li um artigo sobre suicídio",
+      "ele falou de suicídio na palestra",
+    ])("does NOT detect alone: %s", (text) => {
+      expect(detect(text)).toBe(false);
+    });
+    it("detects: cometer suicídio (explicit)", () => {
+      expect(detect("cometer suicídio")).toBe(true);
+    });
+    it("detects with harm context: suicídio + sofrendo", () => {
+      expect(detectMulti(["suicídio", "estou sofrendo demais"])).toBe(true);
+    });
+  });
+
+  describe("Round 15 — tirar a vida requires self-ref", () => {
+    it.each([
+      "ele tentou tirar a vida da esposa",
+      "vou tirar a vida do inimigo",
+      "tirei a vida de um peixe",
+    ])("does NOT detect (third party): %s", (text) => {
+      expect(detect(text)).toBe(false);
+    });
+    it.each([
+      "vou tirar minha vida",
+      "quero tirar minha própria vida",
+      "vou tirar a própria vida",
+    ])("detects (self-ref): %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("Round 15 — vou morrer moved to CONTEXTUAL", () => {
+    it.each([
+      "vou morrer de calor",
+      "vou morrer cedo",
+      "vou morrer um dia",
+      "vou morrer sozinho",
+    ])("does NOT detect alone: %s", (text) => {
+      expect(detect(text)).toBe(false);
+    });
+    it("detects with harm context: vou morrer + sofrendo", () => {
+      expect(detectMulti(["vou morrer", "estou sofrendo demais"])).toBe(true);
+    });
+  });
+
+  describe("Round 15 — não quero acordar moved to CONTEXTUAL", () => {
+    it("does NOT detect alone: não quero acordar cedo", () => {
+      expect(detect("não quero acordar cedo")).toBe(false);
+    });
+    it("detects with harm context: não quero acordar + sem esperança", () => {
+      expect(detectMulti(["não quero acordar", "sem esperança nenhuma"])).toBe(true);
+    });
+  });
+
+  describe("Round 15 — sangrando override tightened", () => {
+    it.each([
+      "estou sangrando por causa da menstruação",
+      "estou sangrando pelo nariz",
+      "estou sangrando do nariz",
+      "estou sangrando pela gengiva",
+    ])("does NOT detect (benign): %s", (text) => {
+      expect(detect(text)).toBe(false);
+    });
+    it("detects: estou sangrando (no qualifier)", () => {
+      expect(detect("estou sangrando")).toBe(true);
+    });
+    it("detects: estou sangrando por causa de uma facada", () => {
+      expect(detect("estou sangrando por causa de uma facada")).toBe(true);
+    });
+    it("detects: estou sangrando pela perna", () => {
+      expect(detect("estou sangrando pela perna")).toBe(true);
+    });
+  });
+
+  describe("Round 15 — tomei tudo requires med context or CONTEXTUAL", () => {
+    it.each([
+      "tomei tudo que o médico receitou",
+      "tomei tudo de água depois da corrida",
+    ])("does NOT detect alone: %s", (text) => {
+      expect(detect(text)).toBe(false);
     });
   });
 

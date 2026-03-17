@@ -19,6 +19,8 @@ import { InsightsTabs } from "@/components/insights/InsightsTabs";
 import Link from "next/link";
 import { Suspense } from "react";
 
+export const maxDuration = 30;
+
 const TZ = "America/Sao_Paulo";
 
 function colorToBg(color: "green" | "yellow" | "red"): string {

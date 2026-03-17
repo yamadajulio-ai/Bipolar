@@ -27,12 +27,19 @@ const EXPLICIT_CRISIS: RegExp[] = [
   /\b(acabar\s*com\s*(a\s*)?minha\s*vida)\b/i,
   /\b(quero\s*desaparecer|melhor\s*sem\s*mim)\b/i,
   /\b(vou\s*fazer\s*(uma\s*)?besteira)\b/i,
+  // Passive ideation (unambiguous in SOS context)
+  /\bdormir\s*e\s*nao\s*acordar\b/i,
+  /\bnao\s*quer(o|ia)\s*mais\s*existir\b/i,
+  /\bnao\s*quero\s*mais\s*estar\s*aqui\b/i,
   // Self-harm (active)
   /\b(me\s*cortei|estou\s*sangrando|tomei\s*remedios?\s*todos?|tomei\s*todos?\s*(os\s*)?remedios?)\b/i,
   /\b(me\s*cortar|me\s*machucar|auto\s*lesao|autolesao|me\s*ferir)\b/i,
-  // Means with clear intent
+  // Overdose / intoxication (active — broad coverage)
   /\b(pular\s*d[aeo]|me\s*jogar|me\s*enforcar)\b/i,
-  /\b(overdose|tomar\s*tudo|engol(ir|i)\s*comprimidos?)\b/i,
+  /\b(overdose|tomar\s*tudo)\b/i,
+  /\bengol(ir|i)\s*(um\s*monte\s*de\s*|muitos?\s*|varios?\s*)?(comprimidos?|remedios?|pilulas?)\b/i,
+  /\btomei\s*(muitos?|varios?|um\s*monte\s*de)\s*(remedios?|comprimidos?|pilulas?)\b/i,
+  /\bmisturei\s*(remedio|remedios?|medicamento|medicacao|alcool|bebida)\b/i,
   /\b(comprei\s*(uma\s*)?arma)\b/i,
   // Farewell (unambiguous)
   /\b(carta\s*de\s*despedida|adeus\s*pra\s*sempre)\b/i,
@@ -55,7 +62,7 @@ const CONTEXTUAL_CRISIS: RegExp[] = [
   /\bpredio\b/i,
   /\btenho\s*um\s*plano\b/i,
   /\btestamento\b/i,
-  /\b(estou\s*bebad[oa]|bebi\s*muito|misturei\s*remedio|misturei\s*alcool)\b/i,
+  /\b(estou\s*bebad[oa]|bebi\s*muito)\b/i,
   // Ambiguous without context — need corroboration
   /\bqueria?\s*sumir\b/i,
   /\bnao\s*queria\s*estar\s*aqui\b/i,
@@ -90,7 +97,7 @@ function normalizeCrisisText(text: string): string {
  * - CONTEXTUAL patterns: only trigger when 2+ contextual hits appear,
  *   or 1 contextual hit + harm context in any recent message.
  *
- * We check the last 6 user messages to catch contextual escalation.
+ * We check ALL user messages (up to 20) so crisis is "latched" for the session.
  */
 function detectCrisisInTexts(texts: string[]): boolean {
   const normalized = texts.map(normalizeCrisisText);
@@ -230,11 +237,10 @@ export async function POST(req: NextRequest) {
   }
 
   // ── LAYER 1: Deterministic crisis detection BEFORE rate limit ──
-  // Scan last 6 user messages (not just the last one) to catch
-  // contextual escalation like "quero morrer" → "sim" → "já comprei"
-  const recentUserTexts = userMessages
-    .slice(-6)
-    .map((m) => m.content);
+  // Scan ALL user messages (up to 20) so crisis is "latched" for the
+  // entire conversation — once a user says something critical in message 1,
+  // they stay in crisis mode even if messages 2-20 don't repeat it.
+  const recentUserTexts = userMessages.map((m) => m.content);
 
   if (detectCrisisInTexts(recentUserTexts)) {
     // Crisis users ALWAYS get the static response, even if rate-limited

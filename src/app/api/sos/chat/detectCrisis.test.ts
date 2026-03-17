@@ -21,6 +21,9 @@ describe("detectCrisisInTexts", () => {
       "sem razão pra viver",
       "sem razão para viver",
       "não quero acordar amanhã",
+      "quero dormir e não acordar mais",
+      "não queria mais existir",
+      "não quero mais estar aqui",
       "não vejo saída",
       "vou dar cabo da minha vida",
       "acabar com a minha vida",
@@ -199,6 +202,55 @@ describe("detectCrisisInTexts", () => {
 
     it("'ponte e faca' → true (P1 fix — counts as 2 contextual hits)", () => {
       expect(detect("ponte e faca")).toBe(true);
+    });
+  });
+
+  // ── Round 6 red team — overdose/intoxication & passive ideation ──
+
+  describe("Round 6 — overdose/intoxication must detect", () => {
+    it.each([
+      "misturei álcool com remédio",
+      "misturei remedio com alcool",
+      "misturei medicamento com bebida",
+      "tomei muitos remédios",
+      "tomei muitos remedios",
+      "tomei vários comprimidos",
+      "tomei varios comprimidos",
+      "engoli um monte de comprimidos",
+      "engoli muitos comprimidos",
+      "engoli vários remédios",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("Round 6 — passive ideation must detect", () => {
+    it.each([
+      "quero dormir e não acordar mais",
+      "quero dormir e nao acordar",
+      "não queria mais existir",
+      "nao quero mais existir",
+      "não quero mais estar aqui",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("Round 6 — crisis latch across conversation", () => {
+    it("crisis in message 1 stays detected after 10+ benign messages", () => {
+      const messages = [
+        "quero morrer",
+        "sim",
+        "não sei",
+        "talvez",
+        "ok",
+        "tá",
+        "hmm",
+        "não sei o que fazer",
+        "tô aqui ainda",
+        "oi",
+      ];
+      expect(detectMulti(messages)).toBe(true);
     });
   });
 });

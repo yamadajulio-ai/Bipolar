@@ -258,6 +258,34 @@ export default async function InsightsPage({
         Baseado em pesquisas clínicas e protocolos de estabilidade · Não substitui avaliação profissional
       </p>
 
+      {/* ── Empty state for new users ──────── */}
+      {entries.length < 3 && sleepLogsForInsights.length < 3 && (
+        <Card className="mb-6 text-center py-8">
+          <div className="text-4xl mb-3">📊</div>
+          <h2 className="text-lg font-semibold mb-2">Seus insights estão quase prontos</h2>
+          <p className="text-sm text-muted mb-4 max-w-sm mx-auto">
+            Registre pelo menos <strong>3 dias</strong> de humor e sono para que o app consiga identificar seus padrões.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-2 justify-center">
+            <Link
+              href="/checkin"
+              className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white no-underline hover:bg-primary-dark"
+            >
+              Fazer check-in
+            </Link>
+            <Link
+              href="/sono/novo"
+              className="inline-flex items-center justify-center rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground no-underline hover:bg-surface-alt"
+            >
+              Registrar sono
+            </Link>
+          </div>
+          <p className="text-[10px] text-muted mt-4">
+            {entries.length}/3 check-ins · {sleepLogsForInsights.length}/3 registros de sono
+          </p>
+        </Card>
+      )}
+
       {/* ── Safety Nudge (always on top when risk is high) ──────── */}
       {insights.risk && insights.risk.level === "atencao_alta" && (
         <div className="mb-6">

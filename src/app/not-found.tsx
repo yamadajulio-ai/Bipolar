@@ -10,7 +10,7 @@ export default function NotFound() {
       </p>
       <div className="mt-6 flex gap-3">
         <Link
-          href="/hoje"
+          href="/"
           className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white no-underline hover:opacity-90"
         >
           Ir para o início

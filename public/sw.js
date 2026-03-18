@@ -1,15 +1,16 @@
-// Suporte Bipolar — Service Worker v2
-// Three-cache strategy: static (cache-first), API (stale-while-revalidate), offline (pre-cache)
+// Suporte Bipolar — Service Worker v3
+// Static: cache-first, API: network-first (PHI safety), offline: pre-cache
 
-const CACHE_STATIC = "rb-static-v2";
-const CACHE_API = "rb-api-v2";
-const CACHE_OFFLINE = "rb-offline-v2";
+const CACHE_STATIC = "rb-static-v3";
+const CACHE_API = "rb-api-v3";
+const CACHE_OFFLINE = "rb-offline-v3";
 const ALL_CACHES = [CACHE_STATIC, CACHE_API, CACHE_OFFLINE];
 
 const OFFLINE_URL = "/offline";
 
-// Read-only API endpoints safe to cache (stale-while-revalidate)
-const CACHEABLE_API_PATHS = [
+// Authenticated API endpoints — network-first with offline fallback only
+// These contain user-specific PHI and must never serve stale cross-user data
+const NETWORK_FIRST_API_PATHS = [
   "/api/diario",
   "/api/sono",
   "/api/rotina",
@@ -20,13 +21,6 @@ const CACHEABLE_API_PATHS = [
   "/api/financeiro/historico",
 ];
 
-// TTL for API cache (5 minutes)
-const API_TTL_MS = 5 * 60 * 1000;
-
-// In-memory TTL tracker (resets when SW restarts — acceptable)
-// Cap at 50 entries to prevent unbounded growth from query variations
-const API_TIMESTAMPS_MAX = 50;
-const apiTimestamps = new Map();
 
 // --- Install ---
 self.addEventListener("install", (event) => {
@@ -64,9 +58,9 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // 2. Cacheable API GETs — stale-while-revalidate
-  if (request.method === "GET" && isCacheableApi(url)) {
-    event.respondWith(staleWhileRevalidate(request, CACHE_API, url.pathname + url.search));
+  // 2. Authenticated API GETs — network-first (prevents cross-user data leaks)
+  if (request.method === "GET" && isNetworkFirstApi(url)) {
+    event.respondWith(networkFirst(request, CACHE_API));
     return;
   }
 
@@ -99,37 +93,26 @@ async function cacheFirst(request, cacheName) {
   }
 }
 
-async function staleWhileRevalidate(request, cacheName, cacheKey) {
+/**
+ * Network-first strategy for authenticated API endpoints.
+ * Always fetches fresh data from server; only falls back to cache when offline.
+ * This prevents cross-user PHI leaks on shared devices.
+ */
+async function networkFirst(request, cacheName) {
   const cache = await caches.open(cacheName);
-  const cached = await cache.match(request);
 
-  const lastFetch = apiTimestamps.get(cacheKey) || 0;
-  const isStale = Date.now() - lastFetch > API_TTL_MS;
-
-  // If cache is fresh enough, return it without re-fetching
-  if (cached && !isStale) {
-    return cached;
-  }
-
-  // If we have a stale cache, return it AND refresh in background
-  if (cached && isStale) {
-    refreshInBackground(request, cache, cacheKey);
-    return cached;
-  }
-
-  // No cache — must fetch
   try {
     const response = await fetch(request);
     if (response.ok) {
       cache.put(request, response.clone());
-      trackTimestamp(cacheKey);
     } else if (response.status === 401 || response.status === 403) {
-      // Session expired — purge cached PHI to prevent leaks on shared devices
+      // Session expired — purge all cached PHI
       await purgeApiCache();
     }
     return response;
   } catch {
-    // No cache and no network
+    // Offline — serve cached version if available
+    const cached = await cache.match(request);
     return cached || new Response(JSON.stringify({ error: "offline" }), {
       status: 503,
       headers: { "Content-Type": "application/json" },
@@ -137,47 +120,16 @@ async function staleWhileRevalidate(request, cacheName, cacheKey) {
   }
 }
 
-async function refreshInBackground(request, cache, cacheKey) {
-  try {
-    const response = await fetch(request);
-    if (response.ok) {
-      cache.put(request, response.clone());
-      trackTimestamp(cacheKey);
-    } else if (response.status === 401 || response.status === 403) {
-      await purgeApiCache();
-    }
-  } catch {
-    // Network failed — stale cache continues serving
-  }
-}
-
 // --- Cache purge (logout, session expiry, account deletion) ---
 async function purgeApiCache() {
-  try {
-    await caches.delete(CACHE_API);
-  } finally {
-    apiTimestamps.clear();
-  }
+  await caches.delete(CACHE_API);
 }
 
 self.addEventListener("message", (event) => {
   if (event.data && event.data.type === "CLEAR_AUTH_CACHES") {
-    event.waitUntil(
-      caches.delete(CACHE_API).then(() => {
-        apiTimestamps.clear();
-      })
-    );
+    event.waitUntil(caches.delete(CACHE_API));
   }
 });
-
-function trackTimestamp(key) {
-  // Evict oldest before insert to stay within cap
-  if (!apiTimestamps.has(key) && apiTimestamps.size >= API_TIMESTAMPS_MAX) {
-    const oldest = apiTimestamps.keys().next().value;
-    apiTimestamps.delete(oldest);
-  }
-  apiTimestamps.set(key, Date.now());
-}
 
 // --- Helpers ---
 
@@ -191,8 +143,8 @@ function isStaticAsset(url) {
   );
 }
 
-function isCacheableApi(url) {
-  return CACHEABLE_API_PATHS.some(
+function isNetworkFirstApi(url) {
+  return NETWORK_FIRST_API_PATHS.some(
     (path) => url.pathname === path || url.pathname.startsWith(path + "/")
   );
 }

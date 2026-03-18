@@ -3,6 +3,7 @@ import * as Sentry from "@sentry/nextjs";
 import { z } from "zod/v4";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/security";
 
 const subscribeSchema = z.object({
   endpoint: z.string().url(),
@@ -17,6 +18,15 @@ export async function POST(request: NextRequest) {
   const session = await getSession();
   if (!session.isLoggedIn) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  }
+
+  // Rate limit: 10 subscription changes per 15 minutes per user
+  const allowed = await checkRateLimit(`push_sub:${session.userId}`, 10);
+  if (!allowed) {
+    return NextResponse.json(
+      { error: "Muitas requisições. Tente novamente mais tarde." },
+      { status: 429 }
+    );
   }
 
   try {

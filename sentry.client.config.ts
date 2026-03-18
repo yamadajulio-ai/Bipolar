@@ -44,6 +44,14 @@ function scrubEvent(event: Sentry.ErrorEvent) {
   if (event.request?.cookies) {
     event.request.cookies = {};
   }
+  if (event.request?.headers) {
+    const safe = ["content-type", "user-agent", "accept"];
+    const filtered: Record<string, string> = {};
+    for (const [k, v] of Object.entries(event.request.headers)) {
+      if (safe.includes(k.toLowerCase())) filtered[k] = v;
+    }
+    event.request.headers = filtered;
+  }
   // Scrub breadcrumb data — strict whitelist
   if (event.breadcrumbs) {
     event.breadcrumbs = event.breadcrumbs.map((b) => {

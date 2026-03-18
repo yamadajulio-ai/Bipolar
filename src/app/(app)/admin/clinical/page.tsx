@@ -6,8 +6,8 @@ import { Card } from "@/components/Card";
 import { Alert } from "@/components/Alert";
 import { AdminMoodChart } from "@/components/admin/AdminMoodChart";
 
-// Small-cohort suppression threshold (GPT Pro audit recommendation)
-const MIN_COHORT = 5;
+// Small-cohort suppression: n < 10 to prevent re-identification (GPT Pro P0)
+const MIN_COHORT = 10;
 
 export default async function AdminClinicalPage() {
   const session = await getSession();
@@ -33,7 +33,7 @@ export default async function AdminClinicalPage() {
   // ---- MOOD (30d) ----
   const moodEntries = await prisma.diaryEntry.findMany({
     where: { createdAt: { gte: thirtyDaysAgo } },
-    select: { mood: true, energyLevel: true, anxietyLevel: true, irritability: true, tookMedication: true, date: true, warningSigns: true },
+    select: { mood: true, energyLevel: true, anxietyLevel: true, irritability: true, tookMedication: true, date: true },
   });
 
   const distinctMoodUsers = new Set(
@@ -44,7 +44,6 @@ export default async function AdminClinicalPage() {
   const moodDist = [0, 0, 0, 0, 0]; // index 0 = mood 1, index 4 = mood 5
   let moodSum = 0, energySum = 0, anxietySum = 0, irritabilitySum = 0;
   let medYes = 0, medTotal = 0;
-  const warningSignsMap: Record<string, number> = {};
 
   for (const e of moodEntries) {
     if (e.mood >= 1 && e.mood <= 5) {
@@ -57,17 +56,6 @@ export default async function AdminClinicalPage() {
     if (e.tookMedication !== null) {
       medTotal++;
       if (e.tookMedication) medYes++;
-    }
-    // Warning signs
-    if (e.warningSigns) {
-      try {
-        const signs = typeof e.warningSigns === "string" ? JSON.parse(e.warningSigns) : e.warningSigns;
-        if (Array.isArray(signs)) {
-          for (const s of signs) {
-            if (typeof s === "string") warningSignsMap[s] = (warningSignsMap[s] || 0) + 1;
-          }
-        }
-      } catch { /* ignore parse errors */ }
     }
   }
 
@@ -92,10 +80,6 @@ export default async function AdminClinicalPage() {
       avg: Number((val.sum / val.count).toFixed(2)),
     }));
 
-  // Top warning signs
-  const topWarningSigns = Object.entries(warningSignsMap)
-    .sort(([, a], [, b]) => b - a)
-    .slice(0, 10);
 
   // ---- SLEEP (30d) ----
   const sleepLogs = await prisma.sleepLog.findMany({
@@ -194,8 +178,8 @@ export default async function AdminClinicalPage() {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Dados Clínicos Agregados</h1>
       <Alert variant="info">
-        Todos os dados nesta página são agregados e anonimizados. Nenhum dado individual identificável é exibido.
-        {totalUsers < MIN_COHORT && " Dados suprimidos quando o cohort é menor que 5 usuários para evitar re-identificação."}
+        Todos os dados nesta página são agregados. Nenhum dado individual identificável é exibido.
+        Dados suprimidos quando o cohort é menor que {MIN_COHORT} usuários para evitar re-identificação.
       </Alert>
 
       {/* Mood */}
@@ -262,24 +246,6 @@ export default async function AdminClinicalPage() {
           <p className="text-2xl font-bold">{medAdherence}%</p>
           <p className="text-xs text-muted mt-1">{medYes} sim / {medTotal} registros</p>
         </Card>
-      )}
-
-      {/* Warning signs */}
-      {topWarningSigns.length > 0 && !suppressMood && (
-        <>
-          <h2 className="text-lg font-semibold">Sinais de alerta mais reportados</h2>
-          <Card>
-            <div className="space-y-2">
-              {topWarningSigns.map(([sign, count], i) => (
-                <div key={sign} className="flex items-center gap-3 text-sm">
-                  <span className="text-xs text-muted w-4">{i + 1}.</span>
-                  <span className="flex-1">{sign}</span>
-                  <span className="font-medium">{count}</span>
-                </div>
-              ))}
-            </div>
-          </Card>
-        </>
       )}
 
       {/* Sleep */}

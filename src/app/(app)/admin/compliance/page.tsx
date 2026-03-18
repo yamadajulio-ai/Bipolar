@@ -19,7 +19,10 @@ export default async function AdminCompliancePage({
     data: {
       userId: session.userId,
       action: "view_compliance",
-      metadata: JSON.stringify({ filters: params }),
+      metadata: JSON.stringify({
+        page: params.page,
+        action: params.action,
+      }),
       ip: maskIp(ip),
     },
   });

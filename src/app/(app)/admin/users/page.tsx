@@ -1,8 +1,9 @@
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { headers } from "next/headers";
-import { maskIp } from "@/lib/security";
+import { maskIp, maskEmail } from "@/lib/security";
 import { Card } from "@/components/Card";
+import { RevealPII } from "@/components/admin/RevealPII";
 
 export default async function AdminUsersPage({
   searchParams,
@@ -20,11 +21,17 @@ export default async function AdminUsersPage({
   const ip = headersList.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
   const params = await searchParams;
 
+  // Audit log — only filters, no PII
   await prisma.adminAuditLog.create({
     data: {
       userId: session.userId,
       action: "view_users",
-      metadata: JSON.stringify({ filters: params }),
+      metadata: JSON.stringify({
+        page: params.page,
+        onboarded: params.onboarded,
+        provider: params.provider,
+        active: params.active,
+      }),
       ip: maskIp(ip),
     },
   });
@@ -199,7 +206,12 @@ export default async function AdminUsersPage({
                   <tr key={u.id} className="border-b last:border-0">
                     <td className="py-2 pr-3">
                       <div className="font-medium">{u.name ?? "—"}</div>
-                      <div className="text-xs text-muted">{u.email}</div>
+                      <RevealPII
+                        masked={maskEmail(u.email)}
+                        full={u.email}
+                        entityType="user"
+                        entityId={u.id}
+                      />
                     </td>
                     <td className="py-2 pr-3 text-xs">{u.authProvider ?? "email"}</td>
                     <td className="py-2 pr-3">

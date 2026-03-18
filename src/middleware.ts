@@ -25,7 +25,7 @@ const protectedPaths = [
 ];
 const authPaths = ["/login", "/cadastro"];
 // Paths that should redirect logged-in users to /hoje (landing pages)
-const landingPaths = ["/"];
+const landingPaths = ["/", "/comecar"];
 
 /** Match exact path or path segment (prevents /app matching /apple-app-site-association) */
 function matchesPath(pathname: string, base: string): boolean {
@@ -103,6 +103,14 @@ export function middleware(request: NextRequest) {
   const host = request.headers.get("host")?.toLowerCase().replace(/:.*$/, "");
   if (host && LEGACY_HOSTS.includes(host)) {
     return NextResponse.redirect(`${CANONICAL_ORIGIN}${pathname}${request.nextUrl.search}`, 301);
+  }
+
+  // Admin pages: no-store, never cache (LGPD P0)
+  if (pathname.startsWith("/admin")) {
+    const response = NextResponse.next();
+    response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
+    response.headers.set("Pragma", "no-cache");
+    return response;
   }
 
   // CSRF check for API routes

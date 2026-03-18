@@ -4,6 +4,9 @@ import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { InAppBrowserBanner } from "@/components/InAppBrowserBanner";
+import { MetaPixel } from "@/components/MetaPixel";
+import { MicrosoftClarity } from "@/components/MicrosoftClarity";
+import { GoogleAnalytics } from "@/components/GoogleAnalytics";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -113,6 +116,9 @@ export default function RootLayout({
         <Analytics />
         <SpeedInsights />
         <ServiceWorkerRegister />
+        <MetaPixel />
+        <MicrosoftClarity />
+        <GoogleAnalytics />
         {children}
       </body>
     </html>

@@ -39,6 +39,13 @@ export async function checkRateLimit(
   });
 }
 
+/** Mask email: "user@example.com" → "u***@example.com" */
+export function maskEmail(email: string): string {
+  const at = email.indexOf("@");
+  if (at <= 0) return "***";
+  return `${email[0]}***${email.slice(at)}`;
+}
+
 /**
  * Mask IP to /24 (LGPD minimization).
  * "192.168.1.42" → "192.168.1.0"

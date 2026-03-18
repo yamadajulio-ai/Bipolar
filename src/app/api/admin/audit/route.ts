@@ -27,18 +27,29 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "JSON inválido" }, { status: 400, headers: HEADERS });
   }
 
-  const { action, feedbackId } = body;
+  const { action, feedbackId, metadata } = body;
   if (typeof action !== "string" || !action) {
     return NextResponse.json({ error: "Ação inválida" }, { status: 400, headers: HEADERS });
   }
 
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
 
+  // Redact metadata: only allow IDs and types, never raw text/tokens/PII
+  let safeMetadata: string | null = null;
+  if (metadata && typeof metadata === "object") {
+    const { entityType, entityId } = metadata;
+    if (entityType && entityId) {
+      safeMetadata = JSON.stringify({ entityType: String(entityType), entityId: String(entityId) });
+    }
+  } else if (feedbackId) {
+    safeMetadata = JSON.stringify({ feedbackId: String(feedbackId) });
+  }
+
   await prisma.adminAuditLog.create({
     data: {
       userId: session.userId,
       action,
-      metadata: feedbackId ? JSON.stringify({ feedbackId }) : null,
+      metadata: safeMetadata,
       ip: maskIp(ip),
     },
   });

@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { FormField } from "@/components/FormField";
 import { Alert } from "@/components/Alert";
+import { trackCompleteRegistration } from "@/components/MetaPixel";
+import { gaTrackSignUpComplete } from "@/components/GoogleAnalytics";
 
 export default function CadastroPage() {
   const router = useRouter();
@@ -56,6 +58,8 @@ export default function CadastroPage() {
         return;
       }
 
+      trackCompleteRegistration();
+      gaTrackSignUpComplete("email");
       router.push("/onboarding");
       router.refresh();
     } catch {

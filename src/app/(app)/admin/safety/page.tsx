@@ -1,9 +1,11 @@
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { headers } from "next/headers";
-import { maskIp } from "@/lib/security";
+import { maskIp, maskEmail } from "@/lib/security";
 import { Card } from "@/components/Card";
+import { Alert } from "@/components/Alert";
 import { AdminSOSChart } from "@/components/admin/AdminSOSChart";
+import { RevealPII } from "@/components/admin/RevealPII";
 
 const SOS_ACTION_LABELS: Record<string, string> = {
   opened: "Abriu SOS",
@@ -64,23 +66,15 @@ export default async function AdminSafetyPage() {
     count,
   }));
 
-  // Last 20 SOS events with user email
+  // Last 20 SOS events — masked by default
   const recentSOS = await prisma.sOSEvent.findMany({
     where: { createdAt: { gte: thirtyDaysAgo } },
     orderBy: { createdAt: "desc" },
     take: 20,
-    include: { user: { select: { email: true, name: true } } },
+    include: { user: { select: { id: true, email: true, name: true } } },
   });
 
-  // PHQ-9 Item 9 >= 1 (latest assessment per user)
-  const phq9HighRisk = await prisma.weeklyAssessment.findMany({
-    where: { phq9Item9: { gte: 1 } },
-    orderBy: { createdAt: "desc" },
-    take: 20,
-    include: { user: { select: { email: true, name: true } } },
-  });
-
-  // PHQ-9 Item 9 weekly aggregate (last 12 weeks)
+  // PHQ-9 Item 9 weekly aggregate (last 12 weeks) — NO individual data
   const twelveWeeksAgo = new Date();
   twelveWeeksAgo.setDate(twelveWeeksAgo.getDate() - 84);
   const phq9History = await prisma.weeklyAssessment.findMany({
@@ -100,12 +94,21 @@ export default async function AdminSafetyPage() {
     if ((a.phq9Item9 ?? 0) >= 1) phq9WeeklyMap[key].elevated++;
   }
 
-  // High priority feedbacks
-  const highPriorityFeedbacks = await prisma.feedback.findMany({
+  // PHQ-9 aggregate stats (no individual list)
+  const phq9ElevatedTotal = phq9History.filter((a) => (a.phq9Item9 ?? 0) >= 1).length;
+  const phq9ElevatedUsers = new Set(
+    (await prisma.weeklyAssessment.findMany({
+      where: { phq9Item9: { gte: 1 }, createdAt: { gte: twelveWeeksAgo } },
+      select: { userId: true },
+    })).map((a) => a.userId)
+  ).size;
+
+  // High priority feedbacks — count only, no raw messages
+  const highPriorityCount = await prisma.feedback.count({
     where: { priority: "high" },
-    orderBy: { createdAt: "desc" },
-    take: 10,
-    include: { user: { select: { email: true, name: true } } },
+  });
+  const highPriority30d = await prisma.feedback.count({
+    where: { priority: "high", createdAt: { gte: thirtyDaysAgo } },
   });
 
   // Crisis plans
@@ -121,6 +124,12 @@ export default async function AdminSafetyPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Segurança e Crise</h1>
+
+      <Alert variant="warning">
+        Esta página contém dados sensíveis. Emails são mascarados por padrão.
+        Revelar dados individuais é registrado no audit log.
+        Este painel não substitui monitoramento clínico profissional.
+      </Alert>
 
       {/* SOS Events summary */}
       <h2 className="text-lg font-semibold">Eventos SOS (últimos 30 dias)</h2>
@@ -144,7 +153,7 @@ export default async function AdminSafetyPage() {
         <AdminSOSChart data={sosChartData} />
       </Card>
 
-      {/* Recent SOS events */}
+      {/* Recent SOS events — masked emails */}
       {recentSOS.length > 0 && (
         <>
           <h2 className="text-lg font-semibold">Últimos 20 eventos SOS</h2>
@@ -173,7 +182,14 @@ export default async function AdminSafetyPage() {
                           {SOS_ACTION_LABELS[ev.action] ?? ev.action}
                         </span>
                       </td>
-                      <td className="py-2 text-xs">{ev.user.name ?? ev.user.email}</td>
+                      <td className="py-2 text-xs">
+                        <RevealPII
+                          masked={maskEmail(ev.user.email)}
+                          full={ev.user.name ?? ev.user.email}
+                          entityType="sos_event"
+                          entityId={ev.id}
+                        />
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -183,49 +199,27 @@ export default async function AdminSafetyPage() {
         </>
       )}
 
-      {/* PHQ-9 Item 9 */}
-      <h2 className="text-lg font-semibold">PHQ-9 Ideação (item 9 ≥ 1)</h2>
-      {phq9HighRisk.length > 0 ? (
+      {/* PHQ-9 — AGGREGATED ONLY, no individual list */}
+      <h2 className="text-lg font-semibold">PHQ-9 Ideação (agregado)</h2>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <Card>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b text-left text-xs text-muted">
-                  <th className="py-2 pr-3">Data</th>
-                  <th className="py-2 pr-3">Usuário</th>
-                  <th className="py-2 pr-3">Item 9</th>
-                  <th className="py-2">PHQ-9 Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {phq9HighRisk.map((a) => (
-                  <tr key={a.id} className="border-b last:border-0">
-                    <td className="py-2 pr-3 text-xs">
-                      {new Date(a.createdAt).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}
-                    </td>
-                    <td className="py-2 pr-3 text-xs">{a.user.name ?? a.user.email}</td>
-                    <td className="py-2 pr-3">
-                      <span className={`font-bold ${(a.phq9Item9 ?? 0) >= 2 ? "text-red-600" : "text-amber-600"}`}>
-                        {a.phq9Item9 ?? 0}
-                      </span>
-                    </td>
-                    <td className="py-2 text-xs">{a.phq9Total}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <p className="text-xs text-muted">Avaliações com item 9 ≥ 1 (12 sem.)</p>
+          <p className="text-2xl font-bold">{phq9ElevatedTotal}</p>
         </Card>
-      ) : (
         <Card>
-          <p className="text-sm text-muted">Nenhuma avaliação com item 9 elevado.</p>
+          <p className="text-xs text-muted">Usuários distintos</p>
+          <p className="text-2xl font-bold">{phq9ElevatedUsers}</p>
         </Card>
-      )}
+        <Card>
+          <p className="text-xs text-muted">Total avaliações (12 sem.)</p>
+          <p className="text-2xl font-bold">{phq9History.length}</p>
+        </Card>
+      </div>
 
       {/* PHQ-9 weekly trend */}
       {Object.keys(phq9WeeklyMap).length > 0 && (
         <>
-          <h3 className="text-sm font-semibold">Histórico semanal — Item 9 elevado</h3>
+          <h3 className="text-sm font-semibold">Tendência semanal — Item 9 elevado</h3>
           <Card>
             <div className="space-y-1">
               {Object.entries(phq9WeeklyMap)
@@ -249,30 +243,28 @@ export default async function AdminSafetyPage() {
         </>
       )}
 
-      {/* High priority feedbacks */}
-      {highPriorityFeedbacks.length > 0 && (
-        <>
-          <h2 className="text-lg font-semibold">Feedbacks com sinal de risco</h2>
-          <Card>
-            <div className="space-y-3">
-              {highPriorityFeedbacks.map((fb) => (
-                <div key={fb.id} className="border-b last:border-0 pb-3 last:pb-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="inline-block rounded bg-red-100 px-1.5 py-0.5 text-xs font-medium text-red-700">
-                      Sinal de risco
-                    </span>
-                    <span className="text-xs text-muted">
-                      {new Date(fb.createdAt).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}
-                    </span>
-                  </div>
-                  <p className="text-sm whitespace-pre-wrap break-words">{fb.message}</p>
-                  <p className="text-xs text-muted mt-1">{fb.user.name ?? fb.user.email}</p>
-                </div>
-              ))}
-            </div>
-          </Card>
-        </>
-      )}
+      {/* High priority feedbacks — count only, no raw text */}
+      <h2 className="text-lg font-semibold">Feedbacks com sinal de risco</h2>
+      <div className="grid grid-cols-2 gap-3">
+        <Card>
+          <p className="text-xs text-muted">Total (todos os tempos)</p>
+          <p className={`text-2xl font-bold ${highPriorityCount > 0 ? "text-red-600" : ""}`}>
+            {highPriorityCount}
+          </p>
+        </Card>
+        <Card>
+          <p className="text-xs text-muted">Últimos 30 dias</p>
+          <p className={`text-2xl font-bold ${highPriority30d > 0 ? "text-red-600" : ""}`}>
+            {highPriority30d}
+          </p>
+        </Card>
+      </div>
+      <p className="text-xs text-muted">
+        Detalhes dos feedbacks de risco disponíveis em{" "}
+        <a href="/admin/feedback?priority=high" className="underline">
+          Feedback → Sinal de risco
+        </a>
+      </p>
 
       {/* Crisis plans */}
       <h2 className="text-lg font-semibold">Planos de crise</h2>

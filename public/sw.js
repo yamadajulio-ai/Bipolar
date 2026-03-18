@@ -64,7 +64,12 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // 3. Navigation — network-only with offline fallback
+  // 3. Admin pages — never cache, never serve offline (LGPD/PHI)
+  if (url.pathname.startsWith("/admin")) {
+    return; // pass through to network, no SW interception
+  }
+
+  // 4. Navigation — network-only with offline fallback
   if (request.mode === "navigate") {
     event.respondWith(
       fetch(request).catch(() => caches.match(OFFLINE_URL))

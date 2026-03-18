@@ -1051,6 +1051,61 @@ describe("detectCrisisInTexts", () => {
     });
   });
 
+  // ── Revalidation R2 — numeric dose, demais, progressive self-harm, false positives ──
+
+  describe("Revalidation R2 — numeric dose must detect", () => {
+    it.each([
+      "tomei 20 comprimidos",
+      "tomei 15 clonazepam",
+      "engoli 10 rivotril",
+      "tomei 30 diazepam",
+      "vou tomar 20 comprimidos",
+      "quero engolir 10 remedios",
+      "tomei vinte comprimidos",
+      "engoli dez rivotril",
+      "tomei um frasco de rivotril",
+      "tomei uma caixa de clonazepam",
+      "engoli a caixa inteira de rivotril",
+      "tomei a caixa toda de diazepam",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("Revalidation R2 — 'remédio demais' must detect", () => {
+    it.each([
+      "tomei remédio demais",
+      "tomei remedio demais",
+      "tomei comprimido demais",
+      "engoli remédio demais",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("Revalidation R2 — progressive self-harm must detect", () => {
+    it.each([
+      "estou me cortando",
+      "estou me machucando",
+      "estou me ferindo",
+      "estou me enforcando",
+      "me cortando agora",
+      "me machucando agora",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("Revalidation R2 — normal numeric medication does NOT detect", () => {
+    it.each([
+      "tomei 2 comprimidos de vitamina",
+      "tomo 1 rivotril por dia",
+      "o médico receitou 2 comprimidos",
+    ])("does NOT detect: %s", (text) => {
+      expect(detect(text)).toBe(false);
+    });
+  });
+
   describe("Round 8 — contextual window prevents false-positive accumulation", () => {
     it("benign contextual words across 10+ messages do NOT trigger (ponte msg1 + faca msg10)", () => {
       const messages = [

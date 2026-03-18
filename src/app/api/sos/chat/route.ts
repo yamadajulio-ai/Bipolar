@@ -82,8 +82,8 @@ const EXPLICIT_CRISIS: RegExp[] = [
   /\b(vou|quero)\s*(tomar|engolir)\s*(muit[oa]s?|vari[oa]s?|tod[oa]s?\s*([oa]s?\s*)?|um\s*monte\s*de)?\s*(rivotril|clonazepam|diazepam|valium|lexotan|bromazepam|frontal|alprazolam|sertralina|fluoxetina|litio|carbamazepina|quetiapina|seroquel|risperidona|haldol|haloperidol|amitriptilina|tryptanol|clozapina)\b/i,
   /\bmisturei\s*(alcool|bebida|cerveja|vinho)\s*(com\s*)?(rivotril|clonazepam|diazepam|valium|lexotan|bromazepam|frontal|alprazolam|sertralina|fluoxetina|litio|carbamazepina|quetiapina|seroquel|risperidona|haldol|haloperidol|amitriptilina|tryptanol|clozapina)\b/i,
   /\bmisturei\s*(rivotril|clonazepam|diazepam|valium|lexotan|bromazepam|frontal|alprazolam|sertralina|fluoxetina|litio|carbamazepina|quetiapina|seroquel|risperidona|haldol|haloperidol|amitriptilina|tryptanol|clozapina)\s*(com\s*)?(alcool|bebida|cerveja|vinho)\b/i,
-  // Progressive self-harm (gerund: "estou me cortando/machucando/ferindo")
-  /\bestou\s*me\s*(cortando|machucando|ferindo)\b/i,
+  // Progressive self-harm (gerund: "estou me cortando/machucando/ferindo/enforcando")
+  /\bestou\s*me\s*(cortando|machucando|ferindo|enforcando)\b/i,
   /\b(me\s*cortando|me\s*machucando|me\s*ferindo)\b/i,
   // Numeric dose + generic medication: "tomei 20 comprimidos", "engoli 15 remédios"
   // Requires 2+ digit number (10+) or single digits 5-9 to avoid "tomei 1 comprimido"
@@ -99,7 +99,7 @@ const EXPLICIT_CRISIS: RegExp[] = [
   // "demais" quantifier: "tomei remédio demais", "tomei comprimido demais"
   /\b(tomei|engoli|bebi)\s*(remedios?|comprimidos?|pilulas?|medicamentos?)\s*demais\b/i,
   // Container patterns: "um frasco de remédio", "uma caixa de remédio"
-  /\b(tomei|engoli|bebi)\s*(um\s*frasco|uma\s*caixa|a\s*caixa)\s*(de\s*)?(remedios?|comprimidos?|pilulas?|medicamentos?|rivotril|clonazepam|diazepam|valium|lexotan|bromazepam|frontal|alprazolam|sertralina|fluoxetina|litio|carbamazepina|quetiapina|seroquel|risperidona|haldol|haloperidol|amitriptilina|tryptanol|clozapina)?\b/i,
+  /\b(tomei|engoli|bebi)\s*(um\s*frasco|uma\s*caixa|a\s*caixa)\s*(inteira\s*|toda\s*)?(de\s*)?(remedios?|comprimidos?|pilulas?|medicamentos?|rivotril|clonazepam|diazepam|valium|lexotan|bromazepam|frontal|alprazolam|sertralina|fluoxetina|litio|carbamazepina|quetiapina|seroquel|risperidona|haldol|haloperidol|amitriptilina|tryptanol|clozapina)?\b/i,
   /\b(vou|quero)\s*(tomar|engolir)\s*(um\s*frasco|uma\s*caixa|a\s*caixa)\b/i,
   // Passive ideation — "preferia/prefiro não acordar"
   /\bpreferia\s*nao\s*acordar\b/i,

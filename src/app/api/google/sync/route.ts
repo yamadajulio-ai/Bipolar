@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/security";
 import { pullGoogleCalendar } from "@/lib/google/sync";
 import { getAuthenticatedClient } from "@/lib/google/auth";
 import { listEvents, isAllDayEvent, isLongEvent } from "@/lib/google/calendar";
@@ -77,6 +79,7 @@ export async function GET(request: Request) {
         events: summary.slice(0, 20), // limit to first 20
       });
     } catch (err) {
+      Sentry.captureException(err, { tags: { endpoint: "google-sync-raw" } });
       return NextResponse.json({ error: String(err) }, { status: 500 });
     }
   }
@@ -124,6 +127,7 @@ export async function GET(request: Request) {
       }
       return NextResponse.json({ calendars: results, storedCalendarId: account.calendarId });
     } catch (err) {
+      Sentry.captureException(err, { tags: { endpoint: "google-sync-calendars" } });
       return NextResponse.json({ error: String(err) }, { status: 500 });
     }
   }
@@ -147,6 +151,15 @@ export async function POST(request: Request) {
     );
   }
 
+  // Rate limit: 10 syncs per hour per user
+  const allowed = await checkRateLimit(`google-sync:${session.userId}`, 10, 60 * 60 * 1000);
+  if (!allowed) {
+    return NextResponse.json(
+      { error: "Muitas sincronizações. Tente novamente em breve." },
+      { status: 429 },
+    );
+  }
+
   // ?full=1 resets syncToken to force a complete re-sync
   const url = new URL(request.url);
   if (url.searchParams.get("full") === "1") {
@@ -161,6 +174,7 @@ export async function POST(request: Request) {
     return NextResponse.json(result);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erro desconhecido";
+    Sentry.captureException(err, { tags: { endpoint: "google-sync" } });
     console.error("[Google Sync] Error:", message, err);
     return NextResponse.json(
       { error: `Erro na sincronização: ${message}` },

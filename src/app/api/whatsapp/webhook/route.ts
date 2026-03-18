@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 
 /**
  * WhatsApp Cloud API webhook.
@@ -94,6 +95,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ ok: true });
   } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "whatsapp-webhook" } });
     console.error("WhatsApp webhook error:", err instanceof Error ? err.message : "Unknown error");
     return NextResponse.json({ ok: true }); // Always return 200 to Meta
   }

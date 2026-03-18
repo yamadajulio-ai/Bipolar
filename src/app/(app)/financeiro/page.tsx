@@ -240,8 +240,37 @@ export default function FinanceiroPage() {
         </Alert>
       )}
 
+      {/* Empty state for new users */}
+      {summary && summary.transactionCount === 0 && (
+        <div className="mb-6 rounded-2xl border border-border bg-surface p-6 text-center">
+          <p className="text-3xl mb-2">💰</p>
+          <h2 className="text-lg font-semibold mb-1">Nenhuma transação registrada</h2>
+          <p className="text-sm text-muted mb-4">
+            Acompanhar seus gastos ajuda a identificar padrões que podem estar ligados ao humor.
+            Importe do Mobills ou adicione manualmente.
+          </p>
+          <div className="flex justify-center gap-3">
+            <button
+              onClick={() => {
+                const el = document.getElementById("import-section");
+                el?.scrollIntoView({ behavior: "smooth" });
+              }}
+              className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white"
+            >
+              Importar CSV
+            </button>
+            <button
+              onClick={() => setShowForm(true)}
+              className="rounded-lg border border-border px-4 py-2 text-sm font-medium"
+            >
+              Adicionar manual
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Summary cards */}
-      {summary && (
+      {summary && summary.transactionCount > 0 && (
         <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <SummaryCard
             label="Receita"
@@ -272,9 +301,11 @@ export default function FinanceiroPage() {
       )}
 
       {/* Import */}
-      <Card className="mb-6">
-        <ImportCSV onImported={fetchData} />
-      </Card>
+      <div id="import-section">
+        <Card className="mb-6">
+          <ImportCSV onImported={fetchData} />
+        </Card>
+      </div>
 
       {/* Manual entry toggle */}
       <Card className="mb-6">

@@ -2,6 +2,7 @@ import { getSession } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/security";
 import { prisma } from "@/lib/db";
 import { NextRequest } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import Anthropic from "@anthropic-ai/sdk";
 
 export const maxDuration = 30;
@@ -439,7 +440,8 @@ export async function POST(req: NextRequest) {
             encoder.encode(`data: ${JSON.stringify({ text: refusalMsg, fallback: true })}\n\n`),
           );
         }
-      } catch {
+      } catch (err) {
+        Sentry.captureException(err, { tags: { endpoint: "sos-chat" } });
         streamError = true;
         // Fallback: send static support message instead of raw error
         const fallbackMsg = "Houve uma falha temporária. Enquanto isso, lembre-se: ligue 192 (SAMU) se houver risco, ou 188 (CVV) para conversar. Você também pode usar a respiração guiada aqui no app.";

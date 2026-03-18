@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { exchangeLoginCodeForTokens, getGoogleUserInfo } from "@/lib/google/login-auth";
@@ -73,6 +74,7 @@ export async function GET(request: NextRequest) {
     response.cookies.delete("google-login-state");
     return response;
   } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "google-login-callback" } });
     console.error("Google login callback error:", err);
     return NextResponse.redirect(new URL("/login?error=google_login_failed", request.url));
   }

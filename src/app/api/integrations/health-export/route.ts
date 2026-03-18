@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { checkRateLimit } from "@/lib/security";
@@ -236,6 +237,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erro desconhecido";
+    Sentry.captureException(err, { tags: { endpoint: "health-export" } });
     console.error("[health-export] Error:", message, err);
     return NextResponse.json(
       { error: "Erro ao processar dados de saude", detail: message },

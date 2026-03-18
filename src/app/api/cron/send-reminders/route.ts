@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { prisma } from "@/lib/db";
 import { sendPush, PushPayload } from "@/lib/web-push";
 
@@ -137,6 +138,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ ok: true, sent, cleaned: expiredEndpoints.length });
   } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "cron-send-reminders" } });
     console.error("Send reminders cron error:", err);
     return NextResponse.json({ error: "Failed" }, { status: 500 });
   }

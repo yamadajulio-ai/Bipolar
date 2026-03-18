@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { z } from "zod/v4";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
@@ -47,6 +48,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "push-subscribe" } });
     console.error("Push subscription error:", err);
     return NextResponse.json({ error: "Erro ao salvar inscrição" }, { status: 500 });
   }
@@ -76,6 +78,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "push-unsubscribe" } });
     console.error("Push unsubscribe error:", err);
     return NextResponse.json({ error: "Erro ao remover inscrição" }, { status: 500 });
   }

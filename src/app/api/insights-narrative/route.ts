@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/security";
 import { computeInsights, type PlannerBlockInput } from "@/lib/insights/computeInsights";
 import { generateNarrative } from "@/lib/ai/generateNarrative";
 
@@ -16,6 +18,15 @@ export async function GET() {
 
   if (!process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json({ error: "AI não configurada" }, { status: 503 });
+  }
+
+  // Rate limit: 10 AI narrative requests per hour per user
+  const allowed = await checkRateLimit(`narrative:${session.userId}`, 10, 60 * 60 * 1000);
+  if (!allowed) {
+    return NextResponse.json(
+      { error: "Você já gerou muitas narrativas recentemente. Tente novamente em breve." },
+      { status: 429 },
+    );
   }
 
   try {
@@ -96,6 +107,7 @@ export async function GET() {
       headers: { "Cache-Control": "no-store" },
     });
   } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "insights-narrative" } });
     console.error("Insights narrative error:", err);
     return NextResponse.json(
       { error: "Erro ao gerar narrativa" },

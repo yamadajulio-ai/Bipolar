@@ -11,7 +11,10 @@ export function Footer() {
         </div>
         <div className="flex flex-wrap items-center justify-between gap-4 text-xs text-muted">
           <p>&copy; {new Date().getFullYear()} Suporte Bipolar. Conteúdo educacional — não substitui tratamento médico ou psicológico.</p>
-          <div className="flex gap-4">
+          <div className="flex flex-wrap items-center gap-4">
+            <a href="mailto:contato@suportebipolar.com" className="hover:text-foreground no-underline">
+              contato@suportebipolar.com
+            </a>
             <Link href="/privacidade" className="hover:text-foreground no-underline">
               Privacidade
             </Link>

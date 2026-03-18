@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { exchangeCodeForTokens } from "@/lib/google/auth";
@@ -39,6 +40,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.redirect(new URL("/integracoes?google=connected", request.url));
   } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "google-auth-callback" } });
     console.error("Google auth callback error:", err);
     return NextResponse.redirect(new URL("/integracoes?error=google_auth_failed", request.url));
   }

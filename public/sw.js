@@ -15,6 +15,9 @@ const CACHEABLE_API_PATHS = [
   "/api/rotina",
   "/api/insights-summary",
   "/api/lembretes",
+  "/api/avaliacao-semanal",
+  "/api/planner/blocks",
+  "/api/financeiro/historico",
 ];
 
 // TTL for API cache (5 minutes)

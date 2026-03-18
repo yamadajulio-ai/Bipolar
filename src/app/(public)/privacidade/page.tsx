@@ -11,7 +11,7 @@ export default function PrivacidadePage() {
       <Header />
       <main className="mx-auto max-w-3xl flex-1 px-4 py-8">
         <h1 className="mb-6 text-2xl font-bold">Política de Privacidade</h1>
-        <p className="mb-6 text-sm text-muted">Última atualização: março de 2026</p>
+        <p className="mb-6 text-sm text-muted">Última atualização: 18 de março de 2026</p>
 
         <p className="mb-6 text-sm text-muted">
           O Suporte Bipolar (&quot;nós&quot;, &quot;nosso&quot;) leva a proteção dos seus dados a
@@ -39,14 +39,14 @@ export default function PrivacidadePage() {
         <section className="mb-6">
           <h2 className="mb-2 text-lg font-semibold">2. Quais dados coletamos</h2>
 
-          <h3 className="mb-1 mt-3 text-sm font-semibold text-foreground">1.1 Dados de cadastro</h3>
+          <h3 className="mb-1 mt-3 text-sm font-semibold text-foreground">2.1 Dados de cadastro</h3>
           <ul className="list-inside list-disc space-y-1 text-sm text-muted">
             <li>E-mail e senha (armazenada com hash bcrypt, nunca em texto).</li>
             <li>Login social via Google (recebemos nome e e-mail; tokens OAuth são criptografados com AES-256-GCM).</li>
             <li>Data de nascimento (apenas para verificar idade mínima de 18 anos).</li>
           </ul>
 
-          <h3 className="mb-1 mt-3 text-sm font-semibold text-foreground">1.2 Dados de saúde e bem-estar</h3>
+          <h3 className="mb-1 mt-3 text-sm font-semibold text-foreground">2.2 Dados de saúde e bem-estar</h3>
           <p className="mb-2 text-sm text-muted">
             Considerados <strong>dados pessoais sensíveis</strong> pela LGPD (art. 5º, II), tratados
             com base no seu consentimento explícito (art. 11, I):
@@ -64,7 +64,7 @@ export default function PrivacidadePage() {
             <li><strong>Perfil socioeconômico:</strong> respostas opcionais para recomendações de serviços públicos (CAPS, SUS, CRAS).</li>
           </ul>
 
-          <h3 className="mb-1 mt-3 text-sm font-semibold text-foreground">1.3 Dados de integrações externas</h3>
+          <h3 className="mb-1 mt-3 text-sm font-semibold text-foreground">2.3 Dados de integrações externas</h3>
           <p className="mb-2 text-sm text-muted">
             Importados apenas com seu consentimento explícito, via configuração ativa na página de integrações:
           </p>
@@ -75,13 +75,13 @@ export default function PrivacidadePage() {
             <li><strong>Mobills:</strong> dados financeiros importados via arquivo CSV/XLSX (categoria, valor, data). Nenhum dado é enviado ao Mobills.</li>
           </ul>
 
-          <h3 className="mb-1 mt-3 text-sm font-semibold text-foreground">1.4 Dados financeiros</h3>
+          <h3 className="mb-1 mt-3 text-sm font-semibold text-foreground">2.4 Dados financeiros</h3>
           <ul className="list-inside list-disc space-y-1 text-sm text-muted">
             <li>Registros de gastos importados para correlação com humor (valor, categoria, data).</li>
-            <li>Processados no servidor; não compartilhados com terceiros além dos operadores de infraestrutura descritos na seção 5.</li>
+            <li>Processados no servidor; não compartilhados com terceiros além dos operadores de infraestrutura descritos na seção 6.</li>
           </ul>
 
-          <h3 className="mb-1 mt-3 text-sm font-semibold text-foreground">1.5 Dados técnicos e de uso</h3>
+          <h3 className="mb-1 mt-3 text-sm font-semibold text-foreground">2.5 Dados técnicos e de uso</h3>
           <ul className="list-inside list-disc space-y-1 text-sm text-muted">
             <li>Endereço IP (mascarado: IPv4 últimos 8 bits zerados, IPv6 últimos 64 bits zerados).</li>
             <li>Logs de acesso para segurança (purgados automaticamente após 90 dias).</li>

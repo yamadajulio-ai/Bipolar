@@ -49,9 +49,8 @@ function checkCsrf(request: NextRequest): NextResponse | null {
   // Allow WhatsApp webhook (Meta verifies via verify_token)
   if (request.nextUrl.pathname.startsWith("/api/whatsapp/webhook")) return null;
 
-  // Allow professional access (public endpoint, auth'd via token+PIN)
-  if (request.nextUrl.pathname.startsWith("/api/acesso-profissional/") &&
-      !request.nextUrl.pathname.endsWith("/acesso-profissional")) return null;
+  // Allow professional access — only token-level endpoint (auth'd via token+PIN)
+  if (request.nextUrl.pathname.match(/^\/api\/acesso-profissional\/[^/]+$/)) return null;
 
   const origin = headers.get("origin");
   const secFetchSite = headers.get("sec-fetch-site");
@@ -121,5 +120,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon\\.ico|sw\\.js|manifest\\.webmanifest|robots\\.txt|sitemap\\.xml|apple-app-site-association).*)"],
 };

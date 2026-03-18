@@ -11,7 +11,7 @@ export default function TermosPage() {
       <Header />
       <main className="mx-auto max-w-3xl flex-1 px-4 py-8">
         <h1 className="mb-6 text-2xl font-bold">Termos de Uso</h1>
-        <p className="mb-6 text-sm text-muted">Última atualização: março de 2026</p>
+        <p className="mb-6 text-sm text-muted">Última atualização: 18 de março de 2026</p>
 
         <p className="mb-6 text-sm text-muted">
           Ao utilizar o Suporte Bipolar (&quot;plataforma&quot;, &quot;aplicativo&quot;), de

@@ -6,14 +6,6 @@ import { Card } from "@/components/Card";
 import { Alert } from "@/components/Alert";
 import { maskIp } from "@/lib/security";
 import { FEEDBACK_CATEGORY_LABELS } from "@/lib/feedback";
-import { RevealEmail } from "@/components/feedback/RevealEmail";
-
-function maskEmail(email: string): string {
-  const [local, domain] = email.split("@");
-  if (!domain) return "***";
-  const visible = local.slice(0, 2);
-  return `${visible}***@${domain}`;
-}
 
 export default async function AdminFeedbackPage({
   searchParams,
@@ -61,7 +53,7 @@ export default async function AdminFeedbackPage({
       orderBy: { createdAt: "desc" },
       skip: (page - 1) * perPage,
       take: perPage,
-      include: { user: { select: { email: true } } },
+      include: { user: { select: { email: true, name: true } } },
     }),
     prisma.feedback.count({ where }),
     prisma.contextualFeedback.count(),
@@ -171,15 +163,13 @@ export default async function AdminFeedbackPage({
               </div>
               <p className="text-sm whitespace-pre-wrap break-words">{fb.message}</p>
               <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted">
-                {/* Email masked by default, reveal-on-click only when canContact=true */}
-                {fb.canContact ? (
-                  <RevealEmail masked={maskEmail(fb.user.email)} full={fb.user.email} feedbackId={fb.id} />
-                ) : (
-                  <span>{maskEmail(fb.user.email)}</span>
-                )}
+                <span>{fb.user.name ?? fb.user.email}</span>
+                <span>{fb.user.email}</span>
                 <span>{new Date(fb.createdAt).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}</span>
                 {fb.route && <span>Origem: {fb.route}</span>}
                 {fb.clientType && <span>Cliente: {fb.clientType}</span>}
+                {fb.appVersion && <span>v{fb.appVersion}</span>}
+                <span className="font-mono opacity-50">{fb.id.slice(0, 8)}</span>
               </div>
             </div>
           </Card>

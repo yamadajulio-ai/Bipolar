@@ -18,7 +18,7 @@ function hasSpeechRecognition(): boolean {
   );
 }
 
-function getSpeechRecognition(): SpeechRec | null {
+function getSpeechRecognition(continuous: boolean): SpeechRec | null {
   if (typeof window === "undefined") return null;
   const SR =
     (window as any).SpeechRecognition ||
@@ -26,27 +26,60 @@ function getSpeechRecognition(): SpeechRec | null {
   if (!SR) return null;
   const recognition = new SR();
   recognition.lang = "pt-BR";
-  recognition.continuous = false;
+  recognition.continuous = continuous;
   recognition.interimResults = false;
   return recognition;
+}
+
+function hasTTS(): boolean {
+  if (typeof window === "undefined") return false;
+  return "speechSynthesis" in window;
+}
+
+function speak(text: string, onEnd?: () => void) {
+  if (!hasTTS()) return;
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = "pt-BR";
+  utterance.rate = 0.95;
+  utterance.pitch = 1;
+  // Try to pick a Brazilian Portuguese voice
+  const voices = window.speechSynthesis.getVoices();
+  const ptVoice = voices.find((v) => v.lang.startsWith("pt-BR")) ?? voices.find((v) => v.lang.startsWith("pt"));
+  if (ptVoice) utterance.voice = ptVoice;
+  if (onEnd) utterance.onend = onEnd;
+  window.speechSynthesis.speak(utterance);
+}
+
+function stopSpeaking() {
+  if (hasTTS()) window.speechSynthesis.cancel();
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 // Static fallback when API is unavailable
 const STATIC_FALLBACK = "O serviço de chat está temporariamente indisponível. Se precisar de ajuda agora, ligue 192 (SAMU) ou 188 (CVV). Você também pode usar a respiração guiada ou o aterramento nesta mesma página.";
 
-export function SOSChatbot({ onClose }: { onClose: () => void }) {
+interface SOSChatbotProps {
+  onClose: () => void;
+  waitingMode?: boolean; // Activated from 188 waiting flow
+}
+
+export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [listening, setListening] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasVoice] = useState(hasSpeechRecognition);
+  const [ttsEnabled, setTtsEnabled] = useState(waitingMode); // Auto-enable TTS in waiting mode
+  const [handsFree, setHandsFree] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const recognitionRef = useRef<SpeechRec | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const sessionStartRef = useRef(Date.now());
+  const lastAssistantRef = useRef("");
 
   // Auto-scroll
   useEffect(() => {
@@ -55,10 +88,10 @@ export function SOSChatbot({ onClose }: { onClose: () => void }) {
     }
   }, [messages]);
 
-  // Focus input on mount
+  // Focus input on mount (unless hands-free)
   useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
+    if (!handsFree) inputRef.current?.focus();
+  }, [handsFree]);
 
   // Cleanup
   useEffect(() => {
@@ -66,36 +99,69 @@ export function SOSChatbot({ onClose }: { onClose: () => void }) {
       abortRef.current?.abort();
       recognitionRef.current?.abort?.();
       recognitionRef.current?.stop?.();
+      stopSpeaking();
     };
+  }, []);
+
+  // Load voices (needed for some browsers)
+  useEffect(() => {
+    if (hasTTS()) {
+      window.speechSynthesis.getVoices();
+      window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+    }
   }, []);
 
   // Handoff reminders: 10 min intermediate + 20 min session timeout
   useEffect(() => {
     const reminder10 = setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "system",
-          content: "Enquanto conversamos, o 188 pode atender a qualquer momento. Mantenha a ligação ativa se puder.",
-        },
-      ]);
+      const msg = waitingMode
+        ? "O 188 pode atender a qualquer momento. Mantenha a ligação ativa — estou aqui com você enquanto espera."
+        : "Enquanto conversamos, o 188 pode atender a qualquer momento. Mantenha a ligação ativa se puder.";
+      setMessages((prev) => [...prev, { role: "system", content: msg }]);
+      if (ttsEnabled) speak(msg);
     }, 10 * 60 * 1000);
 
     const reminder20 = setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "system",
-          content: "Já faz um tempo que estamos conversando. Este chat é temporário — o ideal é o atendimento humano do 188 ou de um profissional. Se precisar de ajuda imediata, ligue 192 (SAMU).",
-        },
-      ]);
+      const msg = "Já faz um tempo que estamos conversando. Este chat é temporário — o ideal é o atendimento humano do 188 ou de um profissional. Se precisar de ajuda imediata, ligue 192 (SAMU).";
+      setMessages((prev) => [...prev, { role: "system", content: msg }]);
+      if (ttsEnabled) speak(msg);
     }, 20 * 60 * 1000);
 
     return () => {
       clearTimeout(reminder10);
       clearTimeout(reminder20);
     };
-  }, []);
+  }, [waitingMode, ttsEnabled]);
+
+  // Auto-start in waiting mode: send initial greeting
+  useEffect(() => {
+    if (waitingMode && messages.length === 0) {
+      const greeting: Message = {
+        role: "user",
+        content: "Estou ligando pro 188 e esperando ser atendido. Preciso de companhia enquanto espero.",
+      };
+      setMessages([greeting]);
+      sendMessages([greeting]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [waitingMode]);
+
+  // TTS: speak new assistant messages when complete (streaming done)
+  useEffect(() => {
+    if (!ttsEnabled || streaming) return;
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg?.role === "assistant" && lastMsg.content && lastMsg.content !== lastAssistantRef.current) {
+      lastAssistantRef.current = lastMsg.content;
+      setSpeaking(true);
+      speak(lastMsg.content, () => {
+        setSpeaking(false);
+        // In hands-free mode, auto-start listening after TTS finishes
+        if (handsFree && !streaming) {
+          startContinuousListening();
+        }
+      });
+    }
+  }, [messages, streaming, ttsEnabled, handsFree]);
 
   const sendMessages = useCallback(async (allMessages: Message[]) => {
     setStreaming(true);
@@ -186,6 +252,19 @@ export function SOSChatbot({ onClose }: { onClose: () => void }) {
     const updated = [...messages, newMessage];
     setMessages(updated);
     setInput("");
+    stopSpeaking();
+    setSpeaking(false);
+    sendMessages(updated);
+  }
+
+  function handleVoiceSend(transcript: string) {
+    if (!transcript.trim() || streaming) return;
+    const newMessage: Message = { role: "user", content: transcript.trim() };
+    const updated = [...messages, newMessage];
+    setMessages(updated);
+    setInput("");
+    stopSpeaking();
+    setSpeaking(false);
     sendMessages(updated);
   }
 
@@ -196,6 +275,7 @@ export function SOSChatbot({ onClose }: { onClose: () => void }) {
     }
   }
 
+  // Single-shot voice input (appends to input field)
   function toggleVoice() {
     if (listening) {
       recognitionRef.current?.stop();
@@ -203,7 +283,7 @@ export function SOSChatbot({ onClose }: { onClose: () => void }) {
       return;
     }
 
-    const recognition = getSpeechRecognition();
+    const recognition = getSpeechRecognition(false);
     if (!recognition) return;
 
     recognitionRef.current = recognition;
@@ -222,6 +302,60 @@ export function SOSChatbot({ onClose }: { onClose: () => void }) {
     recognition.start();
   }
 
+  // Continuous hands-free listening (auto-sends when speech ends)
+  function startContinuousListening() {
+    if (streaming || speaking) return;
+
+    const recognition = getSpeechRecognition(false);
+    if (!recognition) return;
+
+    recognitionRef.current = recognition;
+    setListening(true);
+
+    recognition.onresult = (event: { results: { 0?: { 0?: { transcript?: string } } } }) => {
+      const transcript = event.results[0]?.[0]?.transcript;
+      if (transcript) {
+        handleVoiceSend(transcript);
+      }
+      setListening(false);
+    };
+
+    recognition.onerror = () => setListening(false);
+    recognition.onend = () => {
+      setListening(false);
+      // Don't auto-restart — TTS onend callback will restart after speaking
+    };
+
+    recognition.start();
+  }
+
+  function toggleHandsFree() {
+    if (handsFree) {
+      // Turn off
+      setHandsFree(false);
+      recognitionRef.current?.stop();
+      setListening(false);
+      stopSpeaking();
+      setSpeaking(false);
+    } else {
+      // Turn on
+      setHandsFree(true);
+      setTtsEnabled(true);
+      // Start listening if not currently streaming or speaking
+      if (!streaming && !speaking) {
+        startContinuousListening();
+      }
+    }
+  }
+
+  function toggleTTS() {
+    if (ttsEnabled) {
+      stopSpeaking();
+      setSpeaking(false);
+    }
+    setTtsEnabled(!ttsEnabled);
+  }
+
   const elapsedMin = Math.floor((Date.now() - sessionStartRef.current) / 60000);
 
   return (
@@ -234,16 +368,56 @@ export function SOSChatbot({ onClose }: { onClose: () => void }) {
       {/* Header */}
       <div className="flex items-center justify-between border-b border-gray-700 px-4 py-3">
         <div>
-          <h2 className="text-lg font-bold">Companheiro de espera</h2>
-          <p className="text-xs text-gray-400">IA de acolhimento temporário</p>
+          <h2 className="text-lg font-bold">
+            {waitingMode ? "Espera acompanhada" : "Companheiro de espera"}
+          </h2>
+          <p className="text-xs text-gray-400">
+            {waitingMode ? "Estou com você enquanto o 188 atende" : "IA de acolhimento temporário"}
+          </p>
         </div>
-        <button
-          onClick={onClose}
-          className="rounded-lg bg-gray-800 px-3 py-1.5 text-sm text-gray-300 hover:bg-gray-700"
-          aria-label="Fechar chat"
-        >
-          Voltar
-        </button>
+        <div className="flex items-center gap-2">
+          {/* TTS toggle */}
+          <button
+            onClick={toggleTTS}
+            className={`rounded-lg p-2 text-xs transition-colors ${
+              ttsEnabled
+                ? "bg-blue-700 text-white"
+                : "bg-gray-800 text-gray-400 hover:bg-gray-700"
+            }`}
+            aria-label={ttsEnabled ? "Desativar voz do assistente" : "Ativar voz do assistente"}
+            title={ttsEnabled ? "Voz ativada" : "Ativar voz"}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+              {ttsEnabled ? (
+                <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
+              ) : (
+                <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51A8.796 8.796 0 0 0 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06a8.99 8.99 0 0 0 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z" />
+              )}
+            </svg>
+          </button>
+          {/* Hands-free toggle */}
+          {hasVoice && (
+            <button
+              onClick={toggleHandsFree}
+              className={`rounded-lg px-2.5 py-2 text-xs font-medium transition-colors ${
+                handsFree
+                  ? "bg-green-700 text-white animate-pulse"
+                  : "bg-gray-800 text-gray-400 hover:bg-gray-700"
+              }`}
+              aria-label={handsFree ? "Desativar modo voz contínua" : "Ativar modo voz contínua"}
+              title={handsFree ? "Modo voz ativo" : "Modo voz"}
+            >
+              {handsFree ? "Voz ON" : "Voz"}
+            </button>
+          )}
+          <button
+            onClick={onClose}
+            className="rounded-lg bg-gray-800 px-3 py-1.5 text-sm text-gray-300 hover:bg-gray-700"
+            aria-label="Fechar chat"
+          >
+            Voltar
+          </button>
+        </div>
       </div>
 
       {/* Emergency banner — always visible */}
@@ -253,6 +427,15 @@ export function SOSChatbot({ onClose }: { onClose: () => void }) {
         Conversar:{" "}
         <a href="tel:188" className="font-bold text-white underline">188</a> (CVV)
       </div>
+
+      {/* Hands-free mode indicator */}
+      {handsFree && (
+        <div className="bg-green-900/40 px-4 py-2 text-center text-xs text-green-300">
+          Modo voz ativo — fale naturalmente, o app ouve e responde em voz alta
+          {listening && <span className="ml-2 animate-pulse text-green-200">Ouvindo...</span>}
+          {speaking && <span className="ml-2 text-blue-300">Falando...</span>}
+        </div>
+      )}
 
       {/* Messages */}
       <div
@@ -274,7 +457,7 @@ export function SOSChatbot({ onClose }: { onClose: () => void }) {
             </div>
 
             <p className="text-gray-400 text-xs">
-              Pode digitar ou usar o microfone.
+              Pode digitar, usar o microfone, ou ativar o <strong>modo voz</strong> para conversar sem as mãos.
             </p>
             <div className="flex flex-wrap justify-center gap-2 mt-2">
               {[
@@ -338,7 +521,7 @@ export function SOSChatbot({ onClose }: { onClose: () => void }) {
       {/* Input */}
       <div className="border-t border-gray-700 px-3 py-3">
         <div className="flex items-end gap-2">
-          {hasVoice && (
+          {hasVoice && !handsFree && (
             <button
               onClick={toggleVoice}
               disabled={streaming}
@@ -360,8 +543,14 @@ export function SOSChatbot({ onClose }: { onClose: () => void }) {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            disabled={streaming}
-            placeholder={listening ? "Ouvindo..." : "Digite aqui..."}
+            disabled={streaming || handsFree}
+            placeholder={
+              handsFree
+                ? "Modo voz ativo — fale normalmente"
+                : listening
+                  ? "Ouvindo..."
+                  : "Digite aqui..."
+            }
             rows={1}
             className="flex-1 resize-none rounded-xl bg-gray-800 px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-600 disabled:opacity-50"
             style={{ maxHeight: "120px" }}
@@ -369,7 +558,7 @@ export function SOSChatbot({ onClose }: { onClose: () => void }) {
           />
           <button
             onClick={handleSend}
-            disabled={!input.trim() || streaming}
+            disabled={!input.trim() || streaming || handsFree}
             className="shrink-0 rounded-full bg-blue-600 p-2.5 text-white transition-colors hover:bg-blue-500 disabled:opacity-30"
             aria-label="Enviar mensagem"
           >

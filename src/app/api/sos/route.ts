@@ -16,6 +16,9 @@ const sosLogSchema = z.object({
     "breathing",
     "grounding",
     "open_maps_upa",
+    "chat_while_waiting",
+    "chat_from_tools",
+    "waiting_188_mode",
   ]),
 });
 

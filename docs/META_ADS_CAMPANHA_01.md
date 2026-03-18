@@ -1,7 +1,7 @@
 # Meta Ads — Campanha 01: Primeiro Teste
 
 > Referência completa para configuração no Ads Manager.
-> Preparado em 18/03/2026.
+> Preparado em 18/03/2026. Revisado após auditoria GPT Pro.
 
 ---
 
@@ -10,14 +10,16 @@
 | Nível | Nome |
 |-------|------|
 | **Campanha** | `SB_T1_Traffic_LPV_Mar26` |
-| **Conjunto A** | `SB_T1_A_Convive_BR18+_Mob` |
-| **Conjunto B** | `SB_T1_B_Familiar_BR18+_Mob` |
-| **Anúncio A1** | `SB_T1_A1_Video_Fundador` |
-| **Anúncio A2** | `SB_T1_A2_Estatico_Beneficios` |
-| **Anúncio B1** | `SB_T1_B1_Video_Fundador_Fam` |
-| **Anúncio B2** | `SB_T1_B2_Estatico_Beneficios_Fam` |
+| **Conjunto A** | `SB_T1_A_Convive_BR18P_Mob` |
+| **Conjunto B** | `SB_T1_B_Familiar_BR18P_Mob` |
+| **Anúncio A1** | `SB_T1_A1_Founder_V1` |
+| **Anúncio A2** | `SB_T1_A2_Demo_V1` |
+| **Anúncio A3** | `SB_T1_A3_StaticBenefits_V1` |
+| **Anúncio B1** | `SB_T1_B1_Founder_V1` |
+| **Anúncio B2** | `SB_T1_B2_Demo_V1` |
+| **Anúncio B3** | `SB_T1_B3_StaticBenefits_V1` |
 
-Legenda: `SB` = Suporte Bipolar · `T1` = Teste 1 · `A/B` = conjunto · `1/2` = variação de criativo
+Legenda: `SB` = Suporte Bipolar · `T1` = Teste 1 · `A/B` = conjunto · `18P` = 18+ · `V1` = versão 1
 
 ---
 
@@ -40,12 +42,12 @@ Legenda: `SB` = Suporte Bipolar · `T1` = Teste 1 · `A/B` = conjunto · `1/2` =
 - **Dispositivos**: Mobile only
 - **Placements manuais**: Instagram Feed, Instagram Stories, Instagram Reels, Facebook Feed, Facebook Reels
 - **Otimização**: Landing Page Views
-- **Link destino**: `https://suportebipolar.com/comecar?utm_source=meta&utm_medium=cpc&utm_campaign=t1_convive`
+- **Link destino**: `https://suportebipolar.com/comecar?utm_source=meta&utm_medium=cpc&utm_campaign=sb_t1_convive`
 
 ### Conjunto B — Familiares e cuidadores
 - Idêntico ao A, exceto:
 - **Budget diário**: R$ 60
-- **Link destino**: `https://suportebipolar.com/comecar?utm_source=meta&utm_medium=cpc&utm_campaign=t1_familiar`
+- **Link destino**: `https://suportebipolar.com/comecar?utm_source=meta&utm_medium=cpc&utm_campaign=sb_t1_familiar`
 - Copy e criativos voltados para quem cuida
 
 > **Total**: R$ 120/dia × 10 dias = **R$ 1.200**
@@ -54,67 +56,31 @@ Legenda: `SB` = Suporte Bipolar · `T1` = Teste 1 · `A/B` = conjunto · `1/2` =
 
 ## 3. Copy Primário (texto principal do anúncio)
 
-### Copy 1 — Direto, para quem convive (Conjunto A)
+> GPT Pro: copies devem ser curtos para mobile (125 chars ideal, máx 1–3 linhas antes do truncamento).
+> Versões abaixo já revisadas para compliance e performance.
+
+### Copy 1 — Principal (Conjunto A) ⭐ RECOMENDADO
 
 ```
-Registre humor, sono e energia em menos de 30 segundos.
-
-O Suporte Bipolar é uma ferramenta digital gratuita que organiza seus dados e mostra padrões ao longo do tempo — para que você perceba mudanças mais cedo.
-
-O que entra automaticamente:
-→ Sono e sinais do corpo (via relógio/pulseira)
-→ Rotina (via Google Agenda)
-
-O que você faz:
-→ Um check-in rápido de humor e energia por dia
-
-O app cruza tudo e gera insights visuais: termômetro de humor, mapa de calor do sono, regularidade da rotina e sinais de mudança.
-
-Você também pode compartilhar seus dados com seu profissional de saúde por um link seguro com PIN.
-
-100% gratuito. Sem anúncios. Sem plano premium.
-Não faz diagnóstico e não substitui acompanhamento profissional.
-
-Instala direto do navegador, sem App Store.
+Organize humor, sono e energia em um só lugar. Sono e sinais do corpo podem entrar do relógio ou da pulseira; a rotina entra da agenda. Você faz um check-in rápido e vê padrões ao longo do tempo. Gratuito, sem anúncios e sem plano premium. Instala direto do navegador. Não diagnostica e não substitui acompanhamento profissional.
 ```
 
-### Copy 2 — Emocional-funcional, para quem convive (Conjunto A)
+### Copy 2 — Emocional-funcional (Conjunto A)
 
 ```
-Perceber uma mudança cedo pode fazer diferença.
-
-O Suporte Bipolar é um app gratuito que ajuda a acompanhar humor, sono e energia no dia a dia. Os dados do seu relógio ou pulseira inteligente entram sozinhos. Você só faz um check-in rápido.
-
-O app organiza tudo e mostra:
-→ Como está sua tendência de humor
-→ Se o sono está regular ou mudando
-→ Se a rotina está estável
-
-E se você quiser, gera um link seguro para seu psiquiatra ou psicólogo acompanhar — sem precisar de conta.
-
-Funciona no iPhone e no Android. Instala direto do navegador.
-
-Gratuito, sem pegadinhas. Baseado em instrumentos usados na prática clínica.
-Não diagnostica. Não substitui profissional.
+Menos preenchimento. Mais clareza. O Suporte Bipolar ajuda a acompanhar humor, sono e energia no dia a dia. A maior parte entra sozinha; você faz um check-in curto e vê sinais de estabilidade e mudança. Gratuito, sem pegadinhas. Instala direto do navegador. Não diagnostica e não substitui acompanhamento profissional.
 ```
 
 ### Copy 3 — Para familiares e cuidadores (Conjunto B)
 
 ```
-Acompanhar alguém com transtorno bipolar pode ser difícil — e muitas vezes solitário.
+Quando o cuidado faz parte da rotina, clareza ajuda. O Suporte Bipolar organiza humor, sono e energia ao longo do tempo e facilita conversas de cuidado com dados mais claros. Também permite compartilhar um painel por link com PIN. Gratuito, sem anúncios. Instala direto do navegador. Não diagnostica e não substitui acompanhamento profissional.
+```
 
-O Suporte Bipolar é uma ferramenta digital gratuita que ajuda a pessoa que você acompanha a organizar humor, sono e energia no dia a dia. Os dados entram de forma automática ou com um check-in rápido.
+### Copy 4 — Ângulo privacidade/controle (teste alternativo)
 
-O app gera insights visuais que ajudam a perceber mudanças cedo — e permite compartilhar um painel seguro com o profissional de saúde, por um link com PIN.
-
-Pode ser útil para:
-→ Filhos, cônjuges, pais ou amigos que participam do cuidado
-→ Quem quer entender melhor os padrões de quem acompanha
-→ Quem busca uma ferramenta para facilitar a conversa com o profissional
-
-100% gratuito. Sem anúncios. Sem plano premium.
-Instala direto do navegador, no iPhone ou Android.
-Não faz diagnóstico e não substitui acompanhamento profissional.
+```
+Seu cuidado, seus dados, suas regras. O Suporte Bipolar organiza humor, sono e rotina em um só lugar. A maior parte entra sozinha; você faz um check-in curto e vê padrões com mais clareza. 100% gratuito, sem anúncios e sem plano premium. Compartilhamento por link com PIN, só quando você quiser. Não diagnostica e não substitui acompanhamento profissional.
 ```
 
 ---
@@ -123,15 +89,18 @@ Não faz diagnóstico e não substitui acompanhamento profissional.
 
 | # | Headline | Uso sugerido |
 |---|----------|--------------|
-| H1 | `Acompanhe humor, sono e energia — gratuito` | Universal (A e B) |
-| H2 | `Perceba mudanças cedo. App gratuito.` | Conjunto A |
-| H3 | `Apoio para quem cuida. Gratuito.` | Conjunto B |
+| H1 | `Humor, sono e energia — gratuito` | Universal (A e B) |
+| H2 | `Perceba mudanças cedo. App gratuito.` | Conjunto A ⭐ MELHOR |
+| H3 | `Mais clareza para o cuidado` | Conjunto B |
+| H4 | `Menos preenchimento. Mais clareza.` | Universal |
+| H5 | `Check-in em 30 segundos` | Universal |
 
 ### Descrições (campo "description" do anúncio)
 | # | Descrição |
 |---|-----------|
 | D1 | `Ferramenta digital gratuita de apoio à rotina. Instala direto do navegador.` |
-| D2 | `Baseado em instrumentos clínicos. Não substitui profissional.` |
+| D2 | `Gratuito, sem anúncios. Instala no navegador.` |
+| D3 | `Organize padrões ao longo do tempo.` |
 
 ---
 
@@ -139,62 +108,73 @@ Não faz diagnóstico e não substitui acompanhamento profissional.
 
 **Recomendação**: `Learn More` / `Saiba mais`
 
-Motivo: para um produto gratuito e informacional, "Saiba mais" tem barreira menor que "Sign Up" ou "Download". O cadastro acontece na landing page, não no anúncio.
+Motivo: produto gratuito + landing page explicativa. "Saiba mais" prepara melhor a expectativa do clique. "Cadastre-se" fica como teste secundário em tráfego mais quente.
 
 ---
 
 ## 6. Roteiros de Vídeo
 
-### Roteiro 1 — Fundador falando com a câmera (30–45s)
+> GPT Pro: fazer 2 versões por conceito (15s e 25–30s). Feed < 15s, Stories < 10s.
+> Asset customization por placement. Não colocar URL grande na tela — preferir logo + CTA visual.
+> Área segura: Stories/Reels cobrem texto nas bordas.
 
-**Formato**: Vertical 9:16 (Stories/Reels) + versão 1:1 (Feed)
+### Roteiro 1 — Fundador falando com a câmera (30–36s)
+
+**Formato**: Master 9:16 (Stories/Reels) + versão 4:5 (Feed) + versão curta 15s
 **Tom**: Calmo, direto, humano. Sem trilha dramática. Fundo neutro ou ao ar livre.
 
 ```
-[0–5s] HOOK
+[0–3s] HOOK
 (olhando para câmera, sem intro)
-"Se você convive com transtorno bipolar, eu fiz uma coisa que
-pode te ajudar."
+"Eu criei uma ferramenta gratuita para organizar humor,
+sono e energia no dia a dia."
 
-[5–15s] O QUE É
-"Eu criei o Suporte Bipolar — um app gratuito que organiza
-humor, sono e energia no dia a dia. Os dados do relógio ou
-pulseira entram sozinhos. Você só faz um check-in rápido."
+[3–8s] O QUE É
+"O Suporte Bipolar — os dados do relógio ou pulseira
+entram sozinhos. Você só faz um check-in rápido."
 
-[15–25s] O QUE ELE FAZ
-"O app cruza tudo e mostra seus padrões ao longo do tempo.
-Termômetro de humor, mapa de calor do sono, regularidade
-da rotina. E se você quiser, gera um link seguro pro seu
-profissional de saúde acompanhar."
+[8–18s] O QUE ENTRA
+"Sono, sinais do corpo, rotina via agenda — tudo
+automático. O app cruza e mostra seus padrões ao
+longo do tempo."
 
-[25–35s] PROVA SOCIAL + DISCLAIMER
-"É 100% gratuito, sem anúncios, sem plano premium.
+[18–26s] PADRÕES + PROFISSIONAL
+"Termômetro de humor, mapa de calor do sono,
+regularidade da rotina. E se quiser, gera um link
+seguro pro seu profissional de saúde acompanhar."
+
+[26–32s] GRATUITO + DISCLAIMER
+"100% gratuito, sem anúncios, sem plano premium.
 Não faz diagnóstico e não substitui acompanhamento
-profissional. Mas pode te ajudar a perceber mudanças
-mais cedo."
+profissional."
 
-[35–40s] CTA
+[32–36s] CTA
 "Instala direto do navegador. Link aqui embaixo."
 (apontar para baixo, sorriso leve)
 ```
 
+**Hooks alternativos (testar)**:
+- "Eu criei uma ferramenta gratuita para organizar humor, sono e energia no dia a dia."
+- "Menos preenchimento. Mais clareza. Foi por isso que eu criei o Suporte Bipolar."
+
 **Texto na tela (overlay sugerido)**:
 - `[0s]` Suporte Bipolar — logo pequeno no canto
-- `[5s]` "Humor · Sono · Energia"
-- `[15s]` "Insights visuais dos seus padrões"
-- `[25s]` "100% gratuito"
-- `[35s]` "Instala do navegador → suportebipolar.com"
+- `[3s]` "Humor · Sono · Energia"
+- `[8s]` "A maior parte entra sozinha"
+- `[18s]` "Insights visuais dos seus padrões"
+- `[26s]` "100% gratuito"
+- `[32s]` Logo + CTA visual (sem URL grande)
 
 ---
 
-### Roteiro 2 — Demonstração do produto (30–40s)
+### Roteiro 2 — Demonstração do produto (30–38s) ⭐ CRIATIVO PRINCIPAL
 
-**Formato**: Vertical 9:16 (Stories/Reels) + versão 1:1 (Feed)
+**Formato**: Master 9:16 (Stories/Reels) + versão 4:5 (Feed) + versão curta 15s
 **Tom**: Música leve de fundo (instrumental calmo, sem letra). Transições suaves. Screen recording real do app.
 
 ```
 [0–3s] HOOK — texto na tela
-"Um app gratuito para acompanhar humor, sono e energia"
+"Humor, sono e energia em um só lugar."
 (tela mostrando a home do app /hoje)
 
 [3–8s] CHECK-IN
@@ -221,14 +201,14 @@ Gravação de tela: Safari → Compartilhar → Adicionar à Tela.
 Texto overlay: "Instala direto do navegador"
 
 [32–38s] CTA FINAL
-Tela final com logo + texto:
-"Suporte Bipolar
-Gratuito · Sem anúncios
-suportebipolar.com/comecar"
-
-Texto pequeno embaixo:
-"Não substitui acompanhamento profissional"
+Logo + "Suporte Bipolar" + "Gratuito · Sem anúncios"
+Disclaimer pequeno: "Não substitui acompanhamento profissional"
+(SEM URL grande na tela — CTA pelo botão do anúncio)
 ```
+
+**Hooks alternativos (testar)**:
+- "Humor, sono e energia em um só lugar."
+- "A maior parte entra sozinha. Você faz um check-in rápido."
 
 ---
 
@@ -238,10 +218,11 @@ Texto pequeno embaixo:
 |-----------|-------|
 | `utm_source` | `meta` |
 | `utm_medium` | `cpc` |
-| `utm_campaign` | `t1_convive` ou `t1_familiar` |
-| `utm_content` | `video_fundador` / `estatico_beneficios` / `video_demo` |
+| `utm_campaign` | `sb_t1_convive` ou `sb_t1_familiar` |
+| `utm_content` | `vid_founder_v1` / `vid_demo_v1` / `stat_benefits_v1` |
 
 **NUNCA usar**: bipolar, saude_mental, diagnóstico, transtorno, ou qualquer termo clínico em UTMs.
+**NUNCA usar** macros dinâmicas como `{{campaign.name}}` se houver palavras sensíveis nos nomes.
 
 ---
 
@@ -273,11 +254,26 @@ Se tiver dúvidas, estamos por aqui!
 ### Para comentários negativos/céticos
 
 ```
-Entendemos a preocupação. O Suporte Bipolar não faz diagnóstico
-e não substitui acompanhamento profissional — é uma ferramenta de
-apoio à rotina baseada em instrumentos validados clinicamente.
+Faz sentido ter cautela com promessas nessa área. O Suporte Bipolar
+não faz diagnóstico nem substitui acompanhamento profissional; ele
+organiza dados do dia a dia para apoiar o cuidado. Quem quiser
+conhecer encontra tudo na página de começar.
+```
 
-Se quiser conhecer, é gratuito: suportebipolar.com/comecar
+### Para perguntas sobre diagnóstico/medicação
+
+```
+Obrigado pela mensagem. O Suporte Bipolar não faz diagnóstico, não
+orienta medicação e não substitui avaliação profissional. Ele ajuda a
+organizar dados do dia a dia para apoiar o acompanhamento.
+```
+
+### Para perguntas sobre privacidade/instalação
+
+```
+Os dados são protegidos e o app funciona direto do navegador. No iPhone,
+abra no Safari e adicione à Tela de Início; no Android, o Chrome oferece
+instalação.
 ```
 
 ---
@@ -290,15 +286,16 @@ Se quiser conhecer, é gratuito: suportebipolar.com/comecar
 - [ ] Meio de pagamento adicionado
 - [ ] Domínio verificado (Brand Safety → Domains)
 - [ ] Meta Pixel criado no Events Manager
-- [ ] `NEXT_PUBLIC_META_PIXEL_ID` na Vercel
-- [ ] Deploy com pixel ativo
+- [ ] `NEXT_PUBLIC_META_PIXEL_ID` + `META_PIXEL_ID` + `META_CAPI_ACCESS_TOKEN` na Vercel
+- [ ] `NEXT_PUBLIC_CLARITY_ID` + `NEXT_PUBLIC_GA_ID` na Vercel
+- [ ] Deploy com pixel + CAPI + Clarity + GA4 ativos
 - [ ] PageView validado no Test Events
 - [ ] ViewContent validado no Test Events (acessar /comecar)
 - [ ] CompleteRegistration validado no Test Events (fazer cadastro teste)
 - [ ] Aggregated Event Measurement configurado (iOS)
-- [ ] Criativos prontos (2 vídeos + 1 estático por conjunto)
+- [ ] Criativos prontos: 9:16 master + 4:5 feed + versão curta 15s
 - [ ] Landing page /comecar no ar e revisada
-- [ ] Respostas de moderação salvas (templates acima)
+- [ ] Respostas de moderação salvas (5 templates acima)
 - [ ] Campanha montada no Ads Manager (review antes de publicar)
 
 ---
@@ -353,12 +350,46 @@ Se quiser conhecer, é gratuito: suportebipolar.com/comecar
 
 ---
 
-## 11. Cronograma Sugerido
+## 11. Notas de Compliance (auditoria GPT Pro)
+
+| Peça | Nota | Observação |
+|------|------|------------|
+| Copy 1 revisada | 8.5/10 | Principal. Boa base, sem violações |
+| Copy 2 revisada | 7.5/10 | Passa. Sem referência a profissional no texto |
+| Copy 3 revisada | 8/10 | Melhorada. Abertura neutra sem presumir condição |
+| Copy 4 (privacidade) | 8/10 | Ângulo alternativo forte para saúde mental |
+| Video 1 (hook revisado) | 7.5/10 | Hook reescrito, removido "Se você convive..." |
+| Video 2 | 8.5/10 | Melhor criativo para tráfego frio |
+| H1 | 8/10 | Boa |
+| H2 | 9/10 | Melhor headline |
+| H3 revisada | 8/10 | Mais orientada a benefício |
+| D1 | 8/10 | Boa |
+| D2 revisada | 8/10 | Substituída versão institucional |
+
+### Regras de linguagem (GPT Pro)
+
+**Usar**:
+- "para quem quer organizar padrões"
+- "quando o cuidado faz parte da rotina"
+- "ferramenta gratuita para acompanhar humor, sono e energia"
+
+**Evitar em anúncios pagos**:
+- "se você convive com transtorno bipolar"
+- "acompanhar alguém com transtorno bipolar pode ser difícil"
+- "seu psiquiatra ou psicólogo" no texto principal
+- qualquer hook que pressuponha condição de saúde do leitor
+- ângulo de crise/urgência em prospecting frio
+
+**Motivo**: a Meta restringe paid content que explore hardships ou sugira conhecimento de informação sensível. Não é sobre ética — é sobre capital de aprovação.
+
+---
+
+## 12. Cronograma Sugerido
 
 | Dia | Ação |
 |-----|------|
 | **Hoje (18/03)** | Setup técnico: Business Portfolio, pixel, deploy, validação |
-| **19/03** | Gravar vídeos, preparar peça estática, revisar landing page |
+| **19/03** | Gravar vídeos (master 9:16 + 4:5 + 15s), preparar peça estática |
 | **20/03** | Montar campanha no Ads Manager, review final |
 | **21/03** | Publicar campanha |
 | **21–23/03** | Monitorar entrega, tracking, comentários. NÃO mexer. |

@@ -98,13 +98,13 @@ export default function ComecarPage() {
             </p>
 
             <h1 className="text-3xl font-bold leading-tight tracking-tight text-foreground md:text-4xl">
-              Apoio à rotina e ao autocuidado para quem convive com{" "}
-              <span className="text-primary">transtorno bipolar</span>
+              Humor, sono e energia.{" "}
+              <span className="text-primary">Mais clareza para o cuidado.</span>
             </h1>
 
             <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-muted md:text-lg">
-              Acompanhe humor, sono e energia. Receba insights sobre seus padrões.
-              Compartilhe com seu profissional de saúde quando quiser.
+              Organize seus padrões ao longo do tempo. A maior parte entra sozinha.
+              Você faz um check-in rápido e vê sinais de estabilidade e mudança.
             </p>
 
             <Link
@@ -146,11 +146,11 @@ export default function ComecarPage() {
                   desc: "Sua agenda entra automaticamente. O app avalia regularidade da rotina social, um dos pilares da estabilidade.",
                 },
                 {
-                  title: "Compartilhe com seu profissional",
-                  desc: "Gere um link com PIN, somente leitura. Seu psiquiatra ou psicólogo vê seu painel sem precisar de conta.",
+                  title: "Compartilhe com seu profissional de saúde",
+                  desc: "Gere um link com PIN, somente leitura. O profissional vê o painel completo sem precisar de conta.",
                 },
                 {
-                  title: "SOS e plano de crise",
+                  title: "Apoio em momentos difíceis",
                   desc: "Acesso rápido ao CVV 188, SAMU 192, contatos de confiança, respiração guiada e grounding.",
                 },
               ].map((item) => (

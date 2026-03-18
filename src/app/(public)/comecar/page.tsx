@@ -5,11 +5,11 @@ import { ComecarViewContent } from "./ComecarViewContent";
 export const metadata: Metadata = {
   title: "Comece agora — Suporte Bipolar",
   description:
-    "Ferramenta digital gratuita de apoio à rotina e ao autocuidado para pessoas com transtorno bipolar. Instale direto do navegador.",
+    "Acompanhe humor, sono e energia com check-ins rápidos e dados automáticos. 100% gratuito, instala direto do navegador.",
   openGraph: {
     title: "Comece agora — Suporte Bipolar",
     description:
-      "Ferramenta digital gratuita de apoio à rotina e ao autocuidado para pessoas com transtorno bipolar.",
+      "Acompanhe humor, sono e energia com check-ins rápidos e dados automáticos. 100% gratuito.",
     url: "https://suportebipolar.com/comecar",
     images: [
       {
@@ -98,13 +98,13 @@ export default function ComecarPage() {
             </p>
 
             <h1 className="text-3xl font-bold leading-tight tracking-tight text-foreground md:text-4xl">
-              Humor, sono e energia.{" "}
-              <span className="text-primary">Mais clareza para o cuidado.</span>
+              Acompanhe humor, sono e energia.{" "}
+              <span className="text-primary">Veja padrões ao longo do tempo.</span>
             </h1>
 
             <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-muted md:text-lg">
-              Organize seus padrões ao longo do tempo. A maior parte entra sozinha.
-              Você faz um check-in rápido e vê sinais de estabilidade e mudança.
+              A maior parte entra sozinha do relógio ou pulseira. Você faz um check-in
+              rápido e o app organiza tudo em visualizações simples.
             </p>
 
             <Link
@@ -290,7 +290,7 @@ export default function ComecarPage() {
               {[
                 {
                   q: "Preciso de diagnóstico para usar?",
-                  a: "Não. O app é útil para qualquer pessoa investigando ou já diagnosticada com transtorno bipolar.",
+                  a: "Não. O app pode ser útil para quem quer organizar informações do dia a dia e acompanhar padrões ao longo do tempo.",
                 },
                 {
                   q: "Funciona no iPhone e no Android?",
@@ -301,8 +301,8 @@ export default function ComecarPage() {
                   a: "Não é obrigatório. Mas com relógio ou pulseira inteligente, sono e sinais do corpo entram automaticamente.",
                 },
                 {
-                  q: "Meu psiquiatra consegue acompanhar?",
-                  a: "Sim. Você gera um link com PIN, somente leitura, sem exigir conta. Seu profissional vê seu painel completo.",
+                  q: "Meu profissional de saúde consegue acompanhar?",
+                  a: "Sim. Você gera um link com PIN, somente leitura, sem exigir conta do profissional.",
                 },
                 {
                   q: "É realmente gratuito?",

@@ -25,15 +25,24 @@ export interface Achievement {
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
-/** Filter only valid YYYY-MM-DD strings. */
+/** Check if a YYYY-MM-DD string is a real calendar date (not just format-valid). */
+function isRealDate(s: string): boolean {
+  if (!DATE_RE.test(s)) return false;
+  const d = new Date(s + "T12:00:00");
+  if (isNaN(d.getTime())) return false;
+  // Roundtrip check: "2025-02-31" parses to "2025-03-03", which won't match
+  return d.toISOString().slice(0, 10) === s;
+}
+
+/** Filter only valid, real calendar YYYY-MM-DD strings. */
 function sanitizeDates(dates: string[]): string[] {
-  return dates.filter((d) => DATE_RE.test(d));
+  return dates.filter(isRealDate);
 }
 
 /** Compute current streak from a sorted (desc) list of date strings. */
 export function computeCurrentStreak(dates: string[], today: string): number {
   const valid = sanitizeDates(dates);
-  if (valid.length === 0 || !DATE_RE.test(today)) return 0;
+  if (valid.length === 0 || !isRealDate(today)) return 0;
 
   const dateSet = new Set(valid);
   let streak = 0;
@@ -95,35 +104,35 @@ const ACHIEVEMENT_DEFS: Array<{
     label: "3 dias seguidos",
     description: "Check-in por 3 dias consecutivos",
     icon: "🔥",
-    check: (d) => ({ unlocked: d.bestCheckinStreak >= 3, progress: Math.min(d.checkinStreak / 3, 1), target: 3 }),
+    check: (d) => ({ unlocked: d.bestCheckinStreak >= 3, progress: d.bestCheckinStreak >= 3 ? 1 : Math.min(d.checkinStreak / 3, 1), target: 3 }),
   },
   {
     key: "streak_7",
     label: "Uma semana!",
     description: "Check-in por 7 dias consecutivos",
     icon: "⭐",
-    check: (d) => ({ unlocked: d.bestCheckinStreak >= 7, progress: Math.min(d.checkinStreak / 7, 1), target: 7 }),
+    check: (d) => ({ unlocked: d.bestCheckinStreak >= 7, progress: d.bestCheckinStreak >= 7 ? 1 : Math.min(d.checkinStreak / 7, 1), target: 7 }),
   },
   {
     key: "streak_14",
     label: "Duas semanas!",
     description: "Check-in por 14 dias consecutivos",
     icon: "💪",
-    check: (d) => ({ unlocked: d.bestCheckinStreak >= 14, progress: Math.min(d.checkinStreak / 14, 1), target: 14 }),
+    check: (d) => ({ unlocked: d.bestCheckinStreak >= 14, progress: d.bestCheckinStreak >= 14 ? 1 : Math.min(d.checkinStreak / 14, 1), target: 14 }),
   },
   {
     key: "streak_30",
     label: "Um mês inteiro!",
     description: "Check-in por 30 dias consecutivos",
     icon: "🏆",
-    check: (d) => ({ unlocked: d.bestCheckinStreak >= 30, progress: Math.min(d.checkinStreak / 30, 1), target: 30 }),
+    check: (d) => ({ unlocked: d.bestCheckinStreak >= 30, progress: d.bestCheckinStreak >= 30 ? 1 : Math.min(d.checkinStreak / 30, 1), target: 30 }),
   },
   {
     key: "sleep_streak_7",
     label: "Sono registrado",
     description: "Registrou sono por 7 dias seguidos",
     icon: "🌙",
-    check: (d) => ({ unlocked: d.bestSleepStreak >= 7, progress: Math.min(d.sleepStreak / 7, 1), target: 7 }),
+    check: (d) => ({ unlocked: d.bestSleepStreak >= 7, progress: d.bestSleepStreak >= 7 ? 1 : Math.min(d.sleepStreak / 7, 1), target: 7 }),
   },
   {
     key: "total_30",
@@ -144,11 +153,14 @@ const ACHIEVEMENT_DEFS: Array<{
     label: "Dupla dedicação",
     description: "7 dias seguidos com check-in E sono",
     icon: "🎯",
-    check: (d) => ({
-      unlocked: d.checkinStreak >= 7 && d.sleepStreak >= 7,
-      progress: Math.min(Math.min(d.checkinStreak, d.sleepStreak) / 7, 1),
-      target: 7,
-    }),
+    check: (d) => {
+      const unlocked = d.bestCheckinStreak >= 7 && d.bestSleepStreak >= 7;
+      return {
+        unlocked,
+        progress: unlocked ? 1 : Math.min(Math.min(d.checkinStreak, d.sleepStreak) / 7, 1),
+        target: 7,
+      };
+    },
   },
 ];
 

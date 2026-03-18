@@ -63,8 +63,8 @@ export async function POST(request: NextRequest) {
   // Read raw body for signature verification
   const rawBody = await request.text();
 
-  // Double-check actual body size after reading
-  if (rawBody.length > 256 * 1024) {
+  // Double-check actual body size in bytes (not chars — multibyte UTF-8 matters)
+  if (Buffer.byteLength(rawBody, "utf8") > 256 * 1024) {
     return NextResponse.json({ error: "Payload too large" }, { status: 413 });
   }
 

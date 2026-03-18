@@ -62,6 +62,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Shared device safety: remove this endpoint from ANY other user first.
+    // Prevents cross-user notification leak on shared browsers/devices.
+    await prisma.pushSubscription.deleteMany({
+      where: {
+        endpoint: parsed.data.endpoint,
+        userId: { not: session.userId },
+      },
+    });
+
     await prisma.pushSubscription.upsert({
       where: {
         userId_endpoint: {

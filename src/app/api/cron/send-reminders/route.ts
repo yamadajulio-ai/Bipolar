@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import * as Sentry from "@sentry/nextjs";
 import { prisma } from "@/lib/db";
 import { sendPush, type PushPayload, type PushResult } from "@/lib/web-push";
+import { checkRateLimit } from "@/lib/security";
 
 /**
  * Cron: Send Web Push reminders to users whose reminder time matches NOW.
@@ -47,6 +48,15 @@ export async function GET(request: NextRequest) {
   try {
     // Current time in São Paulo (HH:MM)
     const now = new Date();
+
+    // Idempotency: prevent duplicate sends if Vercel delivers the same cron event twice.
+    // Allow at most 1 execution per minute (60s window).
+    const cronKey = `cron:reminders:${now.toISOString().slice(0, 16)}`; // "cron:reminders:2026-03-18T14:30"
+    const isFirstExecution = await checkRateLimit(cronKey, 1, 60_000);
+    if (!isFirstExecution) {
+      return NextResponse.json({ ok: true, sent: 0, dedupe: true });
+    }
+
     const spTime = now.toLocaleTimeString("pt-BR", {
       timeZone: "America/Sao_Paulo",
       hour: "2-digit",
@@ -98,6 +108,7 @@ export async function GET(request: NextRequest) {
     }
 
     let sent = 0;
+    let configErrorLogged = false;
     const expiredEndpoints: string[] = [];
 
     for (const settings of matchingSettings) {
@@ -125,8 +136,12 @@ export async function GET(request: NextRequest) {
           } else if (result.reason === "expired") {
             // Only delete subscriptions confirmed expired (404/410)
             expiredEndpoints.push(sub.id);
+          } else if (result.reason === "config" && !configErrorLogged) {
+            // VAPID not configured — log once per cron run for visibility
+            Sentry.captureMessage("Web Push VAPID not configured — reminders cannot be sent", { level: "warning" });
+            configErrorLogged = true;
           }
-          // "transient" and "config" errors: skip silently, keep subscription
+          // Transient errors: keep subscription, retry next cycle.
         }
       }
     }

@@ -26,6 +26,11 @@ const FORBIDDEN_PATTERNS = [
   /\bvoc[êe]\s+(?:tem|possui|sofre\s+de)\s+/i,
   /\bcausa(?:do|da|r)\s+(?:por|pelo|pela)\b/i,
   /\brecomend(?:o|amos)\s+(?:que\s+)?(?:par|tom|aument|diminu)/i,
+  // Indirect diagnostic phrasing the GPT Pro flagged
+  /\bsinais?\s+compat[ií]ve(?:l|is)\s+com\b/i,
+  /\bpadr[ãa]o\s+sugestivo\s+de\b/i,
+  /\bquadro\s+(?:cl[ií]nico\s+)?(?:compat[ií]vel|indicativo|sugestivo)\b/i,
+  /\bcaracter[ií]stic(?:o|a)s?\s+de\s+(?:um|uma)?\s*(?:epis[oó]dio|transtorno|fase)\b/i,
 ];
 
 function containsForbiddenContent(text: string): boolean {

@@ -91,7 +91,7 @@ function IconLock() {
   );
 }
 
-/* ── heatmap color helper ────────────────────────────────────────── */
+/* ── mapa de calor — color helper ─────────────────────────────────── */
 const heatColors = ["bg-red-300", "bg-amber-300", "bg-emerald-300", "bg-emerald-400", "bg-emerald-300", "bg-amber-300", "bg-emerald-400"];
 function heatColor(i: number) {
   return heatColors[i % heatColors.length];
@@ -171,7 +171,7 @@ export default function LandingPage() {
                 </div>
                 <h3 className="mt-4 text-sm font-semibold text-foreground">Apple Health</h3>
                 <p className="mt-1 text-xs leading-relaxed text-muted">
-                  Sono, FC, HRV e passos do Apple Watch
+                  Sono, frequência cardíaca, variabilidade cardíaca e passos
                 </p>
               </div>
 
@@ -252,7 +252,7 @@ export default function LandingPage() {
                 Um painel de estabilidade, não um diário
               </h2>
               <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-muted md:text-base">
-                Quando você abre o app, vê indicadores de humor, sono, rotina e resumo automático
+                Quando você abre o app, vê indicadores de humor, sono e rotina
                 — não uma pilha de formulários.
               </p>
             </div>
@@ -285,7 +285,7 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              {/* Heatmap sono */}
+              {/* Mapa de calor sono */}
               <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted">
                   Mapa de calor do sono
@@ -333,7 +333,7 @@ export default function LandingPage() {
               {/* Resumo com IA */}
               <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted">
-                  Resumo automático com IA
+                  Resumo com IA sob demanda
                 </p>
                 <p className="mt-1 text-xs text-muted">
                   Organiza sinais em linguagem clara
@@ -383,7 +383,7 @@ export default function LandingPage() {
                   Veja sinais claros
                 </h3>
                 <p className="mt-2 text-sm leading-relaxed text-muted">
-                  Indicadores de estabilidade, ritmo social, resumo automático e acesso para seu profissional.
+                  Indicadores de estabilidade, ritmo social, resumo sob demanda com IA e acesso para seu profissional.
                 </p>
               </div>
             </div>
@@ -449,7 +449,7 @@ export default function LandingPage() {
               Para os momentos difíceis
             </h2>
             <p className="mt-3 text-sm text-muted md:text-base">
-              Se a coisa apertar, o app não te deixa procurar ajuda em menu.
+              Se a coisa apertar, a ajuda aparece na frente — sem estar escondida em menu.
             </p>
 
             <div className="mt-10 grid gap-5 text-left sm:grid-cols-2">
@@ -512,7 +512,7 @@ export default function LandingPage() {
                 {
                   icon: <IconLock />,
                   title: "Privacidade real",
-                  desc: "Criptografia de ponta, práticas alinhadas à LGPD. Não vendemos seus dados. Exclusão completa quando quiser.",
+                  desc: "Dados criptografados, práticas alinhadas à LGPD. Não vendemos seus dados. Você pode excluir tudo quando quiser.",
                 },
                 {
                   icon: <IconShield />,
@@ -545,7 +545,7 @@ export default function LandingPage() {
               {[
                 {
                   q: "O que entra automaticamente no app?",
-                  a: "Sono, sinais do corpo (HRV, frequência cardíaca, passos), rotina via Google Agenda e, se você quiser, dados financeiros via Mobills ou CSV. Manual fica apenas humor e energia.",
+                  a: "Sono, sinais do corpo (variabilidade cardíaca, frequência cardíaca, passos), rotina via Google Agenda e, se você quiser, dados financeiros importados do Mobills. Manual fica apenas humor e energia.",
                 },
                 {
                   q: "Preciso usar relógio ou pulseira para funcionar?",
@@ -553,7 +553,7 @@ export default function LandingPage() {
                 },
                 {
                   q: "Funciona no iPhone e no Android?",
-                  a: "Sim. É um app web (PWA) que funciona em qualquer navegador. No iPhone, use o Safari e adicione à Tela de Início. No Android, o Chrome oferece instalação automática.",
+                  a: "Sim. Funciona como um aplicativo instalável direto do navegador. No iPhone, use o Safari e adicione à Tela de Início. No Android, o Chrome oferece instalação automática.",
                 },
                 {
                   q: "Meu psiquiatra consegue acompanhar?",
@@ -573,7 +573,7 @@ export default function LandingPage() {
                 },
                 {
                   q: "Meus dados estão seguros?",
-                  a: "Sim. Criptografia de ponta, práticas alinhadas à LGPD. Não vendemos seus dados. Compartilhamentos só acontecem com sua autorização ou com fornecedores essenciais do serviço, conforme a Política de Privacidade. Você pode excluir tudo a qualquer momento.",
+                  a: "Sim. Seus dados são criptografados e tratados conforme a LGPD. Não vendemos seus dados. Compartilhamentos só acontecem com sua autorização ou com fornecedores essenciais do serviço, conforme a Política de Privacidade. Você pode excluir tudo a qualquer momento.",
                 },
               ].map((faq) => (
                 <details key={faq.q} className="group rounded-xl border border-border bg-surface overflow-hidden">

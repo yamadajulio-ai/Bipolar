@@ -24,10 +24,9 @@ export default function PrivacidadePage() {
         <section className="mb-6">
           <h2 className="mb-2 text-lg font-semibold">1. Quem é o controlador dos dados</h2>
           <p className="text-sm text-muted">
-            O controlador dos dados pessoais é o projeto Suporte Bipolar, de responsabilidade
-            de Julio Yamada, pessoa física, inscrito no CPF sob o nº informado no canal de
-            contato abaixo. Para exercer seus direitos ou tirar dúvidas sobre privacidade,
-            entre em contato pelo e-mail{" "}
+            O controlador dos dados pessoais é Julio Yamada, pessoa física, responsável
+            pelo projeto Suporte Bipolar. Para exercer seus direitos ou tirar dúvidas
+            sobre privacidade, entre em contato pelo e-mail{" "}
             <strong>privacidade@suportebipolar.com</strong> ou pelo Instagram{" "}
             <a href="https://instagram.com/suportebipolar" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
               @suportebipolar
@@ -59,8 +58,9 @@ export default function PrivacidadePage() {
             <li><strong>Eventos de vida:</strong> registros no Life Chart (tipo, data, notas).</li>
             <li><strong>Testes cognitivos:</strong> tempo de reação e span de dígitos (pontuações).</li>
             <li><strong>Exercícios de bem-estar:</strong> registros de respiração guiada e relaxamento.</li>
-            <li><strong>Eventos de crise (SOS):</strong> registro de acionamentos do botão de crise.</li>
-            <li><strong>Plano de crise:</strong> contatos de emergência e estratégias pessoais.</li>
+            <li><strong>Eventos de crise (SOS):</strong> registro de acionamentos do botão de crise. A página SOS é acessível sem login e não coleta dados pessoais nesse modo; os dados abaixo só são registrados quando você está logado.</li>
+            <li><strong>Plano de crise:</strong> contatos de emergência (nome e telefone de pessoas de sua confiança) e estratégias pessoais. Esses dados de terceiros são armazenados exclusivamente para seu uso e não são compartilhados.</li>
+            <li><strong>Chatbot de apoio (SOS):</strong> quando disponível, o chatbot registra o conteúdo da conversa para continuidade do atendimento. O chatbot utiliza IA (Claude, da Anthropic) e não é um profissional de saúde. As conversas não são usadas para treinamento de modelos.</li>
             <li><strong>Perfil socioeconômico:</strong> respostas opcionais para recomendações de serviços públicos (CAPS, SUS, CRAS).</li>
           </ul>
 
@@ -69,8 +69,8 @@ export default function PrivacidadePage() {
             Importados apenas com seu consentimento explícito, via configuração ativa na página de integrações:
           </p>
           <ul className="list-inside list-disc space-y-1 text-sm text-muted">
-            <li><strong>Apple Health (via Health Auto Export):</strong> passos, frequência cardíaca, HRV, sono.</li>
-            <li><strong>Health Connect (Android):</strong> passos, frequência cardíaca, HRV, sono — enviados pelo aplicativo Health Connect Webhook.</li>
+            <li><strong>Apple Health (via Health Auto Export):</strong> passos, frequência cardíaca, variabilidade da frequência cardíaca (HRV) e sono.</li>
+            <li><strong>Health Connect (Android):</strong> passos, frequência cardíaca, variabilidade da frequência cardíaca (HRV) e sono.</li>
             <li><strong>Google Agenda:</strong> eventos do calendário (título, horário) para análise de rotina social. Acesso somente leitura.</li>
             <li><strong>Mobills:</strong> dados financeiros importados via arquivo CSV/XLSX (categoria, valor, data). Nenhum dado é enviado ao Mobills.</li>
           </ul>
@@ -151,16 +151,17 @@ export default function PrivacidadePage() {
             Os dados podem ser processados nos seguintes países/regiões:
           </p>
           <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-muted">
-            <li><strong>Vercel</strong> (hospedagem): EUA e Europa.</li>
-            <li><strong>Neon</strong> (banco de dados PostgreSQL): EUA.</li>
-            <li><strong>Anthropic</strong> (narrativa de IA, sob demanda): EUA.</li>
-            <li><strong>Sentry</strong> (monitoramento de erros, sem PII): EUA.</li>
-            <li><strong>Cloudflare</strong> (proxy para Apple Health): rede global.</li>
+            <li><strong>Vercel</strong> (hospedagem): EUA e Europa — operador essencial, contrato com cláusulas de proteção de dados (DPA).</li>
+            <li><strong>Neon</strong> (banco de dados PostgreSQL): EUA — operador essencial, contrato com DPA.</li>
+            <li><strong>Anthropic</strong> (narrativa de IA): EUA — acionado sob demanda, apenas quando você solicita um resumo narrativo. Contrato com cláusula de não treinamento.</li>
+            <li><strong>Sentry</strong> (monitoramento de erros): EUA — recebe apenas dados técnicos sem informações pessoais identificáveis.</li>
+            <li><strong>Cloudflare</strong> (proxy para Apple Health): rede global — apenas repasse de dados em trânsito, sem armazenamento persistente.</li>
           </ul>
           <p className="mt-2 text-sm text-muted">
             A transferência é realizada com base no seu consentimento (LGPD, art. 33, VIII) e
-            mediante contratos que exigem padrão de proteção equivalente ao brasileiro. Todos os
-            operadores listados mantêm políticas de segurança e privacidade públicas e auditáveis.
+            mediante contratos com cláusulas-padrão de proteção de dados que exigem nível de
+            proteção equivalente ao brasileiro. Operadores essenciais (Vercel, Neon) processam
+            dados continuamente; os demais são acionados sob demanda ou recebem apenas dados técnicos.
           </p>
         </section>
 
@@ -170,7 +171,7 @@ export default function PrivacidadePage() {
           <ul className="list-inside list-disc space-y-1 text-sm text-muted">
             <li><strong>Dados da conta:</strong> mantidos enquanto sua conta estiver ativa.</li>
             <li><strong>Logs de acesso:</strong> purgados automaticamente após 90 dias.</li>
-            <li><strong>Exclusão da conta:</strong> você pode excluir sua conta e todos os dados associados (check-ins, sono, avaliações, finanças, integrações, eventos de vida, testes cognitivos e logs de acesso) a qualquer momento pela página &quot;Conta&quot;. A exclusão é irreversível e imediata (cascade delete).</li>
+            <li><strong>Exclusão da conta:</strong> você pode excluir sua conta e todos os dados associados (check-ins, sono, avaliações, finanças, integrações, eventos de vida, testes cognitivos e logs de acesso) a qualquer momento pela página &quot;Conta&quot;. A exclusão é irreversível e processada imediatamente no banco de dados principal. Cópias residuais em backups automáticos dos operadores de infraestrutura podem persistir por até 30 dias, conforme as políticas de retenção desses serviços.</li>
             <li><strong>Portabilidade:</strong> entre em contato conosco para solicitar uma cópia dos seus dados.</li>
           </ul>
         </section>
@@ -181,8 +182,10 @@ export default function PrivacidadePage() {
           <p className="text-sm text-muted">
             Em caso de incidente de segurança que possa acarretar risco ou dano relevante aos
             titulares, comunicaremos você e a Autoridade Nacional de Proteção de Dados (ANPD)
-            em prazo razoável, conforme o art. 48 da LGPD, informando a natureza dos dados
-            afetados, os riscos envolvidos e as medidas adotadas.
+            no prazo e na forma previstos pelo art. 48 da LGPD e pela regulamentação vigente
+            da ANPD, informando a natureza dos dados afetados, os titulares envolvidos,
+            os riscos decorrentes e as medidas técnicas e de segurança adotadas para
+            mitigar os efeitos do incidente.
           </p>
         </section>
 
@@ -197,8 +200,18 @@ export default function PrivacidadePage() {
             <li>Solicitar anonimização, bloqueio ou eliminação de dados desnecessários.</li>
             <li>Solicitar portabilidade dos dados.</li>
             <li>Eliminar dados tratados com base no consentimento.</li>
+            <li>Obter informação sobre as entidades públicas e privadas com as quais compartilhamos seus dados (descritas na seção 6).</li>
+            <li>Ser informado sobre a possibilidade de não fornecer consentimento e sobre as consequências da negativa — sem o consentimento para dados de saúde, não é possível utilizar as funcionalidades de registro e análise da plataforma, mas você pode continuar acessando conteúdos educacionais e a página SOS.</li>
             <li>Revogar o consentimento a qualquer momento.</li>
           </ul>
+          <p className="mt-3 text-sm text-muted">
+            <strong>Decisões automatizadas (art. 20):</strong> o Suporte Bipolar utiliza
+            processamento automatizado para gerar indicadores como o termômetro de humor,
+            sinais de mudança e alertas de regularidade do sono. Esses indicadores são
+            informacionais e não produzem efeitos jurídicos ou decisões que afetem seus
+            direitos. Caso deseje, você pode solicitar explicação sobre a lógica desses
+            indicadores pelo canal do encarregado (seção 14).
+          </p>
         </section>
 
         {/* 11. Cookies */}

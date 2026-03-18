@@ -40,14 +40,14 @@ function checkCsrf(request: NextRequest): NextResponse | null {
   if (method === "GET" || method === "HEAD" || method === "OPTIONS") return null;
 
   // Allow Vercel Cron (no Origin header, but has cron secret)
-  if (request.nextUrl.pathname.startsWith("/api/cron")) return null;
+  if (request.nextUrl.pathname.match(/^\/api\/cron(\/[^/]+)?$/)) return null;
 
-  // Allow external integrations that authenticate via API key (webhook endpoints only)
-  if (request.nextUrl.pathname.startsWith("/api/integrations/health-export") ||
-      request.nextUrl.pathname.startsWith("/api/integrations/health-connect")) return null;
+  // Allow external integrations that authenticate via API key (exact webhook endpoints)
+  if (request.nextUrl.pathname.match(/^\/api\/integrations\/health-export$/) ||
+      request.nextUrl.pathname.match(/^\/api\/integrations\/health-connect$/)) return null;
 
   // Allow WhatsApp webhook (Meta verifies via verify_token)
-  if (request.nextUrl.pathname.startsWith("/api/whatsapp/webhook")) return null;
+  if (request.nextUrl.pathname === "/api/whatsapp/webhook") return null;
 
   // Allow professional access — only token-level endpoint (auth'd via token+PIN)
   if (request.nextUrl.pathname.match(/^\/api\/acesso-profissional\/[^/]+$/)) return null;

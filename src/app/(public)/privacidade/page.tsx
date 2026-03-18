@@ -61,6 +61,8 @@ export default function PrivacidadePage() {
             <li><strong>Eventos de crise (SOS):</strong> registro de acionamentos do botão de crise. A página SOS é acessível sem login e não coleta dados pessoais nesse modo; os dados abaixo só são registrados quando você está logado.</li>
             <li><strong>Plano de crise:</strong> contatos de emergência (nome e telefone de pessoas de sua confiança) e estratégias pessoais. Esses dados de terceiros são armazenados exclusivamente para seu uso e não são compartilhados.</li>
             <li><strong>Chatbot de apoio (SOS):</strong> quando disponível, o chatbot registra o conteúdo da conversa para continuidade do atendimento. O chatbot utiliza IA (Claude, da Anthropic) e não é um profissional de saúde. As conversas não são usadas para treinamento de modelos.</li>
+            <li><strong>Ritmo social e rotina diária:</strong> horários-âncora do seu dia e dados de regularidade da rotina para análise de estabilidade.</li>
+            <li><strong>Planejador de rotina:</strong> blocos planejados ou realizados de trabalho, social, refeições e autocuidado, com horário e categoria.</li>
             <li><strong>Perfil socioeconômico:</strong> respostas opcionais para recomendações de serviços públicos (CAPS, SUS, CRAS).</li>
           </ul>
 
@@ -97,7 +99,8 @@ export default function PrivacidadePage() {
             <li><strong>Autenticação e segurança:</strong> para proteger o acesso à sua conta.</li>
             <li><strong>Autoconhecimento:</strong> para que você acompanhe seus próprios padrões de humor, sono e rotina ao longo do tempo.</li>
             <li><strong>Insights automáticos:</strong> para gerar análises personalizadas (termômetro de humor, regularidade do sono, correlações).</li>
-            <li><strong>Narrativa de IA:</strong> quando solicitada por você, seus dados são enviados de forma segura ao modelo Claude (Anthropic) para gerar um resumo narrativo. Os dados não são usados para treinar modelos.</li>
+            <li><strong>Resumo com IA sob demanda:</strong> quando solicitado por você, seus dados são enviados de forma segura ao modelo Claude (Anthropic) para gerar um resumo em linguagem clara. Os dados não são usados para treinar modelos.</li>
+            <li><strong>Chatbot de apoio (SOS):</strong> quando disponível, para oferecer continuidade contextual durante o uso do SOS. O chatbot não substitui atendimento profissional.</li>
             <li><strong>Acesso profissional:</strong> quando você gera um link de acesso, um profissional de saúde pode visualizar seus dados em modo somente leitura, mediante token e PIN.</li>
             <li><strong>Melhoria do produto:</strong> dados de uso agregados e anonimizados para aprimorar funcionalidades.</li>
           </ul>
@@ -107,7 +110,7 @@ export default function PrivacidadePage() {
         <section className="mb-6">
           <h2 className="mb-2 text-lg font-semibold">4. Base legal (LGPD)</h2>
           <ul className="list-inside list-disc space-y-1 text-sm text-muted">
-            <li><strong>Consentimento (art. 7º, I e art. 11, I):</strong> para dados sensíveis de saúde, integrações externas, narrativa de IA e acesso profissional.</li>
+            <li><strong>Consentimento (art. 7º, I e art. 11, I):</strong> para dados sensíveis de saúde, integrações externas, Resumo com IA sob demanda, chatbot de apoio do SOS quando habilitado e acesso profissional.</li>
             <li><strong>Execução de contrato (art. 7º, V):</strong> para dados necessários ao funcionamento da conta.</li>
             <li><strong>Legítimo interesse (art. 7º, IX):</strong> para logs de segurança e melhorias de produto.</li>
           </ul>
@@ -135,8 +138,8 @@ export default function PrivacidadePage() {
             <strong>Não vendemos seus dados.</strong> O compartilhamento ocorre apenas nos seguintes casos:
           </p>
           <ul className="list-inside list-disc space-y-1 text-sm text-muted">
-            <li><strong>Acesso profissional:</strong> quando você gera um link e compartilha o PIN com um profissional de saúde, ele pode visualizar seus dados em modo somente leitura. Você pode revogar o acesso a qualquer momento.</li>
-            <li><strong>Narrativa de IA:</strong> quando solicitada, um resumo dos seus dados é enviado à Anthropic (Claude) para geração de texto. A Anthropic não utiliza esses dados para treinamento de modelos.</li>
+            <li><strong>Acesso profissional:</strong> quando você gera um link e compartilha o PIN com um profissional de saúde, ele pode visualizar, em modo somente leitura, indicadores e registros do período compartilhado, como check-ins, sono, avaliações semanais, eventos de vida, avaliações de funcionalidade, medicações do plano de crise e, se você optar ao gerar o acesso, eventos do SOS. Você pode revogar o acesso a qualquer momento.</li>
+            <li><strong>IA da Anthropic:</strong> quando você solicita o Resumo com IA sob demanda ou utiliza o chatbot de apoio do SOS (quando disponível), os dados estritamente necessários para essa funcionalidade são enviados à Anthropic (Claude) para processamento. A Anthropic não utiliza esses dados para treinamento de modelos.</li>
             <li><strong>Infraestrutura:</strong> dados são armazenados nos servidores da Vercel e Neon, sujeitos às suas respectivas políticas de segurança.</li>
             <li><strong>Monitoramento:</strong> dados técnicos (sem PII) são enviados ao Sentry para diagnóstico de erros.</li>
             <li><strong>Cloudflare:</strong> proxy para integração Apple Health (apenas repasse de dados, sem armazenamento).</li>
@@ -153,15 +156,17 @@ export default function PrivacidadePage() {
           <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-muted">
             <li><strong>Vercel</strong> (hospedagem): EUA e Europa — operador essencial, contrato com cláusulas de proteção de dados (DPA).</li>
             <li><strong>Neon</strong> (banco de dados PostgreSQL): EUA — operador essencial, contrato com DPA.</li>
-            <li><strong>Anthropic</strong> (narrativa de IA): EUA — acionado sob demanda, apenas quando você solicita um resumo narrativo. Contrato com cláusula de não treinamento.</li>
+            <li><strong>Anthropic</strong> (IA): EUA — acionada sob demanda para o Resumo com IA e para o chatbot de apoio do SOS, quando disponível. Contrato com cláusula de não treinamento.</li>
             <li><strong>Sentry</strong> (monitoramento de erros): EUA — recebe apenas dados técnicos sem informações pessoais identificáveis.</li>
             <li><strong>Cloudflare</strong> (proxy para Apple Health): rede global — apenas repasse de dados em trânsito, sem armazenamento persistente.</li>
           </ul>
           <p className="mt-2 text-sm text-muted">
-            A transferência é realizada com base no seu consentimento (LGPD, art. 33, VIII) e
-            mediante contratos com cláusulas-padrão de proteção de dados que exigem nível de
-            proteção equivalente ao brasileiro. Operadores essenciais (Vercel, Neon) processam
-            dados continuamente; os demais são acionados sob demanda ou recebem apenas dados técnicos.
+            A transferência internacional observa: (i) a base legal aplicável ao tratamento,
+            nos termos dos arts. 7º e 11 da LGPD; e (ii) quando caracterizada transferência
+            internacional, os mecanismos do art. 33 da LGPD e da regulamentação vigente da
+            ANPD, incluindo cláusulas-padrão contratuais quando aplicáveis. Operadores
+            essenciais (Vercel e Neon) processam dados continuamente; os demais são acionados
+            sob demanda ou recebem apenas dados técnicos.
           </p>
         </section>
 
@@ -171,7 +176,7 @@ export default function PrivacidadePage() {
           <ul className="list-inside list-disc space-y-1 text-sm text-muted">
             <li><strong>Dados da conta:</strong> mantidos enquanto sua conta estiver ativa.</li>
             <li><strong>Logs de acesso:</strong> purgados automaticamente após 90 dias.</li>
-            <li><strong>Exclusão da conta:</strong> você pode excluir sua conta e todos os dados associados (check-ins, sono, avaliações, finanças, integrações, eventos de vida, testes cognitivos e logs de acesso) a qualquer momento pela página &quot;Conta&quot;. A exclusão é irreversível e processada imediatamente no banco de dados principal. Cópias residuais em backups automáticos dos operadores de infraestrutura podem persistir por até 30 dias, conforme as políticas de retenção desses serviços.</li>
+            <li><strong>Exclusão da conta:</strong> você pode excluir sua conta e os dados associados ao uso da plataforma a qualquer momento pela página &quot;Conta&quot;. A exclusão é irreversível e processada imediatamente no banco de dados principal, abrangendo, entre outros, dados da conta, check-ins, diário, sono, avaliações, dados de rotina e planejador, finanças, integrações, eventos de vida, testes cognitivos, exercícios, plano de crise, eventos do SOS, conversas do chatbot de apoio, perfil socioeconômico, acessos profissionais gerados e logs de acesso. Cópias residuais em backups automáticos dos operadores de infraestrutura podem persistir por até 30 dias, conforme as políticas de retenção desses serviços.</li>
             <li><strong>Portabilidade:</strong> entre em contato conosco para solicitar uma cópia dos seus dados.</li>
           </ul>
         </section>

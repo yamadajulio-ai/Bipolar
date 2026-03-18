@@ -7,6 +7,21 @@ import type { PlannerBlockInput } from "@/lib/insights/computeInsights";
 
 const TZ = "America/Sao_Paulo";
 
+const PRIVATE_HEADERS = {
+  "Cache-Control": "no-store, private, max-age=0",
+  "Pragma": "no-cache",
+};
+
+function privateJson(body: unknown, init?: ResponseInit) {
+  return privateJson(body, {
+    ...init,
+    headers: {
+      ...PRIVATE_HEADERS,
+      ...(init?.headers ?? {}),
+    },
+  });
+}
+
 /** Sanitize x-forwarded-for: take only the first (client) IP, masked to /24. */
 function sanitizeIp(request: NextRequest): string | null {
   const xff = request.headers.get("x-forwarded-for");
@@ -26,7 +41,7 @@ export async function POST(
     const pin = String(body.pin || "");
 
     if (!/^\d{6}$/.test(pin)) {
-      return NextResponse.json({ error: "PIN inválido" }, { status: 400 });
+      return privateJson({ error: "PIN inválido" }, { status: 400 });
     }
 
     // Initial read (non-transactional) for early exits
@@ -35,18 +50,18 @@ export async function POST(
     });
 
     if (!access || access.revokedAt) {
-      return NextResponse.json({ error: "Acesso não encontrado ou revogado" }, { status: 404 });
+      return privateJson({ error: "Acesso não encontrado ou revogado" }, { status: 404 });
     }
 
     if (access.expiresAt < new Date()) {
-      return NextResponse.json({ error: "Acesso expirado" }, { status: 410 });
+      return privateJson({ error: "Acesso expirado" }, { status: 410 });
     }
 
     if (access.lockedUntil && access.lockedUntil > new Date()) {
       const minutesLeft = Math.ceil(
         (access.lockedUntil.getTime() - Date.now()) / 60000,
       );
-      return NextResponse.json(
+      return privateJson(
         { error: `Acesso bloqueado. Tente novamente em ${minutesLeft} minutos.` },
         { status: 429 },
       );
@@ -131,7 +146,7 @@ export async function POST(
     });
 
     if (result.status !== 200) {
-      return NextResponse.json({ error: result.error }, { status: result.status });
+      return privateJson({ error: result.error }, { status: result.status });
     }
 
     const validAccess = result.accessData;
@@ -306,8 +321,8 @@ export async function POST(
       })),
     };
 
-    return NextResponse.json(report);
+    return privateJson(report);
   } catch {
-    return NextResponse.json({ error: "Erro interno" }, { status: 500 });
+    return privateJson({ error: "Erro interno" }, { status: 500 });
   }
 }

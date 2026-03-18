@@ -120,7 +120,7 @@ export default function LandingPage() {
             </h1>
 
             <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-muted md:text-lg">
-              Sono e sinais do corpo entram do wearable. Sua rotina entra da agenda.
+              Sono e sinais do corpo entram do relógio ou da pulseira inteligente. Sua rotina entra da agenda.
               Você faz um check-in rápido de humor e energia. O app cruza tudo e
               mostra sinais de estabilidade e mudanças — para que você perceba mais cedo.
             </p>
@@ -237,8 +237,8 @@ export default function LandingPage() {
                 ))}
               </div>
               <p className="mt-3 text-center text-[11px] text-muted">
-                Funciona com qualquer wearable que sincronize com Apple Health ou Health Connect.
-                Sem wearable? Sem problema — o app funciona com registro manual.
+                Funciona com qualquer relógio ou pulseira inteligente que sincronize com Apple Health ou Health Connect.
+                Sem relógio? Sem problema — o app funciona com registro manual.
               </p>
             </div>
           </div>
@@ -374,7 +374,7 @@ export default function LandingPage() {
                   Faça um check-in curto
                 </h3>
                 <p className="mt-2 text-sm leading-relaxed text-muted">
-                  Humor e energia em cerca de 30 segundos. Só o que o wearable não capta.
+                  Humor e energia em cerca de 30 segundos. Só o que o relógio ou a pulseira não captam.
                 </p>
               </div>
               <div className="flex flex-col items-center text-center md:items-start md:text-left">
@@ -549,7 +549,7 @@ export default function LandingPage() {
                 },
                 {
                   q: "Preciso usar relógio ou pulseira para funcionar?",
-                  a: "Não. Mas a experiência fica melhor com wearable. Sem ele, você registra o sono manualmente — o resto funciona igual.",
+                  a: "Não. Mas a experiência fica melhor com relógio ou pulseira inteligente. Sem ele, você registra o sono manualmente — o resto funciona igual.",
                 },
                 {
                   q: "Funciona no iPhone e no Android?",

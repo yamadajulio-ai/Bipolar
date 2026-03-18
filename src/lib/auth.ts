@@ -11,7 +11,7 @@ export interface SessionData {
 
 const sessionOptions = {
   password: process.env.SESSION_SECRET!,
-  cookieName: "empresa-bipolar-session",
+  cookieName: "suporte-bipolar-session",
   cookieOptions: {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",

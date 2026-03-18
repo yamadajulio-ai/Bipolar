@@ -27,6 +27,13 @@
 - **NUNCA implementar features novas sem auditoria do GPT Pro antes.** Toda feature nova deve ser planejada, auditada e aprovada pelo GPT Pro antes de qualquer código ser escrito. Isso garante qualidade e alinhamento com o padrão do projeto.
 - **NUNCA dar sugestão/opinião própria pura.** Sempre consultar o modelo mais avançado disponível (o3 da OpenAI via API) para análise e recomendação. O usuário quer a melhor qualidade possível e confia na análise de modelos especializados.
 
+## Clipboard (Windows)
+- **NUNCA usar `type file | clip`** — corrompe caracteres UTF-8 (acentos viram lixo).
+- Método correto para copiar texto UTF-8 para o clipboard:
+  1. Salvar o conteúdo em arquivo `.txt` com encoding `utf-8-sig` (BOM).
+  2. Usar PowerShell: `[System.IO.File]::ReadAllText("path", [System.Text.Encoding]::UTF8) | Set-Clipboard`
+  3. Para verificar: usar `chcp 65001` antes de chamar PowerShell, ou setar `[Console]::OutputEncoding = [System.Text.Encoding]::UTF8` no script.
+
 ## Regras de Dados — Sono
 - **Cochilo**: registro < 1h → exibido no histórico (tag "cochilo", roxo) mas **excluído** das métricas
 - **Sono real**: registro >= 1h → incluído em todas as métricas (média, regularidade, variabilidade, alertas, correlações)

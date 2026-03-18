@@ -36,7 +36,7 @@ export default function TermosPage() {
             <li>Exercícios de bem-estar (respiração guiada, relaxamento muscular).</li>
             <li>Acompanhamento financeiro com importação de dados (Mobills CSV/XLSX).</li>
             <li>Insights automáticos: termômetro de humor, correlações, regularidade do sono, análise de ritmos sociais.</li>
-            <li>Narrativa de IA sob demanda (gerada por Claude, modelo da Anthropic).</li>
+            <li>Resumo com IA sob demanda (gerado por Claude, modelo da Anthropic).</li>
             <li>Integrações com Apple Health, Health Connect (Android) e Google Agenda.</li>
             <li>Acesso profissional em modo somente leitura (via link com token e PIN).</li>
             <li>Planejador de rotina baseado em protocolos IPSRT.</li>
@@ -114,8 +114,9 @@ export default function TermosPage() {
           </p>
           <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-muted">
             <li>Seus dados de saúde são considerados dados pessoais sensíveis (LGPD, art. 5º, II).</li>
-            <li>Você pode excluir sua conta e todos os dados associados a qualquer momento pela página &quot;Conta&quot;.</li>
-            <li>A exclusão é irreversível e abrange todos os registros (check-ins, sono, avaliações, finanças, integrações, eventos de vida, testes cognitivos e logs de acesso).</li>
+            <li>Você pode excluir sua conta e os dados associados ao uso da plataforma a qualquer momento pela página &quot;Conta&quot;.</li>
+            <li>A exclusão é irreversível, processada imediatamente no banco de dados principal e abrange os registros da plataforma, incluindo dados de saúde, rotina, finanças, integrações, plano de crise, eventos do SOS e logs de acesso.</li>
+            <li>Cópias residuais em backups automáticos dos operadores de infraestrutura podem persistir por até 30 dias, conforme as políticas de retenção desses serviços.</li>
           </ul>
         </section>
 
@@ -143,6 +144,8 @@ export default function TermosPage() {
           </p>
           <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-muted">
             <li>Você é responsável por compartilhar o link e o PIN apenas com profissionais de sua confiança.</li>
+            <li>O profissional pode visualizar, em modo somente leitura, indicadores e registros do período compartilhado, como check-ins, sono, avaliações, eventos de vida, funcionalidade e medicações do plano de crise.</li>
+            <li>Eventos do SOS só são incluídos quando você optar por compartilhá-los ao gerar o acesso.</li>
             <li>O acesso pode ser revogado a qualquer momento.</li>
             <li>Os dados exibidos ao profissional são indicadores educacionais, não laudos clínicos.</li>
           </ul>
@@ -152,8 +155,9 @@ export default function TermosPage() {
         <section className="mb-6">
           <h2 className="mb-2 text-lg font-semibold">9. Inteligência artificial</h2>
           <p className="text-sm text-muted">
-            O aplicativo utiliza inteligência artificial (Claude, da Anthropic) para gerar narrativas
-            e insights sob demanda. Sobre o uso de IA:
+            O aplicativo utiliza inteligência artificial (Claude, da Anthropic) para o Resumo
+            com IA sob demanda e, quando disponível, no chatbot de apoio do SOS. Sobre o uso
+            de IA:
           </p>
           <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-muted">
             <li>As narrativas são geradas a partir dos seus dados e não constituem avaliação clínica.</li>

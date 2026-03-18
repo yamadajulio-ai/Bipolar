@@ -32,28 +32,41 @@ function matchesPath(pathname: string, base: string): boolean {
   return pathname === base || pathname.startsWith(`${base}/`);
 }
 
+/** Professional access tokens: 24 random bytes → base64url = exactly 32 chars */
+const PROFESSIONAL_TOKEN_RE = /^[A-Za-z0-9_-]{32}$/;
+
+function isProfessionalAccessCsrfExempt(pathname: string): boolean {
+  const prefix = "/api/acesso-profissional/";
+  if (!pathname.startsWith(prefix)) return false;
+  const token = pathname.slice(prefix.length);
+  return PROFESSIONAL_TOKEN_RE.test(token);
+}
+
 /** CSRF: Reject cross-origin mutating requests to /api (defense-in-depth). */
 function checkCsrf(request: NextRequest): NextResponse | null {
   const { method, headers } = request;
+  const pathname = request.nextUrl.pathname;
 
   // Only check mutating methods
   if (method === "GET" || method === "HEAD" || method === "OPTIONS") return null;
 
   // Allow Vercel Cron (no Origin header, but has cron secret)
-  if (request.nextUrl.pathname.match(/^\/api\/cron(\/[^/]+)?$/)) return null;
+  if (pathname.match(/^\/api\/cron(\/[^/]+)?$/)) return null;
 
   // Allow external integrations that authenticate via API key (exact webhook endpoints)
-  if (request.nextUrl.pathname.match(/^\/api\/integrations\/health-export$/) ||
-      request.nextUrl.pathname.match(/^\/api\/integrations\/health-connect$/)) return null;
+  if (pathname === "/api/integrations/health-export" ||
+      pathname === "/api/integrations/health-connect") return null;
 
   // Allow WhatsApp webhook (Meta verifies via verify_token)
-  if (request.nextUrl.pathname === "/api/whatsapp/webhook") return null;
+  if (pathname === "/api/whatsapp/webhook") return null;
 
-  // Allow professional access — only token-level endpoint (auth'd via token+PIN)
-  if (request.nextUrl.pathname.match(/^\/api\/acesso-profissional\/[^/]+$/)) return null;
+  // Allow professional access — token must match exact format (auth'd via token+PIN)
+  if (isProfessionalAccessCsrfExempt(pathname)) return null;
 
   const origin = headers.get("origin");
+  const referer = headers.get("referer");
   const secFetchSite = headers.get("sec-fetch-site");
+  const expectedOrigin = new URL(request.url).origin;
 
   // Sec-Fetch-Site: browsers always send this on fetch/XHR
   if (secFetchSite && secFetchSite !== "same-origin" && secFetchSite !== "none") {
@@ -61,11 +74,14 @@ function checkCsrf(request: NextRequest): NextResponse | null {
   }
 
   // Origin header check (fallback for older browsers)
-  if (origin) {
-    const url = new URL(request.url);
-    const expected = url.origin;
-    if (origin !== expected) {
-      return NextResponse.json({ error: "Requisição cross-origin bloqueada" }, { status: 403 });
+  if (origin && origin !== expectedOrigin) {
+    return NextResponse.json({ error: "Requisição cross-origin bloqueada" }, { status: 403 });
+  }
+
+  // Fail closed: when both Sec-Fetch-Site and Origin are absent, require valid Referer
+  if (!secFetchSite && !origin) {
+    if (!referer || new URL(referer).origin !== expectedOrigin) {
+      return NextResponse.json({ error: "Origem não verificável" }, { status: 403 });
     }
   }
 
@@ -97,7 +113,9 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const sessionCookie = request.cookies.get("empresa-bipolar-session");
+  const sessionCookie =
+    request.cookies.get("suporte-bipolar-session") ??
+    request.cookies.get("empresa-bipolar-session");
 
   const isProtected = protectedPaths.some((p) => matchesPath(pathname, p));
   const isAuthPage = authPaths.some((p) => matchesPath(pathname, p));

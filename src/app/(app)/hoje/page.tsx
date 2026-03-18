@@ -6,7 +6,8 @@ import { Card } from "@/components/Card";
 import { Greeting } from "@/components/Greeting";
 import { DashboardChartWrapper } from "@/components/dashboard/DashboardChartWrapper";
 import { StreakBadge } from "@/components/StreakBadge";
-import { computeCurrentStreak, computeLongestStreak } from "@/lib/streaks";
+import { computeCurrentStreak, computeLongestStreak, computeAchievements } from "@/lib/streaks";
+import { AchievementGrid } from "@/components/AchievementGrid";
 import { computeInsights } from "@/lib/insights/computeInsights";
 import type { PlannerBlockInput } from "@/lib/insights/computeInsights";
 import { SafetyNudge } from "@/components/insights/SafetyNudge";
@@ -213,6 +214,11 @@ export default async function HojePage() {
   const checkinStreak = computeCurrentStreak(checkinDates, today);
   const sleepStreak = computeCurrentStreak(sleepDatesArr, today);
   const bestCheckinStreak = computeLongestStreak([...checkinDates].reverse());
+  const bestSleepStreak = computeLongestStreak([...sleepDatesArr].reverse());
+  const achievements = computeAchievements({
+    checkinStreak, sleepStreak, bestCheckinStreak, bestSleepStreak,
+    totalCheckins: checkinDates.length, totalSleepLogs: sleepDatesArr.length,
+  });
 
   // === Determine zone + risk for Risk Radar ===
   const hasEnoughData = (risk !== null && thermometer !== null);
@@ -622,6 +628,12 @@ export default async function HojePage() {
           {(checkinStreak > 0 || sleepStreak > 0) && (
             <div className="mt-3 pt-3 border-t border-border">
               <StreakBadge checkinStreak={checkinStreak} sleepStreak={sleepStreak} bestCheckinStreak={bestCheckinStreak} />
+            </div>
+          )}
+          {/* Achievements */}
+          {achievements.some(a => a.unlocked) && (
+            <div className="mt-3 pt-3 border-t border-border">
+              <AchievementGrid achievements={achievements} />
             </div>
           )}
         </Card>

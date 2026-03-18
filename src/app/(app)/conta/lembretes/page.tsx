@@ -92,9 +92,9 @@ export default function LembretesPage() {
       <h1 className="mb-6 text-2xl font-bold">Lembretes</h1>
 
       <Alert variant="info" className="mb-4">
-        Configure lembretes para receber notificacoes no navegador.
-        No plano atual, os lembretes sao enviados uma vez por dia pela manha (entre 6h e 7h, sem horario exato).
-        Para receber notificacoes, o app precisa estar instalado na Tela Inicial do iPhone (Compartilhar → Adicionar a Tela Inicial).
+        Configure lembretes para receber notificações no navegador.
+        Você escolhe o horário exato de cada lembrete.
+        Para receber notificações, o app precisa estar instalado na Tela Inicial do iPhone (Compartilhar → Adicionar à Tela de Início).
       </Alert>
 
       {message && (
@@ -137,7 +137,7 @@ export default function LembretesPage() {
             disabled={saving}
             className="w-full rounded-lg bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
           >
-            {saving ? "Salvando..." : "Salvar configuracoes"}
+            {saving ? "Salvando..." : "Salvar configurações"}
           </button>
         </form>
       </Card>

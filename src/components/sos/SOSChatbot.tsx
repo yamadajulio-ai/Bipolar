@@ -58,10 +58,12 @@ function speak(text: string, onEnd?: () => void, onError?: () => void) {
   const ptVoice = voices.find((v) => v.lang.startsWith("pt-BR")) ?? voices.find((v) => v.lang.startsWith("pt"));
   if (ptVoice) utterance.voice = ptVoice;
   if (onEnd) utterance.onend = onEnd;
-  // Handle TTS errors — prevent speaking state from getting stuck
+  // Handle TTS errors — prevent speaking state from getting stuck.
+  // NOTE: Do NOT call onEnd here — the native 'end' event fires AFTER 'error'
+  // per Web Speech API spec, so onEnd will be called via utterance.onend.
+  // Calling onEnd here too would double-fire (e.g., startContinuousListening twice).
   utterance.onerror = () => {
     onError?.();
-    onEnd?.(); // Ensure the cycle continues even on error
   };
   window.speechSynthesis.speak(utterance);
 }
@@ -487,7 +489,7 @@ export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
       if (handsFreeRef.current && !streaming && !speaking) {
         // TTS onend callback handles restart after speaking;
         // this handles the case where there's no TTS (e.g., ttsEnabled was toggled off)
-        if (!ttsEnabled) {
+        if (!ttsEnabledRef.current) {
           setTimeout(() => {
             if (handsFreeRef.current && !streaming && !speaking) {
               startContinuousListening();

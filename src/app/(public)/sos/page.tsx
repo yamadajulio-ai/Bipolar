@@ -196,6 +196,7 @@ export default function SOSPage() {
                   // Fallback: if browser doesn't suspend (desktop/emulator),
                   // activate waiting mode after a short delay
                   setTimeout(() => {
+                    sessionStorage.removeItem("sos_waiting188"); // Clean up before state change
                     setView("waiting188");
                   }, 1500);
                 }}

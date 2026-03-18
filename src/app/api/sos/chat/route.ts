@@ -397,7 +397,7 @@ export async function POST(req: NextRequest) {
     // Crisis users ALWAYS get the static response, even if rate-limited
     // Fire-and-forget: NEVER block the crisis response on telemetry
     logChatMeta(session.userId, {
-      turnCount: userMessages.length,
+      turnCount: allUserTexts.length, // Use full count, not sliced
       crisisDetected: true,
     }).catch(() => {});
     return new Response(buildCrisisStream(), { headers: SSE_HEADERS });

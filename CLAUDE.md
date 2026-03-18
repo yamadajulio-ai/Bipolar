@@ -27,6 +27,7 @@
 - **NUNCA implementar features novas sem auditoria do GPT Pro antes.** Toda feature nova deve ser planejada, auditada e aprovada pelo GPT Pro antes de qualquer código ser escrito. Isso garante qualidade e alinhamento com o padrão do projeto.
 - **NUNCA dar sugestão/opinião própria pura.** Sempre consultar o modelo mais avançado disponível (o3 da OpenAI via API) para análise e recomendação. O usuário quer a melhor qualidade possível e confia na análise de modelos especializados.
 - **Prompts de auditoria GPT Pro**: Sempre exibir o conteúdo completo do prompt diretamente na conversa (output de texto), para o usuário copiar e colar manualmente no GPT Pro. NÃO salvar apenas em arquivo — sempre printar aqui.
+- **Auto-revisão antes do GPT Pro**: Antes de montar o prompt de auditoria para o GPT Pro, o Claude DEVE fazer uma auto-análise crítica do próprio código implementado — revisar edge cases, segurança, cobertura de testes, robustez e possíveis lacunas. Corrigir o que encontrar ANTES de gerar o prompt. Isso otimiza tempo evitando que o GPT Pro aponte problemas que o Claude poderia ter pego sozinho.
 
 ## Clipboard (Windows)
 - **NUNCA usar `type file | clip`** — corrompe caracteres UTF-8 (acentos viram lixo).

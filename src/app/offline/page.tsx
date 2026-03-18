@@ -31,10 +31,43 @@ export default function OfflinePage() {
 
         <button
           onClick={() => window.location.reload()}
-          className="mb-8 rounded-lg bg-primary px-6 py-2 font-medium text-white hover:bg-primary-dark"
+          className="mb-6 rounded-lg bg-primary px-6 py-2 font-medium text-white hover:bg-primary-dark"
         >
           Tentar novamente
         </button>
+
+        <div className="mb-6 rounded-lg border border-border bg-surface p-4 text-left">
+          <p className="text-xs font-medium text-foreground mb-2">Disponível offline:</p>
+          <ul className="space-y-1.5 text-xs text-muted">
+            <li className="flex items-center gap-2">
+              <span className="text-green-500">●</span>
+              Exercícios de respiração e aterramento
+            </li>
+            <li className="flex items-center gap-2">
+              <span className="text-green-500">●</span>
+              Sons relaxantes
+            </li>
+            <li className="flex items-center gap-2">
+              <span className="text-green-500">●</span>
+              Páginas visitadas recentemente (cache)
+            </li>
+            <li className="flex items-center gap-2">
+              <span className="text-green-500">●</span>
+              SOS — contatos de emergência
+            </li>
+          </ul>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <a href="/sos" className="rounded-md bg-red-600 px-3 py-1.5 text-xs font-medium text-white no-underline">
+              SOS
+            </a>
+            <a href="/exercicios/respiracao/caixa" className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground no-underline hover:bg-surface-alt">
+              Respiração
+            </a>
+            <a href="/sons" className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground no-underline hover:bg-surface-alt">
+              Sons
+            </a>
+          </div>
+        </div>
 
         <div className="border-t border-border pt-6">
           <p className="mb-1 text-xs font-medium text-foreground">

@@ -14,6 +14,7 @@ model User {
   authProvider     String             @default("email")
   googleSub        String?            @unique
   name             String?
+  role             String             @default("user") // "user" | "admin"
   onboarded        Boolean            @default(false)
   onboardingGoal   String?
   createdAt        DateTime           @default(now())
@@ -400,6 +401,20 @@ model AlertFeedback {
 
   @@unique([userId, alertType, alertDate])
   @@index([userId])
+}
+
+// ── Admin Audit Log ─────────────────────────────────────────────
+
+model AdminAuditLog {
+  id        String   @id @default(uuid())
+  userId    String
+  action    String   // "view_feedbacks" | "reveal_email" | "filter_priority"
+  metadata  String?  // JSON: { feedbackId, filters, etc. }
+  ip        String?  // masked /24
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([action])
 }
 
 // ── Feedback do Usuário ──────────────────────────────────────────

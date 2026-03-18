@@ -1,17 +1,19 @@
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { Card } from "@/components/Card";
 import { Alert } from "@/components/Alert";
+import { maskIp } from "@/lib/security";
+import { FEEDBACK_CATEGORY_LABELS } from "@/lib/feedback";
+import { RevealEmail } from "@/components/feedback/RevealEmail";
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
-
-const CATEGORY_LABELS: Record<string, string> = {
-  suggestion: "Sugestão",
-  bug: "Problema",
-  praise: "Elogio",
-  other: "Outro",
-};
+function maskEmail(email: string): string {
+  const [local, domain] = email.split("@");
+  if (!domain) return "***";
+  const visible = local.slice(0, 2);
+  return `${visible}***@${domain}`;
+}
 
 export default async function AdminFeedbackPage({
   searchParams,
@@ -19,9 +21,14 @@ export default async function AdminFeedbackPage({
   searchParams: Promise<{ category?: string; priority?: string; page?: string }>;
 }) {
   const session = await getSession();
-  if (!session.isLoggedIn || session.email !== ADMIN_EMAIL) {
-    redirect("/hoje");
-  }
+  if (!session.isLoggedIn) redirect("/hoje");
+
+  // RBAC: deny-by-default, require admin role
+  const user = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: { role: true },
+  });
+  if (user?.role !== "admin") redirect("/hoje");
 
   const params = await searchParams;
   const categoryFilter = params.category || undefined;
@@ -34,7 +41,21 @@ export default async function AdminFeedbackPage({
     ...(priorityFilter ? { priority: priorityFilter } : {}),
   };
 
-  const [feedbacks, totalFeedbacks, totalContextual] = await Promise.all([
+  // Log admin access
+  const headersList = await headers();
+  const ip = headersList.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+  await prisma.adminAuditLog.create({
+    data: {
+      userId: session.userId,
+      action: "view_feedbacks",
+      metadata: JSON.stringify({
+        filters: { category: categoryFilter, priority: priorityFilter, page },
+      }),
+      ip: maskIp(ip),
+    },
+  });
+
+  const [feedbacks, totalFeedbacks, totalContextual, highPriorityCount] = await Promise.all([
     prisma.feedback.findMany({
       where,
       orderBy: { createdAt: "desc" },
@@ -44,9 +65,10 @@ export default async function AdminFeedbackPage({
     }),
     prisma.feedback.count({ where }),
     prisma.contextualFeedback.count(),
+    prisma.feedback.count({ where: { priority: "high" } }),
   ]);
 
-  // Calculate contextual stats manually
+  // Contextual stats
   const contextualRaw = await prisma.contextualFeedback.groupBy({
     by: ["contextKey", "useful"],
     _count: { id: true },
@@ -75,8 +97,6 @@ export default async function AdminFeedbackPage({
 
   const totalPages = Math.ceil(totalFeedbacks / perPage);
 
-  const highPriorityCount = await prisma.feedback.count({ where: { priority: "high" } });
-
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <h1 className="text-2xl font-bold">Feedback — Backoffice</h1>
@@ -88,7 +108,7 @@ export default async function AdminFeedbackPage({
           <p className="text-2xl font-bold">{totalFeedbacks}</p>
         </Card>
         <Card>
-          <p className="text-xs text-muted">Prioridade alta</p>
+          <p className="text-xs text-muted">Sinal de risco</p>
           <p className="text-2xl font-bold text-red-600">{highPriorityCount}</p>
         </Card>
         <Card>
@@ -105,16 +125,16 @@ export default async function AdminFeedbackPage({
       <Card>
         <div className="flex flex-wrap gap-2 text-sm">
           <span className="font-medium">Filtros:</span>
-          <a href="/admin/feedback" className={`px-2 py-0.5 rounded ${!categoryFilter && !priorityFilter ? "bg-primary text-white" : "bg-surface-alt"}`}>
+          <a href="/admin/feedback" className={`px-2 py-1 rounded ${!categoryFilter && !priorityFilter ? "bg-primary text-white" : "bg-surface-alt"}`}>
             Todos
           </a>
-          {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
-            <a key={key} href={`/admin/feedback?category=${key}`} className={`px-2 py-0.5 rounded ${categoryFilter === key ? "bg-primary text-white" : "bg-surface-alt"}`}>
+          {Object.entries(FEEDBACK_CATEGORY_LABELS).map(([key, label]) => (
+            <a key={key} href={`/admin/feedback?category=${key}`} className={`px-2 py-1 rounded ${categoryFilter === key ? "bg-primary text-white" : "bg-surface-alt"}`}>
               {label}
             </a>
           ))}
-          <a href="/admin/feedback?priority=high" className={`px-2 py-0.5 rounded ${priorityFilter === "high" ? "bg-red-600 text-white" : "bg-red-50 text-red-700"}`}>
-            Alta prioridade
+          <a href="/admin/feedback?priority=high" className={`px-2 py-1 rounded ${priorityFilter === "high" ? "bg-red-600 text-white" : "bg-red-50 text-red-700"}`}>
+            Sinal de risco
           </a>
         </div>
       </Card>
@@ -127,36 +147,39 @@ export default async function AdminFeedbackPage({
       <div className="space-y-3">
         {feedbacks.map((fb) => (
           <Card key={fb.id} className={fb.priority === "high" ? "border-l-4 border-l-red-500" : ""}>
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className={`inline-block rounded px-1.5 py-0.5 text-xs font-medium ${
-                    fb.category === "bug" ? "bg-red-100 text-red-700" :
-                    fb.category === "suggestion" ? "bg-blue-100 text-blue-700" :
-                    fb.category === "praise" ? "bg-green-100 text-green-700" :
-                    "bg-gray-100 text-gray-700"
-                  }`}>
-                    {CATEGORY_LABELS[fb.category] ?? fb.category}
+            <div className="flex-1">
+              <div className="flex flex-wrap items-center gap-2 mb-1">
+                <span className={`inline-block rounded px-1.5 py-0.5 text-xs font-medium ${
+                  fb.category === "bug" ? "bg-red-100 text-red-700" :
+                  fb.category === "suggestion" ? "bg-blue-100 text-blue-700" :
+                  fb.category === "praise" ? "bg-green-100 text-green-700" :
+                  "bg-gray-100 text-gray-700"
+                }`}>
+                  {FEEDBACK_CATEGORY_LABELS[fb.category as keyof typeof FEEDBACK_CATEGORY_LABELS] ?? fb.category}
+                </span>
+                {fb.priority === "high" && (
+                  <span className="inline-block rounded bg-amber-600 px-1.5 py-0.5 text-xs font-medium text-white">
+                    Sinal automático de risco
                   </span>
-                  {fb.priority === "high" && (
-                    <span className="inline-block rounded bg-red-600 px-1.5 py-0.5 text-xs font-medium text-white">
-                      CRISE DETECTADA
-                    </span>
-                  )}
-                  {fb.screen && (
-                    <span className="text-xs text-muted">Tela: {fb.screen}</span>
-                  )}
-                  {fb.canContact && (
-                    <span className="text-xs text-green-600">Aceita contato</span>
-                  )}
-                </div>
-                <p className="text-sm whitespace-pre-wrap break-words">{fb.message}</p>
-                <div className="mt-2 flex items-center gap-3 text-xs text-muted">
-                  <span>{fb.user.email}</span>
-                  <span>{new Date(fb.createdAt).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}</span>
-                  {fb.route && <span>Rota: {fb.route}</span>}
-                  {fb.clientType && <span>Cliente: {fb.clientType}</span>}
-                </div>
+                )}
+                {fb.screen && (
+                  <span className="text-xs text-muted">Tela: {fb.screen}</span>
+                )}
+                {fb.canContact && (
+                  <span className="text-xs text-green-600">Aceita contato</span>
+                )}
+              </div>
+              <p className="text-sm whitespace-pre-wrap break-words">{fb.message}</p>
+              <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted">
+                {/* Email masked by default, reveal-on-click only when canContact=true */}
+                {fb.canContact ? (
+                  <RevealEmail masked={maskEmail(fb.user.email)} full={fb.user.email} feedbackId={fb.id} />
+                ) : (
+                  <span>{maskEmail(fb.user.email)}</span>
+                )}
+                <span>{new Date(fb.createdAt).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}</span>
+                {fb.route && <span>Origem: {fb.route}</span>}
+                {fb.clientType && <span>Cliente: {fb.clientType}</span>}
               </div>
             </div>
           </Card>

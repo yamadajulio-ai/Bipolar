@@ -86,9 +86,11 @@ const EXPLICIT_CRISIS: RegExp[] = [
   /\bestou\s*me\s*(cortando|machucando|ferindo)\b/i,
   /\b(me\s*cortando|me\s*machucando|me\s*ferindo)\b/i,
   // Numeric dose + generic medication: "tomei 20 comprimidos", "engoli 15 remédios"
-  /\b(tomei|engoli|bebi)\s*\d+\s*(comprimidos?|remedios?|pilulas?|medicamentos?)\b/i,
-  /\b(vou|quero)\s*(tomar|engolir)\s*\d+\s*(comprimidos?|remedios?|pilulas?|medicamentos?)\b/i,
+  // Requires 2+ digit number (10+) or single digits 5-9 to avoid "tomei 1 comprimido"
+  /\b(tomei|engoli|bebi)\s*(\d{2,}|[5-9])\s*(comprimidos?|remedios?|pilulas?|medicamentos?)\b/i,
+  /\b(vou|quero)\s*(tomar|engolir)\s*(\d{2,}|[5-9])\s*(comprimidos?|remedios?|pilulas?|medicamentos?)\b/i,
   // Numeric dose + medication brand names: "tomei 20 clonazepam", "engoli 30 quetiapina"
+  // Any number + specific psychiatric med name = crisis (even "tomei 3 rivotril" is concerning)
   /\b(tomei|engoli|bebi)\s*\d+\s*(rivotril|clonazepam|diazepam|valium|lexotan|bromazepam|frontal|alprazolam|sertralina|fluoxetina|litio|carbamazepina|quetiapina|seroquel|risperidona|haldol|haloperidol|amitriptilina|tryptanol|clozapina)\b/i,
   /\b(vou|quero)\s*(tomar|engolir)\s*\d+\s*(rivotril|clonazepam|diazepam|valium|lexotan|bromazepam|frontal|alprazolam|sertralina|fluoxetina|litio|carbamazepina|quetiapina|seroquel|risperidona|haldol|haloperidol|amitriptilina|tryptanol|clozapina)\b/i,
   // Written-out numbers + medication: "tomei vinte clonazepam", "engoli dez comprimidos"

@@ -46,8 +46,8 @@ function hasTTS(): boolean {
   return "speechSynthesis" in window;
 }
 
-function speak(text: string, onEnd?: () => void) {
-  if (!hasTTS()) return;
+function speak(text: string, onEnd?: () => void, onError?: () => void) {
+  if (!hasTTS()) { onError?.(); return; }
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = "pt-BR";
@@ -58,6 +58,11 @@ function speak(text: string, onEnd?: () => void) {
   const ptVoice = voices.find((v) => v.lang.startsWith("pt-BR")) ?? voices.find((v) => v.lang.startsWith("pt"));
   if (ptVoice) utterance.voice = ptVoice;
   if (onEnd) utterance.onend = onEnd;
+  // Handle TTS errors — prevent speaking state from getting stuck
+  utterance.onerror = () => {
+    onError?.();
+    onEnd?.(); // Ensure the cycle continues even on error
+  };
   window.speechSynthesis.speak(utterance);
 }
 
@@ -126,6 +131,10 @@ export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
   }, []);
 
   // Handoff reminders: 10 min intermediate + 20 min session timeout
+  // Use ref for ttsEnabled to avoid restarting timers when TTS is toggled
+  const ttsEnabledRef = useRef(ttsEnabled);
+  ttsEnabledRef.current = ttsEnabled;
+
   useEffect(() => {
     const reminder10 = setTimeout(() => {
       const msg = waitingMode
@@ -135,7 +144,7 @@ export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
       // Stop STT before TTS to prevent self-transcription
       recognitionRef.current?.stop();
       setListening(false);
-      if (ttsEnabled) speak(msg);
+      if (ttsEnabledRef.current) speak(msg);
     }, 10 * 60 * 1000);
 
     const reminder20 = setTimeout(() => {
@@ -144,14 +153,14 @@ export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
       // Stop STT before TTS to prevent self-transcription
       recognitionRef.current?.stop();
       setListening(false);
-      if (ttsEnabled) speak(msg);
+      if (ttsEnabledRef.current) speak(msg);
     }, 20 * 60 * 1000);
 
     return () => {
       clearTimeout(reminder10);
       clearTimeout(reminder20);
     };
-  }, [waitingMode, ttsEnabled]);
+  }, [waitingMode]); // Only restart timers when waitingMode changes, not ttsEnabled
 
   // Auto-start in waiting mode: send initial greeting
   useEffect(() => {
@@ -179,13 +188,20 @@ export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
         ? "Sou uma inteligência artificial de acolhimento temporário. " + lastMsg.content
         : lastMsg.content;
       setSpeaking(true);
-      speak(textToSpeak, () => {
-        setSpeaking(false);
-        // In hands-free mode, auto-start listening after TTS finishes
-        if (handsFree && !streaming) {
-          startContinuousListening();
-        }
-      });
+      speak(
+        textToSpeak,
+        () => {
+          setSpeaking(false);
+          // In hands-free mode, auto-start listening after TTS finishes
+          if (handsFree && !streaming) {
+            startContinuousListening();
+          }
+        },
+        () => {
+          // TTS error — clear speaking state to unblock the voice cycle
+          setSpeaking(false);
+        },
+      );
     }
   }, [messages, streaming, ttsEnabled, handsFree]);
 
@@ -216,6 +232,21 @@ export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
           return;
         }
         if (!res.ok) {
+          // Map specific HTTP errors to safe, user-friendly messages
+          if (res.status === 401) {
+            setMessages((prev) => [...prev, {
+              role: "assistant",
+              content: "Para usar o chat, faça login no app. Enquanto isso, ligue 192 (SAMU) se houver risco, ou 188 (CVV) para conversar. A respiração guiada e o aterramento funcionam sem login.",
+            }]);
+            return;
+          }
+          if (res.status === 429) {
+            setMessages((prev) => [...prev, {
+              role: "assistant",
+              content: "Muitas mensagens enviadas. Aguarde alguns minutos e tente novamente. Se precisar de ajuda agora, ligue 192 (SAMU) ou 188 (CVV).",
+            }]);
+            return;
+          }
           throw new Error(body.error || "Erro ao conectar");
         }
       }
@@ -229,6 +260,7 @@ export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
 
       setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
 
+      // eslint-disable-next-line no-constant-condition
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -255,7 +287,31 @@ export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
               });
             }
           } catch {
-            // Skip malformed chunks — will be retried when buffer completes
+            // Incomplete JSON chunk — will be completed when next chunk arrives
+          }
+        }
+      }
+
+      // Process any remaining data in the buffer after stream ends
+      if (buffer.trim()) {
+        const remaining = buffer.trim();
+        if (remaining.startsWith("data: ")) {
+          const data = remaining.slice(6).trim();
+          if (data !== "[DONE]") {
+            try {
+              const parsed = JSON.parse(data);
+              if (parsed.text) {
+                assistantText += parsed.text;
+                const text = assistantText;
+                setMessages((prev) => {
+                  const updated = [...prev];
+                  updated[updated.length - 1] = { role: "assistant", content: text };
+                  return updated;
+                });
+              }
+            } catch {
+              // Final chunk was incomplete — safe to discard
+            }
           }
         }
       }
@@ -356,6 +412,9 @@ export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
   }
 
   // Continuous hands-free listening (auto-sends when speech ends)
+  const handsFreeRef = useRef(handsFree);
+  handsFreeRef.current = handsFree;
+
   function startContinuousListening() {
     if (streaming || speaking) return;
 
@@ -378,25 +437,64 @@ export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
       switch (event.error) {
         case "not-allowed":
         case "service-not-allowed":
+          // Fatal — can't recover, fall back to text mode
           setError("Microfone não permitido. Verifique as permissões do navegador.");
-          break;
-        case "no-speech":
-          // Silent — just stop listening, user can retry
-          break;
-        case "network":
-          setError("Sem conexão para reconhecimento de voz. Use o teclado.");
+          setHandsFree(false);
           break;
         case "audio-capture":
+          // Fatal — no mic available
           setError("Microfone não encontrado. Verifique o dispositivo.");
+          setHandsFree(false);
+          break;
+        case "no-speech":
+          // Transient — retry after short delay if still in hands-free mode
+          if (handsFreeRef.current) {
+            setTimeout(() => {
+              if (handsFreeRef.current && !streaming && !speaking) {
+                startContinuousListening();
+              }
+            }, 500);
+          }
+          break;
+        case "network":
+          // Transient — retry once, then fall back
+          setError("Reconhecimento de voz temporariamente indisponível. Tentando novamente...");
+          if (handsFreeRef.current) {
+            setTimeout(() => {
+              setError(null);
+              if (handsFreeRef.current && !streaming && !speaking) {
+                startContinuousListening();
+              }
+            }, 2000);
+          }
           break;
         default:
-          // Don't show error for transient issues
+          // Unknown — retry once if hands-free
+          if (handsFreeRef.current) {
+            setTimeout(() => {
+              if (handsFreeRef.current && !streaming && !speaking) {
+                startContinuousListening();
+              }
+            }, 1000);
+          }
           break;
       }
     };
     recognition.onend = () => {
       setListening(false);
-      // Don't auto-restart — TTS onend callback will restart after speaking
+      // If hands-free and no TTS pending (no new assistant message to speak),
+      // re-arm listening after a short delay to maintain the loop
+      if (handsFreeRef.current && !streaming && !speaking) {
+        // TTS onend callback handles restart after speaking;
+        // this handles the case where there's no TTS (e.g., ttsEnabled was toggled off)
+        if (!ttsEnabled) {
+          setTimeout(() => {
+            if (handsFreeRef.current && !streaming && !speaking) {
+              startContinuousListening();
+            }
+          }, 300);
+        }
+      }
     };
 
     try {
@@ -531,6 +629,7 @@ export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
               <p>&#8226; Não substituo o CVV (188) nem profissionais de saúde.</p>
               <p>&#8226; Estou aqui para te ouvir brevemente enquanto o atendimento humano não chega.</p>
               <p>&#8226; Suas mensagens são processadas por IA de terceiro (Anthropic) para gerar respostas e <strong>não são armazenadas</strong> no app.</p>
+              <p>&#8226; O modo voz usa reconhecimento de fala do seu navegador, que pode enviar áudio para processamento remoto. Se preferir privacidade, use texto.</p>
             </div>
 
             <p className="text-gray-400 text-xs">

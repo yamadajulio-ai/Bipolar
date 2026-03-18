@@ -964,6 +964,93 @@ describe("detectCrisisInTexts", () => {
     });
   });
 
+  // ── Session 4 audit R2 — numeric doses, progressive self-harm, demais, containers ──
+
+  describe("Session 4 R2 — numeric dose + generic medication must detect", () => {
+    it.each([
+      "tomei 20 comprimidos",
+      "tomei 15 comprimidos",
+      "engoli 30 remédios",
+      "engoli 10 pilulas",
+      "bebi 5 medicamentos",
+      "vou tomar 50 comprimidos",
+      "quero engolir 20 remédios",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("Session 4 R2 — numeric dose + medication brand must detect", () => {
+    it.each([
+      "tomei 20 clonazepam",
+      "engoli 30 quetiapina",
+      "tomei 15 rivotril",
+      "bebi 10 diazepam",
+      "vou tomar 20 sertralina",
+      "quero engolir 50 haldol",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("Session 4 R2 — written-out number doses must detect", () => {
+    it.each([
+      "tomei vinte clonazepam",
+      "engoli dez comprimidos",
+      "tomei quinze rivotril",
+      "engoli trinta remédios",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("Session 4 R2 — 'demais' quantifier must detect", () => {
+    it.each([
+      "tomei remédio demais",
+      "tomei comprimido demais",
+      "engoli remédio demais",
+      "engoli medicamento demais",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("Session 4 R2 — container patterns must detect", () => {
+    it.each([
+      "tomei um frasco de remédio",
+      "engoli uma caixa de rivotril",
+      "bebi um frasco de clonazepam",
+      "vou tomar a caixa",
+      "vou engolir um frasco",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("Session 4 R2 — progressive self-harm (gerund) must detect", () => {
+    it.each([
+      "estou me cortando",
+      "estou me machucando",
+      "estou me ferindo",
+      "me cortando agora",
+      "me machucando",
+      "me ferindo",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("Session 4 R2 — normal medication amounts still do NOT detect", () => {
+    it.each([
+      "tomei 1 comprimido de manhã",
+      "tomo 2 remédios por dia",
+      "tomei 3 comprimidos hoje",
+      "tomo 4 medicamentos",
+    ])("does NOT detect: %s", (text) => {
+      expect(detect(text)).toBe(false);
+    });
+  });
+
   describe("Round 8 — contextual window prevents false-positive accumulation", () => {
     it("benign contextual words across 10+ messages do NOT trigger (ponte msg1 + faca msg10)", () => {
       const messages = [

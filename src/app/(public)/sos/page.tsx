@@ -29,7 +29,17 @@ function logSOS(action: string) {
 }
 
 export default function SOSPage() {
-  const [view, setView] = useState<View>("main");
+  // Restore waiting188 state if returning from phone dialer
+  const [view, setView] = useState<View>(() => {
+    if (typeof window !== "undefined") {
+      const pending = sessionStorage.getItem("sos_waiting188");
+      if (pending) {
+        sessionStorage.removeItem("sos_waiting188");
+        return "waiting188";
+      }
+    }
+    return "main";
+  });
   const [contacts, setContacts] = useState<TrustedContact[]>([]);
   const [professionalPhone, setProfessionalPhone] = useState<string | null>(
     null,
@@ -43,6 +53,21 @@ export default function SOSPage() {
       announceRef.current.textContent = VIEW_LABELS[view];
     }
   }, [view]);
+
+  // Restore waiting188 when returning from phone dialer (visibilitychange)
+  useEffect(() => {
+    function handleVisibility() {
+      if (document.visibilityState === "visible") {
+        const pending = sessionStorage.getItem("sos_waiting188");
+        if (pending) {
+          sessionStorage.removeItem("sos_waiting188");
+          setView("waiting188");
+        }
+      }
+    }
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, []);
 
   useEffect(() => {
     logSOS("opened");
@@ -161,12 +186,17 @@ export default function SOSPage() {
             <div className="mt-3 flex flex-col gap-2">
               <button
                 onClick={() => {
-                  // Open phone dialer for 188, then activate waiting companion
-                  window.open("tel:188", "_self");
+                  // Persist intent BEFORE opening dialer — browser may suspend
+                  // the page when phone app opens, so setTimeout is unreliable.
+                  // On return (visibilitychange or remount), state is restored.
+                  sessionStorage.setItem("sos_waiting188", "1");
                   logSOS("called_188");
+                  logSOS("waiting_188_mode");
+                  window.open("tel:188", "_self");
+                  // Fallback: if browser doesn't suspend (desktop/emulator),
+                  // activate waiting mode after a short delay
                   setTimeout(() => {
                     setView("waiting188");
-                    logSOS("waiting_188_mode");
                   }, 1500);
                 }}
                 className="inline-flex items-center justify-center gap-2 rounded-lg bg-white/25 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-white/35"

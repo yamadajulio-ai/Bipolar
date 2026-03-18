@@ -66,6 +66,185 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* ─── PRODUCT SHOWCASE — iPhone mockups ────────────────── */}
+        <section className="overflow-hidden bg-background px-5 py-14 md:py-20">
+          <div className="mx-auto max-w-5xl">
+            <h2 className="text-center text-2xl font-bold text-foreground md:text-3xl">
+              Veja o app por dentro
+            </h2>
+            <p className="mx-auto mt-3 max-w-xl text-center text-sm text-muted md:text-base">
+              Telas reais do Suporte Bipolar — feito para o seu dia a dia no iPhone e Android.
+            </p>
+
+            <div className="mt-12 flex justify-center gap-4 md:gap-8">
+              {/* ── iPhone: Dashboard ── */}
+              <div className="w-[200px] shrink-0 md:w-[240px]">
+                <div className="rounded-[2rem] border-[3px] border-foreground/20 bg-foreground/5 p-2 shadow-xl">
+                  {/* Notch */}
+                  <div className="mx-auto mb-2 h-4 w-20 rounded-full bg-foreground/10" />
+                  {/* Screen */}
+                  <div className="rounded-[1.25rem] bg-background p-3 text-[10px] md:text-xs">
+                    {/* Status bar */}
+                    <div className="mb-2 flex items-center justify-between text-[8px] text-muted">
+                      <span>Suporte Bipolar</span>
+                      <span className="rounded bg-red-100 px-1 text-red-700">SOS</span>
+                    </div>
+                    {/* Greeting */}
+                    <p className="font-semibold text-foreground">Bom dia, Julio</p>
+                    {/* Risk card */}
+                    <div className="mt-2 rounded-lg bg-emerald-50 p-2">
+                      <div className="flex items-center gap-1">
+                        <span className="text-[8px]">→</span>
+                        <span className="text-[9px] font-semibold text-emerald-800">Estável</span>
+                      </div>
+                      <p className="mt-0.5 text-[8px] text-emerald-700">Humor e sono regulares</p>
+                    </div>
+                    {/* Estado hoje */}
+                    <div className="mt-2 grid grid-cols-2 gap-1">
+                      <div className="rounded-lg bg-surface p-1.5">
+                        <p className="text-[8px] text-muted">Humor</p>
+                        <p className="font-semibold text-emerald-700">Estável</p>
+                      </div>
+                      <div className="rounded-lg bg-surface p-1.5">
+                        <p className="text-[8px] text-muted">Energia</p>
+                        <p className="font-semibold text-foreground">Normal</p>
+                      </div>
+                      <div className="rounded-lg bg-surface p-1.5">
+                        <p className="text-[8px] text-muted">Sono</p>
+                        <p className="font-semibold text-foreground">7h30</p>
+                      </div>
+                      <div className="rounded-lg bg-surface p-1.5">
+                        <p className="text-[8px] text-muted">Medicação</p>
+                        <p className="font-semibold text-emerald-700">Tomou</p>
+                      </div>
+                    </div>
+                    {/* Mini chart */}
+                    <div className="mt-2 rounded-lg bg-surface p-2">
+                      <p className="text-[8px] font-semibold text-muted">Últimos 7 dias</p>
+                      <div className="mt-1 flex items-end gap-[3px]">
+                        {[60, 50, 55, 65, 60, 55, 58].map((h, i) => (
+                          <div key={i} className="flex-1 rounded-t bg-primary/60" style={{ height: `${h * 0.4}px` }} />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <p className="mt-3 text-center text-xs font-medium text-muted">Dashboard</p>
+              </div>
+
+              {/* ── iPhone: Check-in ── */}
+              <div className="w-[200px] shrink-0 md:w-[240px]">
+                <div className="rounded-[2rem] border-[3px] border-foreground/20 bg-foreground/5 p-2 shadow-xl">
+                  <div className="mx-auto mb-2 h-4 w-20 rounded-full bg-foreground/10" />
+                  <div className="rounded-[1.25rem] bg-background p-3 text-[10px] md:text-xs">
+                    <p className="mb-3 text-center font-semibold text-foreground">Check-in Rápido</p>
+                    {/* Humor scale */}
+                    <div className="mb-2">
+                      <p className="text-[8px] font-medium text-muted">Como está seu humor?</p>
+                      <div className="mt-1 flex gap-1">
+                        {["bg-blue-400", "bg-sky-400", "bg-emerald-400", "bg-amber-400", "bg-red-400"].map((c, i) => (
+                          <div key={i} className={`flex-1 rounded-md py-1.5 text-center text-[7px] text-white font-medium ${c} ${i === 2 ? "ring-2 ring-foreground/30 scale-105" : "opacity-60"}`}>
+                            {i + 1}
+                          </div>
+                        ))}
+                      </div>
+                      <p className="mt-0.5 text-center text-[7px] text-emerald-700 font-medium">Estável</p>
+                    </div>
+                    {/* Energy scale */}
+                    <div className="mb-2">
+                      <p className="text-[8px] font-medium text-muted">Nível de energia</p>
+                      <div className="mt-1 flex gap-1">
+                        {["bg-blue-400", "bg-sky-400", "bg-emerald-400", "bg-amber-400", "bg-red-400"].map((c, i) => (
+                          <div key={i} className={`flex-1 rounded-md py-1.5 text-center text-[7px] text-white font-medium ${c} ${i === 2 ? "ring-2 ring-foreground/30 scale-105" : "opacity-60"}`}>
+                            {i + 1}
+                          </div>
+                        ))}
+                      </div>
+                      <p className="mt-0.5 text-center text-[7px] text-emerald-700 font-medium">Normal</p>
+                    </div>
+                    {/* Sleep */}
+                    <div className="mb-2">
+                      <p className="text-[8px] font-medium text-muted">Horas de sono</p>
+                      <div className="mt-1 rounded-lg bg-surface px-2 py-1.5 text-center font-semibold text-foreground">7.5h</div>
+                    </div>
+                    {/* Medication */}
+                    <div className="mb-2">
+                      <p className="text-[8px] font-medium text-muted">Medicação</p>
+                      <div className="mt-1 flex gap-1">
+                        <div className="flex-1 rounded-lg bg-emerald-100 py-1.5 text-center text-[8px] font-semibold text-emerald-700">Sim</div>
+                        <div className="flex-1 rounded-lg bg-surface py-1.5 text-center text-[8px] text-muted">Não</div>
+                      </div>
+                    </div>
+                    {/* Submit */}
+                    <div className="mt-3 rounded-xl bg-primary py-2 text-center text-[10px] font-semibold text-white">
+                      Salvar check-in
+                    </div>
+                  </div>
+                </div>
+                <p className="mt-3 text-center text-xs font-medium text-muted">Check-in</p>
+              </div>
+
+              {/* ── iPhone: Insights ── */}
+              <div className="hidden w-[200px] shrink-0 sm:block md:w-[240px]">
+                <div className="rounded-[2rem] border-[3px] border-foreground/20 bg-foreground/5 p-2 shadow-xl">
+                  <div className="mx-auto mb-2 h-4 w-20 rounded-full bg-foreground/10" />
+                  <div className="rounded-[1.25rem] bg-background p-3 text-[10px] md:text-xs">
+                    <p className="mb-3 text-center font-semibold text-foreground">Insights</p>
+                    {/* Thermometer mini */}
+                    <div className="rounded-lg bg-surface p-2">
+                      <p className="text-[8px] font-medium text-muted">Termômetro de humor</p>
+                      <div className="mt-1.5 flex items-center gap-2">
+                        <div className="flex w-5 flex-col gap-px overflow-hidden rounded">
+                          <div className="h-3 bg-red-400" />
+                          <div className="h-3 bg-amber-400" />
+                          <div className="h-4 bg-emerald-400" />
+                          <div className="h-3 bg-sky-400" />
+                          <div className="h-3 bg-blue-400" />
+                        </div>
+                        <div>
+                          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[8px] font-semibold text-emerald-700">Eutimia</span>
+                        </div>
+                      </div>
+                    </div>
+                    {/* Heatmap mini */}
+                    <div className="mt-2 rounded-lg bg-surface p-2">
+                      <p className="text-[8px] font-medium text-muted">Padrão de sono</p>
+                      <div className="mt-1.5 grid grid-cols-7 gap-[2px]">
+                        {Array.from({ length: 21 }).map((_, i) => (
+                          <div key={i} className={`h-2.5 w-2.5 rounded-sm ${heatColor(i)}`} />
+                        ))}
+                      </div>
+                    </div>
+                    {/* Prediction mini */}
+                    <div className="mt-2 rounded-lg bg-surface p-2">
+                      <p className="text-[8px] font-medium text-muted">Risco de episódio</p>
+                      <div className="mt-1 flex items-center gap-2">
+                        <div className="relative flex h-10 w-10 items-center justify-center">
+                          <svg className="h-10 w-10 -rotate-90" viewBox="0 0 36 36">
+                            <circle cx="18" cy="18" r="15.9" fill="none" stroke="#e5e7eb" strokeWidth="3" />
+                            <circle cx="18" cy="18" r="15.9" fill="none" stroke="#4a7c59" strokeWidth="3"
+                              strokeDasharray="25 75" strokeLinecap="round" />
+                          </svg>
+                          <span className="absolute text-[7px] font-bold">Baixo</span>
+                        </div>
+                        <p className="text-[8px] text-muted">14 dias de dados</p>
+                      </div>
+                    </div>
+                    {/* AI Summary mini */}
+                    <div className="mt-2 rounded-lg bg-surface p-2">
+                      <p className="text-[8px] font-medium text-muted">Resumo IA ✨</p>
+                      <p className="mt-1 text-[7px] leading-relaxed text-muted/70">
+                        Humor estável, sono com leve irregularidade nas noites de qui e sex...
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <p className="mt-3 text-center text-xs font-medium text-muted">Insights</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* ─── 2. COMO FUNCIONA ────────────────────────────────── */}
         <section className="px-5 py-14 md:py-20">
           <div className="mx-auto max-w-4xl">

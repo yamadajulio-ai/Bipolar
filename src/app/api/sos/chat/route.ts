@@ -77,6 +77,31 @@ const EXPLICIT_CRISIS: RegExp[] = [
   /\b(vou|quero)\s*(engolir|tomar)\s*(uma\s*|a\s*)?cartela\s*(inteira|toda|d[oa]\s*(remedio|remedios?|medicamento|medicamentos?))\b/i,
   // "tomei todos os comprimidos/pílulas"
   /\btomei\s*tod[oa]s?\s*([oa]s\s*)?(comprimidos?|pilulas?|remedios?|medicamentos?)\b/i,
+  // Common Brazilian psychiatric medication overdose/mixing
+  /\b(tomei|engoli|bebi)\s*(muit[oa]s?|vari[oa]s?|tod[oa]s?\s*([oa]s?\s*)?|um\s*monte\s*de)?\s*(rivotril|clonazepam|diazepam|valium|lexotan|bromazepam|frontal|alprazolam|sertralina|fluoxetina|litio|carbamazepina|quetiapina|seroquel|risperidona|haldol|haloperidol|amitriptilina|tryptanol|clozapina)\b/i,
+  /\b(vou|quero)\s*(tomar|engolir)\s*(muit[oa]s?|vari[oa]s?|tod[oa]s?\s*([oa]s?\s*)?|um\s*monte\s*de)?\s*(rivotril|clonazepam|diazepam|valium|lexotan|bromazepam|frontal|alprazolam|sertralina|fluoxetina|litio|carbamazepina|quetiapina|seroquel|risperidona|haldol|haloperidol|amitriptilina|tryptanol|clozapina)\b/i,
+  /\bmisturei\s*(alcool|bebida|cerveja|vinho)\s*(com\s*)?(rivotril|clonazepam|diazepam|valium|lexotan|bromazepam|frontal|alprazolam|sertralina|fluoxetina|litio|carbamazepina|quetiapina|seroquel|risperidona|haldol|haloperidol|amitriptilina|tryptanol|clozapina)\b/i,
+  /\bmisturei\s*(rivotril|clonazepam|diazepam|valium|lexotan|bromazepam|frontal|alprazolam|sertralina|fluoxetina|litio|carbamazepina|quetiapina|seroquel|risperidona|haldol|haloperidol|amitriptilina|tryptanol|clozapina)\s*(com\s*)?(alcool|bebida|cerveja|vinho)\b/i,
+  // Progressive self-harm (gerund: "estou me cortando/machucando/ferindo")
+  /\bestou\s*me\s*(cortando|machucando|ferindo)\b/i,
+  /\b(me\s*cortando|me\s*machucando|me\s*ferindo)\b/i,
+  // Numeric dose + generic medication: "tomei 20 comprimidos", "engoli 15 remédios"
+  /\b(tomei|engoli|bebi)\s*\d+\s*(comprimidos?|remedios?|pilulas?|medicamentos?)\b/i,
+  /\b(vou|quero)\s*(tomar|engolir)\s*\d+\s*(comprimidos?|remedios?|pilulas?|medicamentos?)\b/i,
+  // Numeric dose + medication brand names: "tomei 20 clonazepam", "engoli 30 quetiapina"
+  /\b(tomei|engoli|bebi)\s*\d+\s*(rivotril|clonazepam|diazepam|valium|lexotan|bromazepam|frontal|alprazolam|sertralina|fluoxetina|litio|carbamazepina|quetiapina|seroquel|risperidona|haldol|haloperidol|amitriptilina|tryptanol|clozapina)\b/i,
+  /\b(vou|quero)\s*(tomar|engolir)\s*\d+\s*(rivotril|clonazepam|diazepam|valium|lexotan|bromazepam|frontal|alprazolam|sertralina|fluoxetina|litio|carbamazepina|quetiapina|seroquel|risperidona|haldol|haloperidol|amitriptilina|tryptanol|clozapina)\b/i,
+  // Written-out numbers + medication: "tomei vinte clonazepam", "engoli dez comprimidos"
+  /\b(tomei|engoli|bebi)\s*(dois|tres|quatro|cinco|seis|sete|oito|nove|dez|onze|doze|quinze|vinte|trinta|quarenta|cinquenta|cem)\s*(comprimidos?|remedios?|pilulas?|medicamentos?|rivotril|clonazepam|diazepam|valium|lexotan|bromazepam|frontal|alprazolam|sertralina|fluoxetina|litio|carbamazepina|quetiapina|seroquel|risperidona|haldol|haloperidol|amitriptilina|tryptanol|clozapina)\b/i,
+  /\b(vou|quero)\s*(tomar|engolir)\s*(dois|tres|quatro|cinco|seis|sete|oito|nove|dez|onze|doze|quinze|vinte|trinta|quarenta|cinquenta|cem)\s*(comprimidos?|remedios?|pilulas?|medicamentos?|rivotril|clonazepam|diazepam|valium|lexotan|bromazepam|frontal|alprazolam|sertralina|fluoxetina|litio|carbamazepina|quetiapina|seroquel|risperidona|haldol|haloperidol|amitriptilina|tryptanol|clozapina)\b/i,
+  // "demais" quantifier: "tomei remédio demais", "tomei comprimido demais"
+  /\b(tomei|engoli|bebi)\s*(remedios?|comprimidos?|pilulas?|medicamentos?)\s*demais\b/i,
+  // Container patterns: "um frasco de remédio", "uma caixa de remédio"
+  /\b(tomei|engoli|bebi)\s*(um\s*frasco|uma\s*caixa|a\s*caixa)\s*(de\s*)?(remedios?|comprimidos?|pilulas?|medicamentos?|rivotril|clonazepam|diazepam|valium|lexotan|bromazepam|frontal|alprazolam|sertralina|fluoxetina|litio|carbamazepina|quetiapina|seroquel|risperidona|haldol|haloperidol|amitriptilina|tryptanol|clozapina)?\b/i,
+  /\b(vou|quero)\s*(tomar|engolir)\s*(um\s*frasco|uma\s*caixa|a\s*caixa)\b/i,
+  // Passive ideation — "preferia/prefiro não acordar"
+  /\bpreferia\s*nao\s*acordar\b/i,
+  /\bprefiro\s*nao\s*acordar\b/i,
   /\b(comprei\s*(uma\s*)?arma)\b/i, // benign override handles "de brinquedo/pressão"
   // Farewell (unambiguous)
   /\b(carta\s*de\s*despedida|adeus\s*pra\s*sempre)\b/i,
@@ -171,6 +196,7 @@ const CONTEXTUAL_CRISIS: RegExp[] = [
   /\bquer(o|ia)\s*desaparecer\b/i,
   /\bvou\s*fazer\s*(uma\s*)?besteira\b/i,
   /\bsuicidar\b/i, // bare "suicidar" without "me" (third party context)
+  /\bnao\s*quero\s*mais\s*nada\b/i, // ambiguous alone, crisis with harm context
 ];
 
 // Context markers that elevate contextual hits to crisis.
@@ -330,6 +356,7 @@ export async function POST(req: NextRequest) {
   // "assistant" turns are reconstructed server-side from user messages
   // to prevent prompt injection via synthetic assistant turns.
   let userMessages: { role: "user"; content: string }[];
+  let allUserTexts: string[]; // ALL user texts for crisis detection (no window limit)
   try {
     const body = await req.json();
     const raw = body.messages;
@@ -346,6 +373,11 @@ export async function POST(req: NextRequest) {
     if (userMessages.length === 0) {
       return Response.json({ error: "Nenhuma mensagem de usuário" }, { status: 400 });
     }
+    // Capture ALL user texts for crisis detection BEFORE slicing.
+    // This ensures EXPLICIT crisis in message 1 stays latched even after
+    // 20+ messages, while CONTEXTUAL still uses its own 6-message window.
+    allUserTexts = userMessages.map((m) => m.content);
+    // Limit to last 20 for the LLM context window only
     if (userMessages.length > 20) {
       userMessages = userMessages.slice(-20);
     }
@@ -354,17 +386,18 @@ export async function POST(req: NextRequest) {
   }
 
   // ── LAYER 1: Deterministic crisis detection BEFORE rate limit ──
-  // Scan ALL user messages (up to 20) so crisis is "latched" for the
-  // entire conversation — once a user says something critical in message 1,
-  // they stay in crisis mode even if messages 2-20 don't repeat it.
-  const recentUserTexts = userMessages.map((m) => m.content);
+  // Scan ALL user messages (not sliced) so crisis is truly "latched" for
+  // the entire conversation. detectCrisisInTexts scans ALL for EXPLICIT
+  // and only the last 6 for CONTEXTUAL, so passing all is safe.
+  const recentUserTexts = allUserTexts;
 
   if (detectCrisisInTexts(recentUserTexts)) {
     // Crisis users ALWAYS get the static response, even if rate-limited
-    await logChatMeta(session.userId, {
+    // Fire-and-forget: NEVER block the crisis response on telemetry
+    logChatMeta(session.userId, {
       turnCount: userMessages.length,
       crisisDetected: true,
-    });
+    }).catch(() => {});
     return new Response(buildCrisisStream(), { headers: SSE_HEADERS });
   }
 

@@ -906,6 +906,64 @@ describe("detectCrisisInTexts", () => {
     });
   });
 
+  // ── Session 4 audit — medication brand names & passive ideation ──────
+
+  describe("Session 4 audit — medication brand names must detect", () => {
+    it.each([
+      "tomei todo o rivotril",
+      "tomei todos os rivotril",
+      "tomei muitos rivotril",
+      "engoli vários diazepam",
+      "vou tomar todos os lexotan",
+      "vou engolir todo o frontal",
+      "misturei cerveja com rivotril",
+      "misturei clonazepam com álcool",
+      "misturei rivotril com vinho",
+      "tomei muita sertralina",
+      "engoli todos os haldol",
+      "vou tomar todo o litio",
+      "misturei quetiapina com cerveja",
+      "tomei vários amitriptilina",
+      "vou engolir todo o tryptanol",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("Session 4 audit — medication mention without overdose/mixing must NOT detect", () => {
+    it.each([
+      "tomo rivotril todo dia",
+      "meu remédio é clonazepam",
+      "comecei a tomar sertralina",
+      "o médico receitou quetiapina",
+      "parei de tomar o haldol",
+    ])("does NOT detect: %s", (text) => {
+      expect(detect(text)).toBe(false);
+    });
+  });
+
+  describe("Session 4 audit — passive ideation 'preferia não acordar'", () => {
+    it.each([
+      "preferia não acordar amanhã",
+      "prefiro não acordar",
+      "preferia nao acordar",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("Session 4 audit — 'não quero mais nada' contextual", () => {
+    it("does NOT detect alone: não quero mais nada", () => {
+      expect(detect("não quero mais nada")).toBe(false);
+    });
+    it("detects with harm context: não quero mais nada + sofrendo", () => {
+      expect(detectMulti(["não quero mais nada", "estou sofrendo demais"])).toBe(true);
+    });
+    it("detects with 2 contextual: não quero mais nada + quero sumir", () => {
+      expect(detectMulti(["não quero mais nada", "quero sumir"])).toBe(true);
+    });
+  });
+
   describe("Round 8 — contextual window prevents false-positive accumulation", () => {
     it("benign contextual words across 10+ messages do NOT trigger (ponte msg1 + faca msg10)", () => {
       const messages = [

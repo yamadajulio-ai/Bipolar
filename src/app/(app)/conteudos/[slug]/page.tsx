@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getContentBySlug, getAllContent } from "@/lib/content";
 import { Alert } from "@/components/Alert";
+import { ContextualFeedbackButtons } from "@/components/feedback/ContextualFeedbackButtons";
 
 export function generateStaticParams() {
   const contents = getAllContent();
@@ -41,6 +42,13 @@ export default async function ConteudoPage({
         className="prose prose-sm max-w-none text-foreground"
         dangerouslySetInnerHTML={{ __html: content.html }}
       />
+
+      <div className="mt-8 border-t border-border pt-4">
+        <ContextualFeedbackButtons
+          contextKey={`content:${slug}`}
+          question="Este conteúdo foi útil?"
+        />
+      </div>
     </div>
   );
 }

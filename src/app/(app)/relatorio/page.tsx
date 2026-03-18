@@ -5,6 +5,7 @@ import { Card } from "@/components/Card";
 import { Alert } from "@/components/Alert";
 import { MonthSelector } from "@/components/relatorio/MonthSelector";
 import { MonthlyReport } from "@/components/relatorio/MonthlyReport";
+import { ContextualFeedbackButtons } from "@/components/feedback/ContextualFeedbackButtons";
 
 export default function RelatorioPage() {
   const now = new Date();
@@ -54,7 +55,17 @@ export default function RelatorioPage() {
 
       {error && <Alert variant="danger">{error}</Alert>}
 
-      {data && !loading && <MonthlyReport data={data} />}
+      {data && !loading && (
+        <>
+          <MonthlyReport data={data} />
+          <div className="mt-6 border-t border-border pt-4">
+            <ContextualFeedbackButtons
+              contextKey={`report:${month}`}
+              question="Este relatório ajudou na consulta?"
+            />
+          </div>
+        </>
+      )}
     </div>
   );
 }

@@ -41,6 +41,8 @@ model User {
   functioningAssessments FunctioningAssessment[]
   cognitiveTests         CognitiveTest[]
   pushSubscriptions      PushSubscription[]
+  feedbacks              Feedback[]
+  contextualFeedbacks    ContextualFeedback[]
 }
 
 model DiaryEntry {
@@ -398,6 +400,40 @@ model AlertFeedback {
 
   @@unique([userId, alertType, alertDate])
   @@index([userId])
+}
+
+// ── Feedback do Usuário ──────────────────────────────────────────
+
+model Feedback {
+  id         String   @id @default(uuid())
+  userId     String
+  category   String   // "suggestion" | "bug" | "praise" | "other"
+  message    String
+  screen     String?  // tela relacionada (opcional)
+  canContact Boolean  @default(false)
+  priority   String   @default("normal") // "normal" | "high" (crise detectada)
+  route      String?  // rota atual do usuário
+  appVersion String?  // versão do build
+  clientType String?  // "pwa" | "safari" | "chrome"
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([category])
+  @@index([priority])
+}
+
+model ContextualFeedback {
+  id         String   @id @default(uuid())
+  userId     String
+  contextKey String   // "insight:2026-03-18" | "content:abc123" | "report:2026-03"
+  useful     Boolean
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, contextKey])
+  @@index([contextKey])
 }
 
 // ── LGPD — Consentimentos ─────────────────────────────────────────

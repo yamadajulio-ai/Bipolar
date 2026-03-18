@@ -16,6 +16,7 @@ import { CalendarHeatmap } from "@/components/insights/CalendarHeatmap";
 import { Sparkline } from "@/components/insights/Sparkline";
 import { NarrativeSection } from "@/components/insights/NarrativeSection";
 import { InsightsTabs } from "@/components/insights/InsightsTabs";
+import { ContextualFeedbackButtons } from "@/components/feedback/ContextualFeedbackButtons";
 import Link from "next/link";
 import { Suspense } from "react";
 
@@ -148,6 +149,7 @@ export default async function InsightsPage({
 }) {
   const session = await getSession();
   const now = new Date();
+  const today = now.toLocaleDateString("sv-SE", { timeZone: TZ });
   const params = await searchParams;
   const rawNoites = params.noites;
   const noitesStr = Array.isArray(rawNoites) ? rawNoites[0] : rawNoites;
@@ -1081,9 +1083,16 @@ export default async function InsightsPage({
         </div>
       </InsightsTabs>
 
-      <p className="text-center text-xs text-muted mt-4 mb-8">
+      <p className="text-center text-xs text-muted mt-4 mb-2">
         Baseado em pesquisas clínicas e protocolos internacionais de estabilidade. Não substitui avaliação profissional.
       </p>
+
+      <div className="text-center mb-8">
+        <ContextualFeedbackButtons
+          contextKey={`insight:${today}`}
+          question="Esta análise foi útil?"
+        />
+      </div>
     </div>
   );
 }

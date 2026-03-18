@@ -56,6 +56,7 @@ const sections: { title: string; items: ModuleItem[] }[] = [
 
       { href: "/perfil", label: "Perfil de Saúde", description: "Acesso a recursos e recomendações" },
       { href: "/acesso-profissional", label: "Acesso Profissional", description: "Compartilhe dados com seu psiquiatra" },
+      { href: "/feedback", label: "Feedback", description: "Sugestões, problemas ou elogios" },
       { href: "/conta", label: "Conta", description: "Configurações e lembretes" },
     ],
   },

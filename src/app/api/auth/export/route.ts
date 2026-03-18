@@ -25,6 +25,8 @@ export async function GET() {
     crisisPlan,
     reminderSettings,
     financialTransactions,
+    feedbacks,
+    contextualFeedbacks,
   ] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
@@ -43,6 +45,8 @@ export async function GET() {
     prisma.crisisPlan.findUnique({ where: { userId } }),
     prisma.reminderSettings.findUnique({ where: { userId } }),
     prisma.financialTransaction.findMany({ where: { userId }, orderBy: { date: "desc" } }),
+    prisma.feedback.findMany({ where: { userId }, orderBy: { createdAt: "desc" } }),
+    prisma.contextualFeedback.findMany({ where: { userId }, orderBy: { createdAt: "desc" } }),
   ]);
 
   const exportData = {
@@ -58,6 +62,8 @@ export async function GET() {
     crisisPlan,
     reminderSettings,
     financialTransactions,
+    feedbacks,
+    contextualFeedbacks,
   };
 
   return new NextResponse(JSON.stringify(exportData, null, 2), {

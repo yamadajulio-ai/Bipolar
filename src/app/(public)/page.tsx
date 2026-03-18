@@ -264,7 +264,7 @@ export default function LandingPage() {
                   Termômetro de humor
                 </p>
                 <p className="mt-1 text-xs text-muted">
-                  Dual mania/depressão com 5 zonas
+                  Mostra sua faixa atual em 5 zonas
                 </p>
                 <div className="mt-4 flex items-end gap-4">
                   <div className="flex w-8 flex-col gap-0.5 overflow-hidden rounded-lg">
@@ -306,13 +306,13 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              {/* Sinais de risco */}
+              {/* Sinais de mudança */}
               <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted">
-                  Radar de risco
+                  Sinais de mudança
                 </p>
                 <p className="mt-1 text-xs text-muted">
-                  Sua zona atual e os fatores que mais pesaram
+                  Sua estabilidade atual e os fatores que mais pesaram
                 </p>
                 <div className="mt-4 flex items-center gap-4">
                   <div className="relative flex h-20 w-20 items-center justify-center">
@@ -321,10 +321,10 @@ export default function LandingPage() {
                       <circle cx="18" cy="18" r="15.9" fill="none" stroke="#4a7c59" strokeWidth="2.5"
                         strokeDasharray="25 75" strokeLinecap="round" />
                     </svg>
-                    <span className="absolute text-xs font-bold text-foreground">Baixo</span>
+                    <span className="absolute text-xs font-bold text-foreground">Estável</span>
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-foreground">Risco baixo</p>
+                    <p className="text-sm font-semibold text-foreground">Poucos sinais de instabilidade</p>
                     <p className="text-xs text-muted">Humor estável, sono regular</p>
                   </div>
                 </div>
@@ -383,7 +383,7 @@ export default function LandingPage() {
                   Veja sinais claros
                 </h3>
                 <p className="mt-2 text-sm leading-relaxed text-muted">
-                  Radar de risco, ritmo social, resumo automático e acesso para seu profissional.
+                  Indicadores de estabilidade, ritmo social, resumo automático e acesso para seu profissional.
                 </p>
               </div>
             </div>
@@ -407,17 +407,17 @@ export default function LandingPage() {
                 {
                   icon: <IconMoon />,
                   title: "Sono e ritmo",
-                  desc: "Duração, regularidade, qualidade e heatmap. Segundo pesquisas, alterações no sono costumam ser um dos primeiros sinais de mudança de fase.",
+                  desc: "Duração, regularidade, qualidade e mapa de calor. Segundo pesquisas, alterações no sono costumam ser um dos primeiros sinais de mudança de fase.",
                 },
                 {
                   icon: <IconClipboard />,
                   title: "Avaliação semanal",
-                  desc: "Escalas validadas (ASRM, PHQ-9, FAST) em linguagem acessível. Resultados que você entende.",
+                  desc: "Escalas validadas usadas na prática clínica, traduzidas para linguagem acessível. Resultados que você entende.",
                 },
                 {
                   icon: <IconClock />,
                   title: "Ritmo social",
-                  desc: "5 horários-âncora do seu dia. Baseado no protocolo IPSRT — regularidade protege contra episódios.",
+                  desc: "5 horários-âncora do seu dia. Baseado em protocolo de ritmos sociais — regularidade protege contra episódios.",
                 },
                 {
                   icon: <IconHeart />,
@@ -502,7 +502,7 @@ export default function LandingPage() {
                 {
                   icon: <IconCheck />,
                   title: "Baseado em protocolos reais",
-                  desc: "IPSRT, ASRM, PHQ-9 e FAST — instrumentos usados na prática clínica e validados internacionalmente.",
+                  desc: "Instrumentos usados na prática clínica e validados internacionalmente para humor, depressão e funcionalidade.",
                 },
                 {
                   icon: <IconBrain />,
@@ -512,7 +512,7 @@ export default function LandingPage() {
                 {
                   icon: <IconLock />,
                   title: "Privacidade real",
-                  desc: "Criptografia AES-256, LGPD compliant. Seus dados são seus. Sem venda de dados. Exclusão quando quiser.",
+                  desc: "Criptografia de ponta, práticas alinhadas à LGPD. Não vendemos seus dados. Exclusão completa quando quiser.",
                 },
                 {
                   icon: <IconShield />,
@@ -573,7 +573,7 @@ export default function LandingPage() {
                 },
                 {
                   q: "Meus dados estão seguros?",
-                  a: "Sim. Criptografia AES-256, LGPD compliant. Seus dados nunca são vendidos ou compartilhados. Você pode excluir tudo a qualquer momento.",
+                  a: "Sim. Criptografia de ponta, práticas alinhadas à LGPD. Não vendemos seus dados. Compartilhamentos só acontecem com sua autorização ou com fornecedores essenciais do serviço, conforme a Política de Privacidade. Você pode excluir tudo a qualquer momento.",
                 },
               ].map((faq) => (
                 <details key={faq.q} className="group rounded-xl border border-border bg-surface overflow-hidden">

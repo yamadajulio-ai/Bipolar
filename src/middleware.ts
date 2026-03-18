@@ -27,6 +27,11 @@ const authPaths = ["/login", "/cadastro"];
 // Paths that should redirect logged-in users to /hoje (landing pages)
 const landingPaths = ["/"];
 
+/** Match exact path or path segment (prevents /app matching /apple-app-site-association) */
+function matchesPath(pathname: string, base: string): boolean {
+  return pathname === base || pathname.startsWith(`${base}/`);
+}
+
 /** CSRF: Reject cross-origin mutating requests to /api (defense-in-depth). */
 function checkCsrf(request: NextRequest): NextResponse | null {
   const { method, headers } = request;
@@ -95,8 +100,8 @@ export function middleware(request: NextRequest) {
 
   const sessionCookie = request.cookies.get("empresa-bipolar-session");
 
-  const isProtected = protectedPaths.some((p) => pathname.startsWith(p));
-  const isAuthPage = authPaths.some((p) => pathname.startsWith(p));
+  const isProtected = protectedPaths.some((p) => matchesPath(pathname, p));
+  const isAuthPage = authPaths.some((p) => matchesPath(pathname, p));
 
   if (isProtected && !sessionCookie) {
     return NextResponse.redirect(new URL("/login", request.url));

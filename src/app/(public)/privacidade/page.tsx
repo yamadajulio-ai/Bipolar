@@ -20,9 +20,24 @@ export default function PrivacidadePage() {
           Dados (LGPD — Lei nº 13.709/2018).
         </p>
 
-        {/* 1. Dados coletados */}
+        {/* 1. Controlador */}
         <section className="mb-6">
-          <h2 className="mb-2 text-lg font-semibold">1. Quais dados coletamos</h2>
+          <h2 className="mb-2 text-lg font-semibold">1. Quem é o controlador dos dados</h2>
+          <p className="text-sm text-muted">
+            O controlador dos dados pessoais é o projeto Suporte Bipolar, de responsabilidade
+            de Julio Yamada, pessoa física, inscrito no CPF sob o nº informado no canal de
+            contato abaixo. Para exercer seus direitos ou tirar dúvidas sobre privacidade,
+            entre em contato pelo e-mail{" "}
+            <strong>privacidade@suportebipolar.com</strong> ou pelo Instagram{" "}
+            <a href="https://instagram.com/suportebipolar" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+              @suportebipolar
+            </a>.
+          </p>
+        </section>
+
+        {/* 2. Dados coletados */}
+        <section className="mb-6">
+          <h2 className="mb-2 text-lg font-semibold">2. Quais dados coletamos</h2>
 
           <h3 className="mb-1 mt-3 text-sm font-semibold text-foreground">1.1 Dados de cadastro</h3>
           <ul className="list-inside list-disc space-y-1 text-sm text-muted">
@@ -63,7 +78,7 @@ export default function PrivacidadePage() {
           <h3 className="mb-1 mt-3 text-sm font-semibold text-foreground">1.4 Dados financeiros</h3>
           <ul className="list-inside list-disc space-y-1 text-sm text-muted">
             <li>Registros de gastos importados para correlação com humor (valor, categoria, data).</li>
-            <li>Processados localmente no servidor; nunca compartilhados com terceiros.</li>
+            <li>Processados no servidor; não compartilhados com terceiros além dos operadores de infraestrutura descritos na seção 5.</li>
           </ul>
 
           <h3 className="mb-1 mt-3 text-sm font-semibold text-foreground">1.5 Dados técnicos e de uso</h3>
@@ -75,9 +90,9 @@ export default function PrivacidadePage() {
           </ul>
         </section>
 
-        {/* 2. Finalidade */}
+        {/* 3. Finalidade */}
         <section className="mb-6">
-          <h2 className="mb-2 text-lg font-semibold">2. Por que coletamos</h2>
+          <h2 className="mb-2 text-lg font-semibold">3. Por que coletamos</h2>
           <ul className="list-inside list-disc space-y-1 text-sm text-muted">
             <li><strong>Autenticação e segurança:</strong> para proteger o acesso à sua conta.</li>
             <li><strong>Autoconhecimento:</strong> para que você acompanhe seus próprios padrões de humor, sono e rotina ao longo do tempo.</li>
@@ -88,9 +103,9 @@ export default function PrivacidadePage() {
           </ul>
         </section>
 
-        {/* 3. Base legal */}
+        {/* 4. Base legal */}
         <section className="mb-6">
-          <h2 className="mb-2 text-lg font-semibold">3. Base legal (LGPD)</h2>
+          <h2 className="mb-2 text-lg font-semibold">4. Base legal (LGPD)</h2>
           <ul className="list-inside list-disc space-y-1 text-sm text-muted">
             <li><strong>Consentimento (art. 7º, I e art. 11, I):</strong> para dados sensíveis de saúde, integrações externas, narrativa de IA e acesso profissional.</li>
             <li><strong>Execução de contrato (art. 7º, V):</strong> para dados necessários ao funcionamento da conta.</li>
@@ -98,9 +113,9 @@ export default function PrivacidadePage() {
           </ul>
         </section>
 
-        {/* 4. Proteção */}
+        {/* 5. Proteção */}
         <section className="mb-6">
-          <h2 className="mb-2 text-lg font-semibold">4. Como protegemos seus dados</h2>
+          <h2 className="mb-2 text-lg font-semibold">5. Como protegemos seus dados</h2>
           <ul className="list-inside list-disc space-y-1 text-sm text-muted">
             <li>Senhas armazenadas com hash bcrypt (nunca em texto).</li>
             <li>Tokens OAuth criptografados com AES-256-GCM.</li>
@@ -113,11 +128,11 @@ export default function PrivacidadePage() {
           </ul>
         </section>
 
-        {/* 5. Compartilhamento */}
+        {/* 6. Compartilhamento */}
         <section className="mb-6">
-          <h2 className="mb-2 text-lg font-semibold">5. Compartilhamento de dados</h2>
+          <h2 className="mb-2 text-lg font-semibold">6. Compartilhamento de dados</h2>
           <p className="mb-2 text-sm text-muted">
-            <strong>Nunca vendemos seus dados.</strong> O compartilhamento ocorre apenas nos seguintes casos:
+            <strong>Não vendemos seus dados.</strong> O compartilhamento ocorre apenas nos seguintes casos:
           </p>
           <ul className="list-inside list-disc space-y-1 text-sm text-muted">
             <li><strong>Acesso profissional:</strong> quando você gera um link e compartilha o PIN com um profissional de saúde, ele pode visualizar seus dados em modo somente leitura. Você pode revogar o acesso a qualquer momento.</li>
@@ -128,9 +143,30 @@ export default function PrivacidadePage() {
           </ul>
         </section>
 
-        {/* 6. Retenção */}
+        {/* 7. Transferência internacional */}
         <section className="mb-6">
-          <h2 className="mb-2 text-lg font-semibold">6. Retenção e exclusão</h2>
+          <h2 className="mb-2 text-lg font-semibold">7. Transferência internacional de dados</h2>
+          <p className="text-sm text-muted">
+            Alguns dos nossos operadores de infraestrutura estão localizados fora do Brasil.
+            Os dados podem ser processados nos seguintes países/regiões:
+          </p>
+          <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-muted">
+            <li><strong>Vercel</strong> (hospedagem): EUA e Europa.</li>
+            <li><strong>Neon</strong> (banco de dados PostgreSQL): EUA.</li>
+            <li><strong>Anthropic</strong> (narrativa de IA, sob demanda): EUA.</li>
+            <li><strong>Sentry</strong> (monitoramento de erros, sem PII): EUA.</li>
+            <li><strong>Cloudflare</strong> (proxy para Apple Health): rede global.</li>
+          </ul>
+          <p className="mt-2 text-sm text-muted">
+            A transferência é realizada com base no seu consentimento (LGPD, art. 33, VIII) e
+            mediante contratos que exigem padrão de proteção equivalente ao brasileiro. Todos os
+            operadores listados mantêm políticas de segurança e privacidade públicas e auditáveis.
+          </p>
+        </section>
+
+        {/* 8. Retenção */}
+        <section className="mb-6">
+          <h2 className="mb-2 text-lg font-semibold">8. Retenção e exclusão</h2>
           <ul className="list-inside list-disc space-y-1 text-sm text-muted">
             <li><strong>Dados da conta:</strong> mantidos enquanto sua conta estiver ativa.</li>
             <li><strong>Logs de acesso:</strong> purgados automaticamente após 90 dias.</li>
@@ -139,9 +175,20 @@ export default function PrivacidadePage() {
           </ul>
         </section>
 
-        {/* 7. Direitos */}
+        {/* 9. Incidentes de segurança */}
         <section className="mb-6">
-          <h2 className="mb-2 text-lg font-semibold">7. Seus direitos (LGPD, art. 18)</h2>
+          <h2 className="mb-2 text-lg font-semibold">9. Incidentes de segurança</h2>
+          <p className="text-sm text-muted">
+            Em caso de incidente de segurança que possa acarretar risco ou dano relevante aos
+            titulares, comunicaremos você e a Autoridade Nacional de Proteção de Dados (ANPD)
+            em prazo razoável, conforme o art. 48 da LGPD, informando a natureza dos dados
+            afetados, os riscos envolvidos e as medidas adotadas.
+          </p>
+        </section>
+
+        {/* 10. Direitos */}
+        <section className="mb-6">
+          <h2 className="mb-2 text-lg font-semibold">10. Seus direitos (LGPD, art. 18)</h2>
           <p className="mb-2 text-sm text-muted">Você tem direito a:</p>
           <ul className="list-inside list-disc space-y-1 text-sm text-muted">
             <li>Confirmar a existência de tratamento dos seus dados.</li>
@@ -154,18 +201,18 @@ export default function PrivacidadePage() {
           </ul>
         </section>
 
-        {/* 8. Cookies */}
+        {/* 11. Cookies */}
         <section className="mb-6">
-          <h2 className="mb-2 text-lg font-semibold">8. Cookies</h2>
+          <h2 className="mb-2 text-lg font-semibold">11. Cookies</h2>
           <p className="text-sm text-muted">
             Utilizamos apenas cookies essenciais para funcionamento da autenticação (cookie de sessão
             HttpOnly). Não utilizamos cookies de rastreamento, publicidade ou analytics de terceiros.
           </p>
         </section>
 
-        {/* 9. Menores */}
+        {/* 12. Menores */}
         <section className="mb-6">
-          <h2 className="mb-2 text-lg font-semibold">9. Menores de idade</h2>
+          <h2 className="mb-2 text-lg font-semibold">12. Menores de idade</h2>
           <p className="text-sm text-muted">
             O Suporte Bipolar é destinado a maiores de 18 anos. Não coletamos intencionalmente dados
             de menores. Se identificarmos uma conta de menor de idade, ela será encerrada e os dados
@@ -173,32 +220,35 @@ export default function PrivacidadePage() {
           </p>
         </section>
 
-        {/* 10. Alterações */}
+        {/* 13. Alterações */}
         <section className="mb-6">
-          <h2 className="mb-2 text-lg font-semibold">10. Alterações nesta política</h2>
+          <h2 className="mb-2 text-lg font-semibold">13. Alterações nesta política</h2>
           <p className="text-sm text-muted">
             Podemos atualizar esta política periodicamente. Alterações relevantes serão comunicadas no
             aplicativo. A data de última atualização estará sempre visível no topo desta página.
           </p>
         </section>
 
-        {/* 11. Contato */}
+        {/* 14. Contato */}
         <section className="mb-6">
-          <h2 className="mb-2 text-lg font-semibold">11. Contato e encarregado (DPO)</h2>
+          <h2 className="mb-2 text-lg font-semibold">14. Encarregado de dados (DPO) e contato</h2>
           <p className="text-sm text-muted">
-            Para dúvidas sobre privacidade, solicitações de direitos ou reclamações, entre em contato:
+            O encarregado pelo tratamento de dados pessoais (DPO) do Suporte Bipolar é
+            Julio Yamada. Para exercer seus direitos, tirar dúvidas sobre privacidade ou
+            registrar reclamações:
           </p>
           <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-muted">
+            <li><strong>E-mail do encarregado:</strong> privacidade@suportebipolar.com</li>
+            <li><strong>E-mail geral:</strong> contato@suportebipolar.com</li>
             <li><strong>Instagram:</strong>{" "}
               <a href="https://instagram.com/suportebipolar" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
                 @suportebipolar
               </a>
             </li>
-            <li><strong>E-mail:</strong> contato@suportebipolar.com</li>
           </ul>
           <p className="mt-2 text-sm text-muted">
-            Caso sua solicitação não seja atendida, você pode recorrer à Autoridade Nacional de
-            Proteção de Dados (ANPD).
+            Caso sua solicitação não seja atendida em prazo razoável, você pode recorrer à
+            Autoridade Nacional de Proteção de Dados (ANPD).
           </p>
         </section>
       </main>

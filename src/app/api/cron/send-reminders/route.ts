@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as Sentry from "@sentry/nextjs";
 import { prisma } from "@/lib/db";
-import { sendPush, PushPayload } from "@/lib/web-push";
+import { sendPush, type PushPayload, type PushResult } from "@/lib/web-push";
 
 /**
  * Cron: Send Web Push reminders to users whose reminder time matches NOW.
@@ -116,20 +116,22 @@ export async function GET(request: NextRequest) {
       // Send each payload to each subscription
       for (const payload of payloads) {
         for (const sub of userSubs) {
-          const ok = await sendPush(
+          const result: PushResult = await sendPush(
             { endpoint: sub.endpoint, p256dh: sub.p256dh, auth: sub.auth },
             payload,
           );
-          if (ok) {
+          if (result.ok) {
             sent++;
-          } else {
+          } else if (result.reason === "expired") {
+            // Only delete subscriptions confirmed expired (404/410)
             expiredEndpoints.push(sub.id);
           }
+          // "transient" and "config" errors: skip silently, keep subscription
         }
       }
     }
 
-    // Clean up expired/invalid subscriptions
+    // Clean up only confirmed expired subscriptions
     if (expiredEndpoints.length > 0) {
       await prisma.pushSubscription.deleteMany({
         where: { id: { in: expiredEndpoints } },

@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { z } from "zod/v4";
 import type { InsightsResult } from "@/lib/insights/computeInsights";
 
 const anthropic = new Anthropic({
@@ -12,9 +13,28 @@ export interface NarrativeResult {
   generatedAt: string;   // ISO date
 }
 
+const narrativeSchema = z.object({
+  summary: z.string().min(1).max(5000),
+  highlights: z.array(z.string().max(500)).max(10),
+  suggestions: z.array(z.string().max(500)).max(10),
+});
+
+/** Phrases that violate clinical guardrails — if present, fall back. */
+const FORBIDDEN_PATTERNS = [
+  /\bdiagn[oó]stic/i,
+  /\bajust(?:e|ar|ando)\s+(?:a\s+)?medica[çc][ãa]o/i,
+  /\bvoc[êe]\s+(?:tem|possui|sofre\s+de)\s+/i,
+  /\bcausa(?:do|da|r)\s+(?:por|pelo|pela)\b/i,
+  /\brecomend(?:o|amos)\s+(?:que\s+)?(?:par|tom|aument|diminu)/i,
+];
+
+function containsForbiddenContent(text: string): boolean {
+  return FORBIDDEN_PATTERNS.some((p) => p.test(text));
+}
+
 function getSafeFallback(): NarrativeResult {
   return {
-    summary: "Não foi possível gerar a análise narrativa neste momento. Consulte os dados numéricos nos cards acima e converse com seu profissional de saúde sobre as tendências observadas.",
+    summary: "Não foi possível gerar o resumo neste momento. Consulte os dados numéricos nos cards acima e converse com seu profissional de saúde sobre as tendências observadas.",
     highlights: [],
     suggestions: ["Revise os dados numéricos dos insights acima", "Converse com seu profissional sobre as tendências"],
     generatedAt: new Date().toISOString(),
@@ -131,33 +151,42 @@ Responda APENAS com JSON válido no formato:
 
     const text = response.content[0].type === "text" ? response.content[0].text : "";
 
+    // Guard: reject oversized responses (>10KB)
+    if (text.length > 10_000) return getSafeFallback();
+
     // Try parsing the response as JSON directly first
-    let parsed: Record<string, unknown> | null = null;
+    let raw: unknown = null;
     try {
-      parsed = JSON.parse(text);
+      raw = JSON.parse(text);
     } catch {
       // If direct parse fails, try extracting JSON from markdown fences
       const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
       if (jsonMatch?.[1]) {
         try {
-          parsed = JSON.parse(jsonMatch[1].trim());
+          raw = JSON.parse(jsonMatch[1].trim());
         } catch {
           // Last resort: find outermost braces
           const braceMatch = text.match(/\{[\s\S]*\}/);
           if (braceMatch) {
-            parsed = JSON.parse(braceMatch[0]);
+            raw = JSON.parse(braceMatch[0]);
           }
         }
       }
     }
 
-    if (!parsed) return getSafeFallback();
+    if (!raw) return getSafeFallback();
 
-    const summary = typeof parsed.summary === "string" ? parsed.summary : "";
-    const highlights = Array.isArray(parsed.highlights) ? parsed.highlights.filter((h): h is string => typeof h === "string") : [];
-    const suggestions = Array.isArray(parsed.suggestions) ? parsed.suggestions.filter((s): s is string => typeof s === "string") : [];
+    // Validate with zod schema
+    const parsed = narrativeSchema.safeParse(raw);
+    if (!parsed.success) return getSafeFallback();
+
+    const { summary, highlights, suggestions } = parsed.data;
 
     if (!summary && highlights.length === 0) return getSafeFallback();
+
+    // Check for forbidden clinical content
+    const allText = [summary, ...highlights, ...suggestions].join(" ");
+    if (containsForbiddenContent(allText)) return getSafeFallback();
 
     return {
       summary,

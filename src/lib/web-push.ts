@@ -24,13 +24,16 @@ export interface PushPayload {
   url?: string;
 }
 
+export type PushResult =
+  | { ok: true }
+  | { ok: false; reason: "expired" | "transient" | "config" };
+
 export async function sendPush(
   subscription: { endpoint: string; p256dh: string; auth: string },
   payload: PushPayload,
-): Promise<boolean> {
+): Promise<PushResult> {
   if (!ensureVapid()) {
-    // VAPID not configured — push is disabled, return early
-    return false;
+    return { ok: false, reason: "config" };
   }
   try {
     await webPush.sendNotification(
@@ -42,16 +45,16 @@ export async function sendPush(
         },
       },
       JSON.stringify(payload),
-      { TTL: 14400 }, // 4 hours — adequate for morning reminders
+      { TTL: 1800 }, // 30 minutes — avoid stale reminders arriving hours late
     );
-    return true;
+    return { ok: true };
   } catch (err: unknown) {
     const statusCode = (err as { statusCode?: number }).statusCode;
     // 404 or 410 means subscription is no longer valid
     if (statusCode === 404 || statusCode === 410) {
-      return false; // Caller should delete the subscription
+      return { ok: false, reason: "expired" };
     }
     console.error("Web Push error:", err);
-    return false;
+    return { ok: false, reason: "transient" };
   }
 }

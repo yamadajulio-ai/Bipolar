@@ -54,8 +54,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Not configured" }, { status: 503 });
   }
 
+  // Reject oversized payloads (max 256KB — Meta payloads are typically <10KB)
+  const contentLength = request.headers.get("content-length");
+  if (contentLength && parseInt(contentLength, 10) > 256 * 1024) {
+    return NextResponse.json({ error: "Payload too large" }, { status: 413 });
+  }
+
   // Read raw body for signature verification
   const rawBody = await request.text();
+
+  // Double-check actual body size after reading
+  if (rawBody.length > 256 * 1024) {
+    return NextResponse.json({ error: "Payload too large" }, { status: 413 });
+  }
 
   // Validate X-Hub-Signature-256 before processing
   const signature = request.headers.get("x-hub-signature-256");

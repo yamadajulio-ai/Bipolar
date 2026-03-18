@@ -5,11 +5,15 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/security";
 
+const MAX_SUBSCRIPTIONS_PER_USER = 5;
+
 const subscribeSchema = z.object({
-  endpoint: z.string().url(),
+  endpoint: z.string().url().max(2048),
   keys: z.object({
-    p256dh: z.string().min(1),
-    auth: z.string().min(1),
+    // p256dh: base64url-encoded P-256 public key (65 bytes raw = 88 chars base64)
+    p256dh: z.string().min(10).max(200).regex(/^[A-Za-z0-9_-]+={0,2}$/),
+    // auth: base64url-encoded auth secret (16 bytes raw = 24 chars base64)
+    auth: z.string().min(10).max(50).regex(/^[A-Za-z0-9_-]+={0,2}$/),
   }),
 });
 
@@ -35,6 +39,27 @@ export async function POST(request: NextRequest) {
 
     if (!parsed.success) {
       return NextResponse.json({ error: "Dados inválidos" }, { status: 400 });
+    }
+
+    // Cap subscriptions per user to prevent abuse
+    const existingCount = await prisma.pushSubscription.count({
+      where: { userId: session.userId },
+    });
+    const isUpdate = await prisma.pushSubscription.findUnique({
+      where: {
+        userId_endpoint: {
+          userId: session.userId,
+          endpoint: parsed.data.endpoint,
+        },
+      },
+      select: { id: true },
+    });
+
+    if (!isUpdate && existingCount >= MAX_SUBSCRIPTIONS_PER_USER) {
+      return NextResponse.json(
+        { error: "Limite de dispositivos atingido. Remova um dispositivo antes de adicionar outro." },
+        { status: 409 },
+      );
     }
 
     await prisma.pushSubscription.upsert({

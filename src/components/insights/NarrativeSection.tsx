@@ -20,7 +20,7 @@ export function NarrativeSection() {
     setError(null);
 
     try {
-      const res = await fetch("/api/insights-narrative");
+      const res = await fetch("/api/insights-narrative", { method: "POST" });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || "Erro ao gerar narrativa");

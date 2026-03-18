@@ -23,11 +23,19 @@ export interface Achievement {
   target?: number;
 }
 
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Filter only valid YYYY-MM-DD strings. */
+function sanitizeDates(dates: string[]): string[] {
+  return dates.filter((d) => DATE_RE.test(d));
+}
+
 /** Compute current streak from a sorted (desc) list of date strings. */
 export function computeCurrentStreak(dates: string[], today: string): number {
-  if (dates.length === 0) return 0;
+  const valid = sanitizeDates(dates);
+  if (valid.length === 0 || !DATE_RE.test(today)) return 0;
 
-  const dateSet = new Set(dates);
+  const dateSet = new Set(valid);
   let streak = 0;
   const d = new Date(today + "T12:00:00");
 
@@ -41,9 +49,10 @@ export function computeCurrentStreak(dates: string[], today: string): number {
 
 /** Compute longest streak from a sorted (asc) list of date strings. */
 export function computeLongestStreak(dates: string[]): number {
-  if (dates.length === 0) return 0;
+  const valid = sanitizeDates(dates);
+  if (valid.length === 0) return 0;
 
-  const unique = [...new Set(dates)].sort();
+  const unique = [...new Set(valid)].sort();
   let longest = 1;
   let current = 1;
 

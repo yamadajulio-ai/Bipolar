@@ -116,6 +116,7 @@ export default function CognitivoPage() {
       {task === "results" && (
         <ResultsScreen
           result={result}
+          history={history}
           onBack={() => setTask("menu")}
           onReset={() => {
             setResult({ reactionTimeMs: null, digitSpan: null, timestamp: new Date().toISOString() });
@@ -227,7 +228,7 @@ function getReactionLevel(ms: number): { label: string; color: string; emoji: st
 function getDigitLevel(span: number): { label: string; color: string; emoji: string; detail: string } {
   if (span >= 9) return { label: "Excelente", color: "text-green-500", emoji: "🟢", detail: "Memória de trabalho acima da média. Capacidade excelente de retenção de informações." };
   if (span >= 7) return { label: "Bom", color: "text-green-400", emoji: "🟢", detail: "Dentro da média (7±2, Miller 1956). Memória de trabalho funcionando bem." };
-  if (span >= 5) return { label: "Normal", color: "text-amber-400", emoji: "🟡", detail: "Ligeiramente abaixo da média geral, mas dentro do esperado para pessoas com TAB em eutimia (~6, Bora et al. 2009)." };
+  if (span >= 5) return { label: "Normal", color: "text-amber-400", emoji: "🟡", detail: "Ligeiramente abaixo da média geral, mas dentro do esperado para pessoas com transtorno bipolar em fase estável (~6, Bora et al. 2009)." };
   if (span >= 4) return { label: "Abaixo da média", color: "text-orange-400", emoji: "🟠", detail: "Abaixo do esperado. Pode estar relacionado a episódio atual, efeito de medicação, ou fadiga. Acompanhe a evolução." };
   return { label: "Reduzido", color: "text-red-400", emoji: "🔴", detail: "Significativamente abaixo da média. Dificuldade de memória de trabalho pode indicar fase ativa ou efeito medicamentoso. Vale discutir com seu profissional." };
 }
@@ -254,9 +255,10 @@ function GaugeBar({ value, min, max, zones }: { value: number; min: number; max:
   );
 }
 
-function ResultsScreen({ result, onBack, onReset, onSaved }: { result: TaskResult; onBack: () => void; onReset: () => void; onSaved: (entry: HistoryEntry) => void }) {
+function ResultsScreen({ result, history, onBack, onReset, onSaved }: { result: TaskResult; history: HistoryEntry[]; onBack: () => void; onReset: () => void; onSaved: (entry: HistoryEntry) => void }) {
   const [saved, setSaved] = useState(false);
   const saveAttempted = useRef(false);
+  const [savedId, setSavedId] = useState<string | null>(null);
 
   const hasReaction = result.reactionTimeMs !== null;
   const hasDigits = result.digitSpan !== null;
@@ -280,6 +282,7 @@ function ResultsScreen({ result, onBack, onReset, onSaved }: { result: TaskResul
       .then((data) => {
         if (data) {
           setSaved(true);
+          setSavedId(data.id);
           onSaved(data);
         }
       })
@@ -392,7 +395,7 @@ function ResultsScreen({ result, onBack, onReset, onSaved }: { result: TaskResul
           </div>
           <p className="mt-3 text-xs leading-relaxed text-muted">{digitInfo.detail}</p>
           <p className="mt-1 text-[10px] text-muted italic">
-            Ref: média 7±2 (Miller, 1956). TAB em eutimia: ~6 (Bora et al., 2009)
+            Ref: média 7±2 (Miller, 1956). Bipolar em fase estável: ~6 (Bora et al., 2009)
           </p>
         </Card>
       )}
@@ -413,8 +416,8 @@ function ResultsScreen({ result, onBack, onReset, onSaved }: { result: TaskResul
         </div>
       </Card>
 
-      {/* Trend comparison */}
-      <TrendSummary history={[]} currentResult={result} />
+      {/* Trend comparison — exclude the just-saved entry so current result isn't compared against itself */}
+      <TrendSummary history={savedId ? history.filter((h) => h.id !== savedId) : history} currentResult={result} />
 
       {/* Suggestions */}
       <Card>

@@ -65,7 +65,7 @@ export function MoodThermometer({ data }: Props) {
           {data.mixedStrength === "forte" ? (
             <>
               <strong>Sinais mistos detectados:</strong> indicadores de rebaixamento e ativação
-              elevados simultaneamente. Estados mistos podem ser difíceis de identificar sozinho.
+              elevados simultaneamente. Quando humor e energia vão em direções opostas, pode ser difícil de identificar sozinho.
               Considere conversar com seu profissional.
             </>
           ) : (

@@ -12,8 +12,8 @@ export default function CheckinPage() {
   const router = useRouter();
   const [mood, setMood] = useState(3);
   const [energy, setEnergy] = useState(3);
-  const [anxiety, setAnxiety] = useState(1);
-  const [irritability, setIrritability] = useState(1);
+  const [anxiety, setAnxiety] = useState<number | null>(null);
+  const [irritability, setIrritability] = useState<number | null>(null);
   const [sleepHours, setSleepHours] = useState("7");
   const [medication, setMedication] = useState("sim");
   const [showSigns, setShowSigns] = useState(false);
@@ -33,6 +33,12 @@ export default function CheckinPage() {
   async function handleSubmit() {
     setSaving(true);
     setError("");
+
+    if (anxiety === null || irritability === null) {
+      setError("Selecione um nível para ansiedade e irritabilidade.");
+      setSaving(false);
+      return;
+    }
 
     try {
       const res = await fetch("/api/diario", {
@@ -57,7 +63,7 @@ export default function CheckinPage() {
       }
 
       setSuccess(true);
-      setTimeout(() => router.push("/hoje"), 1500);
+      setTimeout(() => router.push("/hoje"), 2500);
     } catch {
       setError("Erro de conexão. Tente novamente.");
     } finally {

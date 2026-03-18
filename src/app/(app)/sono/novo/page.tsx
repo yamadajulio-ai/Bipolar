@@ -40,6 +40,7 @@ export default function NovoSonoPage() {
   const router = useRouter();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
   const [quality, setQuality] = useState(60);
   const [bedtime, setBedtime] = useState("23:00");
   const [wakeTime, setWakeTime] = useState("07:00");
@@ -87,13 +88,27 @@ export default function NovoSonoPage() {
         return;
       }
 
-      router.push("/sono");
-      router.refresh();
+      setSuccess(true);
+      setTimeout(() => {
+        router.push("/sono");
+        router.refresh();
+      }, 2000);
     } catch {
       setError("Erro de conexão. Tente novamente.");
     } finally {
       setLoading(false);
     }
+  }
+
+  if (success) {
+    return (
+      <div className="mx-auto max-w-lg">
+        <Card className="text-center py-8">
+          <p className="text-lg font-semibold text-foreground">Registro de sono salvo!</p>
+          <p className="text-sm text-muted mt-2">Redirecionando...</p>
+        </Card>
+      </div>
+    );
   }
 
   return (

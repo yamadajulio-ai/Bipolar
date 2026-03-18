@@ -14,7 +14,6 @@ export default function CadastroPage() {
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setLoading(true);
     setError("");
     setErrors({});
 
@@ -28,6 +27,8 @@ export default function CadastroPage() {
       setError("Você precisa consentir com o tratamento de dados de saúde.");
       return;
     }
+
+    setLoading(true);
 
     const data = {
       email: formData.get("email") as string,

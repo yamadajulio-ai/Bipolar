@@ -16,7 +16,7 @@ export default function PlanejadorPage() {
     <div>
       <h1 className="mb-4 text-2xl font-bold">Agenda - Rotina</h1>
       <p className="mb-4 text-sm text-muted">
-        Seus eventos do Google Calendar aparecem automaticamente. Âncoras protegem sua estabilidade.
+        Seus eventos do Google Calendar aparecem automaticamente. Manter horários regulares protege sua estabilidade.
       </p>
       <WeeklyView initialWeekStart={mondayStr} />
     </div>

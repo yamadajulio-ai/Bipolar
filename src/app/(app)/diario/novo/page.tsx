@@ -71,7 +71,7 @@ function generateFeedback(data: SavedData): { title: string; message: string; va
   if (data.anxietyLevel >= 4 && data.irritability >= 4) {
     tips.push({
       title: "Ansiedade e irritabilidade altas",
-      message: "Essa combinação pode indicar um estado misto ou estresse intenso. Exercícios de respiração podem ajudar agora — e vale mencionar ao profissional.",
+      message: "Essa combinação de humor e energia pode indicar estresse intenso ou instabilidade. Exercícios de respiração podem ajudar agora — e vale mencionar ao profissional.",
       variant: "warning",
     });
   }

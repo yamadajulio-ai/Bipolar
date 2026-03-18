@@ -129,12 +129,12 @@ export default function AvaliacaoSemanalPage() {
           </p>
           {asrmTotal >= 6 && (
             <p className="mt-2 text-sm text-amber-400">
-              Mania: {asrmTotal}/20 — pode ser útil compartilhar esse resultado com seu profissional de saúde.
+              Sinais de humor elevado detectados (pontuação {asrmTotal}) — pode ser útil compartilhar esse resultado com seu profissional de saúde.
             </p>
           )}
           {phq9Total >= 10 && (
             <p className="mt-2 text-sm text-blue-400">
-              Depressão: {phq9Total}/27 — considere compartilhar esse resultado na sua próxima consulta.
+              Sinais de humor baixo detectados (pontuação {phq9Total}) — considere compartilhar esse resultado na sua próxima consulta.
             </p>
           )}
           <button

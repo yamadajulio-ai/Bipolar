@@ -25,14 +25,14 @@ const MODULES: PlaybookModule[] = [
     summary:
       "O transtorno bipolar é uma condição de saúde — não uma escolha ou falha de caráter. Entender o que acontece no cérebro ajuda a ter empatia e reduzir julgamentos.",
     keyPoints: [
-      "TAB envolve alterações no humor, energia e sono que vão além do normal",
+      "O transtorno bipolar envolve alterações no humor, energia e sono que vão além do normal",
       "Existem diferentes tipos: Bipolar I, II e ciclotimia — cada um com características próprias",
       "O tratamento combina medicação e rotina — ambos são essenciais",
       "Episódios podem ser precedidos por sinais de alerta, como mudanças no sono",
-      "A pessoa com TAB não controla os episódios — apoio sem julgamento faz diferença",
+      "A pessoa com transtorno bipolar não controla os episódios — apoio sem julgamento faz diferença",
     ],
     checklist: [
-      { label: "Li sobre os tipos de TAB", detail: "Bipolar I, II e ciclotimia têm diferenças importantes" },
+      { label: "Li sobre os tipos de transtorno bipolar", detail: "Bipolar I, II e ciclotimia têm diferenças importantes" },
       { label: "Entendo que episódios não são escolhas", detail: "Evite frases como 'é só se controlar'" },
       { label: "Sei que o tratamento é contínuo", detail: "Mesmo em fases estáveis, a medicação é essencial" },
       { label: "Conheço os sinais de alerta precoces", detail: "Mudanças no sono, energia e irritabilidade" },
@@ -45,7 +45,7 @@ const MODULES: PlaybookModule[] = [
     icon: "💬",
     duration: "4 min",
     summary:
-      "A forma como você se comunica pode ser o maior fator de proteção — ou de estresse — para quem vive com TAB. Escuta ativa e linguagem não-julgadora fazem diferença real.",
+      "A forma como você se comunica pode ser o maior fator de proteção — ou de estresse — para quem vive com transtorno bipolar. Escuta ativa e linguagem não-julgadora fazem diferença real.",
     keyPoints: [
       "Escute sem interromper. Frases como 'isso vai passar' invalidam sentimentos reais",
       "Use 'eu percebi que...' em vez de 'você está...' — reduz a defensividade",
@@ -95,7 +95,7 @@ const MODULES: PlaybookModule[] = [
       "Sinais de depressão: mais sono, isolamento, perda de interesse, lentidão, choro fácil",
       "Cada pessoa tem seus próprios sinais — crie uma lista personalizada em momentos estáveis",
       "Mudança no sono é o sinal mais consistente e precoce em pesquisas",
-      "Não confunda um bom dia com hipomania: eutimia (estabilidade) é o estado ideal",
+      "Não confunda um bom dia com hipomania: estabilidade é o estado ideal",
     ],
     checklist: [
       { label: "Criamos lista de sinais pessoais de mania", detail: "Os sinais que meu familiar específico apresenta" },
@@ -153,11 +153,23 @@ const MODULES: PlaybookModule[] = [
 
 export default function FamiliasPage() {
   const [openModule, setOpenModule] = useState<string | null>(null);
-  const [checked, setChecked] = useState<Record<string, boolean>>({});
+  const [checked, setChecked] = useState<Record<string, boolean>>(() => {
+    if (typeof window === "undefined") return {};
+    try {
+      const saved = localStorage.getItem("familias-checklist");
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
 
   function toggleCheck(moduleId: string, idx: number) {
     const key = `${moduleId}-${idx}`;
-    setChecked((prev) => ({ ...prev, [key]: !prev[key] }));
+    setChecked((prev) => {
+      const next = { ...prev, [key]: !prev[key] };
+      try { localStorage.setItem("familias-checklist", JSON.stringify(next)); } catch {}
+      return next;
+    });
   }
 
   function moduleProgress(moduleId: string, total: number): number {

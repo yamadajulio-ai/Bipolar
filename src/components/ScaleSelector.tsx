@@ -5,7 +5,7 @@ import { useId } from "react";
 
 interface ScaleSelectorProps {
   label: string;
-  value: number;
+  value: number | null;
   onChange: (value: number) => void;
   labels: Record<number, string>;
   required?: boolean;

@@ -28,7 +28,10 @@ export default function ExerciciosPage() {
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-bold">Exercícios</h1>
+      <h1 className="mb-2 text-2xl font-bold">Exercícios</h1>
+      <p className="mb-6 text-sm text-muted">
+        Técnicas guiadas para momentos de ansiedade, tensão ou dificuldade para dormir. Use quando precisar, sem pressa.
+      </p>
 
       <section className="mb-8">
         <h2 className="mb-4 text-lg font-semibold text-foreground">Respiração</h2>

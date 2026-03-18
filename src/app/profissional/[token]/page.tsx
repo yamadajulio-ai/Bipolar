@@ -162,8 +162,9 @@ export default function ProfessionalDashboard() {
           </p>
 
           <input
-            type="password"
+            type="text"
             inputMode="numeric"
+            pattern="[0-9]*"
             autoComplete="one-time-code"
             maxLength={6}
             value={pin}
@@ -262,7 +263,7 @@ export default function ProfessionalDashboard() {
         {/* Risk + Combined Patterns */}
         {insights.risk && (
           <Card className="mb-4">
-            <h2 className="mb-2 text-sm font-semibold">Status Heurístico</h2>
+            <h2 className="mb-2 text-sm font-semibold">Resumo Automático</h2>
             <div className="flex items-center gap-3">
               <span
                 className={`rounded-full px-3 py-1 text-xs font-bold ${
@@ -597,8 +598,8 @@ export default function ProfessionalDashboard() {
         )}
 
         <p className="mt-6 text-center text-[10px] text-muted">
-          Dados gerados automaticamente pela Suporte Bipolar.
-          Indicadores heurísticos educacionais — uso clínico requer interpretação profissional.
+          Dados gerados automaticamente pelo Suporte Bipolar.
+          Indicadores educacionais — uso clínico requer interpretação profissional.
           Paciente autorizou compartilhamento conforme a LGPD e termos de consentimento aplicáveis.
         </p>
       </div>

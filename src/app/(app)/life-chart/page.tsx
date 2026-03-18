@@ -178,7 +178,7 @@ export default function LifeChartPage() {
               value={label}
               onChange={(e) => setLabel(e.target.value)}
               maxLength={200}
-              placeholder="Ex: Trocou lítio por valproato"
+              placeholder="Ex: Mudança de medicação"
               className="block w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground"
             />
           </div>

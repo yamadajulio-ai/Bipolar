@@ -39,9 +39,9 @@ export default async function ContaPage() {
       <Card className="mb-6">
         <h2 className="mb-2 font-semibold">Excluir conta</h2>
         <p className="mb-3 text-sm text-muted">
-          Ao excluir sua conta, todos os seus dados (registros de diário,
-          dados de acesso) serão permanentemente removidos. Esta ação não
-          pode ser desfeita.
+          Ao excluir sua conta, todos os seus dados (check-ins, sono,
+          avaliações, finanças, integrações e registros de acesso) serão
+          permanentemente removidos. Esta ação não pode ser desfeita.
         </p>
         <Alert variant="danger" className="mb-3">
           Esta ação é irreversível. Todos os seus dados serão excluídos permanentemente.

@@ -10,11 +10,84 @@ function IconCheck() {
     </svg>
   );
 }
-function IconNum({ n }: { n: number }) {
+
+function IconMood() {
   return (
-    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-white">
-      {n}
-    </span>
+    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+    </svg>
+  );
+}
+
+function IconMoon() {
+  return (
+    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
+    </svg>
+  );
+}
+
+function IconClipboard() {
+  return (
+    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z" />
+    </svg>
+  );
+}
+
+function IconClock() {
+  return (
+    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  );
+}
+
+function IconShield() {
+  return (
+    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+    </svg>
+  );
+}
+
+function IconHeart() {
+  return (
+    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+    </svg>
+  );
+}
+
+function IconPhone() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
+    </svg>
+  );
+}
+
+function IconLink() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+    </svg>
+  );
+}
+
+function IconBrain() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
+    </svg>
+  );
+}
+
+function IconLock() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+    </svg>
   );
 }
 
@@ -37,254 +110,136 @@ export default function LandingPage() {
           <div className="pointer-events-none absolute bottom-0 left-[10%] h-48 w-48 rounded-full bg-primary/5 blur-3xl" />
 
           <div className="relative mx-auto max-w-3xl px-5 pb-12 pt-14 text-center md:pb-16 md:pt-20">
+            <p className="mb-4 text-sm font-medium text-primary">
+              Para pessoas com transtorno bipolar
+            </p>
+
             <h1 className="text-3xl font-bold leading-tight tracking-tight text-foreground md:text-5xl">
-              Acompanhe seus padrões.{" "}
-              <span className="text-primary">Perceba mudanças cedo.</span>
+              Seus dados organizados.{" "}
+              <span className="text-primary">Mudanças percebidas cedo.</span>
             </h1>
 
             <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-muted md:text-lg">
-              Registre humor, sono e energia em 30&nbsp;segundos. Receba insights
-              sobre seus padrões e compartilhe com seu profissional de saúde.
+              Sono e sinais do corpo entram do wearable. Sua rotina entra da agenda.
+              Você faz um check-in rápido de humor e energia. O app cruza tudo e
+              mostra sinais de estabilidade, risco e mudanças — antes que você perceba.
             </p>
 
             <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
               <Link
                 href="/cadastro"
-                className="w-full rounded-xl bg-primary px-8 py-4 text-base font-semibold text-white no-underline shadow-md transition-colors hover:bg-primary-dark sm:w-auto"
+                className="w-full rounded-xl bg-primary px-8 py-4 text-base font-semibold text-white no-underline shadow-md transition-all hover:bg-primary-dark hover:shadow-lg sm:w-auto"
               >
-                Começar gratuitamente
+                Criar conta gratuita
+              </Link>
+              <Link
+                href="/login"
+                className="w-full rounded-xl border border-border bg-surface px-8 py-4 text-base font-semibold text-foreground no-underline transition-colors hover:bg-surface-alt sm:w-auto"
+              >
+                Entrar
               </Link>
             </div>
 
             <p className="mt-3 text-xs text-muted">
-              Gratuito, sem anúncios · Leva 30&nbsp;segundos
+              100% gratuito · sem anúncios · sem plano premium
             </p>
 
-            <p className="mt-10 text-xs text-muted/70">
-              Conteúdo educacional — não substitui avaliação profissional.
+            <p className="mt-8 rounded-xl border border-border bg-surface-alt px-4 py-2.5 text-xs text-muted inline-block">
+              Conteúdo educacional — não substitui avaliação profissional
             </p>
           </div>
         </section>
 
-        {/* ─── PRODUCT SHOWCASE — iPhone mockups ────────────────── */}
-        <section className="overflow-hidden bg-background px-5 py-14 md:py-20">
-          <div className="mx-auto max-w-5xl">
-            <h2 className="text-center text-2xl font-bold text-foreground md:text-3xl">
-              Veja o app por dentro
-            </h2>
-            <p className="mx-auto mt-3 max-w-xl text-center text-sm text-muted md:text-base">
-              Telas reais do Suporte Bipolar — feito para o seu dia a dia no iPhone e Android.
-            </p>
-
-            <div className="mt-12 flex justify-center gap-4 md:gap-8">
-              {/* ── iPhone: Dashboard ── */}
-              <div className="w-[200px] shrink-0 md:w-[240px]">
-                <div className="rounded-[2rem] border-[3px] border-foreground/20 bg-foreground/5 p-2 shadow-xl">
-                  {/* Notch */}
-                  <div className="mx-auto mb-2 h-4 w-20 rounded-full bg-foreground/10" />
-                  {/* Screen */}
-                  <div className="rounded-[1.25rem] bg-background p-3 text-[10px] md:text-xs">
-                    {/* Status bar */}
-                    <div className="mb-2 flex items-center justify-between text-[8px] text-muted">
-                      <span>Suporte Bipolar</span>
-                      <span className="rounded bg-red-100 px-1 text-red-700">SOS</span>
-                    </div>
-                    {/* Greeting */}
-                    <p className="font-semibold text-foreground">Bom dia, Julio</p>
-                    {/* Risk card */}
-                    <div className="mt-2 rounded-lg bg-emerald-50 p-2">
-                      <div className="flex items-center gap-1">
-                        <span className="text-[8px]">→</span>
-                        <span className="text-[9px] font-semibold text-emerald-800">Estável</span>
-                      </div>
-                      <p className="mt-0.5 text-[8px] text-emerald-700">Humor e sono regulares</p>
-                    </div>
-                    {/* Estado hoje */}
-                    <div className="mt-2 grid grid-cols-2 gap-1">
-                      <div className="rounded-lg bg-surface p-1.5">
-                        <p className="text-[8px] text-muted">Humor</p>
-                        <p className="font-semibold text-emerald-700">Estável</p>
-                      </div>
-                      <div className="rounded-lg bg-surface p-1.5">
-                        <p className="text-[8px] text-muted">Energia</p>
-                        <p className="font-semibold text-foreground">Normal</p>
-                      </div>
-                      <div className="rounded-lg bg-surface p-1.5">
-                        <p className="text-[8px] text-muted">Sono</p>
-                        <p className="font-semibold text-foreground">7h30</p>
-                      </div>
-                      <div className="rounded-lg bg-surface p-1.5">
-                        <p className="text-[8px] text-muted">Medicação</p>
-                        <p className="font-semibold text-emerald-700">Tomou</p>
-                      </div>
-                    </div>
-                    {/* Mini chart */}
-                    <div className="mt-2 rounded-lg bg-surface p-2">
-                      <p className="text-[8px] font-semibold text-muted">Últimos 7 dias</p>
-                      <div className="mt-1 flex items-end gap-[3px]">
-                        {[60, 50, 55, 65, 60, 55, 58].map((h, i) => (
-                          <div key={i} className="flex-1 rounded-t bg-primary/60" style={{ height: `${h * 0.4}px` }} />
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <p className="mt-3 text-center text-xs font-medium text-muted">Dashboard</p>
-              </div>
-
-              {/* ── iPhone: Check-in ── */}
-              <div className="w-[200px] shrink-0 md:w-[240px]">
-                <div className="rounded-[2rem] border-[3px] border-foreground/20 bg-foreground/5 p-2 shadow-xl">
-                  <div className="mx-auto mb-2 h-4 w-20 rounded-full bg-foreground/10" />
-                  <div className="rounded-[1.25rem] bg-background p-3 text-[10px] md:text-xs">
-                    <p className="mb-3 text-center font-semibold text-foreground">Check-in Rápido</p>
-                    {/* Humor scale */}
-                    <div className="mb-2">
-                      <p className="text-[8px] font-medium text-muted">Como está seu humor?</p>
-                      <div className="mt-1 flex gap-1">
-                        {["bg-blue-400", "bg-sky-400", "bg-emerald-400", "bg-amber-400", "bg-red-400"].map((c, i) => (
-                          <div key={i} className={`flex-1 rounded-md py-1.5 text-center text-[7px] text-white font-medium ${c} ${i === 2 ? "ring-2 ring-foreground/30 scale-105" : "opacity-60"}`}>
-                            {i + 1}
-                          </div>
-                        ))}
-                      </div>
-                      <p className="mt-0.5 text-center text-[7px] text-emerald-700 font-medium">Estável</p>
-                    </div>
-                    {/* Energy scale */}
-                    <div className="mb-2">
-                      <p className="text-[8px] font-medium text-muted">Nível de energia</p>
-                      <div className="mt-1 flex gap-1">
-                        {["bg-blue-400", "bg-sky-400", "bg-emerald-400", "bg-amber-400", "bg-red-400"].map((c, i) => (
-                          <div key={i} className={`flex-1 rounded-md py-1.5 text-center text-[7px] text-white font-medium ${c} ${i === 2 ? "ring-2 ring-foreground/30 scale-105" : "opacity-60"}`}>
-                            {i + 1}
-                          </div>
-                        ))}
-                      </div>
-                      <p className="mt-0.5 text-center text-[7px] text-emerald-700 font-medium">Normal</p>
-                    </div>
-                    {/* Sleep */}
-                    <div className="mb-2">
-                      <p className="text-[8px] font-medium text-muted">Horas de sono</p>
-                      <div className="mt-1 rounded-lg bg-surface px-2 py-1.5 text-center font-semibold text-foreground">7.5h</div>
-                    </div>
-                    {/* Medication */}
-                    <div className="mb-2">
-                      <p className="text-[8px] font-medium text-muted">Medicação</p>
-                      <div className="mt-1 flex gap-1">
-                        <div className="flex-1 rounded-lg bg-emerald-100 py-1.5 text-center text-[8px] font-semibold text-emerald-700">Sim</div>
-                        <div className="flex-1 rounded-lg bg-surface py-1.5 text-center text-[8px] text-muted">Não</div>
-                      </div>
-                    </div>
-                    {/* Submit */}
-                    <div className="mt-3 rounded-xl bg-primary py-2 text-center text-[10px] font-semibold text-white">
-                      Salvar check-in
-                    </div>
-                  </div>
-                </div>
-                <p className="mt-3 text-center text-xs font-medium text-muted">Check-in</p>
-              </div>
-
-              {/* ── iPhone: Insights ── */}
-              <div className="hidden w-[200px] shrink-0 sm:block md:w-[240px]">
-                <div className="rounded-[2rem] border-[3px] border-foreground/20 bg-foreground/5 p-2 shadow-xl">
-                  <div className="mx-auto mb-2 h-4 w-20 rounded-full bg-foreground/10" />
-                  <div className="rounded-[1.25rem] bg-background p-3 text-[10px] md:text-xs">
-                    <p className="mb-3 text-center font-semibold text-foreground">Insights</p>
-                    {/* Thermometer mini */}
-                    <div className="rounded-lg bg-surface p-2">
-                      <p className="text-[8px] font-medium text-muted">Termômetro de humor</p>
-                      <div className="mt-1.5 flex items-center gap-2">
-                        <div className="flex w-5 flex-col gap-px overflow-hidden rounded">
-                          <div className="h-3 bg-red-400" />
-                          <div className="h-3 bg-amber-400" />
-                          <div className="h-4 bg-emerald-400" />
-                          <div className="h-3 bg-sky-400" />
-                          <div className="h-3 bg-blue-400" />
-                        </div>
-                        <div>
-                          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[8px] font-semibold text-emerald-700">Eutimia</span>
-                        </div>
-                      </div>
-                    </div>
-                    {/* Heatmap mini */}
-                    <div className="mt-2 rounded-lg bg-surface p-2">
-                      <p className="text-[8px] font-medium text-muted">Padrão de sono</p>
-                      <div className="mt-1.5 grid grid-cols-7 gap-[2px]">
-                        {Array.from({ length: 21 }).map((_, i) => (
-                          <div key={i} className={`h-2.5 w-2.5 rounded-sm ${heatColor(i)}`} />
-                        ))}
-                      </div>
-                    </div>
-                    {/* Prediction mini */}
-                    <div className="mt-2 rounded-lg bg-surface p-2">
-                      <p className="text-[8px] font-medium text-muted">Risco de episódio</p>
-                      <div className="mt-1 flex items-center gap-2">
-                        <div className="relative flex h-10 w-10 items-center justify-center">
-                          <svg className="h-10 w-10 -rotate-90" viewBox="0 0 36 36">
-                            <circle cx="18" cy="18" r="15.9" fill="none" stroke="#e5e7eb" strokeWidth="3" />
-                            <circle cx="18" cy="18" r="15.9" fill="none" stroke="#4a7c59" strokeWidth="3"
-                              strokeDasharray="25 75" strokeLinecap="round" />
-                          </svg>
-                          <span className="absolute text-[7px] font-bold">Baixo</span>
-                        </div>
-                        <p className="text-[8px] text-muted">14 dias de dados</p>
-                      </div>
-                    </div>
-                    {/* AI Summary mini */}
-                    <div className="mt-2 rounded-lg bg-surface p-2">
-                      <p className="text-[8px] font-medium text-muted">Resumo IA ✨</p>
-                      <p className="mt-1 text-[7px] leading-relaxed text-muted/70">
-                        Humor estável, sono com leve irregularidade nas noites de qui e sex...
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <p className="mt-3 text-center text-xs font-medium text-muted">Insights</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ─── 2. COMO FUNCIONA ────────────────────────────────── */}
+        {/* ─── 2. AUTOMAÇÃO — O QUE ENTRA SOZINHO ────────────── */}
         <section className="px-5 py-14 md:py-20">
           <div className="mx-auto max-w-4xl">
             <h2 className="text-center text-2xl font-bold text-foreground md:text-3xl">
-              Como funciona
+              A maior parte entra sozinha
             </h2>
+            <p className="mx-auto mt-3 max-w-2xl text-center text-sm text-muted md:text-base">
+              Você não precisa preencher tudo na mão. O app importa sono, sinais do corpo,
+              rotina e finanças. Manual fica só o que sensor nenhum entende: humor e energia.
+            </p>
 
-            <div className="mt-12 grid gap-10 md:grid-cols-3 md:gap-8">
-              {/* Step 1 */}
-              <div className="flex flex-col items-center text-center md:items-start md:text-left">
-                <IconNum n={1} />
-                <h3 className="mt-4 text-lg font-semibold text-foreground">
-                  Registre em 30&nbsp;segundos
-                </h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted">
-                  Humor, energia, ansiedade, sono e medicação. Todo dia, no seu ritmo.
+            <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {/* Apple Health */}
+              <div className="flex flex-col items-center rounded-2xl border border-border bg-surface p-6 text-center shadow-sm transition-shadow hover:shadow-md">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-pink-500 to-red-500 shadow-md">
+                  <svg className="h-7 w-7 text-white" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                  </svg>
+                </div>
+                <h3 className="mt-4 text-sm font-semibold text-foreground">Apple Health</h3>
+                <p className="mt-1 text-xs leading-relaxed text-muted">
+                  Sono, FC, HRV e passos do Apple Watch
                 </p>
               </div>
-              {/* Step 2 */}
-              <div className="flex flex-col items-center text-center md:items-start md:text-left">
-                <IconNum n={2} />
-                <h3 className="mt-4 text-lg font-semibold text-foreground">
-                  Veja seus padrões
-                </h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted">
-                  O app cruza seus dados e mostra tendências, correlações e mudanças
-                  que merecem atenção.
+
+              {/* Health Connect */}
+              <div className="flex flex-col items-center rounded-2xl border border-border bg-surface p-6 text-center shadow-sm transition-shadow hover:shadow-md">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-md">
+                  <svg className="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" />
+                  </svg>
+                </div>
+                <h3 className="mt-4 text-sm font-semibold text-foreground">Health Connect</h3>
+                <p className="mt-1 text-xs leading-relaxed text-muted">
+                  Galaxy Watch, Xiaomi Band, Garmin e outros
                 </p>
               </div>
-              {/* Step 3 */}
-              <div className="flex flex-col items-center text-center md:items-start md:text-left">
-                <IconNum n={3} />
-                <h3 className="mt-4 text-lg font-semibold text-foreground">
-                  Compartilhe com seu profissional
-                </h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted">
-                  Gere um link seguro para seu psiquiatra ou terapeuta acompanhar
-                  sua evolução.
+
+              {/* Google Calendar */}
+              <div className="flex flex-col items-center rounded-2xl border border-border bg-surface p-6 text-center shadow-sm transition-shadow hover:shadow-md">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow-md border border-gray-200">
+                  <svg className="h-7 w-7" viewBox="0 0 24 24">
+                    <rect x="3" y="3" width="18" height="18" rx="2" fill="none" stroke="#4285F4" strokeWidth="1.5" />
+                    <path d="M3 9h18M9 3v18" stroke="#4285F4" strokeWidth="1" opacity="0.3" />
+                    <rect x="11" y="11" width="4" height="4" rx="0.5" fill="#EA4335" />
+                    <rect x="11" y="5" width="4" height="4" rx="0.5" fill="#4285F4" />
+                    <rect x="5" y="11" width="4" height="4" rx="0.5" fill="#FBBC04" />
+                    <rect x="5" y="5" width="4" height="4" rx="0.5" fill="#34A853" />
+                  </svg>
+                </div>
+                <h3 className="mt-4 text-sm font-semibold text-foreground">Google Agenda</h3>
+                <p className="mt-1 text-xs leading-relaxed text-muted">
+                  Compromissos integrados à sua rotina
                 </p>
               </div>
+
+              {/* Financeiro */}
+              <div className="flex flex-col items-center rounded-2xl border border-border bg-surface p-6 text-center shadow-sm transition-shadow hover:shadow-md">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 shadow-md">
+                  <svg className="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h3 className="mt-4 text-sm font-semibold text-foreground">Controle financeiro</h3>
+                <p className="mt-1 text-xs leading-relaxed text-muted">
+                  Importe do Mobills ou CSV. Gastos cruzados com humor
+                </p>
+              </div>
+            </div>
+
+            {/* Wearables */}
+            <div className="mt-8 rounded-2xl border border-border bg-surface/50 p-5">
+              <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+                {[
+                  "Apple Watch",
+                  "Xiaomi Smart Band",
+                  "Galaxy Watch",
+                  "Galaxy Fit",
+                  "Garmin",
+                  "Amazfit",
+                ].map((device) => (
+                  <span key={device} className="rounded-full bg-primary/5 px-3 py-1 text-xs font-medium text-foreground">
+                    {device}
+                  </span>
+                ))}
+              </div>
+              <p className="mt-3 text-center text-[11px] text-muted">
+                Funciona com qualquer wearable que sincronize com Apple Health ou Health Connect.
+                Sem wearable? Sem problema — o app funciona com registro manual.
+              </p>
             </div>
           </div>
         </section>
@@ -294,11 +249,11 @@ export default function LandingPage() {
           <div className="mx-auto max-w-5xl">
             <div className="text-center">
               <h2 className="text-2xl font-bold text-foreground md:text-3xl">
-                Seus padrões, visíveis
+                Um painel de estabilidade, não um diário
               </h2>
               <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-muted md:text-base">
-                O app resume seus registros, cruza sinais e destaca mudanças que
-                merecem atenção — sem fazer promessas diagnósticas.
+                Quando você abre o app, vê radar de risco, sono, rotina e resumo automático
+                — não uma pilha de formulários.
               </p>
             </div>
 
@@ -307,6 +262,9 @@ export default function LandingPage() {
               <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted">
                   Termômetro de humor
+                </p>
+                <p className="mt-1 text-xs text-muted">
+                  Dual mania/depressão com 5 zonas
                 </p>
                 <div className="mt-4 flex items-end gap-4">
                   <div className="flex w-8 flex-col gap-0.5 overflow-hidden rounded-lg">
@@ -320,7 +278,7 @@ export default function LandingPage() {
                   </div>
                   <div>
                     <span className="inline-block rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
-                      Eutimia
+                      Estável
                     </span>
                     <p className="mt-1 text-xs text-muted">Instabilidade: baixa</p>
                   </div>
@@ -330,7 +288,10 @@ export default function LandingPage() {
               {/* Heatmap sono */}
               <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted">
-                  Padrão de sono — 30&nbsp;noites
+                  Mapa de calor do sono
+                </p>
+                <p className="mt-1 text-xs text-muted">
+                  30 ou 90 noites, estilo calendário
                 </p>
                 <div className="mt-4 grid grid-cols-7 gap-1">
                   {Array.from({ length: 28 }).map((_, i) => (
@@ -345,10 +306,13 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              {/* Previsão de episódios */}
+              {/* Sinais de risco */}
               <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted">
-                  Previsão de episódios
+                  Radar de risco
+                </p>
+                <p className="mt-1 text-xs text-muted">
+                  Sua zona atual e os fatores que mais pesaram
                 </p>
                 <div className="mt-4 flex items-center gap-4">
                   <div className="relative flex h-20 w-20 items-center justify-center">
@@ -361,80 +325,116 @@ export default function LandingPage() {
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-foreground">Risco baixo</p>
-                    <p className="text-xs text-muted">Baseado em 14 dias de dados</p>
+                    <p className="text-xs text-muted">Humor estável, sono regular</p>
                   </div>
                 </div>
               </div>
 
-              {/* Narrativa IA */}
+              {/* Resumo com IA */}
               <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted">
-                  Resumo com IA <span className="ml-1">✨</span>
+                  Resumo automático com IA
+                </p>
+                <p className="mt-1 text-xs text-muted">
+                  Organiza sinais em linguagem clara
                 </p>
                 <p className="mt-4 text-sm leading-relaxed text-muted/80">
-                  &ldquo;Nas últimas duas semanas, seu humor manteve-se estável na
-                  faixa de eutimia. O sono apresentou leve irregularidade nas
-                  noites de quinta e sexta, possivelmente associada a...&rdquo;
+                  &ldquo;Nas últimas duas semanas, seu humor manteve-se estável.
+                  O sono apresentou leve irregularidade nas noites de quinta e sexta,
+                  possivelmente associada a mudança de horário de trabalho...&rdquo;
                 </p>
                 <span className="mt-3 inline-block rounded-full bg-primary/10 px-3 py-1 text-[10px] font-medium text-primary">
-                  Gerado por IA responsável
+                  Não diagnostica — apenas organiza seus dados
                 </span>
               </div>
             </div>
           </div>
         </section>
 
-        {/* ─── 4. O QUE VOCÊ ACOMPANHA ────────────────────────── */}
+        {/* ─── 4. COMO FUNCIONA ────────────────────────────────── */}
         <section className="bg-surface px-5 py-14 md:py-20">
           <div className="mx-auto max-w-4xl">
             <h2 className="text-center text-2xl font-bold text-foreground md:text-3xl">
-              O que você acompanha
+              Como funciona na prática
             </h2>
 
-            <div className="mt-12 grid gap-6 sm:grid-cols-2">
+            <div className="mt-12 grid gap-10 md:grid-cols-3 md:gap-8">
+              <div className="flex flex-col items-center text-center md:items-start md:text-left">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-white">1</span>
+                <h3 className="mt-4 text-lg font-semibold text-foreground">
+                  Conecte suas fontes
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted">
+                  Apple Health, Health Connect, Google Agenda e, se quiser, importação financeira.
+                </p>
+              </div>
+              <div className="flex flex-col items-center text-center md:items-start md:text-left">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-white">2</span>
+                <h3 className="mt-4 text-lg font-semibold text-foreground">
+                  Faça um check-in curto
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted">
+                  Humor e energia em cerca de 30 segundos. Só o que o wearable não capta.
+                </p>
+              </div>
+              <div className="flex flex-col items-center text-center md:items-start md:text-left">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-white">3</span>
+                <h3 className="mt-4 text-lg font-semibold text-foreground">
+                  Veja sinais claros
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted">
+                  Radar de risco, ritmo social, resumo automático e acesso para seu profissional.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ─── 5. O QUE O APP FAZ POR VOCÊ ───────────────────── */}
+        <section className="px-5 py-14 md:py-20">
+          <div className="mx-auto max-w-5xl">
+            <h2 className="text-center text-2xl font-bold text-foreground md:text-3xl">
+              O que o app faz por você
+            </h2>
+
+            <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {[
                 {
-                  icon: (
-                    <svg className="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
-                    </svg>
-                  ),
-                  title: "Humor e energia",
-                  desc: "Check-in diário com humor, energia, ansiedade, irritabilidade e medicação. Leva 30 segundos.",
+                  icon: <IconMood />,
+                  title: "Check-in diário",
+                  desc: "Humor, energia, ansiedade, irritabilidade, sono e medicação. Tudo em menos de 30 segundos.",
                 },
                 {
-                  icon: (
-                    <svg className="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
-                    </svg>
-                  ),
-                  title: "Sono e corpo",
-                  desc: "Duração, regularidade e qualidade do sono. Dados de saúde via Apple Watch ou pulseira Android.",
+                  icon: <IconMoon />,
+                  title: "Sono e ritmo",
+                  desc: "Duração, regularidade, qualidade e heatmap. Alterações no sono podem preceder episódios em até 72h.",
                 },
                 {
-                  icon: (
-                    <svg className="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
-                    </svg>
-                  ),
-                  title: "Rotina e compromissos",
-                  desc: "Seus eventos do Google Calendar integrados ao seu plano de estabilidade.",
+                  icon: <IconClipboard />,
+                  title: "Avaliação semanal",
+                  desc: "Escalas validadas (ASRM, PHQ-9, FAST) em linguagem acessível. Resultados que você entende.",
                 },
                 {
-                  icon: (
-                    <svg className="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
-                    </svg>
-                  ),
-                  title: "Finanças",
-                  desc: "Padrões de gasto cruzados com humor. Gastos impulsivos podem ser um sinal precoce de mudança.",
+                  icon: <IconClock />,
+                  title: "Ritmo social",
+                  desc: "5 horários-âncora do seu dia. Baseado no protocolo IPSRT — regularidade protege contra episódios.",
+                },
+                {
+                  icon: <IconHeart />,
+                  title: "Linha do tempo clínica",
+                  desc: "Medicação, estressores, viagens, internações e terapia — tudo no mesmo histórico.",
+                },
+                {
+                  icon: <IconLink />,
+                  title: "Acesso profissional",
+                  desc: "Compartilhe um link com PIN para seu psiquiatra ou terapeuta. Somente leitura, sem criar conta.",
                 },
               ].map((item) => (
-                <div key={item.title} className="rounded-2xl border border-border bg-background/50 p-6">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+                <div key={item.title} className="rounded-2xl border border-border bg-surface p-6 shadow-sm transition-shadow hover:shadow-md">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
                     {item.icon}
                   </div>
-                  <h3 className="mt-3 text-base font-semibold text-foreground">{item.title}</h3>
+                  <h3 className="mt-4 text-base font-semibold text-foreground">{item.title}</h3>
                   <p className="mt-2 text-sm leading-relaxed text-muted">{item.desc}</p>
                 </div>
               ))}
@@ -442,38 +442,87 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* ─── 5. BASE CLÍNICA ─────────────────────────────────── */}
-        <section className="px-5 py-14 md:py-20">
+        {/* ─── 6. CRISE / SOS ────────────────────────────────── */}
+        <section className="bg-foreground/[0.03] px-5 py-14 md:py-20">
+          <div className="mx-auto max-w-3xl text-center">
+            <h2 className="text-2xl font-bold text-foreground md:text-3xl">
+              Para os momentos difíceis
+            </h2>
+            <p className="mt-3 text-sm text-muted md:text-base">
+              Se a coisa apertar, o app não te deixa procurar ajuda em menu.
+            </p>
+
+            <div className="mt-10 grid gap-5 text-left sm:grid-cols-2">
+              {[
+                {
+                  icon: <IconShield />,
+                  title: "Modo crise automático",
+                  desc: "Uma interface mais simples quando aparecem sinais graves. Ação direta, sem distrações.",
+                },
+                {
+                  icon: <IconPhone />,
+                  title: "Ajuda imediata",
+                  desc: "CVV 188, SAMU 192 e seus contatos pessoais com um toque. Funciona sem login.",
+                },
+                {
+                  icon: <IconClipboard />,
+                  title: "Plano de crise",
+                  desc: "O que fazer, quem chamar e quais passos seguir. Monte com calma, use na urgência.",
+                },
+                {
+                  icon: <IconHeart />,
+                  title: "Respiração e aterramento",
+                  desc: "Exercícios guiados 4-7-8, 5-4-3-2-1 e outros para voltar ao básico.",
+                },
+              ].map((item) => (
+                <div key={item.title} className="rounded-xl border border-border bg-surface p-5 shadow-sm">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-danger/10 text-danger">
+                    {item.icon}
+                  </div>
+                  <h3 className="mt-3 text-sm font-semibold text-foreground">{item.title}</h3>
+                  <p className="mt-1 text-sm leading-relaxed text-muted">{item.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ─── 7. BASE CLÍNICA + CONFIANÇA ───────────────────── */}
+        <section className="bg-surface px-5 py-14 md:py-20">
           <div className="mx-auto max-w-4xl">
             <h2 className="text-center text-2xl font-bold text-foreground md:text-3xl">
-              Base clínica e científica
+              Base clínica, privacidade e transparência
             </h2>
             <p className="mx-auto mt-3 max-w-2xl text-center text-sm text-muted md:text-base">
-              Desenvolvido a partir de protocolos reconhecidos e pesquisas brasileiras.
+              Feito para saúde mental, não para vender atenção.
             </p>
 
             <div className="mt-12 grid gap-8 md:grid-cols-2">
               {[
                 {
-                  title: "Baseado em IPSRT",
-                  desc: "Terapia de Ritmos Sociais e Interpessoais, protocolo de referência para bipolaridade.",
+                  icon: <IconCheck />,
+                  title: "Baseado em protocolos reais",
+                  desc: "IPSRT, ASRM, PHQ-9 e FAST — instrumentos usados na prática clínica e validados internacionalmente.",
                 },
                 {
-                  title: "Avaliações validadas",
-                  desc: "ASRM para mania, PHQ-9 para depressão e FAST para funcionalidade — instrumentos usados na prática clínica.",
+                  icon: <IconBrain />,
+                  title: "IA responsável",
+                  desc: "Resume e organiza seus dados. Não diagnostica, não prescreve, não substitui cuidado profissional.",
                 },
                 {
-                  title: "Acesso profissional",
-                  desc: "Seu psiquiatra ou terapeuta pode acompanhar seus dados por um link seguro e privado, sem criar conta.",
+                  icon: <IconLock />,
+                  title: "Privacidade real",
+                  desc: "Criptografia AES-256, LGPD compliant. Seus dados são seus. Sem venda de dados. Exclusão quando quiser.",
                 },
                 {
-                  title: "Pesquisas USP",
-                  desc: "Inspirado em estudos do PROMAN, programa de referência em transtornos de humor da Universidade de São Paulo.",
+                  icon: <IconShield />,
+                  title: "100% gratuito",
+                  desc: "Sem anúncios, sem plano premium, sem pegadinhas. Todas as funcionalidades para todos.",
                 },
               ].map((item) => (
                 <div key={item.title} className="flex gap-4">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                    <IconCheck />
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    {item.icon}
                   </div>
                   <div>
                     <h3 className="font-semibold text-foreground">{item.title}</h3>
@@ -482,68 +531,6 @@ export default function LandingPage() {
                 </div>
               ))}
             </div>
-          </div>
-        </section>
-
-        {/* ─── 6. SEGURANÇA E CRISE ────────────────────────────── */}
-        <section className="bg-surface px-5 py-14 md:py-20">
-          <div className="mx-auto max-w-3xl text-center">
-            <h2 className="text-2xl font-bold text-foreground md:text-3xl">
-              Para os momentos difíceis
-            </h2>
-            <p className="mt-3 text-sm italic text-muted md:text-base">
-              Porque estabilidade também é ter para onde ir quando precisa.
-            </p>
-
-            <div className="mt-10 grid gap-6 text-left sm:grid-cols-2">
-              {[
-                {
-                  emoji: "📞",
-                  title: "Contatos de emergência",
-                  desc: "Acesse CVV 188, SAMU 192 e seus contatos pessoais com um toque.",
-                },
-                {
-                  emoji: "📋",
-                  title: "Plano de crise pessoal",
-                  desc: "Defina com antecedência o que fazer e quem ligar em momentos de crise.",
-                },
-                {
-                  emoji: "🌬️",
-                  title: "Respiração e aterramento",
-                  desc: "Exercícios guiados para ansiedade, insônia e momentos de tensão.",
-                },
-                {
-                  emoji: "🔔",
-                  title: "Alerta automático",
-                  desc: "O app identifica sinais de risco nos seus check-ins e oferece recursos de apoio.",
-                },
-              ].map((item) => (
-                <div key={item.title} className="rounded-xl bg-background p-5">
-                  <span className="text-xl">{item.emoji}</span>
-                  <h3 className="mt-2 text-sm font-semibold text-foreground">{item.title}</h3>
-                  <p className="mt-1 text-sm leading-relaxed text-muted">{item.desc}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ─── 7. TRUST BAR ────────────────────────────────────── */}
-        <section className="bg-primary/5 px-5 py-10">
-          <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-center gap-x-8 gap-y-4">
-            {[
-              { icon: "🔒", label: "LGPD + criptografia AES-256" },
-              { icon: "💚", label: "100% gratuito, sem anúncios" },
-              { icon: "📱", label: "Funciona offline (PWA)" },
-              { icon: "🧠", label: "IA responsável e transparente" },
-            ].map((badge) => (
-              <div key={badge.label} className="flex items-center gap-2.5">
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-base shadow-sm">
-                  {badge.icon}
-                </span>
-                <span className="text-sm font-medium text-foreground">{badge.label}</span>
-              </div>
-            ))}
           </div>
         </section>
 
@@ -557,28 +544,36 @@ export default function LandingPage() {
             <div className="mt-10 flex flex-col gap-4">
               {[
                 {
-                  q: "O que é o Suporte Bipolar?",
-                  a: "É um app web gratuito para pessoas com transtorno bipolar acompanharem humor, sono, energia, rotina e finanças. Ele identifica padrões nos seus dados e gera insights que você pode compartilhar com seu profissional de saúde.",
+                  q: "O que entra automaticamente no app?",
+                  a: "Sono, sinais do corpo (HRV, frequência cardíaca, passos), rotina via Google Agenda e, se você quiser, dados financeiros via Mobills ou CSV. Manual fica apenas humor e energia.",
+                },
+                {
+                  q: "Preciso usar relógio ou pulseira para funcionar?",
+                  a: "Não. Mas a experiência fica melhor com wearable. Sem ele, você registra o sono manualmente — o resto funciona igual.",
+                },
+                {
+                  q: "Funciona no iPhone e no Android?",
+                  a: "Sim. É um app web (PWA) que funciona em qualquer navegador. No iPhone, use o Safari e adicione à Tela de Início. No Android, o Chrome oferece instalação automática.",
+                },
+                {
+                  q: "Meu psiquiatra consegue acompanhar?",
+                  a: "Sim. Você gera um link com PIN, somente leitura, sem exigir conta. Seu profissional vê termômetro, sono, avaliações e eventos clínicos.",
+                },
+                {
+                  q: "A IA faz diagnóstico?",
+                  a: "Não. Ela organiza sinais e resume seus dados em linguagem clara. Não prescreve, não sugere medicação e não substitui avaliação profissional.",
                 },
                 {
                   q: "Preciso de diagnóstico para usar?",
-                  a: "Não. O app é útil para qualquer pessoa investigando ou já diagnosticada com transtorno bipolar. Ele não faz diagnósticos — isso é papel do seu profissional de saúde.",
+                  a: "Não. O app é útil para qualquer pessoa investigando ou já diagnosticada com transtorno bipolar.",
+                },
+                {
+                  q: "É realmente gratuito?",
+                  a: "Sim. Sem anúncios, sem plano premium, sem pegadinhas. Todas as funcionalidades estão disponíveis para todos.",
                 },
                 {
                   q: "Meus dados estão seguros?",
-                  a: "Sim. Os dados são protegidos por criptografia AES-256, seguem a LGPD e nunca são vendidos ou compartilhados. Você pode excluir sua conta e todos os dados a qualquer momento.",
-                },
-                {
-                  q: "Como funciona a IA no app?",
-                  a: "A IA gera resumos narrativos dos seus registros, cruzando humor, sono e rotina. Ela nunca faz diagnósticos ou promessas clínicas — apenas organiza seus dados de forma acessível.",
-                },
-                {
-                  q: "Funciona no Android?",
-                  a: "Sim. O Suporte Bipolar é um app web (PWA) que funciona em qualquer navegador. No Android, a integração com dados de saúde é feita via Health Connect.",
-                },
-                {
-                  q: "Preciso pagar alguma coisa?",
-                  a: "Não. O app é 100% gratuito, sem anúncios e sem plano premium. Todas as funcionalidades estão disponíveis para todos.",
+                  a: "Sim. Criptografia AES-256, LGPD compliant. Seus dados nunca são vendidos ou compartilhados. Você pode excluir tudo a qualquer momento.",
                 },
               ].map((faq) => (
                 <details key={faq.q} className="group rounded-xl border border-border bg-surface overflow-hidden">
@@ -599,19 +594,19 @@ export default function LandingPage() {
         <section className="bg-primary px-5 py-14 md:py-20">
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="text-2xl font-bold text-white md:text-3xl">
-              Comece a acompanhar seus padrões hoje
+              Menos preenchimento. Mais clareza.
             </h2>
             <p className="mt-3 text-white/80">
-              Gratuito, privado e feito para o seu dia a dia.
+              Crie sua conta, conecte seus dados e veja seu painel de estabilidade.
             </p>
             <Link
               href="/cadastro"
-              className="mt-8 inline-block rounded-xl bg-white px-8 py-4 text-base font-semibold text-primary no-underline shadow-md transition-colors hover:bg-white/90"
+              className="mt-8 inline-block rounded-xl bg-white px-8 py-4 text-base font-semibold text-primary no-underline shadow-md transition-all hover:bg-white/90 hover:shadow-lg"
             >
-              Criar minha conta
+              Criar minha conta gratuita
             </Link>
             <p className="mt-3 text-xs text-white/60">
-              Leva 30&nbsp;segundos. Sem cartão de crédito.
+              Sem cartão de crédito · sem anúncios · sem plano premium
             </p>
           </div>
         </section>

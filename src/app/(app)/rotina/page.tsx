@@ -7,8 +7,8 @@ import { localDateStr } from "@/lib/dateUtils";
 
 const anchorLabels: Record<string, string> = {
   wakeTime: "Acordou",
-  firstContact: "1o contato",
-  mainActivityStart: "Ativ. principal",
+  firstContact: "Primeiro contato social",
+  mainActivityStart: "Atividade principal",
   dinnerTime: "Jantar",
   bedtime: "Dormir",
 };

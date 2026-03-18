@@ -85,6 +85,11 @@ function LoginForm() {
         >
           {loading ? "Entrando..." : "Entrar"}
         </button>
+        <p className="mt-3 text-center text-sm">
+          <Link href="/recuperar-senha" className="text-primary hover:underline">
+            Esqueci minha senha
+          </Link>
+        </p>
       </form>
 
       <div className="my-4 flex items-center gap-3">

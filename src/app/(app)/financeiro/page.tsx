@@ -129,7 +129,7 @@ export default function FinanceiroPage() {
         <div>
           <h1 className="text-2xl font-bold">Financeiro</h1>
           <p className="text-sm text-muted">
-            Controle de gastos — importante para estabilidade na bipolaridade.
+            Controle de gastos — importante para a sua estabilidade.
           </p>
         </div>
         <div className="flex items-center gap-1">
@@ -409,7 +409,7 @@ export default function FinanceiroPage() {
                 )}
                 {summary.nightTransactions > 0 && (
                   <li className="text-warning">
-                    {summary.nightTransactions} transação(ões) registrada(s) entre 00h e 06h — gastos noturnos podem indicar impulsividade.
+                    {summary.nightTransactions} transação(ões) registrada(s) entre 00h e 06h — gastos noturnos merecem atenção.
                   </li>
                 )}
                 {summary.moodCorrelation.filter((d) => d.mood !== null && d.mood >= 4 && d.spending > summary.dailyMedian).length > 0 && (
@@ -638,7 +638,7 @@ function CategoryClassification({ data }: { data: { category: string; total: num
         </div>
       </div>
       <p className="mt-1.5 text-xs text-muted">
-        Gastos variáveis elevados podem indicar impulsividade. Classificação automática por categoria.
+        Gastos variáveis elevados merecem atenção. Classificação automática por categoria.
       </p>
     </div>
   );

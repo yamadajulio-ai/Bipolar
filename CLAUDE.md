@@ -21,6 +21,10 @@
 - Linguagem clínica cuidadosa — nunca fazer afirmações diagnósticas diretas
 - "Não substitui avaliação profissional" em toda comunicação clínica
 
+## Modo de Trabalho
+- **Sempre começar pela ordem que faz mais sentido lógico** — não perguntar ao usuário por onde começar. Priorizar: P0 (bugs/segurança) → P1 (UX/copy críticos) → P2 (melhorias) → P3 (polimento).
+- Fazer direto, não pedir permissão nem dar instruções.
+
 ## Regras de Dados — Sono
 - **Cochilo**: registro < 1h → exibido no histórico (tag "cochilo", roxo) mas **excluído** das métricas
 - **Sono real**: registro >= 1h → incluído em todas as métricas (média, regularidade, variabilidade, alertas, correlações)

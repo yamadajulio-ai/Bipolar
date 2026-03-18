@@ -15,7 +15,7 @@ const protectedPaths = [
   "/sono",
   "/exercicios",
   "/rotina",
-  "/sos",
+
   "/sons",
   "/relatorio",
   "/cursos",

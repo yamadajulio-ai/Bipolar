@@ -22,7 +22,7 @@ function medicationLabel(value: string | null): string | null {
   if (!value) return null;
   if (value === "sim") return "Medicou";
   if (value === "nao") return "Não medicou";
-  return "Não lembra";
+  return "Ainda não";
 }
 
 export default async function DiarioPage() {

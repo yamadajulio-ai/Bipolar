@@ -1053,7 +1053,7 @@ export default async function InsightsPage({
               <div className="space-y-2 text-xs text-muted">
                 <p>
                   <span className="font-medium text-foreground/70">Termômetro de humor:</span> Calcula uma pontuação de mania e depressão (0-100) usando uma média que dá mais peso aos dias recentes.
-                  Divide em 5 zonas, de depressão severa até mania. Detecta estados mistos quando ambas as pontuações estão altas.
+                  Divide em 5 zonas, de depressão severa até mania. Detecta sinais mistos (humor e energia em direções opostas) quando ambas as pontuações estão altas.
                 </p>
                 <p>
                   <span className="font-medium text-foreground/70">Indicador de risco:</span> Combina seus dados de sono, humor, medicação, sinais de alerta e gastos para estimar seu estado geral.

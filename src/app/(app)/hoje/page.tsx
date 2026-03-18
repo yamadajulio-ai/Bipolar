@@ -26,7 +26,7 @@ function formatSleepDuration(hours: number): string {
 const moodLabels: Record<number, { text: string; color: string }> = {
   1: { text: "Muito deprimido", color: "text-red-600" },
   2: { text: "Deprimido", color: "text-orange-600" },
-  3: { text: "Eutímico (estável)", color: "text-emerald-700" },
+  3: { text: "Estável", color: "text-emerald-700" },
   4: { text: "Elevado", color: "text-amber-600" },
   5: { text: "Muito elevado", color: "text-red-600" },
 };
@@ -463,7 +463,7 @@ export default async function HojePage() {
               </span>
               {thermometer?.mixedFeatures && (
                 <span className="ml-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200">
-                  Traços mistos
+                  Humor e energia em direções opostas
                 </span>
               )}
             </div>

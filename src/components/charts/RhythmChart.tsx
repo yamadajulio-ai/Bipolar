@@ -43,7 +43,7 @@ function formatHour(value: number): string {
 
 const anchorConfig = [
   { key: "wakeTime", label: "Acordou", color: "#f59e0b" },
-  { key: "firstContact", label: "1o contato", color: "#3b82f6" },
+  { key: "firstContact", label: "1o contato social", color: "#3b82f6" },
   { key: "mainActivityStart", label: "Ativ. principal", color: "#10b981" },
   { key: "dinnerTime", label: "Jantar", color: "#8b5cf6" },
   { key: "bedtime", label: "Dormir", color: "#ef4444" },

@@ -120,6 +120,7 @@ export default function PerfilPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const [profile, setProfile] = useState<ProfileData>({
     careAccess: "regular",
     medicationSource: "sus",
@@ -149,15 +150,20 @@ export default function PerfilPage() {
   async function handleSave() {
     setSaving(true);
     setSaved(false);
+    setSaveError("");
     try {
       const res = await fetch("/api/perfil-socioeconomico", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(profile),
       });
-      if (res.ok) setSaved(true);
+      if (res.ok) {
+        setSaved(true);
+      } else {
+        setSaveError("Não foi possível salvar. Tente novamente.");
+      }
     } catch {
-      // silently fail
+      setSaveError("Erro de conexão. Verifique sua internet e tente novamente.");
     } finally {
       setSaving(false);
     }
@@ -247,7 +253,7 @@ export default function PerfilPage() {
         {/* 3. Frequência de consulta */}
         <Card>
           <label className="mb-2 block text-sm font-semibold">
-            Com que frequência consulta seu psiquiatra?
+            Com que frequência consulta um psiquiatra?
           </label>
           <div className="space-y-2">
             {CONSULT_OPTIONS.map((opt) => (
@@ -365,6 +371,10 @@ export default function PerfilPage() {
 
         {saved && (
           <Alert variant="info">Perfil salvo com sucesso.</Alert>
+        )}
+
+        {saveError && (
+          <Alert variant="danger">{saveError}</Alert>
         )}
 
         {/* Recommendations */}

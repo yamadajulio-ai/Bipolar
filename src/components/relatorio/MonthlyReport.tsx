@@ -230,7 +230,7 @@ export function MonthlyReport({ data }: MonthlyReportProps) {
             <li>• Nenhum registro de humor no mês — discutir motivação/barreiras</li>
           )}
           {stats.avgMood !== null && stats.avgMood > 2 && stats.avgMood < 4 && stats.totalDiaryEntries >= 7 && (
-            <li>• Humor estável dentro da faixa de eutimia — manter acompanhamento</li>
+            <li>• Humor estável — manter acompanhamento</li>
           )}
         </ul>
         <p className="mt-3 text-[10px] text-muted italic">

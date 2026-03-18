@@ -160,7 +160,7 @@ const sections = [
     id: "dicas",
     title: "Dicas para estabilidade",
     content: [
-      "Essas dicas são baseadas em práticas comuns de manejo do TAB:",
+      "Essas dicas são baseadas em práticas comuns de manejo do transtorno bipolar:",
       "• Proteja suas âncoras — acordar, refeições e dormir no mesmo horário todos os dias",
       "• Defina um horário limite noturno — evite atividades estimulantes depois desse horário",
       "• Monitore sua carga de energia — dias com muita carga exigem mais descanso",

@@ -17,6 +17,7 @@ const sections: { title: string; items: ModuleItem[] }[] = [
       { href: "/sono/tendencias", label: "Tendências de Sono", description: "Regularidade e qualidade" },
       { href: "/rotina", label: "Rotina", description: "Seus horários-âncora do dia" },
       { href: "/rotina/tendencias", label: "Tendências de Rotina", description: "Regularidade de âncoras" },
+      { href: "/financeiro", label: "Financeiro", description: "Gastos cruzados com humor e energia" },
     ],
   },
   {
@@ -51,8 +52,8 @@ const sections: { title: string; items: ModuleItem[] }[] = [
     title: "Configurações",
     items: [
       { href: "/plano-de-crise", label: "Plano de Crise", description: "Contatos e estratégias pessoais" },
-      { href: "/integracoes", label: "Integrações", description: "Health Auto Export, Google Calendar" },
-      { href: "/financeiro", label: "Financeiro", description: "Transações, importação Mobills" },
+      { href: "/integracoes", label: "Integrações", description: "Apple Health, Health Connect, Google Agenda, Mobills" },
+
       { href: "/perfil", label: "Perfil de Saúde", description: "Acesso a recursos e recomendações" },
       { href: "/acesso-profissional", label: "Acesso Profissional", description: "Compartilhe dados com seu psiquiatra" },
       { href: "/conta", label: "Conta", description: "Configurações e lembretes" },

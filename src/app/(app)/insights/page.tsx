@@ -238,9 +238,17 @@ export default async function InsightsPage({
       : "danger" as const
     : "neutral" as const;
 
-  // Sleep deviation from personal baseline (8h ideal)
+  // Personal sleep baseline: median of last 90 nights (14+ needed), otherwise 8h clinical default
+  const realSleepLogs = allSleepLogs.filter((l) => l.totalHours >= 1 && !l.excluded);
+  const personalSleepBaseline = realSleepLogs.length >= 14
+    ? (() => {
+        const sorted = realSleepLogs.map((l) => l.totalHours).sort((a, b) => a - b);
+        const mid = Math.floor(sorted.length / 2);
+        return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+      })()
+    : 8;
   const sleepDeviation = insights.sleep.avgDuration !== null
-    ? Math.round((insights.sleep.avgDuration - 8) * 60)
+    ? Math.round((insights.sleep.avgDuration - personalSleepBaseline) * 60)
     : null;
 
   return (
@@ -353,7 +361,7 @@ export default async function InsightsPage({
                   <Sparkline
                     data={insights.heatmap.slice(-14).map((d) => d.sleepHours)}
                     color={sleepVariant === "positive" ? "#22c55e" : sleepVariant === "warning" ? "#f59e0b" : "#ef4444"}
-                    baseline={8}
+                    baseline={personalSleepBaseline}
                     min={4}
                     max={12}
                   />

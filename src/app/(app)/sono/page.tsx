@@ -34,8 +34,15 @@ export default async function SonoPage() {
     ? realLogs.reduce((sum, l) => sum + l.totalHours, 0) / realLogs.length
     : null;
 
-  // Deviation from 8h ideal baseline
-  const deviationMin = avgDuration !== null ? Math.round((avgDuration - 8) * 60) : null;
+  // Personal baseline: median of last 30 nights (14+ needed), otherwise 8h clinical default
+  const personalBaseline = realLogs.length >= 14
+    ? (() => {
+        const sorted = realLogs.map((l) => l.totalHours).sort((a, b) => a - b);
+        const mid = Math.floor(sorted.length / 2);
+        return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+      })()
+    : 8;
+  const deviationMin = avgDuration !== null ? Math.round((avgDuration - personalBaseline) * 60) : null;
 
   // Bedtime regularity (std dev of bedtime in minutes)
   function timeToMinutes(t: string): number | null {
@@ -112,7 +119,7 @@ export default async function SonoPage() {
                 <Sparkline
                   data={sparklineData}
                   color={avgDuration !== null && avgDuration >= 7 && avgDuration <= 9 ? "#22c55e" : "#f59e0b"}
-                  baseline={8}
+                  baseline={personalBaseline}
                   min={4}
                   max={12}
                 />
@@ -120,9 +127,9 @@ export default async function SonoPage() {
             </div>
             {deviationMin !== null && (
               <p className="text-[10px] text-muted">
-                {deviationMin === 0 ? "No ideal (8h)"
-                  : deviationMin > 0 ? `+${deviationMin}min vs ideal`
-                  : `${deviationMin}min vs ideal`}
+                {deviationMin === 0 ? `Na sua média (${formatSleepDuration(personalBaseline)})`
+                  : deviationMin > 0 ? `+${deviationMin}min vs sua média`
+                  : `${deviationMin}min vs sua média`}
               </p>
             )}
           </Card>

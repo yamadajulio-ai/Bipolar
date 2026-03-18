@@ -133,9 +133,17 @@ export default function CadastroPage() {
                 className="mt-0.5 rounded border-border"
               />
               <span>
-                Consinto com o tratamento de meus dados de saúde para fins de
-                acompanhamento pessoal, conforme a LGPD (Art. 11, II, &quot;a&quot;).
-                Posso revogar este consentimento a qualquer momento na página Minha Conta.
+                Consinto com o tratamento dos meus dados sensíveis de saúde (humor, sono, energia)
+                para fins de acompanhamento pessoal, conforme a{" "}
+                <Link href="/privacidade" className="text-primary underline" target="_blank">
+                  Política de Privacidade
+                </Link>{" "}
+                e os{" "}
+                <Link href="/termos" className="text-primary underline" target="_blank">
+                  Termos de Uso
+                </Link>{" "}
+                (LGPD Art. 11, I).
+                Posso revogar a qualquer momento em Minha Conta.
               </span>
             </label>
 

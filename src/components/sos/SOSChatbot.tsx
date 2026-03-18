@@ -372,7 +372,7 @@ export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
             {waitingMode ? "Espera acompanhada" : "Companheiro de espera"}
           </h2>
           <p className="text-xs text-gray-400">
-            {waitingMode ? "Estou com você enquanto o 188 atende" : "IA de acolhimento temporário"}
+            {waitingMode ? "Estou com você enquanto o 188 atende" : "IA de acolhimento — não é profissional de saúde"}
           </p>
         </div>
         <div className="flex items-center gap-2">

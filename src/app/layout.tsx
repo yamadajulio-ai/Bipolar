@@ -20,9 +20,9 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Suporte Bipolar — Juntos pelo equilíbrio",
+  title: "Suporte Bipolar — Acompanhe seus padrões de humor, sono e energia",
   description:
-    "Seu painel de estabilidade: rotina, sono, humor, finanças e corpo. Ferramentas para pessoas com Transtorno Afetivo Bipolar e suas famílias.",
+    "Registre humor, sono e energia em 30 segundos. Receba insights sobre seus padrões e compartilhe com seu profissional. Gratuito e seguro.",
   verification: {
     google: "AAA3yfmYp14DN--PF0B-YOf6-n80AVMzPt5igjY37Gs",
   },
@@ -45,23 +45,23 @@ export const metadata: Metadata = {
     locale: "pt_BR",
     url: "https://suportebipolar.com",
     siteName: "Suporte Bipolar",
-    title: "Suporte Bipolar — Seu painel de estabilidade",
+    title: "Suporte Bipolar — Acompanhe seus padrões de humor, sono e energia",
     description:
-      "Rotina, sono, humor, finanças e corpo em um só lugar. Feito para quem vive com Transtorno Afetivo Bipolar.",
+      "Registre humor, sono e energia em 30 segundos. Receba insights sobre seus padrões e compartilhe com seu profissional. Gratuito e seguro.",
     images: [
       {
         url: "https://suportebipolar.com/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Suporte Bipolar — Juntos pelo equilíbrio",
+        alt: "Suporte Bipolar — Acompanhe seus padrões",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Suporte Bipolar — Seu painel de estabilidade",
+    title: "Suporte Bipolar — Acompanhe seus padrões de humor, sono e energia",
     description:
-      "Rotina, sono, humor, finanças e corpo em um só lugar. Feito para quem vive com Transtorno Afetivo Bipolar.",
+      "Registre humor, sono e energia em 30 segundos. Receba insights sobre seus padrões e compartilhe com seu profissional. Gratuito e seguro.",
     images: ["https://suportebipolar.com/og-image.png"],
   },
   robots: {

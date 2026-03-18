@@ -33,7 +33,7 @@ export function GoogleCalendarSync({ isConnected: initialConnected }: Props) {
   }
 
   async function handleDisconnect() {
-    if (!confirm("Desconectar Google Calendar? Blocos importados do Google serão removidos.")) return;
+    if (!confirm("Desconectar Google Agenda? Blocos importados do Google serão removidos.")) return;
 
     try {
       const res = await fetch("/api/auth/google/disconnect", { method: "DELETE" });
@@ -96,8 +96,8 @@ export function GoogleCalendarSync({ isConnected: initialConnected }: Props) {
       <div className="rounded bg-surface-alt p-3 text-xs text-muted">
         <p className="font-medium text-foreground mb-1">Como funciona:</p>
         <ul className="list-disc list-inside space-y-1">
-          <li>Eventos do Google Calendar aparecem automaticamente no planejador</li>
-          <li>Crie e edite eventos diretamente no Google Calendar</li>
+          <li>Eventos do Google Agenda aparecem automaticamente no planejador</li>
+          <li>Crie e edite eventos diretamente no Google Agenda</li>
           <li>A sincronização acontece ao abrir o planejador</li>
           <li>Clique &quot;Sincronizar agora&quot; para atualizar manualmente</li>
         </ul>

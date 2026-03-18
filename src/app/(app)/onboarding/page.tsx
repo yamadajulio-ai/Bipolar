@@ -22,7 +22,11 @@ export default function OnboardingPage() {
   async function completeOnboarding() {
     setFinishing(true);
     try {
-      await fetch("/api/auth/complete-onboarding", { method: "POST" });
+      await fetch("/api/auth/complete-onboarding", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ goal }),
+      });
     } catch {
       // Continue anyway
     }

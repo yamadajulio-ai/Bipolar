@@ -800,7 +800,7 @@ export default function IntegraçõesPage() {
       <Card className="mb-6">
         <h2 className="mb-2 text-lg font-semibold">Google Agenda</h2>
         <p className="mb-4 text-sm text-muted">
-          Seus eventos do Google Calendar aparecem automaticamente no planejador.
+          Seus eventos do Google Agenda aparecem automaticamente no planejador.
         </p>
         <GoogleCalendarSync isConnected={googleConnected} />
       </Card>

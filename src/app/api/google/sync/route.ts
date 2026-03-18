@@ -142,7 +142,7 @@ export async function POST(request: Request) {
   });
   if (!account) {
     return NextResponse.json(
-      { error: "Google Calendar não conectado" },
+      { error: "Google Agenda não conectado" },
       { status: 400 },
     );
   }

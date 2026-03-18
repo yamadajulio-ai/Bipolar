@@ -88,6 +88,11 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // SOS must ALWAYS be public — never redirect, never block
+  if (pathname === "/sos" || pathname.startsWith("/sos/")) {
+    return NextResponse.next();
+  }
+
   const sessionCookie = request.cookies.get("empresa-bipolar-session");
 
   const isProtected = protectedPaths.some((p) => pathname.startsWith(p));

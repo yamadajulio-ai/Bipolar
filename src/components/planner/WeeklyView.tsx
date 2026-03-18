@@ -244,7 +244,7 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
           if (skipped > 0) {
             setSyncError(`Nenhum evento importado. ${skipped} evento(s) ignorado(s) (dia inteiro ou muito longo). Verifique se seus eventos têm horário definido.`);
           } else {
-            setSyncError("Nenhum evento encontrado no Google Calendar no período (última semana + próximas 2 semanas).");
+            setSyncError("Nenhum evento encontrado no Google Agenda no período (última semana + próximas 2 semanas).");
           }
         }
         await fetchData(weekStart);
@@ -282,7 +282,7 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
             <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
           </svg>
           <div>
-            <p className="text-sm font-medium text-amber-800">Conecte seu Google Calendar</p>
+            <p className="text-sm font-medium text-amber-800">Conecte seu Google Agenda</p>
             <p className="text-xs text-amber-600">Seus eventos aparecerão automaticamente no planejador.</p>
           </div>
         </Link>
@@ -295,7 +295,7 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
-          <span className="text-sm text-blue-700">Sincronizando com Google Calendar...</span>
+          <span className="text-sm text-blue-700">Sincronizando com Google Agenda...</span>
         </div>
       )}
 
@@ -335,7 +335,7 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
               onClick={handleManualSync}
               disabled={syncing}
               className="rounded-lg border border-border px-2 py-1 text-xs font-medium text-muted hover:border-primary/50 disabled:opacity-50"
-              title="Sincronizar Google Calendar"
+              title="Sincronizar Google Agenda"
             >
               {syncing ? "..." : "\u21BB"}
             </button>
@@ -498,7 +498,7 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
       {!loading && occurrences.length === 0 && googleConnected && (
         <div className="mt-4 text-center text-sm text-muted">
           <p>Nenhum evento nesta semana.</p>
-          <p className="mt-1">Crie eventos no Google Calendar e eles aparecerão aqui automaticamente.</p>
+          <p className="mt-1">Crie eventos no Google Agenda e eles aparecerão aqui automaticamente.</p>
         </div>
       )}
     </div>

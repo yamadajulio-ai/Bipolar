@@ -122,7 +122,7 @@ export default function LandingPage() {
             <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-muted md:text-lg">
               Sono e sinais do corpo entram do wearable. Sua rotina entra da agenda.
               Você faz um check-in rápido de humor e energia. O app cruza tudo e
-              mostra sinais de estabilidade, risco e mudanças — antes que você perceba.
+              mostra sinais de estabilidade e mudanças — para que você perceba mais cedo.
             </p>
 
             <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
@@ -252,7 +252,7 @@ export default function LandingPage() {
                 Um painel de estabilidade, não um diário
               </h2>
               <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-muted md:text-base">
-                Quando você abre o app, vê radar de risco, sono, rotina e resumo automático
+                Quando você abre o app, vê indicadores de humor, sono, rotina e resumo automático
                 — não uma pilha de formulários.
               </p>
             </div>
@@ -407,7 +407,7 @@ export default function LandingPage() {
                 {
                   icon: <IconMoon />,
                   title: "Sono e ritmo",
-                  desc: "Duração, regularidade, qualidade e heatmap. Alterações no sono podem preceder episódios em até 72h.",
+                  desc: "Duração, regularidade, qualidade e heatmap. Segundo pesquisas, alterações no sono costumam ser um dos primeiros sinais de mudança de fase.",
                 },
                 {
                   icon: <IconClipboard />,

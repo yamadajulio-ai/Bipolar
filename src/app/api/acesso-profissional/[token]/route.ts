@@ -13,7 +13,7 @@ const PRIVATE_HEADERS = {
 };
 
 function privateJson(body: unknown, init?: ResponseInit) {
-  return privateJson(body, {
+  return NextResponse.json(body, {
     ...init,
     headers: {
       ...PRIVATE_HEADERS,

@@ -9,21 +9,44 @@ export interface SessionData {
   onboarded?: boolean;
 }
 
-const sessionOptions = {
+const baseCookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "lax" as const,
+  maxAge: 60 * 60 * 24 * 30, // 30 dias
+  path: "/",
+};
+
+const currentSessionOptions = {
   password: process.env.SESSION_SECRET!,
   cookieName: "suporte-bipolar-session",
-  cookieOptions: {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax" as const,
-    maxAge: 60 * 60 * 24 * 30, // 30 dias
-    path: "/",
-  },
+  cookieOptions: baseCookieOptions,
+};
+
+const legacySessionOptions = {
+  password: process.env.SESSION_SECRET!,
+  cookieName: "empresa-bipolar-session",
+  cookieOptions: baseCookieOptions,
 };
 
 export async function getSession() {
   const cookieStore = await cookies();
-  return getIronSession<SessionData>(cookieStore, sessionOptions);
+
+  const session = await getIronSession<SessionData>(cookieStore, currentSessionOptions);
+  if (session.isLoggedIn) return session;
+
+  // Migrate legacy cookie transparently
+  const legacy = await getIronSession<SessionData>(cookieStore, legacySessionOptions);
+  if (legacy.isLoggedIn) {
+    session.userId = legacy.userId;
+    session.email = legacy.email;
+    session.isLoggedIn = true;
+    session.onboarded = legacy.onboarded;
+    await session.save();
+    await legacy.destroy();
+  }
+
+  return session;
 }
 
 export async function hashPassword(password: string): Promise<string> {

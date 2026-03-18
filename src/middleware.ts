@@ -80,7 +80,11 @@ function checkCsrf(request: NextRequest): NextResponse | null {
 
   // Fail closed: when both Sec-Fetch-Site and Origin are absent, require valid Referer
   if (!secFetchSite && !origin) {
-    if (!referer || new URL(referer).origin !== expectedOrigin) {
+    try {
+      if (!referer || new URL(referer).origin !== expectedOrigin) {
+        return NextResponse.json({ error: "Origem não verificável" }, { status: 403 });
+      }
+    } catch {
       return NextResponse.json({ error: "Origem não verificável" }, { status: 403 });
     }
   }

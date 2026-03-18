@@ -160,7 +160,7 @@ export default function TermosPage() {
             de IA:
           </p>
           <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-muted">
-            <li>As narrativas são geradas a partir dos seus dados e não constituem avaliação clínica.</li>
+            <li>Os resumos com IA são gerados a partir dos seus dados e não constituem avaliação clínica.</li>
             <li>Os dados enviados à Anthropic não são utilizados para treinamento de modelos.</li>
             <li>Os resultados da IA devem ser interpretados como sugestões informativas, nunca como diagnóstico ou orientação médica.</li>
           </ul>
@@ -196,7 +196,7 @@ export default function TermosPage() {
           <h2 className="mb-2 text-lg font-semibold">12. Limitação de responsabilidade</h2>
           <ul className="list-inside list-disc space-y-1 text-sm text-muted">
             <li>O Suporte Bipolar não se responsabiliza por decisões tomadas com base nos dados, insights ou conteúdos da plataforma.</li>
-            <li>Insights automáticos, análises de correlação e narrativas de IA são ferramentas informativas, não diagnósticos.</li>
+            <li>Insights automáticos, análises de correlação e resumos com IA são ferramentas informativas, não diagnósticos.</li>
             <li>Não garantimos disponibilidade ininterrupta da plataforma.</li>
             <li>Não nos responsabilizamos por falhas em integrações de terceiros (Apple Health, Health Connect, Google Agenda).</li>
           </ul>

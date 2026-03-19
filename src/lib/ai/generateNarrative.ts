@@ -146,107 +146,141 @@ function getHighRiskTemplate(data: Record<string, unknown>): NarrativeResult {
 }
 
 /**
- * Summarize InsightsResult into a structured JSON object suitable for the prompt.
- * We strip large arrays (heatmap, chart data) to stay within token budget.
+ * Deterministic narrative input — the model's job is ONLY to verbalize these facts.
+ * No raw numbers for the model to "interpret" — all interpretation is done in code.
+ *
+ * Per GPT Pro audit: "reduce model responsibility. The model should verbalize facts,
+ * not decide risk, infer causality, or discover clinical hypotheses."
  */
-function prepareInsightsForPrompt(insights: InsightsResult): Record<string, unknown> {
-  return {
-    sleep: {
-      avgDuration: insights.sleep.avgDuration,
-      bedtimeVariance: insights.sleep.bedtimeVariance,
-      durationVariability: insights.sleep.durationVariability,
-      sleepTrend: insights.sleep.sleepTrend,
-      sleepTrendDelta: insights.sleep.sleepTrendDelta,
-      avgQuality: insights.sleep.avgQuality,
-      midpoint: insights.sleep.midpoint,
-      socialJetLag: insights.sleep.socialJetLag,
-      sleepHeadline: insights.sleep.sleepHeadline,
-      dataConfidence: insights.sleep.dataConfidence,
-      recordCount: insights.sleep.recordCount,
-      alerts: insights.sleep.alerts,
-    },
-    mood: {
-      moodTrend: insights.mood.moodTrend,
-      moodAmplitude: insights.mood.moodAmplitude,
-      moodAmplitudeLabel: insights.mood.moodAmplitudeLabel,
-      medicationAdherence: insights.mood.medicationAdherence,
-      topWarningSigns: insights.mood.topWarningSigns,
-      moodHeadline: insights.mood.moodHeadline,
-      alerts: insights.mood.alerts,
-    },
-    thermometer: insights.thermometer ? {
-      position: insights.thermometer.position,
-      zone: insights.thermometer.zone,
-      zoneLabel: insights.thermometer.zoneLabel,
-      mixedFeatures: insights.thermometer.mixedFeatures,
-      mixedStrength: insights.thermometer.mixedStrength,
-      instability: insights.thermometer.instability,
-      factors: insights.thermometer.factors,
-    } : null,
-    rhythm: {
-      overallRegularity: insights.rhythm.overallRegularity,
-      anchors: Object.entries(insights.rhythm.anchors).map(([key, a]) => ({
-        key,
-        label: a.label,
-        variance: a.variance,
-        regularityScore: a.regularityScore,
-        color: a.color,
-      })),
-      alerts: insights.rhythm.alerts,
-    },
-    chart: {
-      correlation: insights.chart.correlation,
-      lagCorrelation: insights.chart.lagCorrelation,
-      correlationNote: insights.chart.correlationNote,
-      lagCorrelationNote: insights.chart.lagCorrelationNote,
-    },
-    combinedPatterns: insights.combinedPatterns,
-    risk: insights.risk,
-    prediction: insights.prediction ? {
-      maniaRisk: insights.prediction.maniaRisk,
-      depressionRisk: insights.prediction.depressionRisk,
-      maniaSignals: insights.prediction.maniaSignals,
-      depressionSignals: insights.prediction.depressionSignals,
-      level: insights.prediction.level,
-      recommendations: insights.prediction.recommendations,
-    } : null,
-    cycling: insights.cycling ? {
-      polaritySwitches: insights.cycling.polaritySwitches,
-      isRapidCycling: insights.cycling.isRapidCycling,
-      avgCycleLength: insights.cycling.avgCycleLength,
-    } : null,
-    seasonality: insights.seasonality ? {
-      hasSeasonalPattern: insights.seasonality.hasSeasonalPattern,
-      description: insights.seasonality.description,
-    } : null,
-  };
+interface NarrativeInput {
+  riskLevel: "low" | "moderate" | "high";
+  dataQuality: "ok" | "insufficient";
+  facts: string[];
+  cooccurrences: string[];
+  alerts: string[];
+}
+
+function prepareInsightsForPrompt(insights: InsightsResult): NarrativeInput {
+  const facts: string[] = [];
+  const cooccurrences: string[] = [];
+  const alerts: string[] = [];
+
+  // ── Helpers for pt-BR labels ──
+  const trendLabel = (t: string | null) =>
+    t === "rising" ? "subindo" : t === "falling" ? "caindo" : t === "stable" ? "estável" : t;
+  const confidenceLabel = (c: string) =>
+    c === "high" ? "alta" : c === "medium" ? "média" : c === "low" ? "baixa" : c;
+
+  // ── Sleep facts ──
+  const s = insights.sleep;
+  if (s.recordCount > 0) {
+    if (s.avgDuration != null) facts.push(`Sono médio: ${s.avgDuration.toFixed(1)} horas (${s.recordCount} registros, confiança ${confidenceLabel(s.dataConfidence)})`);
+    if (s.sleepTrend) facts.push(`Tendência do sono: ${trendLabel(s.sleepTrend)}${s.sleepTrendDelta ? ` (variação de ${s.sleepTrendDelta.toFixed(1)}h)` : ""}`);
+    if (s.bedtimeVariance != null) facts.push(`Variação do horário de dormir: ${s.bedtimeVariance} minutos`);
+    if (s.durationVariability != null) facts.push(`Variabilidade da duração do sono: ${s.durationVariability} minutos`);
+    if (s.avgQuality != null) facts.push(`Qualidade média do sono: ${s.avgQuality.toFixed(1)}/5`);
+    if (s.midpoint) facts.push(`Ponto médio do sono: ${s.midpoint}`);
+    if (s.socialJetLag != null && s.socialJetLag > 30) facts.push(`Jet lag social: ${s.socialJetLag} minutos`);
+    if (s.sleepHeadline) facts.push(`Resumo do sono: ${s.sleepHeadline}`);
+    for (const a of s.alerts || []) alerts.push(`${a.title}: ${a.message}`);
+  }
+
+  // ── Mood facts ──
+  const m = insights.mood;
+  if (m.moodHeadline) facts.push(`Resumo do humor: ${m.moodHeadline}`);
+  if (m.moodTrend) facts.push(`Tendência do humor: ${trendLabel(m.moodTrend)}`);
+  if (m.moodAmplitude != null) facts.push(`Oscilação do humor: ${m.moodAmplitude} (${m.moodAmplitudeLabel || ""})`);
+  if (m.medicationAdherence != null) facts.push(`Adesão à medicação: ${Math.round(m.medicationAdherence * 100)}%`);
+  if (m.topWarningSigns?.length) facts.push(`Sinais de atenção mais frequentes: ${m.topWarningSigns.join(", ")}`);
+  for (const a of m.alerts || []) alerts.push(`${a.title}: ${a.message}`);
+
+  // ── Thermometer facts ──
+  const t = insights.thermometer;
+  if (t) {
+    facts.push(`Posição no termômetro: ${t.position}/100 (zona: ${t.zoneLabel})`);
+    if (t.instability != null) facts.push(`Instabilidade: ${t.instability}`);
+    if (t.mixedFeatures) facts.push("Características mistas identificadas nos dados");
+    if (t.factors?.length) facts.push(`Fatores do termômetro: ${t.factors.join(", ")}`);
+  }
+
+  // ── Rhythm facts ──
+  const r = insights.rhythm;
+  facts.push(`Regularidade geral da rotina: ${r.overallRegularity}/100`);
+  for (const [, anchor] of Object.entries(r.anchors)) {
+    if (anchor.variance != null) {
+      facts.push(`${anchor.label}: variação de ${anchor.variance} min, regularidade ${anchor.regularityScore}/100`);
+    }
+  }
+  for (const a of r.alerts || []) alerts.push(`${a.title}: ${a.message}`);
+
+  // ── Correlations (as cooccurrences, never causal) ──
+  const ch = insights.chart;
+  if (ch.correlation) {
+    cooccurrences.push(`Associação entre sono e humor: ${ch.correlation.rho.toFixed(2)} (${ch.correlation.strength} ${ch.correlation.direction})`);
+  }
+  if (ch.lagCorrelation) {
+    cooccurrences.push(`Associação sono da noite anterior → humor do dia seguinte: ${ch.lagCorrelation.rho.toFixed(2)} (${ch.lagCorrelation.strength} ${ch.lagCorrelation.direction})`);
+  }
+  for (const pattern of insights.combinedPatterns || []) {
+    cooccurrences.push(`${pattern.title}: ${pattern.message}`);
+  }
+
+  // ── Risk level (deterministic, not for model to decide) ──
+  const riskLevel = insights.risk?.level === "atencao_alta" ? "high" as const
+    : insights.risk?.level === "atencao" ? "moderate" as const
+    : "low" as const;
+
+  // ── Prediction summary ──
+  const p = insights.prediction;
+  if (p && p.level !== "baixo") {
+    if (p.maniaSignals?.length) alerts.push(`Sinais de elevação: ${p.maniaSignals.join(", ")}`);
+    if (p.depressionSignals?.length) alerts.push(`Sinais de queda: ${p.depressionSignals.join(", ")}`);
+  }
+
+  // ── Cycling ──
+  if (insights.cycling?.isRapidCycling) {
+    facts.push(`Mudanças de polaridade: ${insights.cycling.polaritySwitches} nos últimos 90 dias`);
+  }
+
+  // ── Seasonality ──
+  if (insights.seasonality?.hasSeasonalPattern) {
+    facts.push(`Padrão sazonal: ${insights.seasonality.description}`);
+  }
+
+  // ── Data quality ──
+  const dataQuality = s.recordCount < 7 ? "insufficient" as const : "ok" as const;
+
+  return { riskLevel, dataQuality, facts, cooccurrences, alerts };
 }
 
 /**
  * Operational instructions prompt — hierarchical rules with output contract.
  * Designed for Responses API `instructions` field.
  */
-const INSTRUCTIONS = `Você é o módulo de narrativa do app "Suporte Bipolar". Recebe JSON com dados de monitoramento de 30 dias e retorna um resumo estruturado em pt-BR.
+const INSTRUCTIONS = `Você recebe fatos numéricos já calculados sobre monitoramento de saúde e gera um resumo em pt-BR para o paciente.
+
+# Papel
+Verbalizar fatos fornecidos no payload. Você NÃO interpreta, NÃO decide risco, NÃO descobre hipóteses.
 
 # PROIBIÇÕES ABSOLUTAS (violar = falha)
-- NUNCA nomear condições clínicas: depressão, mania, hipomania, ciclotimia, episódio depressivo, transtorno bipolar, etc.
-- NUNCA fazer diagnósticos, nem tentativos ou indiretos ("sinais compatíveis com", "quadro sugestivo de", "perfil clínico de").
-- NUNCA mencionar medicamentos por nome, classe ou tipo (antidepressivo, estabilizador, etc.).
+- NUNCA nomear condições clínicas (depressão, mania, hipomania, ciclotimia, etc.).
+- NUNCA fazer diagnósticos, nem tentativos ou indiretos.
+- NUNCA mencionar medicamentos por nome, classe ou tipo.
 - NUNCA sugerir iniciar, parar, aumentar, reduzir ou trocar tratamento.
-- NUNCA inferir causalidade clínica de correlações estatísticas.
+- NUNCA inferir causalidade clínica de correlações — use "coincidiu com", "esteve associado a".
 - NUNCA usar linguagem prescritiva ou imperativa para buscar profissional.
-- NUNCA inventar números, datas, percentuais ou tendências que não estejam no payload.
+- NUNCA inventar números, datas ou tendências que não estejam no payload.
+- NUNCA adicionar interpretação clínica além do que está nos fatos.
 
 # OBRIGATÓRIO
-- Descrever APENAS padrões observados nos dados: "humor abaixo da média", "sono mais curto que o habitual", "variação acentuada de energia".
-- Citar números específicos dos dados fornecidos.
+- Use APENAS os fatos, coocorrências e alertas do payload.
+- Cite os números exatamente como fornecidos.
 - Linguagem acolhedora, não-alarmista, em pt-BR coloquial (público leigo).
-- Se dados insuficientes, dizer claramente.
-- Para indicadores que merecem atenção, usar EXATAMENTE a frase: "pode ser interessante compartilhar esses dados com seu profissional de referência".
+- Se houver alertas, usar EXATAMENTE: "pode ser interessante compartilhar esses dados com seu profissional de referência".
 - Finalizar com frase de acolhimento + reforço de que o app é ferramenta de acompanhamento.
-- Texto adequado para leitura em iPhone — parágrafos curtos.
+- Texto curto, adequado para leitura em iPhone.
 
-# FORMATO DE SAÍDA
+# FORMATO
 - summary: exatamente 2 parágrafos curtos (separados por \\n\\n)
 - highlights: 3-5 pontos-chave como frases curtas
 - suggestions: 2-3 sugestões práticas do dia a dia (sem caráter clínico)`;
@@ -254,20 +288,29 @@ const INSTRUCTIONS = `Você é o módulo de narrativa do app "Suporte Bipolar". 
 export async function generateNarrative(
   insights: InsightsResult,
 ): Promise<NarrativeResult> {
-  const data = prepareInsightsForPrompt(insights);
+  const input = prepareInsightsForPrompt(insights);
 
-  // High-risk template routing — bypass LLM for deterministic safe output
-  const riskLevel = insights.risk?.level;
-  if (riskLevel === "atencao_alta") {
+  // High-risk: bypass LLM entirely for deterministic safe output
+  if (input.riskLevel === "high") {
     Sentry.addBreadcrumb({
       message: "AI narrative: high-risk template used (bypassed LLM)",
       level: "info",
       data: { riskScore: insights.risk?.score },
     });
-    return getHighRiskTemplate(data);
+    return getHighRiskTemplate({ risk: insights.risk });
   }
 
-  const userPrompt = `Analise os seguintes dados de monitoramento dos últimos 30 dias e gere uma narrativa interpretativa para o paciente:\n\n${JSON.stringify(data, null, 2)}`;
+  // Insufficient data: bypass LLM
+  if (input.dataQuality === "insufficient") {
+    return {
+      summary: "Ainda não há dados suficientes para gerar um resumo completo. Continue registrando sono, humor e rotina nos próximos dias.\n\nQuanto mais registros você fizer, mais detalhada será a análise. O app está aqui para te acompanhar.",
+      highlights: ["Menos de 7 registros de sono nos últimos 30 dias", "Continue registrando para gerar insights mais completos", "Os dados disponíveis estão nos cards acima"],
+      suggestions: ["Registre seu sono e humor todos os dias por pelo menos uma semana", "Use os lembretes do app para criar o hábito"],
+      generatedAt: new Date().toISOString(),
+    };
+  }
+
+  const userPrompt = `Verbalize os seguintes fatos de monitoramento dos últimos 30 dias em uma narrativa para o paciente. Use APENAS os dados listados abaixo — não interprete, não infira, apenas descreva:\n\n${JSON.stringify(input, null, 2)}`;
 
   try {
     const model = process.env.OPENAI_NARRATIVE_MODEL || "gpt-5.4";

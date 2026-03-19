@@ -36,7 +36,7 @@ export function AchievementGrid({ achievements }: AchievementGridProps) {
   }
 
   return (
-    <div>
+    <section aria-label="Conquistas">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-sm font-semibold text-foreground">Conquistas</h3>
         <button
@@ -66,7 +66,14 @@ export function AchievementGrid({ achievements }: AchievementGridProps) {
             <span className="text-2xl grayscale">{a.icon}</span>
             <span className="mt-1 text-[11px] font-semibold text-foreground leading-tight">{a.label}</span>
             {a.progress !== undefined && a.target !== undefined && (
-              <div className="mt-1 h-1 w-full rounded-full bg-border">
+              <div
+                className="mt-1 h-1 w-full rounded-full bg-border"
+                role="progressbar"
+                aria-valuenow={Math.round(a.progress * 100)}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label={`${a.label}: ${Math.round(a.progress * 100)}%`}
+              >
                 <div
                   className="h-full rounded-full bg-primary/50"
                   style={{ width: `${Math.round(a.progress * 100)}%` }}
@@ -76,6 +83,6 @@ export function AchievementGrid({ achievements }: AchievementGridProps) {
           </div>
         ))}
       </div>
-    </div>
+    </section>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
 interface NarrativeData {
   summary: string;
@@ -16,6 +16,14 @@ export function NarrativeSection() {
   const [expanded, setExpanded] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
   const [retryCooldown, setRetryCooldown] = useState(false);
+  const cooldownTimer = useRef<ReturnType<typeof setTimeout>>(null);
+
+  // Cleanup timer on unmount to prevent state updates after unmount
+  useEffect(() => {
+    return () => {
+      if (cooldownTimer.current) clearTimeout(cooldownTimer.current);
+    };
+  }, []);
 
   async function generate() {
     if (retryCooldown) return;
@@ -38,7 +46,7 @@ export function NarrativeSection() {
       const delay = Math.min(5000 * Math.pow(2, retryCount), 30_000);
       setRetryCount((c) => c + 1);
       setRetryCooldown(true);
-      setTimeout(() => setRetryCooldown(false), delay);
+      cooldownTimer.current = setTimeout(() => setRetryCooldown(false), delay);
     } finally {
       setLoading(false);
     }

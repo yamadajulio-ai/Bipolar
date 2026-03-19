@@ -4,35 +4,9 @@ import { z } from "zod/v4";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/security";
+import { isAllowedPushEndpoint } from "@/lib/push-constants";
 
 const MAX_SUBSCRIPTIONS_PER_USER = 5;
-
-/**
- * Allowlist of known Web Push service hosts.
- * Push endpoints should only point to browser vendor push gateways.
- * This prevents SSRF via crafted subscription objects.
- */
-const PUSH_SERVICE_HOSTS = [
-  "fcm.googleapis.com",
-  "updates.push.services.mozilla.com",
-  "push.services.mozilla.com",
-  "web.push.apple.com",
-  "wns.windows.com",
-  "notify.windows.com",
-  "push.api.chrome.google.com",
-];
-
-function isAllowedPushEndpoint(endpoint: string): boolean {
-  try {
-    const url = new URL(endpoint);
-    if (url.protocol !== "https:") return false;
-    return PUSH_SERVICE_HOSTS.some(
-      (host) => url.hostname === host || url.hostname.endsWith("." + host),
-    );
-  } catch {
-    return false;
-  }
-}
 
 const subscribeSchema = z.object({
   endpoint: z.string().url().max(2048).refine(
@@ -146,8 +120,8 @@ export async function DELETE(request: NextRequest) {
     const body = await request.json();
     const endpoint = body.endpoint;
 
-    if (!endpoint || typeof endpoint !== "string") {
-      return NextResponse.json({ error: "Endpoint obrigatório" }, { status: 400 });
+    if (!endpoint || typeof endpoint !== "string" || endpoint.length > 2048) {
+      return NextResponse.json({ error: "Endpoint inválido" }, { status: 400 });
     }
 
     await prisma.pushSubscription.deleteMany({

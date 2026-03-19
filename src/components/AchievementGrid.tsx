@@ -21,8 +21,19 @@ export function AchievementGrid({ achievements }: AchievementGridProps) {
   const unlocked = achievements.filter((a) => a.unlocked);
   const locked = achievements.filter((a) => !a.unlocked);
 
-  if (hidden) return null;
   if (unlocked.length === 0 && locked.length === 0) return null;
+
+  if (hidden) {
+    return (
+      <button
+        onClick={() => { localStorage.removeItem(HIDE_KEY); setHidden(false); }}
+        className="w-full text-center text-[10px] text-muted hover:text-foreground py-1"
+        aria-label="Mostrar conquistas"
+      >
+        Mostrar conquistas
+      </button>
+    );
+  }
 
   return (
     <div>

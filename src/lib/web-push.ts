@@ -1,4 +1,5 @@
 import webPush from "web-push";
+import { isAllowedPushEndpoint } from "@/lib/push-constants";
 
 let vapidConfigured = false;
 
@@ -15,33 +16,6 @@ function ensureVapid(): boolean {
   webPush.setVapidDetails(subject, pub, priv);
   vapidConfigured = true;
   return true;
-}
-
-/**
- * Allowlist of known Web Push service hosts.
- * Shared with push-subscriptions route — duplicated here to guard send-path
- * against legacy/migrated data that bypassed the write-time check.
- */
-const PUSH_SERVICE_HOSTS = [
-  "fcm.googleapis.com",
-  "updates.push.services.mozilla.com",
-  "push.services.mozilla.com",
-  "web.push.apple.com",
-  "wns.windows.com",
-  "notify.windows.com",
-  "push.api.chrome.google.com",
-];
-
-function isAllowedEndpoint(endpoint: string): boolean {
-  try {
-    const url = new URL(endpoint);
-    if (url.protocol !== "https:") return false;
-    return PUSH_SERVICE_HOSTS.some(
-      (host) => url.hostname === host || url.hostname.endsWith("." + host),
-    );
-  } catch {
-    return false;
-  }
 }
 
 export interface PushPayload {
@@ -65,7 +39,7 @@ export async function sendPush(
   }
   // Full allowlist check at send-time — guards against legacy/migrated DB rows
   // that bypassed the write-time validation in push-subscriptions route.
-  if (!isAllowedEndpoint(subscription.endpoint)) {
+  if (!isAllowedPushEndpoint(subscription.endpoint)) {
     return { ok: false, reason: "invalid-endpoint" };
   }
   try {

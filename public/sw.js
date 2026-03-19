@@ -77,7 +77,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // 4. Everything else — pass through (no caching)
+  // 5. Everything else — pass through (no caching)
 });
 
 // --- Strategies ---

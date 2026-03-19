@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
   const checkInId = Sentry.captureCheckIn(
     { monitorSlug: "send-reminders", status: "in_progress" },
     {
-      schedule: { type: "crontab", value: "0 9 * * *" },
+      schedule: { type: "crontab", value: "* * * * *" },
       checkinMargin: 5,
       maxRuntime: 2,
       timezone: "America/Sao_Paulo",

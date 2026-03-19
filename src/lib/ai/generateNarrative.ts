@@ -205,7 +205,7 @@ REGRAS OBRIGATÓRIAS:
     // HealthBench 63.3%, 1.6% hallucination rate on hard medical cases.
     const response = await getOpenAI().chat.completions.create({
       model: "gpt-5.2",
-      max_tokens: 1024,
+      max_tokens: 2048,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },

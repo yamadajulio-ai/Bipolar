@@ -12,6 +12,14 @@ export async function GET(request: NextRequest) {
   const timeMin = searchParams.get("timeMin");
   const timeMax = searchParams.get("timeMax");
 
+  // Validate date params — reject garbage that `new Date()` would silently accept
+  if (timeMin && isNaN(new Date(timeMin).getTime())) {
+    return NextResponse.json({ error: "timeMin inválido" }, { status: 400 });
+  }
+  if (timeMax && isNaN(new Date(timeMax).getTime())) {
+    return NextResponse.json({ error: "timeMax inválido" }, { status: 400 });
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let where: any = { userId: session.userId };
   if (timeMin || timeMax) {

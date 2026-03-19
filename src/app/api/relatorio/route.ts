@@ -16,6 +16,12 @@ export async function GET(request: NextRequest) {
 
   const startDate = `${month}-01`;
   const [year, mon] = month.split("-").map(Number);
+
+  // Reject unreasonable year ranges to prevent inefficient queries
+  const currentYear = new Date().getFullYear();
+  if (year < 2020 || year > currentYear + 1) {
+    return NextResponse.json({ error: "Ano fora do intervalo permitido" }, { status: 400 });
+  }
   const nextMonth = mon === 12 ? `${year + 1}-01` : `${year}-${String(mon + 1).padStart(2, "0")}`;
   const endDate = `${nextMonth}-01`;
 

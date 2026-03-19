@@ -32,7 +32,7 @@
 | Zod | ^4.3.6 |
 | OpenAI SDK | ^5 (Responses API, Structured Outputs) |
 | web-push | ^3 (VAPID, Web Push API) |
-| Vitest | ^4.0.18 (704 testes, 8 suites) |
+| Vitest | ^4.0.18 (951 testes, 11 suites) |
 | Deploy | Vercel (auto-deploy on push to main) |
 | DNS/CDN | Cloudflare (proxy OFF, DNS only) |
 | Package Manager | pnpm |
@@ -304,7 +304,7 @@ NarrativeSection (on-demand generation, exponential backoff, inline error recove
 ### Relatório & Outros
 MonthSelector, MonthlyReport, SoundPlayer, ImportCSV, TransactionList, NewsFeed, RhythmForm, SleepRoutineChecklist, WarningSignsChecklist, CrisisPlanForm, CrisisPlanCard, ReminderManager, RegularityMeter
 
-## 8. Motor de Insights (computeInsights.ts ~1800 linhas, 40 testes + 127 narrative guardrail testes)
+## 8. Motor de Insights (computeInsights.ts ~1800 linhas, 40 testes + 127 narrative guardrail testes + 26 push + 20 web-push + 201 webhook testes)
 
 Features calculadas server-side:
 - **Termômetro de Humor:** Dual-score M/D (0-100), EWMA α=0.4, 5 zonas (depressão severa/leve/eutimia/hipomania/mania), flag misto (forte/provável), instabilidade, ansiedade como sinal de distress
@@ -390,12 +390,15 @@ Features calculadas server-side:
 ## 13. Testes
 
 - Framework: Vitest 4.0.18
-- **704 testes em 8 suites** (0 falhas)
+- **951 testes em 11 suites** (0 falhas)
 - `detectCrisis.test.ts`: 423 testes — SOS crisis detection (17 rounds of GPT Pro audit)
+- `webhook.test.ts`: 201 testes — WhatsApp HMAC-SHA256 verification, payload parsing, size limits
 - `generateNarrative.test.ts`: 127 testes — 17 forbidden clinical patterns, medication names, edge cases
 - `streaks.test.ts`: 53 testes — current/longest streak, 9 achievements, dual_streak_7 concurrency
 - `computeInsights.test.ts`: 40 testes — sleep, mood, thermometer, risk, prediction, cycling, heatmap
+- `push-constants.test.ts`: 26 testes — SSRF allowlist, protocol enforcement, subdomain matching, edge cases
 - `expandRecurrence.test.ts`: 23 testes — planner recurrence expansion
+- `web-push.test.ts`: 20 testes — VAPID config, endpoint allowlist send-time, HTTP status mapping, payload/TTL
 - `healthExport.test.ts`: 19 testes — HAE Apple Health parser
 - `parseMobillsCsv.test.ts`: 11 testes — Mobills CSV/XLSX parser
 - `dateUtils.test.ts`: 8 testes — date utilities

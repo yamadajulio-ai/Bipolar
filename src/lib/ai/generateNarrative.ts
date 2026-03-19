@@ -265,6 +265,80 @@ Verbalizador fiel de evidências. Você transforma dados pré-calculados em ling
 - Seções ausentes: status="absent", title com nome da área, summary="" (vazio), arrays vazios
 - evidenceIds devem listar os IDs das evidências que você usou`;
 
+// ── Few-shot examples (3 archetypes per GPT Pro audit) ────────
+
+const FEW_SHOT_STABLE_INPUT = `Verbalize as seguintes evidências: {"riskLevel":"low","sections":{"sleep":{"status":"ok","evidence":[{"id":"sleep_avg_30d","text":"Sono médio: 7.4 horas (26 registros, confiança alta)"},{"id":"sleep_var_30d","text":"Variação do horário de dormir: 34 minutos"}]},"mood":{"status":"ok","evidence":[{"id":"mood_stability_7d","text":"Resumo do humor: Humor estável"}]},"assessments":{"status":"ok","evidence":[{"id":"assessments_weekly","text":"Questionário semanal de humor: escore 6 (-1 vs semana anterior)"}]}}}`;
+
+const FEW_SHOT_STABLE_OUTPUT = JSON.stringify({
+  schemaVersion: "narrative_v2",
+  overview: { headline: "Sua rotina apareceu mais previsível nesta semana.", summary: "Os registros mostram sono médio de 7,4 horas, com variação de 34 minutos e 26 registros. O humor ficou mais estável ao longo dos dias. Nos questionários semanais, os escores ficaram próximos do seu padrão recente.", dataQualityNote: "Leitura com boa base de registros nesta semana.", evidenceIds: ["sleep_avg_30d", "sleep_var_30d", "mood_stability_7d", "assessments_weekly"] },
+  sections: {
+    sleep: { status: "stable", title: "Sono", summary: "Seu sono ficou em uma faixa estável e com pouca variação entre os dias.", keyPoints: ["Média de 7,4 horas por noite", "Variação de 34 minutos"], metrics: ["Sono médio: 7,4h", "Variação: 34min"], suggestions: ["Manter horários parecidos entre dias úteis e fim de semana"], evidenceIds: ["sleep_avg_30d", "sleep_var_30d"] },
+    mood: { status: "stable", title: "Humor", summary: "Humor estável no período.", keyPoints: ["Baixa oscilação"], metrics: [], suggestions: [], evidenceIds: ["mood_stability_7d"] },
+    socialRhythms: { status: "absent", title: "Ritmos Sociais", summary: "", keyPoints: [], metrics: [], suggestions: [], evidenceIds: [] },
+    plannerContext: { status: "absent", title: "Rotina Planejada", summary: "", keyPoints: [], metrics: [], suggestions: [], evidenceIds: [] },
+    financialContext: { status: "absent", title: "Contexto Financeiro", summary: "", keyPoints: [], metrics: [], suggestions: [], evidenceIds: [] },
+    cognition: { status: "absent", title: "Cognição", summary: "", keyPoints: [], metrics: [], suggestions: [], evidenceIds: [] },
+    weeklyAssessments: { status: "stable", title: "Avaliações Semanais", summary: "Escores ficaram próximos do padrão recente.", keyPoints: ["Escore de humor: 6 (-1 vs semana anterior)"], metrics: [], suggestions: [], evidenceIds: ["assessments_weekly"] },
+    lifeEvents: { status: "absent", title: "Eventos de Vida", summary: "", keyPoints: [], metrics: [], suggestions: [], evidenceIds: [] },
+    correlations: { status: "absent", title: "Correlações", summary: "", keyPoints: [], metrics: [], suggestions: [], evidenceIds: [] },
+    overallTrend: { status: "stable", title: "Tendência Geral", summary: "Período estável com registros consistentes.", keyPoints: [], metrics: [], suggestions: [], evidenceIds: [] },
+  },
+  actions: { shareWithProfessional: false, practicalSuggestions: ["Continuar registrando os dias mais corridos para comparar com o restante da semana", "Preservar a rotina da manhã nos dias em que isso ficou mais fácil"] },
+  closing: { text: "Que bom ver sinais de mais previsibilidade. O app está aqui para te ajudar a acompanhar esses movimentos ao longo do tempo." },
+});
+
+const FEW_SHOT_ALERT_INPUT = `Verbalize as seguintes evidências: {"riskLevel":"moderate","shareWithProfessional":true,"sections":{"sleep":{"status":"ok","evidence":[{"id":"sleep_avg_7d","text":"Sono médio: 5.9 horas"},{"id":"sleep_var_7d","text":"Variação do horário de dormir: 125 minutos"},{"id":"sleep_delta_wow","text":"Tendência do sono: caindo (variação de -1.3h)"}]},"mood":{"status":"ok","evidence":[{"id":"mood_variability_7d","text":"Oscilação do humor: 45 (alta)"}]},"assessments":{"status":"ok","evidence":[{"id":"weekly_scores","text":"Questionário semanal de humor: escore 11 (+5 vs semana anterior)"},{"id":"assess_asrm","text":"Questionário semanal de energia e ritmo: escore 8 (+4 vs semana anterior)"}]}}}`;
+
+const FEW_SHOT_ALERT_OUTPUT = JSON.stringify({
+  schemaVersion: "narrative_v2",
+  overview: { headline: "Esta semana trouxe mais oscilação do que o seu padrão recente.", summary: "Nos últimos dias, seu sono caiu para 5,9 horas em média e ficou mais irregular, com variação de 2 horas e 5 minutos. Ao mesmo tempo, os check-ins oscilaram mais. Esse movimento coincidiu com aumento dos escores semanais.", dataQualityNote: "Leitura consistente, com mudanças recentes bem marcadas.", evidenceIds: ["sleep_avg_7d", "sleep_var_7d", "mood_variability_7d", "weekly_scores"] },
+  sections: {
+    sleep: { status: "notable", title: "Sono", summary: "Seu sono caiu e ficou mais irregular esta semana.", keyPoints: ["Média de 5,9 horas", "Variação de 2h05", "Queda de 1,3h vs semana anterior"], metrics: ["Sono médio: 5,9h", "Variação: 125min"], suggestions: ["Tentar manter horário de dormir mais parecido nos próximos dias"], evidenceIds: ["sleep_avg_7d", "sleep_var_7d", "sleep_delta_wow"] },
+    mood: { status: "notable", title: "Humor", summary: "Os check-ins mostraram mais oscilação que o habitual.", keyPoints: ["Oscilação de 45 pontos (alta)"], metrics: [], suggestions: [], evidenceIds: ["mood_variability_7d"] },
+    socialRhythms: { status: "absent", title: "Ritmos Sociais", summary: "", keyPoints: [], metrics: [], suggestions: [], evidenceIds: [] },
+    plannerContext: { status: "absent", title: "Rotina Planejada", summary: "", keyPoints: [], metrics: [], suggestions: [], evidenceIds: [] },
+    financialContext: { status: "absent", title: "Contexto Financeiro", summary: "", keyPoints: [], metrics: [], suggestions: [], evidenceIds: [] },
+    cognition: { status: "absent", title: "Cognição", summary: "", keyPoints: [], metrics: [], suggestions: [], evidenceIds: [] },
+    weeklyAssessments: { status: "notable", title: "Avaliações Semanais", summary: "Os escores semanais subiram em relação à semana anterior.", keyPoints: ["Questionário de humor: +5 pontos", "Energia e ritmo: +4 pontos"], metrics: [], suggestions: [], evidenceIds: ["weekly_scores", "assess_asrm"] },
+    lifeEvents: { status: "absent", title: "Eventos de Vida", summary: "", keyPoints: [], metrics: [], suggestions: [], evidenceIds: [] },
+    correlations: { status: "absent", title: "Correlações", summary: "", keyPoints: [], metrics: [], suggestions: [], evidenceIds: [] },
+    overallTrend: { status: "notable", title: "Tendência Geral", summary: "O conjunto dos dados desta semana ficou mais distante do que vinha sendo comum no último mês.", keyPoints: ["Sono mais curto e irregular", "Mais oscilação nos registros do dia"], metrics: ["Últimos 7 dias vs 7 anteriores: -1,3h de sono"], suggestions: [], evidenceIds: ["sleep_delta_wow", "weekly_scores"] },
+  },
+  actions: { shareWithProfessional: true, practicalSuggestions: ["Tentar deixar o fim da noite mais previsível por alguns dias", "Marcar no app quais dias fugiram mais da rotina para facilitar a comparação", "Separar um bloco curto de desaceleração antes de dormir"] },
+  closing: { text: "Você não precisa tirar conclusões sozinho(a). O app serve para organizar esses sinais e te ajudar a olhar o que mudou com mais clareza." },
+});
+
+const FEW_SHOT_LIMITED_INPUT = `Verbalize as seguintes evidências: {"riskLevel":"low","sections":{"sleep":{"status":"limited","evidence":[{"id":"sleep_count_low","text":"Sono médio: 6.8 horas (8 registros, confiança baixa)"}]},"mood":{"status":"limited","evidence":[{"id":"mood_count_low","text":"Resumo do humor: 3 check-ins registrados"}]}}}`;
+
+const FEW_SHOT_LIMITED_OUTPUT = JSON.stringify({
+  schemaVersion: "narrative_v2",
+  overview: { headline: "Ainda há poucos registros para uma leitura mais firme.", summary: "Nesta janela, o app recebeu 8 registros de sono e 3 check-ins. Isso já mostra um começo de padrão, mas ainda não dá base suficiente para comparar a semana com segurança.", dataQualityNote: "Leitura limitada por quantidade de registros.", evidenceIds: ["sleep_count_low", "mood_count_low"] },
+  sections: {
+    sleep: { status: "limited", title: "Sono", summary: "Poucos registros ainda, mas os que existem mostram uma média de 6,8 horas.", keyPoints: ["8 registros disponíveis"], metrics: ["Sono médio: 6,8h"], suggestions: ["Registrar sono todos os dias por pelo menos uma semana"], evidenceIds: ["sleep_count_low"] },
+    mood: { status: "limited", title: "Humor", summary: "Apenas 3 check-ins — poucos para identificar padrões.", keyPoints: ["3 registros disponíveis"], metrics: [], suggestions: ["Registrar humor diariamente"], evidenceIds: ["mood_count_low"] },
+    socialRhythms: { status: "absent", title: "Ritmos Sociais", summary: "", keyPoints: [], metrics: [], suggestions: [], evidenceIds: [] },
+    plannerContext: { status: "absent", title: "Rotina Planejada", summary: "", keyPoints: [], metrics: [], suggestions: [], evidenceIds: [] },
+    financialContext: { status: "absent", title: "Contexto Financeiro", summary: "", keyPoints: [], metrics: [], suggestions: [], evidenceIds: [] },
+    cognition: { status: "absent", title: "Cognição", summary: "", keyPoints: [], metrics: [], suggestions: [], evidenceIds: [] },
+    weeklyAssessments: { status: "absent", title: "Avaliações Semanais", summary: "", keyPoints: [], metrics: [], suggestions: [], evidenceIds: [] },
+    lifeEvents: { status: "absent", title: "Eventos de Vida", summary: "", keyPoints: [], metrics: [], suggestions: [], evidenceIds: [] },
+    correlations: { status: "absent", title: "Correlações", summary: "", keyPoints: [], metrics: [], suggestions: [], evidenceIds: [] },
+    overallTrend: { status: "limited", title: "Tendência Geral", summary: "Por enquanto, vale tratar esta narrativa como um retrato inicial.", keyPoints: ["Base pequena de registros", "Comparações ainda frágeis"], metrics: ["Sono: 8 registros", "Humor: 3 registros"], suggestions: ["Priorizar consistência dos registros nos próximos dias"], evidenceIds: ["sleep_count_low", "mood_count_low"] },
+  },
+  actions: { shareWithProfessional: false, practicalSuggestions: ["Registrar sono e check-in em dias alternados já ajuda a ganhar base", "Usar o app nos mesmos horários facilita comparar as próximas semanas"] },
+  closing: { text: "Mesmo com poucos dados, cada registro ajuda a montar um retrato mais útil do seu dia a dia. O app está aqui para acompanhar esse processo com você." },
+});
+
+const FEW_SHOT_MESSAGES = [
+  { role: "user" as const, content: FEW_SHOT_STABLE_INPUT },
+  { role: "assistant" as const, content: FEW_SHOT_STABLE_OUTPUT },
+  { role: "user" as const, content: FEW_SHOT_ALERT_INPUT },
+  { role: "assistant" as const, content: FEW_SHOT_ALERT_OUTPUT },
+  { role: "user" as const, content: FEW_SHOT_LIMITED_INPUT },
+  { role: "assistant" as const, content: FEW_SHOT_LIMITED_OUTPUT },
+];
+
 // ── Evidence preparation helpers ───────────────────────────────
 
 function trendLabel(t: string | null): string {
@@ -514,7 +588,7 @@ export async function generateNarrative(
     const supportsReasoning = model.startsWith("gpt-5") || model.startsWith("o");
     const response = await getOpenAI().responses.create({
       model, instructions: INSTRUCTIONS_V2,
-      input: [{ role: "user", content: userPrompt }],
+      input: [...FEW_SHOT_MESSAGES, { role: "user", content: userPrompt }],
       text: { format: { type: "json_schema", ...NARRATIVE_V2_JSON_SCHEMA } },
       store: false,
       ...(supportsReasoning ? { reasoning: { effort: reasoningEffort as "low" | "medium" | "high" } } : {}),

@@ -355,6 +355,21 @@ describe("generateNarrative — deterministic paths", () => {
       );
     });
 
+    it("includes few-shot examples before user message", async () => {
+      mockResponsesCreate.mockResolvedValue(makeValidResponse(makeValidV2Narrative()));
+
+      await generateNarrative(makeInsights(), makeExtra());
+
+      const call = mockResponsesCreate.mock.calls[0][0];
+      // 6 few-shot messages (3 user + 3 assistant) + 1 real user message = 7
+      expect(call.input.length).toBe(7);
+      expect(call.input[0].role).toBe("user");
+      expect(call.input[1].role).toBe("assistant");
+      expect(call.input[6].role).toBe("user");
+      // Last message is the real user prompt with actual evidence
+      expect(call.input[6].content).toContain("riskLevel");
+    });
+
     it("excludes reasoning param for gpt-4.x models", async () => {
       process.env.OPENAI_NARRATIVE_MODEL = "gpt-4.1";
       vi.resetModules();
@@ -571,7 +586,7 @@ describe("generateNarrative — deterministic paths", () => {
       await generateNarrative(makeInsights(), makeExtra());
 
       const call = mockResponsesCreate.mock.calls[0][0];
-      const userContent = call.input[0].content;
+      const userContent = call.input[call.input.length - 1].content;
       expect(userContent).toContain("riskLevel");
       expect(userContent).toContain("sections");
       expect(userContent).toContain("evidence");
@@ -582,7 +597,7 @@ describe("generateNarrative — deterministic paths", () => {
 
       await generateNarrative(makeInsights(), makeExtra());
 
-      const userContent = mockResponsesCreate.mock.calls[0][0].input[0].content;
+      const userContent = mockResponsesCreate.mock.calls[0][0].input.at(-1).content;
       expect(userContent).toContain("7.2");
       expect(userContent).toContain("Sono");
     });
@@ -594,7 +609,7 @@ describe("generateNarrative — deterministic paths", () => {
         chart: { correlation: { rho: 0.65, strength: "forte", direction: "positiva", confidence: "alta" } },
       }), makeExtra());
 
-      const userContent = mockResponsesCreate.mock.calls[0][0].input[0].content;
+      const userContent = mockResponsesCreate.mock.calls[0][0].input.at(-1).content;
       expect(userContent).toContain("0.65");
       expect(userContent).toContain("correlations");
     });
@@ -606,7 +621,7 @@ describe("generateNarrative — deterministic paths", () => {
         risk: { level: "atencao", score: 50, factors: ["x"] },
       }), makeExtra());
 
-      const userContent = mockResponsesCreate.mock.calls[0][0].input[0].content;
+      const userContent = mockResponsesCreate.mock.calls[0][0].input.at(-1).content;
       expect(userContent).toContain('"moderate"');
     });
 
@@ -617,7 +632,7 @@ describe("generateNarrative — deterministic paths", () => {
         cycling: { isRapidCycling: true, polaritySwitches: 5 },
       }), makeExtra());
 
-      const userContent = mockResponsesCreate.mock.calls[0][0].input[0].content;
+      const userContent = mockResponsesCreate.mock.calls[0][0].input.at(-1).content;
       expect(userContent).toContain("polaridade");
       expect(userContent).toContain("5");
     });
@@ -629,7 +644,7 @@ describe("generateNarrative — deterministic paths", () => {
         seasonality: { hasSeasonalPattern: true, description: "Inverno: humor mais baixo" },
       }), makeExtra());
 
-      const userContent = mockResponsesCreate.mock.calls[0][0].input[0].content;
+      const userContent = mockResponsesCreate.mock.calls[0][0].input.at(-1).content;
       expect(userContent).toContain("Inverno");
     });
 
@@ -647,7 +662,7 @@ describe("generateNarrative — deterministic paths", () => {
 
       await generateNarrative(makeInsights(), extra);
 
-      const userContent = mockResponsesCreate.mock.calls[0][0].input[0].content;
+      const userContent = mockResponsesCreate.mock.calls[0][0].input.at(-1).content;
       expect(userContent).toContain("assess");
       expect(userContent).toContain("6"); // phq9Total
     });
@@ -663,7 +678,7 @@ describe("generateNarrative — deterministic paths", () => {
 
       await generateNarrative(makeInsights(), extra);
 
-      const userContent = mockResponsesCreate.mock.calls[0][0].input[0].content;
+      const userContent = mockResponsesCreate.mock.calls[0][0].input.at(-1).content;
       expect(userContent).toContain("sessão de terapia");
     });
 
@@ -678,7 +693,7 @@ describe("generateNarrative — deterministic paths", () => {
 
       await generateNarrative(makeInsights(), extra);
 
-      const userContent = mockResponsesCreate.mock.calls[0][0].input[0].content;
+      const userContent = mockResponsesCreate.mock.calls[0][0].input.at(-1).content;
       expect(userContent).not.toContain("unknown_type_xyz");
     });
   });

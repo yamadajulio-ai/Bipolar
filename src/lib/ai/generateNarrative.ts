@@ -68,7 +68,7 @@ const FORBIDDEN_PATTERNS = [
   /\bdiagnostic/,
   /\bajust(?:e|ar|ando)\s+(?:(?:a|de)\s+)?medicacao/,
   /\bvoce\s+(?:tem|possui|sofre\s+de)\s+/,
-  /\bcausa(?:do|da|r)\s+(?:por|pelo|pela)\b/,
+  /\bcausa(?:do|da|dos|das|r)\s+(?:por|pelo|pela)\b/,
   /\brecomend(?:o|amos)\s+(?:que\s+)?(?:par|tom|aument|diminu)/,
   // Indirect diagnostic phrasing
   /\bsina(?:l|is)\s+compative(?:l|is)\s+com\b/,
@@ -76,7 +76,7 @@ const FORBIDDEN_PATTERNS = [
   /\bquadro\s+(?:clinico\s+)?(?:compativel|indicativo|sugestivo)\b/,
   /\bcaracteristic(?:o|a)s?\s+de\s+(?:um|uma)?\s*(?:episodio|transtorno|fase)\b/,
   /\bperfil\s+(?:clinico|compativel)\b/,
-  /\bconfirma(?:r|ndo|cao)\s+(?:de\s+)?(?:diagnostic|transtorno|episodio)\b/,
+  /\bconfirma(?:r|m|ndo|cao)\s+(?:(?:de|um|uma)\s+)?(?:diagnostic|transtorno|episodio)\b/,
   /\b(?:interromp|suspend|retir)(?:a|e|ar|ir|er)\s+(?:a\s+)?medicacao\b/,
   // Prescriptive language disguised as observation
   /\bvoce\s+(?:deve|precisa|deveria)\s+(?:procurar|buscar|ir)\s+(?:um|ao)\s+(?:medic|psiqui)/,
@@ -84,12 +84,12 @@ const FORBIDDEN_PATTERNS = [
   // Explicit medication names — generic and common brand names (Brazil market)
   /\b(?:litio|carbolitium|carbamazepina|tegretol|valproato|depakote|depakene|lamotrigina|lamictal|quetiapina|seroquel|olanzapina|zyprexa|risperidona|risperdal|aripiprazol|abilify|clozapina|clozaril|haloperidol|haldol|topiramato|topamax|fluoxetina|prozac|sertralina|zoloft|escitalopram|lexapro|venlafaxina|effexor|duloxetina|cymbalta|bupropiona|wellbutrin|clonazepam|rivotril|diazepam|valium|alprazolam|frontal|lorazepam)\b/,
   // Drug classes and generic therapeutic terms
-  /\b(?:estabilizador(?:es)?\s+(?:de\s+|do\s+)?humor|antipsicotico|neuroleptico|antidepressivo|ansiolitico|benzodiazepnico|anticonvulsivante|psicofarma)/,
+  /\b(?:estabilizador(?:es)?\s+(?:de\s+|do\s+)?humor|antipsicotico|neuroleptico|antidepressivo|ansiolitico|benzodiazepinico|anticonvulsivante|psicofarma)/,
   // BAN condition/episode/disorder names outright
   /\b(?:depressao|mania|hipomania|maniaco|hipomaniaco|ciclotimia|distimia|psicose|psicotico|eutimia|ansiedade\s+generalizada)\b/,
-  /\b(?:episodio|transtorno|sindrome)\s+(?:bipolar|depressivo|maniaco|misto|afetivo)\b/,
+  /\b(?:episodio|transtorno|sindrome)\s+(?:bipolar|depressiv[oa]|maniac[oa]|mist[oa]|afetiv[oa])\b/,
   // Speculative clinical language
-  /\b(?:indica|sugere|aponta\s+para|compativel\s+com)\s+(?:um|uma)?\s*(?:episodio|transtorno|quadro|crise|fase|sindrome)\b/,
+  /\b(?:indica[mn]?|sugere[mn]?|aponta[mn]?\s+para|compative(?:l|is)\s+com)\s+(?:um|uma)?\s*(?:episodio|transtorno|quadro|crise|fase|sindrome)\b/,
 ];
 
 /**

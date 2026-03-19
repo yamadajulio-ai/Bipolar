@@ -45,6 +45,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const checkInId = Sentry.captureCheckIn(
+    { monitorSlug: "send-reminders", status: "in_progress" },
+    {
+      schedule: { type: "crontab", value: "0 9 * * *" },
+      checkinMargin: 5,
+      maxRuntime: 2,
+      timezone: "America/Sao_Paulo",
+    },
+  );
+
   try {
     // Current time in São Paulo (HH:MM)
     const now = new Date();
@@ -153,8 +163,10 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    Sentry.captureCheckIn({ checkInId, monitorSlug: "send-reminders", status: "ok" });
     return NextResponse.json({ ok: true, sent, cleaned: expiredEndpoints.length });
   } catch (err) {
+    Sentry.captureCheckIn({ checkInId, monitorSlug: "send-reminders", status: "error" });
     Sentry.captureException(err, { tags: { endpoint: "cron-send-reminders" } });
     console.error("Send reminders cron error:", err);
     return NextResponse.json({ error: "Failed" }, { status: 500 });

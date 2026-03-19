@@ -67,8 +67,8 @@ const FORBIDDEN_PATTERNS = [
   // Prescriptive language disguised as observation
   /\bvoc[êe]\s+(?:deve|precisa|deveria)\s+(?:procurar|buscar|ir)\s+(?:um|ao)\s+(?:m[ée]dic|psiqui)/i,
   /\b(?:claramente|evidentemente|obviamente)\s+(?:um|uma)\s+(?:epis[oó]dio|crise|fase)\b/i,
-  // Explicit medication names (should never appear in narrative)
-  /\b(?:l[ií]tio|carbamazepina|valproato|lamotrigina|quetiapina|olanzapina|risperidona|aripiprazol)\b/i,
+  // Explicit medication names — generic and common brand names (should never appear in narrative)
+  /\b(?:l[ií]tio|carbolitium|carbamazepina|tegretol|valproato|depakote|depakene|lamotrigina|lamictal|quetiapina|seroquel|olanzapina|zyprexa|risperidona|risperdal|aripiprazol|abilify|clozapina|clozaril|haloperidol|haldol|topiramato|topamax)\b/i,
 ];
 
 function containsForbiddenContent(text: string): boolean {

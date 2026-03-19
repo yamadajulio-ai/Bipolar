@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { prisma } from "@/lib/db";
 
 /**
@@ -11,6 +12,16 @@ export async function GET(request: NextRequest) {
   if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const checkInId = Sentry.captureCheckIn(
+    { monitorSlug: "purge-access-logs", status: "in_progress" },
+    {
+      schedule: { type: "crontab", value: "0 3 * * *" },
+      checkinMargin: 5,
+      maxRuntime: 2,
+      timezone: "Etc/UTC",
+    },
+  );
 
   try {
     const cutoff = new Date();
@@ -25,8 +36,11 @@ export async function GET(request: NextRequest) {
       where: { expiresAt: { lt: new Date() } },
     });
 
+    Sentry.captureCheckIn({ checkInId, monitorSlug: "purge-access-logs", status: "ok" });
     return NextResponse.json({ ok: true });
-  } catch {
+  } catch (err) {
+    Sentry.captureCheckIn({ checkInId, monitorSlug: "purge-access-logs", status: "error" });
+    Sentry.captureException(err, { tags: { endpoint: "cron-purge-access-logs" } });
     return NextResponse.json({ error: "Purge failed" }, { status: 500 });
   }
 }

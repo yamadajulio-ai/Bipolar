@@ -13,44 +13,61 @@ function isBipolarRelated(title: string): boolean {
   return false;
 }
 
-// ── Translation (EN → PT-BR) ─────────────────────────────────────
+// ── Translation (EN → PT-BR) — Google Cloud Translation API v2 ──
 
-async function translateText(text: string): Promise<string> {
-  try {
-    const url = new URL("https://translate.googleapis.com/translate_a/single");
-    url.searchParams.set("client", "gtx");
-    url.searchParams.set("sl", "en");
-    url.searchParams.set("tl", "pt-BR");
-    url.searchParams.set("dt", "t");
-    url.searchParams.set("q", text);
-
-    const res = await fetch(url.toString(), {
-      signal: AbortSignal.timeout(5000),
-    });
-    if (!res.ok) return text;
-
-    const data = await res.json();
-    // Response: [[[translated, original, ...], ...], ...]
-    const translated = (data[0] as [string, string][] | undefined)
-      ?.map((part) => part[0])
-      .join("");
-    return translated || text;
-  } catch {
-    return text; // fallback to original English
-  }
+interface TranslateV2Response {
+  data: {
+    translations: { translatedText: string }[];
+  };
 }
 
-/** Translate an array of texts EN→PT-BR in parallel (max 5 concurrent). */
+/**
+ * Translate an array of texts EN→PT-BR using the official Cloud Translation API v2 (Basic).
+ * Supports up to 128 segments per request natively — no concurrency hack needed.
+ * Falls back to original texts on error.
+ * Requires GOOGLE_TRANSLATE_API_KEY env var.
+ */
 async function translateBatch(texts: string[]): Promise<string[]> {
   if (texts.length === 0) return [];
-  const results: string[] = new Array(texts.length);
-  const CONCURRENCY = 5;
 
-  for (let i = 0; i < texts.length; i += CONCURRENCY) {
-    const batch = texts.slice(i, i + CONCURRENCY);
-    const translated = await Promise.all(batch.map((t) => translateText(t)));
-    for (let j = 0; j < translated.length; j++) {
-      results[i + j] = translated[j];
+  const apiKey = process.env.GOOGLE_TRANSLATE_API_KEY;
+  if (!apiKey) return texts; // graceful fallback if not configured
+
+  const MAX_SEGMENTS = 128;
+  const results: string[] = new Array(texts.length);
+
+  for (let i = 0; i < texts.length; i += MAX_SEGMENTS) {
+    const batch = texts.slice(i, i + MAX_SEGMENTS);
+    try {
+      const res = await fetch(
+        `https://translation.googleapis.com/language/translate/v2?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            q: batch,
+            source: "en",
+            target: "pt-BR",
+            format: "text",
+          }),
+          signal: AbortSignal.timeout(10_000),
+        },
+      );
+
+      if (!res.ok) {
+        // Fallback to originals on API error
+        for (let j = 0; j < batch.length; j++) results[i + j] = batch[j];
+        continue;
+      }
+
+      const data: TranslateV2Response = await res.json();
+      const translations = data.data.translations;
+      for (let j = 0; j < batch.length; j++) {
+        results[i + j] = translations[j]?.translatedText || batch[j];
+      }
+    } catch {
+      // Fallback to originals on network/timeout error
+      for (let j = 0; j < batch.length; j++) results[i + j] = batch[j];
     }
   }
 

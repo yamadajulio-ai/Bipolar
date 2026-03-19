@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/security";
 import { localDateStr } from "@/lib/dateUtils";
+import * as Sentry from "@sentry/nextjs";
 
 const rhythmSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -94,7 +95,8 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json(entry, { status: 201 });
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "rotina" } });
     return NextResponse.json(
       { error: "Erro ao salvar registro." },
       { status: 500 },

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/security";
+import * as Sentry from "@sentry/nextjs";
 
 /**
  * PATCH /api/sono/excluir — Toggle excluded flag on a sleep log.
@@ -10,6 +12,10 @@ export async function PATCH(request: NextRequest) {
   const session = await getSession();
   if (!session.isLoggedIn) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  }
+
+  if (!(await checkRateLimit(`sono_excluir_write:${session.userId}`, 30, 60_000))) {
+    return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
   }
 
   try {
@@ -34,7 +40,8 @@ export async function PATCH(request: NextRequest) {
     });
 
     return NextResponse.json({ id: updated.id, excluded: updated.excluded });
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "sono_excluir" } });
     return NextResponse.json({ error: "Erro ao atualizar registro" }, { status: 500 });
   }
 }

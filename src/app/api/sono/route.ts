@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/security";
 import { localDateStr } from "@/lib/dateUtils";
+import * as Sentry from "@sentry/nextjs";
 
 const sleepLogSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data deve ser YYYY-MM-DD"),
@@ -95,7 +96,8 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json(log, { status: 201 });
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "sono" } });
     return NextResponse.json(
       { error: "Erro ao salvar registro de sono." },
       { status: 500 },

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { maskIp } from "@/lib/security";
 import { verifyPin } from "@/lib/auth";
+import * as Sentry from "@sentry/nextjs";
 import { computeInsights } from "@/lib/insights/computeInsights";
 import type { PlannerBlockInput } from "@/lib/insights/computeInsights";
 
@@ -322,7 +323,8 @@ export async function POST(
     };
 
     return privateJson(report);
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "acesso_profissional_token" } });
     return privateJson({ error: "Erro interno" }, { status: 500 });
   }
 }

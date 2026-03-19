@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import * as Sentry from "@sentry/nextjs";
 
 export async function DELETE() {
   const session = await getSession();
@@ -26,7 +27,8 @@ export async function DELETE() {
     });
 
     return NextResponse.json({ ok: true });
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "google_disconnect" } });
     return NextResponse.json(
       { error: "Erro ao desconectar Google Calendar" },
       { status: 500 },

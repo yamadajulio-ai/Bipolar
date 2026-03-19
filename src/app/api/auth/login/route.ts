@@ -3,6 +3,7 @@ import { z } from "zod/v4";
 import { prisma } from "@/lib/db";
 import { getSession, verifyPassword } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/security";
+import * as Sentry from "@sentry/nextjs";
 
 const loginSchema = z.object({
   email: z.email("E-mail inválido"),
@@ -73,7 +74,8 @@ export async function POST(request: NextRequest) {
     await session.save();
 
     return NextResponse.json({ success: true, onboarded: user.onboarded });
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "login" } });
     return NextResponse.json(
       { error: "Erro interno do servidor." },
       { status: 500 },

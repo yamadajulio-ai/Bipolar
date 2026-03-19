@@ -17,6 +17,33 @@ function ensureVapid(): boolean {
   return true;
 }
 
+/**
+ * Allowlist of known Web Push service hosts.
+ * Shared with push-subscriptions route — duplicated here to guard send-path
+ * against legacy/migrated data that bypassed the write-time check.
+ */
+const PUSH_SERVICE_HOSTS = [
+  "fcm.googleapis.com",
+  "updates.push.services.mozilla.com",
+  "push.services.mozilla.com",
+  "web.push.apple.com",
+  "wns.windows.com",
+  "notify.windows.com",
+  "push.api.chrome.google.com",
+];
+
+function isAllowedEndpoint(endpoint: string): boolean {
+  try {
+    const url = new URL(endpoint);
+    if (url.protocol !== "https:") return false;
+    return PUSH_SERVICE_HOSTS.some(
+      (host) => url.hostname === host || url.hostname.endsWith("." + host),
+    );
+  } catch {
+    return false;
+  }
+}
+
 export interface PushPayload {
   title: string;
   body: string;
@@ -26,7 +53,7 @@ export interface PushPayload {
 
 export type PushResult =
   | { ok: true }
-  | { ok: false; reason: "expired" | "transient" | "config" };
+  | { ok: false; reason: "expired" | "transient" | "config" | "invalid-endpoint" };
 
 export async function sendPush(
   subscription: { endpoint: string; p256dh: string; auth: string },
@@ -36,11 +63,10 @@ export async function sendPush(
     console.error("Web Push: VAPID not configured — check NEXT_PUBLIC_VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY");
     return { ok: false, reason: "config" };
   }
-  // Reject non-HTTPS endpoints (push protocol requires TLS)
-  // Host validation is done at subscription time; here we only guard protocol
-  // in case sendPush is called with a subscription from DB migration/legacy data.
-  if (!subscription.endpoint.startsWith("https://")) {
-    return { ok: false, reason: "config" };
+  // Full allowlist check at send-time — guards against legacy/migrated DB rows
+  // that bypassed the write-time validation in push-subscriptions route.
+  if (!isAllowedEndpoint(subscription.endpoint)) {
+    return { ok: false, reason: "invalid-endpoint" };
   }
   try {
     await webPush.sendNotification(

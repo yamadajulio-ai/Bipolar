@@ -117,10 +117,17 @@ export async function GET(request: NextRequest) {
       subsByUser.set(sub.userId, existing);
     }
 
-    let sent = 0;
-    let configErrorLogged = false;
-    const expiredEndpoints: string[] = [];
+    // Build all send tasks, then execute concurrently with Promise.allSettled
+    // to avoid sequential awaits that risk timeout at scale.
+    interface SendTask {
+      subId: string;
+      endpoint: string;
+      p256dh: string;
+      auth: string;
+      payload: PushPayload;
+    }
 
+    const tasks: SendTask[] = [];
     for (const settings of matchingSettings) {
       const userSubs = subsByUser.get(settings.userId);
       if (!userSubs || userSubs.length === 0) continue;
@@ -134,37 +141,69 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // Send each payload to each subscription
       for (const payload of payloads) {
         for (const sub of userSubs) {
-          const result: PushResult = await sendPush(
-            { endpoint: sub.endpoint, p256dh: sub.p256dh, auth: sub.auth },
+          tasks.push({
+            subId: sub.id,
+            endpoint: sub.endpoint,
+            p256dh: sub.p256dh,
+            auth: sub.auth,
             payload,
-          );
-          if (result.ok) {
-            sent++;
-          } else if (result.reason === "expired") {
-            // Only delete subscriptions confirmed expired (404/410)
-            expiredEndpoints.push(sub.id);
-          } else if (result.reason === "config" && !configErrorLogged) {
-            // VAPID not configured — log once per cron run for visibility
-            Sentry.captureMessage("Web Push VAPID not configured — reminders cannot be sent", { level: "warning" });
-            configErrorLogged = true;
-          }
-          // Transient errors: keep subscription, retry next cycle.
+          });
         }
       }
     }
 
-    // Clean up only confirmed expired subscriptions
-    if (expiredEndpoints.length > 0) {
+    let sent = 0;
+    let configErrorLogged = false;
+    const expiredIds: string[] = [];
+    const invalidIds: string[] = [];
+
+    // Send in concurrent batches of 10 to balance speed vs resource usage
+    const BATCH_SIZE = 10;
+    for (let i = 0; i < tasks.length; i += BATCH_SIZE) {
+      const batch = tasks.slice(i, i + BATCH_SIZE);
+      const results = await Promise.allSettled(
+        batch.map(async (task) => {
+          const result: PushResult = await sendPush(
+            { endpoint: task.endpoint, p256dh: task.p256dh, auth: task.auth },
+            task.payload,
+          );
+          return { task, result };
+        }),
+      );
+
+      for (const settled of results) {
+        if (settled.status === "rejected") continue; // logged by sendPush
+        const { task, result } = settled.value;
+        if (result.ok) {
+          sent++;
+        } else if (result.reason === "expired") {
+          expiredIds.push(task.subId);
+        } else if (result.reason === "invalid-endpoint") {
+          // Legacy data with non-allowlisted host — quarantine
+          invalidIds.push(task.subId);
+        } else if (result.reason === "config" && !configErrorLogged) {
+          Sentry.captureMessage("Web Push VAPID not configured — reminders cannot be sent", { level: "warning" });
+          configErrorLogged = true;
+        }
+      }
+    }
+
+    // Clean up expired + invalid subscriptions
+    const toDelete = [...expiredIds, ...invalidIds];
+    if (toDelete.length > 0) {
       await prisma.pushSubscription.deleteMany({
-        where: { id: { in: expiredEndpoints } },
+        where: { id: { in: toDelete } },
       });
     }
 
+    if (invalidIds.length > 0) {
+      Sentry.captureMessage(`Cleaned ${invalidIds.length} legacy push subscriptions with non-allowlisted endpoints`, { level: "info" });
+    }
+
     Sentry.captureCheckIn({ checkInId, monitorSlug: "send-reminders", status: "ok" });
-    return NextResponse.json({ ok: true, sent, cleaned: expiredEndpoints.length });
+    return NextResponse.json({ ok: true, sent, cleaned: toDelete.length });
   } catch (err) {
     Sentry.captureCheckIn({ checkInId, monitorSlug: "send-reminders", status: "error" });
     Sentry.captureException(err, { tags: { endpoint: "cron-send-reminders" } });

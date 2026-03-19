@@ -50,19 +50,19 @@ export async function GET(request: NextRequest) {
     const now = new Date();
 
     // Idempotency: prevent duplicate sends if Vercel delivers the same cron event twice.
-    // Allow at most 1 execution per minute (60s window).
-    const cronKey = `cron:reminders:${now.toISOString().slice(0, 16)}`; // "cron:reminders:2026-03-18T14:30"
-    const isFirstExecution = await checkRateLimit(cronKey, 1, 60_000);
-    if (!isFirstExecution) {
-      return NextResponse.json({ ok: true, sent: 0, dedupe: true });
-    }
-
+    // Key uses SP date+time so dedup is aligned with the user-facing schedule.
+    const spDate = now.toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" }); // "2026-03-18"
     const spTime = now.toLocaleTimeString("pt-BR", {
       timeZone: "America/Sao_Paulo",
       hour: "2-digit",
       minute: "2-digit",
       hour12: false,
-    });
+    }); // "14:30"
+    const cronKey = `cron:reminders:${spDate}T${spTime}`;
+    const isFirstExecution = await checkRateLimit(cronKey, 1, 60_000);
+    if (!isFirstExecution) {
+      return NextResponse.json({ ok: true, sent: 0, dedupe: true });
+    }
 
     // Find all users with push subscriptions AND matching reminder times
     const reminderKeys = Object.keys(reminderMessages) as Array<keyof typeof reminderMessages>;

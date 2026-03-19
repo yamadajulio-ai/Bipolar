@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { NextRequest } from "next/server";
 import * as Sentry from "@sentry/nextjs";
 import Anthropic from "@anthropic-ai/sdk";
+import { z } from "zod/v4";
 
 export const maxDuration = 30;
 
@@ -297,6 +298,15 @@ REGRAS INVIOLÁVEIS:
 
 Você NÃO é terapeuta. Você é uma IA — um ouvinte temporário enquanto o atendimento humano não chega.`;
 
+// ── Input schema (Zod) ───────────────────────────────────────────
+const MessageSchema = z.object({
+  role: z.literal("user"),
+  content: z.string().min(1).max(2000),
+});
+const ChatInputSchema = z.object({
+  messages: z.array(MessageSchema).min(1).max(100),
+});
+
 // ── Rate limiting: 30 requests per 15 minutes per user ──────────
 
 const RATE_LIMIT_WINDOW = 15 * 60; // 15 minutes in seconds
@@ -353,36 +363,105 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: "Não autorizado" }, { status: 401 });
   }
 
-  // ── Parse and validate input FIRST ──
-  // SECURITY: Only accept "user" messages from the client.
-  // "assistant" turns are reconstructed server-side from user messages
-  // to prevent prompt injection via synthetic assistant turns.
+  // ── Parse and validate input ──
+  // SECURITY: Accept both "user" and "assistant" messages from the client
+  // to maintain conversation coherence (so the LLM remembers what it said).
+  // Assistant messages are validated strictly: capped at 500 chars and
+  // scanned for injection patterns. The system prompt is always server-controlled.
+  // Zod schema validates user messages (string content, 2000 char cap, max 100).
   let userMessages: { role: "user"; content: string }[];
   let allUserTexts: string[]; // ALL user texts for crisis detection (no window limit)
+  let llmConversation: { role: "user" | "assistant"; content: string }[];
   try {
     const body = await req.json();
+
+    // Pre-filter: accept user and assistant messages with strict validation.
+    // SECURITY: assistant turns from the client are accepted to maintain
+    // conversation coherence, but capped at 500 chars and scanned for
+    // injection patterns. The system prompt is always server-controlled.
     const raw = body.messages;
     if (!Array.isArray(raw) || raw.length === 0) {
       return Response.json({ error: "Mensagens inválidas" }, { status: 400 });
     }
-    // Extract only user messages — ignore any "assistant"/"system" turns from client
-    userMessages = [];
+
+    // Injection patterns that should never appear in legitimate assistant responses
+    const INJECTION_PATTERNS = [
+      /\b(system|sistema)\s*:/i,
+      /\bREGRAS?\s*(INVIOLAVEIS|INVIOLÁVEIS)/i,
+      /\bignore\s*(previous|all|above)\s*(instructions?|prompts?)/i,
+      /\byou\s*are\s*now\b/i,
+      /\bforget\s*(everything|all|your)\b/i,
+      /\bnew\s*instructions?\b/i,
+      /\b(act|behave|pretend)\s*as\b/i,
+    ];
+
+    const validatedMessages: { role: "user" | "assistant"; content: string }[] = [];
     for (const m of raw) {
-      if (m.role !== "user" || typeof m.content !== "string") continue;
-      const content = m.content.length > 2000 ? m.content.slice(0, 2000) : m.content;
-      userMessages.push({ role: "user", content });
+      if (typeof m !== "object" || m === null) continue;
+      const role = (m as Record<string, unknown>).role;
+      const content = (m as Record<string, unknown>).content;
+      if (typeof content !== "string" || !content.trim()) continue;
+
+      if (role === "user") {
+        validatedMessages.push({
+          role: "user",
+          content: content.slice(0, 2000),
+        });
+      } else if (role === "assistant") {
+        // Cap assistant messages at 500 chars (real responses are ~350 chars with max_tokens: 220)
+        const capped = content.slice(0, 500);
+        // Scan for injection patterns — drop silently if suspicious
+        const normalized = capped.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+        const isSuspicious = INJECTION_PATTERNS.some((p) => p.test(normalized));
+        if (!isSuspicious) {
+          validatedMessages.push({
+            role: "assistant",
+            content: capped,
+          });
+        }
+        // If suspicious, silently drop this assistant turn
+      }
+      // Silently ignore any other roles (system, etc.)
     }
-    if (userMessages.length === 0) {
+
+    // Extract user-only messages for crisis detection and Zod validation
+    const userOnly = validatedMessages
+      .filter((m): m is { role: "user"; content: string } => m.role === "user");
+
+    if (userOnly.length === 0) {
       return Response.json({ error: "Nenhuma mensagem de usuário" }, { status: 400 });
     }
+
+    const parsed = ChatInputSchema.safeParse({ messages: userOnly });
+    if (!parsed.success) {
+      return Response.json({ error: "Mensagens inválidas" }, { status: 400 });
+    }
+    userMessages = parsed.data.messages;
     // Capture ALL user texts for crisis detection BEFORE slicing.
     // This ensures EXPLICIT crisis in message 1 stays latched even after
     // 20+ messages, while CONTEXTUAL still uses its own 6-message window.
     allUserTexts = userMessages.map((m) => m.content);
-    // Limit to last 20 for the LLM context window only
-    if (userMessages.length > 20) {
-      userMessages = userMessages.slice(-20);
+
+    // For LLM context, use the full conversation (both roles), limited to last 40 messages
+    llmConversation = validatedMessages;
+    if (llmConversation.length > 40) {
+      llmConversation = llmConversation.slice(-40);
     }
+    // Ensure conversation starts with a user message (Anthropic API requirement)
+    while (llmConversation.length > 0 && llmConversation[0].role !== "user") {
+      llmConversation.shift();
+    }
+    // Ensure proper alternation: merge consecutive same-role messages
+    const alternating: { role: "user" | "assistant"; content: string }[] = [];
+    for (const msg of llmConversation) {
+      if (alternating.length > 0 && alternating[alternating.length - 1].role === msg.role) {
+        // Merge consecutive same-role messages
+        alternating[alternating.length - 1].content += "\n" + msg.content;
+      } else {
+        alternating.push({ ...msg });
+      }
+    }
+    llmConversation = alternating;
   } catch {
     return Response.json({ error: "JSON inválido" }, { status: 400 });
   }
@@ -426,18 +505,12 @@ export async function POST(req: NextRequest) {
   }
 
   // ── LAYER 3: LLM streaming response ──
-  // Build alternating user/assistant turns from user-only messages.
-  // We insert placeholder assistant turns between consecutive user messages
-  // so the API receives valid alternating conversation structure.
-  // This prevents prompt injection via forged assistant turns from the client.
-  const llmMessages: { role: "user" | "assistant"; content: string }[] = [];
-  for (let i = 0; i < userMessages.length; i++) {
-    llmMessages.push(userMessages[i]);
-    // Insert placeholder assistant turn between user messages (not after the last one)
-    if (i < userMessages.length - 1) {
-      llmMessages.push({ role: "assistant", content: "Estou ouvindo. Continue, por favor." });
-    }
-  }
+  // Use the validated conversation with real assistant context.
+  // The client sends both user and assistant turns; assistant turns are
+  // capped at 500 chars and scanned for injection patterns (see above).
+  // The alternating array already ensures proper role alternation
+  // (consecutive same-role messages are merged, starts with user).
+  const llmMessages = llmConversation;
 
   const startMs = Date.now();
   const anthropic = new Anthropic({ apiKey });

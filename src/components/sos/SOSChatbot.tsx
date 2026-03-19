@@ -91,9 +91,15 @@ export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
   const [ttsEnabled, setTtsEnabled] = useState(waitingMode); // Auto-enable TTS in waiting mode
   const [handsFree, setHandsFree] = useState(false);
   const [speaking, setSpeaking] = useState(false);
+  const [sttDisclosureShown, setSttDisclosureShown] = useState(false);
+  const [sttDisclosureDismissed, setSttDisclosureDismissed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try { return localStorage.getItem("sos_stt_disclosure") === "1"; } catch { return false; }
+  });
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const recognitionRef = useRef<SpeechRec | null>(null);
+  const sttAcceptCallbackRef = useRef<(() => void) | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const sessionStartRef = useRef(Date.now());
   const lastSpokenIndexRef = useRef(-1);
@@ -373,6 +379,24 @@ export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
     }
   }
 
+  // STT privacy disclosure — show once before first mic activation
+  function requireSttDisclosure(onAccept: () => void) {
+    if (sttDisclosureDismissed) {
+      onAccept();
+      return;
+    }
+    setSttDisclosureShown(true);
+    sttAcceptCallbackRef.current = onAccept;
+  }
+
+  function dismissSttDisclosure() {
+    setSttDisclosureShown(false);
+    setSttDisclosureDismissed(true);
+    try { localStorage.setItem("sos_stt_disclosure", "1"); } catch {}
+    sttAcceptCallbackRef.current?.();
+    sttAcceptCallbackRef.current = null;
+  }
+
   // Single-shot voice input (appends to input field)
   function toggleVoice() {
     if (listening) {
@@ -381,6 +405,12 @@ export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
       return;
     }
 
+    requireSttDisclosure(() => {
+      startSingleShotListening();
+    });
+  }
+
+  function startSingleShotListening() {
     const recognition = getSpeechRecognition(false);
     if (!recognition) return;
 
@@ -526,13 +556,15 @@ export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
       stopSpeaking();
       setSpeaking(false);
     } else {
-      // Turn on
-      setHandsFree(true);
-      setTtsEnabled(true);
-      // Start listening if not currently streaming or speaking
-      if (!streaming && !speaking) {
-        startContinuousListening();
-      }
+      // Turn on — require STT disclosure first
+      requireSttDisclosure(() => {
+        setHandsFree(true);
+        setTtsEnabled(true);
+        // Start listening if not currently streaming or speaking
+        if (!streaming && !speaking) {
+          startContinuousListening();
+        }
+      });
     }
   }
 
@@ -613,6 +645,23 @@ export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
         Conversar:{" "}
         <a href="tel:188" className="font-bold text-white underline">188</a> (CVV)
       </div>
+
+      {/* STT privacy disclosure — shown once on first mic use */}
+      {sttDisclosureShown && (
+        <div className="bg-amber-900/60 px-4 py-3 text-xs text-amber-200">
+          <p className="mb-2">
+            <strong>Aviso de privacidade:</strong> o reconhecimento de voz do navegador pode enviar áudio
+            para servidores externos (Google, Apple) para transcrição. Nenhum áudio é armazenado pelo app.
+          </p>
+          <p className="mb-2">Se preferir privacidade total, use o teclado.</p>
+          <button
+            onClick={dismissSttDisclosure}
+            className="rounded-lg bg-amber-700 px-4 py-1.5 text-sm font-medium text-white hover:bg-amber-600"
+          >
+            Entendi, ativar voz
+          </button>
+        </div>
+      )}
 
       {/* Hands-free mode indicator */}
       {handsFree && (

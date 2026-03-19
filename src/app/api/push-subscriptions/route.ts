@@ -7,8 +7,38 @@ import { checkRateLimit } from "@/lib/security";
 
 const MAX_SUBSCRIPTIONS_PER_USER = 5;
 
+/**
+ * Allowlist of known Web Push service hosts.
+ * Push endpoints should only point to browser vendor push gateways.
+ * This prevents SSRF via crafted subscription objects.
+ */
+const PUSH_SERVICE_HOSTS = [
+  "fcm.googleapis.com",
+  "updates.push.services.mozilla.com",
+  "push.services.mozilla.com",
+  "web.push.apple.com",
+  "wns.windows.com",
+  "notify.windows.com",
+  "push.api.chrome.google.com",
+];
+
+function isAllowedPushEndpoint(endpoint: string): boolean {
+  try {
+    const url = new URL(endpoint);
+    if (url.protocol !== "https:") return false;
+    return PUSH_SERVICE_HOSTS.some(
+      (host) => url.hostname === host || url.hostname.endsWith("." + host),
+    );
+  } catch {
+    return false;
+  }
+}
+
 const subscribeSchema = z.object({
-  endpoint: z.string().url().max(2048),
+  endpoint: z.string().url().max(2048).refine(
+    isAllowedPushEndpoint,
+    "Push endpoint must be a known push service (FCM, Mozilla, Apple, WNS)",
+  ),
   keys: z.object({
     // p256dh: base64url-encoded P-256 public key (65 bytes raw = 88 chars base64)
     p256dh: z.string().min(10).max(200).regex(/^[A-Za-z0-9_-]+={0,2}$/),

@@ -15,9 +15,39 @@ export interface NarrativeResult {
 
 const narrativeSchema = z.object({
   summary: z.string().min(1).max(5000),
-  highlights: z.array(z.string().max(500)).max(10),
-  suggestions: z.array(z.string().max(500)).max(10),
+  highlights: z.array(z.string().max(500)).min(1).max(5),
+  suggestions: z.array(z.string().max(500)).min(1).max(3),
 });
+
+/**
+ * Tool definition for Anthropic structured output.
+ * Using tool_use with forced tool_choice guarantees schema conformance
+ * without relying on prompt + parse heuristics.
+ */
+const NARRATIVE_TOOL: Anthropic.Messages.Tool = {
+  name: "generate_narrative",
+  description: "Output the structured narrative for the patient's monitoring data.",
+  input_schema: {
+    type: "object" as const,
+    properties: {
+      summary: {
+        type: "string",
+        description: "2-3 paragraph narrative in pt-BR interpreting the data",
+      },
+      highlights: {
+        type: "array",
+        items: { type: "string" },
+        description: "3-5 key takeaways as bullet points",
+      },
+      suggestions: {
+        type: "array",
+        items: { type: "string" },
+        description: "2-3 actionable suggestions for the patient",
+      },
+    },
+    required: ["summary", "highlights", "suggestions"],
+  },
+};
 
 /** Phrases that violate clinical guardrails — if present, fall back. */
 const FORBIDDEN_PATTERNS = [
@@ -26,11 +56,19 @@ const FORBIDDEN_PATTERNS = [
   /\bvoc[êe]\s+(?:tem|possui|sofre\s+de)\s+/i,
   /\bcausa(?:do|da|r)\s+(?:por|pelo|pela)\b/i,
   /\brecomend(?:o|amos)\s+(?:que\s+)?(?:par|tom|aument|diminu)/i,
-  // Indirect diagnostic phrasing the GPT Pro flagged
+  // Indirect diagnostic phrasing
   /\bsinais?\s+compat[ií]ve(?:l|is)\s+com\b/i,
   /\bpadr[ãa]o\s+sugestivo\s+de\b/i,
   /\bquadro\s+(?:cl[ií]nico\s+)?(?:compat[ií]vel|indicativo|sugestivo)\b/i,
   /\bcaracter[ií]stic(?:o|a)s?\s+de\s+(?:um|uma)?\s*(?:epis[oó]dio|transtorno|fase)\b/i,
+  /\bperfil\s+(?:cl[ií]nico|compat[ií]vel)\b/i,
+  /\bconfirma(?:r|ndo|[çc][ãa]o)\s+(?:de\s+)?(?:diagn[oó]stic|transtorno|epis[oó]dio)\b/i,
+  /\b(?:interromp|suspend|retir)(?:a|e|ir|er)\s+(?:a\s+)?medica[çc][ãa]o\b/i,
+  // Prescriptive language disguised as observation
+  /\bvoc[êe]\s+(?:deve|precisa|deveria)\s+(?:procurar|buscar|ir)\s+(?:um|ao)\s+(?:m[ée]dic|psiqui)/i,
+  /\b(?:claramente|evidentemente|obviamente)\s+(?:um|uma)\s+(?:epis[oó]dio|crise|fase)\b/i,
+  // Explicit medication names (should never appear in narrative)
+  /\b(?:l[ií]tio|carbamazepina|valproato|lamotrigina|quetiapina|olanzapina|risperidona|aripiprazol)\b/i,
 ];
 
 function containsForbiddenContent(text: string): boolean {
@@ -147,50 +185,36 @@ Responda APENAS com JSON válido no formato:
   const userPrompt = `Analise os seguintes dados de monitoramento dos últimos 30 dias e gere uma narrativa interpretativa para o paciente:\n\n${JSON.stringify(data, null, 2)}`;
 
   try {
+    // Use tool_use with forced tool_choice for guaranteed schema conformance.
+    // This eliminates prompt+parse heuristics (no regex/brace extraction needed).
     const response = await anthropic.messages.create({
       model: "claude-sonnet-4-20250514",
       max_tokens: 1024,
       system: systemPrompt,
+      tools: [NARRATIVE_TOOL],
+      tool_choice: { type: "tool", name: "generate_narrative" },
       messages: [{ role: "user", content: userPrompt }],
     });
 
-    const text = response.content[0].type === "text" ? response.content[0].text : "";
+    // Extract tool_use block (guaranteed by tool_choice)
+    const toolBlock = response.content.find(
+      (block): block is Anthropic.Messages.ToolUseBlock => block.type === "tool_use",
+    );
+    if (!toolBlock) return getSafeFallback();
 
-    // Guard: reject oversized responses (>10KB)
-    if (text.length > 10_000) return getSafeFallback();
-
-    // Try parsing the response as JSON directly first
-    let raw: unknown = null;
-    try {
-      raw = JSON.parse(text);
-    } catch {
-      // If direct parse fails, try extracting JSON from markdown fences
-      const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-      if (jsonMatch?.[1]) {
-        try {
-          raw = JSON.parse(jsonMatch[1].trim());
-        } catch {
-          // Last resort: find outermost braces
-          const braceMatch = text.match(/\{[\s\S]*\}/);
-          if (braceMatch) {
-            raw = JSON.parse(braceMatch[0]);
-          }
-        }
-      }
-    }
-
-    if (!raw) return getSafeFallback();
-
-    // Validate with zod schema
-    const parsed = narrativeSchema.safeParse(raw);
+    // Validate with Zod (defense-in-depth even with structured output)
+    const parsed = narrativeSchema.safeParse(toolBlock.input);
     if (!parsed.success) return getSafeFallback();
 
     const { summary, highlights, suggestions } = parsed.data;
 
     if (!summary && highlights.length === 0) return getSafeFallback();
 
-    // Check for forbidden clinical content
+    // Guard: reject oversized responses (>10KB combined)
     const allText = [summary, ...highlights, ...suggestions].join(" ");
+    if (allText.length > 10_000) return getSafeFallback();
+
+    // Check for forbidden clinical content
     if (containsForbiddenContent(allText)) return getSafeFallback();
 
     return {

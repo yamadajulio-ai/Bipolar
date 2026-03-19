@@ -23,7 +23,7 @@ function verifyMetaSignature(
 
   const expected =
     "sha256=" +
-    crypto.createHmac("sha256", appSecret).update(rawBody).digest("hex");
+    crypto.createHmac("sha256", appSecret).update(rawBody, "utf8").digest("hex");
 
   const a = Buffer.from(signature);
   const b = Buffer.from(expected);
@@ -106,8 +106,14 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ ok: true });
   } catch (err) {
-    Sentry.captureException(err, { tags: { endpoint: "whatsapp-webhook" } });
+    // Log to Sentry with severity so it triggers alerts, not just noise.
+    // We return 200 to Meta to prevent infinite retries, but the error IS tracked.
+    Sentry.captureException(err, {
+      level: "error",
+      tags: { endpoint: "whatsapp-webhook" },
+      extra: { note: "Returned 200 to Meta to prevent retries — check this error" },
+    });
     console.error("WhatsApp webhook error:", err instanceof Error ? err.message : "Unknown error");
-    return NextResponse.json({ ok: true }); // Always return 200 to Meta
+    return NextResponse.json({ ok: true }); // Always return 200 to Meta (prevent retry storms)
   }
 }

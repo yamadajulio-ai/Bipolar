@@ -82,6 +82,14 @@ export async function GET(request: NextRequest) {
       date: { gte: cutoffStr },
     },
     orderBy: { date: "asc" },
+    select: {
+      date: true,
+      wakeTime: true,
+      firstContact: true,
+      mainActivityStart: true,
+      dinnerTime: true,
+      bedtime: true,
+    },
   });
 
   const anchors: Record<string, { avg: string; stdDev: number; regularity: number }> = {};

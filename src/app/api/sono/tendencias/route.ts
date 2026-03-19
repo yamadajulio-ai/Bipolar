@@ -29,6 +29,13 @@ export async function GET(request: NextRequest) {
       date: { gte: cutoffStr },
     },
     orderBy: { date: "asc" },
+    select: {
+      date: true,
+      bedtime: true,
+      totalHours: true,
+      quality: true,
+      awakenings: true,
+    },
   });
 
   if (logs.length === 0) {

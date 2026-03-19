@@ -34,6 +34,12 @@ export async function GET(request: NextRequest) {
       },
       orderBy: { createdAt: "desc" },
       take: 30,
+      select: {
+        id: true,
+        reactionTimeMs: true,
+        digitSpan: true,
+        createdAt: true,
+      },
     });
 
     return NextResponse.json(tests);
@@ -74,6 +80,12 @@ export async function POST(request: NextRequest) {
         userId: session.userId,
         reactionTimeMs: parsed.data.reactionTimeMs,
         digitSpan: parsed.data.digitSpan,
+      },
+      select: {
+        id: true,
+        reactionTimeMs: true,
+        digitSpan: true,
+        createdAt: true,
       },
     });
 

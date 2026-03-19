@@ -42,7 +42,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true, email: true, passwordHash: true, onboarded: true },
+    });
     if (!user) {
       return NextResponse.json(
         { error: "E-mail ou senha incorretos." },

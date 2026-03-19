@@ -42,6 +42,21 @@ export async function GET(request: NextRequest) {
       date: { gte: cutoffStr },
     },
     orderBy: { date: "desc" },
+    select: {
+      id: true,
+      date: true,
+      bedtime: true,
+      wakeTime: true,
+      totalHours: true,
+      quality: true,
+      awakenings: true,
+      hrv: true,
+      heartRate: true,
+      excluded: true,
+      preRoutine: true,
+      notes: true,
+      createdAt: true,
+    },
   });
 
   return NextResponse.json(logs);
@@ -93,6 +108,21 @@ export async function POST(request: NextRequest) {
       },
       update: data,
       create: { userId: session.userId, date: parsed.data.date, ...data },
+      select: {
+        id: true,
+        date: true,
+        bedtime: true,
+        wakeTime: true,
+        totalHours: true,
+        quality: true,
+        awakenings: true,
+        hrv: true,
+        heartRate: true,
+        excluded: true,
+        preRoutine: true,
+        notes: true,
+        createdAt: true,
+      },
     });
 
     return NextResponse.json(log, { status: 201 });

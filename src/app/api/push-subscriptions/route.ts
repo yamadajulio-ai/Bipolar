@@ -92,6 +92,7 @@ export async function POST(request: NextRequest) {
           p256dh: parsed.data.keys.p256dh,
           auth: parsed.data.keys.auth,
         },
+        select: { id: true },
       });
     });
 

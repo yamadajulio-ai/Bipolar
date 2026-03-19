@@ -24,6 +24,7 @@ export async function GET() {
     const progress = await prisma.courseProgress.findMany({
       where: { userId: session.userId },
       orderBy: { completedAt: "desc" },
+      select: { id: true, courseSlug: true, lessonSlug: true, completedAt: true },
     });
 
     return NextResponse.json(progress);
@@ -72,6 +73,7 @@ export async function POST(request: NextRequest) {
       update: {
         completedAt: new Date(),
       },
+      select: { id: true },
     });
 
     return NextResponse.json({ success: true }, { status: 201 });

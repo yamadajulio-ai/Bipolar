@@ -41,6 +41,14 @@ export async function GET(request: NextRequest) {
     const events = await prisma.lifeChartEvent.findMany({
       where: { userId: session.userId, date: { gte: cutoffStr } },
       orderBy: { date: "desc" },
+      select: {
+        id: true,
+        date: true,
+        eventType: true,
+        label: true,
+        notes: true,
+        createdAt: true,
+      },
     });
 
     return NextResponse.json(events);
@@ -81,6 +89,14 @@ export async function POST(request: NextRequest) {
         eventType: parsed.data.eventType,
         label: parsed.data.label,
         notes: parsed.data.notes || null,
+      },
+      select: {
+        id: true,
+        date: true,
+        eventType: true,
+        label: true,
+        notes: true,
+        createdAt: true,
       },
     });
 

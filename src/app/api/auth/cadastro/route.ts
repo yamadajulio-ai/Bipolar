@@ -52,7 +52,10 @@ export async function POST(request: NextRequest) {
 
     const { email, senha } = parsed.data;
 
-    const existing = await prisma.user.findUnique({ where: { email } });
+    const existing = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true },
+    });
     if (existing) {
       return NextResponse.json(
         { error: "Este e-mail já está cadastrado." },
@@ -76,6 +79,7 @@ export async function POST(request: NextRequest) {
           },
         },
       },
+      select: { id: true, email: true },
     });
 
     const session = await getSession();

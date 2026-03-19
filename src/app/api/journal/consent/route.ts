@@ -24,6 +24,7 @@ export async function POST(request: NextRequest) {
       scope: "journal_data",
       revokedAt: null,
     },
+    select: { id: true },
   });
 
   if (existing) {
@@ -36,6 +37,7 @@ export async function POST(request: NextRequest) {
       scope: "journal_data",
       ipAddress: maskIp(ip),
     },
+    select: { id: true },
   });
 
   return NextResponse.json({ ok: true });

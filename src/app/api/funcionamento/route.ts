@@ -34,6 +34,18 @@ export async function GET(request: NextRequest) {
       where: { userId: session.userId },
       orderBy: { date: "desc" },
       take: limit,
+      select: {
+        id: true,
+        date: true,
+        work: true,
+        social: true,
+        selfcare: true,
+        finances: true,
+        cognition: true,
+        leisure: true,
+        avgScore: true,
+        createdAt: true,
+      },
     });
 
     return NextResponse.json(assessments);
@@ -97,6 +109,18 @@ export async function POST(request: NextRequest) {
         cognition: cognition !== undefined ? cognition : undefined,
         leisure: leisure !== undefined ? leisure : undefined,
         avgScore: avgScore ?? undefined,
+      },
+      select: {
+        id: true,
+        date: true,
+        work: true,
+        social: true,
+        selfcare: true,
+        finances: true,
+        cognition: true,
+        leisure: true,
+        avgScore: true,
+        createdAt: true,
       },
     });
 

@@ -48,6 +48,16 @@ export async function POST(
     // Initial read (non-transactional) for early exits
     const access = await prisma.professionalAccess.findUnique({
       where: { token },
+      select: {
+        id: true,
+        userId: true,
+        pinHash: true,
+        revokedAt: true,
+        expiresAt: true,
+        lockedUntil: true,
+        failedPinAttempts: true,
+        shareSosEvents: true,
+      },
     });
 
     if (!access || access.revokedAt) {
@@ -77,6 +87,16 @@ export async function POST(
       // Re-read inside transaction for consistency
       const fresh = await tx.professionalAccess.findUnique({
         where: { token },
+        select: {
+          id: true,
+          userId: true,
+          pinHash: true,
+          revokedAt: true,
+          expiresAt: true,
+          lockedUntil: true,
+          failedPinAttempts: true,
+          shareSosEvents: true,
+        },
       });
 
       if (!fresh || fresh.revokedAt || fresh.expiresAt < new Date()) {
@@ -168,14 +188,42 @@ export async function POST(
       }),
       prisma.sleepLog.findMany({
         where: { userId: validAccess.userId, date: { gte: cutoff90Str } },
+        select: {
+          date: true,
+          bedtime: true,
+          wakeTime: true,
+          totalHours: true,
+          quality: true,
+          awakenings: true,
+          hrv: true,
+          heartRate: true,
+        },
         orderBy: { date: "asc" },
       }),
       prisma.diaryEntry.findMany({
         where: { userId: validAccess.userId, date: { gte: cutoff30Str } },
+        select: {
+          date: true,
+          mood: true,
+          sleepHours: true,
+          energyLevel: true,
+          anxietyLevel: true,
+          irritability: true,
+          tookMedication: true,
+          warningSigns: true,
+        },
         orderBy: { date: "asc" },
       }),
       prisma.dailyRhythm.findMany({
         where: { userId: validAccess.userId, date: { gte: cutoff30Str } },
+        select: {
+          date: true,
+          wakeTime: true,
+          firstContact: true,
+          mainActivityStart: true,
+          dinnerTime: true,
+          bedtime: true,
+        },
         orderBy: { date: "asc" },
       }),
       prisma.plannerBlock.findMany({
@@ -205,17 +253,41 @@ export async function POST(
       // Weekly assessments (last 12 weeks)
       prisma.weeklyAssessment.findMany({
         where: { userId: validAccess.userId },
+        select: {
+          date: true,
+          asrmTotal: true,
+          phq9Total: true,
+          phq9Item9: true,
+          fastAvg: true,
+          notes: true,
+        },
         orderBy: { date: "desc" },
         take: 12,
       }),
       // Life chart events (last 90 days)
       prisma.lifeChartEvent.findMany({
         where: { userId: validAccess.userId, date: { gte: cutoff90Str } },
+        select: {
+          date: true,
+          eventType: true,
+          label: true,
+          notes: true,
+        },
         orderBy: { date: "desc" },
       }),
       // Functioning assessments (last 12 weeks)
       prisma.functioningAssessment.findMany({
         where: { userId: validAccess.userId },
+        select: {
+          date: true,
+          work: true,
+          social: true,
+          selfcare: true,
+          finances: true,
+          cognition: true,
+          leisure: true,
+          avgScore: true,
+        },
         orderBy: { date: "desc" },
         take: 12,
       }),

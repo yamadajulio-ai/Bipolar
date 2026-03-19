@@ -32,6 +32,12 @@ export async function GET(request: NextRequest) {
         completedAt: { gte: cutoff },
       },
       orderBy: { completedAt: "desc" },
+      select: {
+        id: true,
+        exerciseType: true,
+        durationSecs: true,
+        completedAt: true,
+      },
     });
 
     return NextResponse.json(sessions);
@@ -73,6 +79,12 @@ export async function POST(request: NextRequest) {
         userId: session.userId,
         exerciseType: parsed.data.exerciseType,
         durationSecs: parsed.data.durationSecs,
+      },
+      select: {
+        id: true,
+        exerciseType: true,
+        durationSecs: true,
+        completedAt: true,
       },
     });
 

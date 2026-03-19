@@ -79,6 +79,7 @@ export async function POST(request: NextRequest) {
         service: parsed.data.service,
         apiKey: generateApiKey(),
       },
+      select: { id: true, service: true, apiKey: true, enabled: true, createdAt: true },
     });
 
     return NextResponse.json(key, { status: 201 });
@@ -120,6 +121,7 @@ export async function PATCH(request: NextRequest) {
           service: parsed.data.service,
         },
       },
+      select: { id: true },
     });
 
     if (!existing) {
@@ -129,6 +131,7 @@ export async function PATCH(request: NextRequest) {
     const updated = await prisma.integrationKey.update({
       where: { id: existing.id },
       data: { enabled: parsed.data.enabled },
+      select: { id: true, service: true, apiKey: true, enabled: true, createdAt: true },
     });
 
     return NextResponse.json(updated);

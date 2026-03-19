@@ -22,7 +22,10 @@ export async function DELETE(
   const { id } = await params;
 
   try {
-    const tx = await prisma.financialTransaction.findUnique({ where: { id } });
+    const tx = await prisma.financialTransaction.findUnique({
+      where: { id },
+      select: { id: true, userId: true },
+    });
 
     if (!tx || tx.userId !== session.userId) {
       return NextResponse.json({ error: "Transação não encontrada" }, { status: 404, headers: HEADERS });

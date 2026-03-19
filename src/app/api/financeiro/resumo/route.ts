@@ -154,10 +154,12 @@ export async function GET(request: NextRequest) {
   const [transactions, prevTransactions, diaryEntries] = await Promise.all([
     prisma.financialTransaction.findMany({
       where: { userId: session.userId, date: dateFilter },
+      select: { date: true, amount: true, category: true, occurredAt: true },
     }),
     prevMonthFilter
       ? prisma.financialTransaction.findMany({
           where: { userId: session.userId, date: prevMonthFilter },
+          select: { date: true, amount: true, category: true },
         })
       : Promise.resolve([]),
     prisma.diaryEntry.findMany({

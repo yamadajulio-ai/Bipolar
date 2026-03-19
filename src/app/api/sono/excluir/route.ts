@@ -37,6 +37,7 @@ export async function PATCH(request: NextRequest) {
     const updated = await prisma.sleepLog.update({
       where: { id },
       data: { excluded },
+      select: { id: true, excluded: true },
     });
 
     return NextResponse.json({ id: updated.id, excluded: updated.excluded });

@@ -46,6 +46,10 @@ export async function GET(request: NextRequest) {
     const transactions = await prisma.financialTransaction.findMany({
       where: { userId: session.userId, date: dateFilter },
       orderBy: { date: "desc" },
+      select: {
+        id: true, date: true, description: true, amount: true,
+        category: true, account: true, occurredAt: true, source: true, createdAt: true,
+      },
     });
 
     return NextResponse.json(transactions, { headers: HEADERS });
@@ -90,6 +94,10 @@ export async function POST(request: NextRequest) {
         account: parsed.data.account || null,
         occurredAt: parsed.data.occurredAt ? new Date(parsed.data.occurredAt) : null,
         source: "manual",
+      },
+      select: {
+        id: true, date: true, description: true, amount: true,
+        category: true, account: true, occurredAt: true, source: true, createdAt: true,
       },
     });
 

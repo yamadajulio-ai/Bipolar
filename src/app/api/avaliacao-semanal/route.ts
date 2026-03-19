@@ -41,6 +41,19 @@ export async function GET(request: NextRequest) {
       where: { userId: session.userId },
       orderBy: { date: "desc" },
       take: limit,
+      select: {
+        id: true,
+        date: true,
+        asrmScores: true,
+        asrmTotal: true,
+        phq9Scores: true,
+        phq9Total: true,
+        phq9Item9: true,
+        fastScores: true,
+        fastAvg: true,
+        notes: true,
+        createdAt: true,
+      },
     });
 
     return NextResponse.json(assessments);
@@ -115,6 +128,19 @@ export async function POST(request: NextRequest) {
         fastScores: fastScores ? JSON.stringify(fastScores) : undefined,
         fastAvg: fastAvg ?? undefined,
         notes: notes !== undefined ? notes || null : undefined,
+      },
+      select: {
+        id: true,
+        date: true,
+        asrmScores: true,
+        asrmTotal: true,
+        phq9Scores: true,
+        phq9Total: true,
+        phq9Item9: true,
+        fastScores: true,
+        fastAvg: true,
+        notes: true,
+        createdAt: true,
       },
     });
 

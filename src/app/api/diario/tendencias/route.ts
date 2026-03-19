@@ -29,6 +29,11 @@ export async function GET(request: NextRequest) {
       date: { gte: cutoffStr },
     },
     orderBy: { date: "asc" },
+    select: {
+      date: true,
+      mood: true,
+      sleepHours: true,
+    },
   });
 
   // Calculate stats

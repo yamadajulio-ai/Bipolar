@@ -41,6 +41,19 @@ export async function GET(request: NextRequest) {
       date: { gte: cutoffStr },
     },
     orderBy: { date: "desc" },
+    select: {
+      id: true,
+      date: true,
+      mood: true,
+      sleepHours: true,
+      note: true,
+      energyLevel: true,
+      anxietyLevel: true,
+      irritability: true,
+      tookMedication: true,
+      warningSigns: true,
+      createdAt: true,
+    },
   });
 
   return NextResponse.json(entries);
@@ -99,6 +112,19 @@ export async function POST(request: NextRequest) {
         irritability: parsed.data.irritability ?? null,
         tookMedication: parsed.data.tookMedication ?? null,
         warningSigns: parsed.data.warningSigns ?? null,
+      },
+      select: {
+        id: true,
+        date: true,
+        mood: true,
+        sleepHours: true,
+        note: true,
+        energyLevel: true,
+        anxietyLevel: true,
+        irritability: true,
+        tookMedication: true,
+        warningSigns: true,
+        createdAt: true,
       },
     });
 

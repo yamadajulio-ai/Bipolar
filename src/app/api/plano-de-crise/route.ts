@@ -28,6 +28,15 @@ export async function GET() {
   try {
     const plan = await prisma.crisisPlan.findUnique({
       where: { userId: session.userId },
+      select: {
+        id: true,
+        trustedContacts: true,
+        professionalName: true,
+        professionalPhone: true,
+        medications: true,
+        preferredHospital: true,
+        copingStrategies: true,
+      },
     });
 
     return NextResponse.json(plan);
@@ -83,6 +92,15 @@ export async function PUT(request: NextRequest) {
         medications: parsed.data.medications ?? null,
         preferredHospital: parsed.data.preferredHospital ?? null,
         copingStrategies: parsed.data.copingStrategies ?? null,
+      },
+      select: {
+        id: true,
+        trustedContacts: true,
+        professionalName: true,
+        professionalPhone: true,
+        medications: true,
+        preferredHospital: true,
+        copingStrategies: true,
       },
     });
 

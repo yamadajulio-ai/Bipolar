@@ -47,6 +47,7 @@ export async function POST(request: NextRequest) {
         },
         update: data,
         create: { userId: session.userId, date: night.date, ...data },
+        select: { id: true },
       });
       sleepImported++;
     }
@@ -62,6 +63,7 @@ export async function POST(request: NextRequest) {
         if (hrv === undefined && hr === undefined) continue;
         const existing = await prisma.sleepLog.findUnique({
           where: { userId_date: { userId: session.userId, date } },
+          select: { id: true },
         });
         if (!existing) continue;
         const updateData: Record<string, number> = {};
@@ -71,6 +73,7 @@ export async function POST(request: NextRequest) {
           await prisma.sleepLog.update({
             where: { userId_date: { userId: session.userId, date } },
             data: updateData,
+            select: { id: true },
           });
           hrvHrEnriched++;
         }
@@ -96,6 +99,7 @@ export async function POST(request: NextRequest) {
           value: gm.value,
           unit: gm.unit,
         },
+        select: { id: true },
       });
       metricsImported++;
     }

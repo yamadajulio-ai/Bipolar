@@ -27,16 +27,42 @@ export async function GET() {
     const sleepLogs = await prisma.sleepLog.findMany({
       where: { userId: session.userId, date: { gte: cutoff30Str }, totalHours: { gte: 1 } },
       orderBy: { date: "asc" },
+      select: {
+        date: true,
+        bedtime: true,
+        wakeTime: true,
+        totalHours: true,
+        quality: true,
+        awakenings: true,
+      },
     });
 
     const entries = await prisma.diaryEntry.findMany({
       where: { userId: session.userId, date: { gte: cutoff30Str } },
       orderBy: { date: "asc" },
+      select: {
+        date: true,
+        mood: true,
+        sleepHours: true,
+        energyLevel: true,
+        anxietyLevel: true,
+        irritability: true,
+        tookMedication: true,
+        warningSigns: true,
+      },
     });
 
     const rhythms = await prisma.dailyRhythm.findMany({
       where: { userId: session.userId, date: { gte: cutoff30Str } },
       orderBy: { date: "asc" },
+      select: {
+        date: true,
+        wakeTime: true,
+        firstContact: true,
+        mainActivityStart: true,
+        dinnerTime: true,
+        bedtime: true,
+      },
     });
 
     const insights = computeInsights(sleepLogs, entries, rhythms, [], now, TZ);

@@ -27,13 +27,26 @@ export async function GET() {
   }
 
   try {
+    const ruleSelect = {
+      id: true,
+      lateEventCutoffMin: true,
+      windDownMin: true,
+      minBufferBeforeSleep: true,
+      maxLateNightsPerWeek: true,
+      protectAnchors: true,
+      targetSleepTimeMin: true,
+      targetWakeTimeMin: true,
+    } as const;
+
     let rules = await prisma.stabilityRule.findUnique({
       where: { userId: session.userId },
+      select: ruleSelect,
     });
 
     if (!rules) {
       rules = await prisma.stabilityRule.create({
         data: { userId: session.userId },
+        select: ruleSelect,
       });
     }
 
@@ -83,6 +96,16 @@ export async function PUT(request: NextRequest) {
       create: {
         userId: session.userId,
         ...parsed.data,
+      },
+      select: {
+        id: true,
+        lateEventCutoffMin: true,
+        windDownMin: true,
+        minBufferBeforeSleep: true,
+        maxLateNightsPerWeek: true,
+        protectAnchors: true,
+        targetSleepTimeMin: true,
+        targetWakeTimeMin: true,
       },
     });
 

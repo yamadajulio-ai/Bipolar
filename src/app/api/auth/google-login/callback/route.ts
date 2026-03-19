@@ -30,15 +30,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL("/login?error=email_not_verified", request.url));
     }
 
+    const googleSelectFields = { id: true, email: true, name: true, onboarded: true } as const;
+
     // 1. Find by googleSub (returning user)
     let user = await prisma.user.findUnique({
       where: { googleSub: googleUser.id },
+      select: googleSelectFields,
     });
 
     if (!user) {
       // 2. Find by email (link existing account)
       user = await prisma.user.findUnique({
         where: { email: googleUser.email },
+        select: googleSelectFields,
       });
 
       if (user) {
@@ -58,6 +62,7 @@ export async function GET(request: NextRequest) {
             googleSub: googleUser.id,
             name: googleUser.name,
           },
+          select: googleSelectFields,
         });
       }
     }

@@ -38,28 +38,43 @@ export async function GET(request: NextRequest) {
     prisma.diaryEntry.findMany({
       where: { userId: session.userId, date: { gte: startDate, lt: endDate } },
       orderBy: { date: "asc" },
+      select: {
+        id: true, date: true, mood: true, sleepHours: true, note: true,
+        energyLevel: true, anxietyLevel: true, irritability: true,
+        tookMedication: true, warningSigns: true, createdAt: true,
+      },
     }),
     prisma.sleepLog.findMany({
       where: { userId: session.userId, date: { gte: startDate, lt: endDate } },
       orderBy: { date: "asc" },
+      select: {
+        id: true, date: true, bedtime: true, wakeTime: true,
+        totalHours: true, quality: true, awakenings: true,
+        hrv: true, heartRate: true, excluded: true, createdAt: true,
+      },
     }),
     prisma.exerciseSession.findMany({
       where: { userId: session.userId, completedAt: { gte: new Date(startDate), lt: new Date(endDate) } },
+      select: { id: true, completedAt: true },
     }),
     prisma.dailyRhythm.findMany({
       where: { userId: session.userId, date: { gte: startDate, lt: endDate } },
+      select: { id: true, date: true },
     }),
     prisma.weeklyAssessment.findMany({
       where: { userId: session.userId, date: { gte: startDate, lt: endDate } },
       orderBy: { date: "asc" },
+      select: { id: true, date: true, asrmTotal: true, phq9Total: true, fastAvg: true },
     }),
     prisma.lifeChartEvent.findMany({
       where: { userId: session.userId, date: { gte: startDate, lt: endDate } },
       orderBy: { date: "asc" },
+      select: { id: true, date: true, eventType: true, label: true },
     }),
     prisma.functioningAssessment.findMany({
       where: { userId: session.userId, date: { gte: startDate, lt: endDate } },
       orderBy: { date: "asc" },
+      select: { id: true, date: true, avgScore: true },
     }),
   ]);
   } catch (err) {

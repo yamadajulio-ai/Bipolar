@@ -27,6 +27,14 @@ export async function GET() {
   try {
     const profile = await prisma.socioeconomicProfile.findUnique({
       where: { userId: session.userId },
+      select: {
+        id: true,
+        careAccess: true,
+        medicationSource: true,
+        consultFrequency: true,
+        hasEmergencyContact: true,
+        livingSituation: true,
+      },
     });
 
     return NextResponse.json(profile);
@@ -70,6 +78,14 @@ export async function PUT(request: NextRequest) {
       where: { userId: session.userId },
       update: data,
       create: { userId: session.userId, ...data },
+      select: {
+        id: true,
+        careAccess: true,
+        medicationSource: true,
+        consultFrequency: true,
+        hasEmergencyContact: true,
+        livingSituation: true,
+      },
     });
 
     return NextResponse.json(profile);

@@ -52,7 +52,25 @@ export async function GET(request: NextRequest) {
   try {
     const blocks = await prisma.plannerBlock.findMany({
       where,
-      include: { recurrence: true, exceptions: true },
+      select: {
+        id: true,
+        title: true,
+        category: true,
+        kind: true,
+        isRoutine: true,
+        startAt: true,
+        endAt: true,
+        notes: true,
+        energyCost: true,
+        stimulation: true,
+        googleEventId: true,
+        googleColor: true,
+        sourceType: true,
+        createdAt: true,
+        updatedAt: true,
+        recurrence: true,
+        exceptions: true,
+      },
       orderBy: { startAt: "asc" },
     });
 

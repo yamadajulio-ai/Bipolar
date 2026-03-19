@@ -38,6 +38,17 @@ export async function GET(request: NextRequest) {
       date: { gte: cutoffStr },
     },
     orderBy: { date: "desc" },
+    select: {
+      id: true,
+      date: true,
+      wakeTime: true,
+      firstContact: true,
+      mainActivityStart: true,
+      dinnerTime: true,
+      bedtime: true,
+      notes: true,
+      createdAt: true,
+    },
   });
 
   return NextResponse.json(entries);
@@ -91,6 +102,17 @@ export async function POST(request: NextRequest) {
         dinnerTime: parsed.data.dinnerTime ?? null,
         bedtime: parsed.data.bedtime ?? null,
         notes: parsed.data.notes ?? null,
+      },
+      select: {
+        id: true,
+        date: true,
+        wakeTime: true,
+        firstContact: true,
+        mainActivityStart: true,
+        dinnerTime: true,
+        bedtime: true,
+        notes: true,
+        createdAt: true,
       },
     });
 

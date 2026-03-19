@@ -141,6 +141,7 @@ export async function DELETE(request: NextRequest) {
 
   const access = await prisma.professionalAccess.findFirst({
     where: { id, userId: session.userId, revokedAt: null },
+    select: { id: true },
   });
   if (!access) {
     return NextResponse.json({ error: "Acesso não encontrado" }, { status: 404 });

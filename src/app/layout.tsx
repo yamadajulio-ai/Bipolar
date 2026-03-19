@@ -23,6 +23,7 @@ export const viewport: Viewport = {
   themeColor: "#527a6e",
   width: "device-width",
   initialScale: 1,
+  viewportFit: "cover", // iPhone notch/Dynamic Island support in PWA
 };
 
 export const metadata: Metadata = {

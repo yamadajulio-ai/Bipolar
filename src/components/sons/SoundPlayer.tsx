@@ -94,7 +94,12 @@ export function SoundPlayer({ soundType, volume, timerMinutes, onTimerEnd }: Sou
     }
 
     if (!ctxRef.current) {
-      ctxRef.current = new AudioContext();
+      try {
+        ctxRef.current = new AudioContext();
+      } catch {
+        // iOS PWA may block AudioContext without user gesture
+        return;
+      }
     }
     const ctx = ctxRef.current;
 

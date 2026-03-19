@@ -114,18 +114,13 @@ function clearDraft() {
 
 export function JournalClient({ initialEntries, hasConsent }: Props) {
   const [entries, setEntries] = useState<JournalEntry[]>(initialEntries);
-  const [tab, setTab] = useState<JournalType>(() => {
-    const draft = loadDraft();
-    return draft?.tab ?? "DIARY";
-  });
-  const [content, setContent] = useState(() => {
-    const draft = loadDraft();
-    return draft?.content ?? "";
-  });
-  const [draftRestored, setDraftRestored] = useState(() => {
-    const draft = loadDraft();
-    return draft !== null && draft.content.trim().length > 0;
-  });
+  // Load draft once on mount
+  const [initialDraft] = useState(() => loadDraft());
+  const [tab, setTab] = useState<JournalType>(initialDraft?.tab ?? "DIARY");
+  const [content, setContent] = useState(initialDraft?.content ?? "");
+  const [draftRestored, setDraftRestored] = useState(
+    initialDraft !== null && initialDraft.content.trim().length > 0,
+  );
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState("");
@@ -420,7 +415,7 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
         {/* Tab selector */}
         <div className="flex gap-1 mb-4 rounded-lg bg-surface-alt p-1">
           <button
-            onClick={() => { setTab("DIARY"); if (!content.trim()) setContent(""); }}
+            onClick={() => { setTab("DIARY"); }}
             className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
               tab === "DIARY"
                 ? "bg-primary text-white shadow-sm"
@@ -430,7 +425,7 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
             Diário
           </button>
           <button
-            onClick={() => { setTab("QUICK_INSIGHT"); if (!content.trim()) setContent(""); }}
+            onClick={() => { setTab("QUICK_INSIGHT"); setContent((c) => c.slice(0, INSIGHT_MAX)); }}
             className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
               tab === "QUICK_INSIGHT"
                 ? "bg-primary text-white shadow-sm"

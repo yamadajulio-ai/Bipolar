@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
 
   if (!integration || !integration.enabled || integration.service !== "health_auto_export") {
     return NextResponse.json(
-      { status: "error", message: "API key inválida ou desativada", keyLength: apiKey.length },
+      { status: "error", message: "API key inválida ou desativada" },
       { status: 401 },
     );
   }
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
   });
   if (!integration || !integration.enabled || integration.service !== "health_auto_export") {
     return NextResponse.json(
-      { error: "API key inválida", detail: `Key length: ${apiKey.length}, expected: 64` },
+      { error: "API key inválida" },
       { status: 401 },
     );
   }
@@ -80,6 +80,12 @@ export async function POST(request: NextRequest) {
   // Rate limit: 500 requests per hour per key (high to support HAE batch mode)
   if (!(await checkRateLimit(apiKey, 500, 3600000))) {
     return NextResponse.json({ error: "Limite de requisições atingido" }, { status: 429 });
+  }
+
+  // Reject oversized payloads before JSON parsing (max 5MB — HAE batches are typically <1MB)
+  const contentLength = request.headers.get("content-length");
+  if (contentLength && parseInt(contentLength, 10) > 5_000_000) {
+    return NextResponse.json({ error: "Payload muito grande" }, { status: 413 });
   }
 
   try {
@@ -240,7 +246,7 @@ export async function POST(request: NextRequest) {
     Sentry.captureException(err, { tags: { endpoint: "health-export" } });
     console.error("[health-export] Error:", message, err);
     return NextResponse.json(
-      { error: "Erro ao processar dados de saude", detail: message },
+      { error: "Erro ao processar dados de saúde" },
       { status: 500 },
     );
   }

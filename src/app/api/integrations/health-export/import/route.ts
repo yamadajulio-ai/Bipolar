@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erro desconhecido";
     return NextResponse.json(
-      { error: "Erro ao processar JSON", detail: message },
+      { error: "Erro ao processar dados importados" },
       { status: 500 },
     );
   }

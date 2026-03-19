@@ -228,7 +228,7 @@ export async function POST(request: NextRequest) {
     Sentry.captureException(err, { tags: { endpoint: "health-connect" } });
     console.error("[health-connect] Error:", message, err);
     return NextResponse.json(
-      { error: "Erro ao processar dados de saúde", detail: message },
+      { error: "Erro ao processar dados de saúde" },
       { status: 500 },
     );
   }

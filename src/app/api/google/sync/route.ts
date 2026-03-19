@@ -80,7 +80,7 @@ export async function GET(request: Request) {
       });
     } catch (err) {
       Sentry.captureException(err, { tags: { endpoint: "google-sync-raw" } });
-      return NextResponse.json({ error: String(err) }, { status: 500 });
+      return NextResponse.json({ error: "Erro na sincronização" }, { status: 500 });
     }
   }
 
@@ -128,7 +128,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ calendars: results, storedCalendarId: account.calendarId });
     } catch (err) {
       Sentry.captureException(err, { tags: { endpoint: "google-sync-calendars" } });
-      return NextResponse.json({ error: String(err) }, { status: 500 });
+      return NextResponse.json({ error: "Erro na sincronização" }, { status: 500 });
     }
   }
 

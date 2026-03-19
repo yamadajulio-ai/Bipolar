@@ -53,9 +53,9 @@ function checkCsrf(request: NextRequest): NextResponse | null {
   // Allow Vercel Cron (no Origin header, but has cron secret)
   if (pathname.match(/^\/api\/cron(\/[^/]+)?$/)) return null;
 
-  // Allow external integrations that authenticate via API key (exact webhook endpoints)
-  if (pathname === "/api/integrations/health-export" ||
-      pathname === "/api/integrations/health-connect") return null;
+  // Allow external integrations that authenticate via API key (webhook endpoints + sub-paths)
+  if (pathname.startsWith("/api/integrations/health-export") ||
+      pathname.startsWith("/api/integrations/health-connect")) return null;
 
   // Allow WhatsApp webhook (Meta verifies via verify_token)
   if (pathname === "/api/whatsapp/webhook") return null;

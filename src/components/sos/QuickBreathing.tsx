@@ -101,11 +101,11 @@ export function QuickBreathing({ onClose }: QuickBreathingProps) {
             Ciclo {cycle + 1} de {TOTAL_CYCLES}
           </p>
 
-          <div className="relative mb-8 flex h-48 w-48 items-center justify-center">
+          <div className="relative mb-8 flex h-48 w-48 items-center justify-center" role="timer" aria-live="off" aria-label={`${currentPhase.label}: ${countdown} segundos`}>
             <div
               className={`absolute inset-0 rounded-full border-2 border-white/30 ${reducedMotion ? "" : "transition-transform duration-1000 ease-in-out"}`}
               style={{
-                transform: reducedMotion ? undefined : `scale(${circleScale})`,
+                transform: reducedMotion ? "scale(1)" : `scale(${circleScale})`,
                 backgroundColor:
                   currentPhase.phase === "inhale"
                     ? "rgba(59, 130, 246, 0.2)"
@@ -113,13 +113,14 @@ export function QuickBreathing({ onClose }: QuickBreathingProps) {
                       ? "rgba(139, 92, 246, 0.2)"
                       : "rgba(16, 185, 129, 0.2)",
               }}
+              aria-hidden="true"
             />
             <span className="relative z-10 text-5xl font-light">
               {countdown}
             </span>
           </div>
 
-          <p className="mb-1 text-2xl font-light">{currentPhase.label}</p>
+          <p className="mb-1 text-2xl font-light" aria-live="polite">{currentPhase.label}</p>
           <p className="text-sm text-gray-400">
             Respiracao 4-7-8
           </p>

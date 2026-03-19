@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/security";
 import { localDateStr } from "@/lib/dateUtils";
 
 // ── Helpers ─────────────────────────────────────────────────
@@ -126,6 +127,12 @@ export async function GET(request: NextRequest) {
   const session = await getSession();
   if (!session.isLoggedIn) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401, headers: HEADERS });
+  }
+
+  // Rate limit: 60 resumo requests per minute per user
+  const allowed = await checkRateLimit(`financeiro_resumo:${session.userId}`, 60, 60_000);
+  if (!allowed) {
+    return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429, headers: HEADERS });
   }
 
   const { searchParams } = new URL(request.url);

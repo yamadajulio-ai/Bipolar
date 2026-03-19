@@ -27,7 +27,7 @@ export function AchievementGrid({ achievements }: AchievementGridProps) {
     return (
       <button
         onClick={() => { localStorage.removeItem(HIDE_KEY); setHidden(false); }}
-        className="w-full text-center text-[10px] text-muted hover:text-foreground py-1"
+        className="w-full text-center text-[10px] text-muted hover:text-foreground min-h-10 py-2"
         aria-label="Mostrar conquistas"
       >
         Mostrar conquistas
@@ -41,7 +41,7 @@ export function AchievementGrid({ achievements }: AchievementGridProps) {
         <h3 className="text-sm font-semibold text-foreground">Conquistas</h3>
         <button
           onClick={() => { localStorage.setItem(HIDE_KEY, "1"); setHidden(true); }}
-          className="text-[10px] text-muted hover:text-foreground"
+          className="text-[10px] text-muted hover:text-foreground min-h-10 px-2 py-2"
           aria-label="Esconder conquistas"
         >
           Esconder

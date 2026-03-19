@@ -84,11 +84,11 @@ export function BottomNav() {
               className={`flex flex-col items-center gap-1 rounded-xl px-4 py-2 no-underline transition-colors ${
                 isActive
                   ? "bg-primary/10 text-primary"
-                  : "text-muted hover:text-foreground hover:bg-surface-alt"
+                  : "text-foreground/60 hover:text-foreground hover:bg-surface-alt"
               }`}
               aria-current={isActive ? "page" : undefined}
             >
-              <span className={isActive ? "text-primary" : "text-muted"}>
+              <span className={isActive ? "text-primary" : "text-foreground/60"}>
                 {tab.icon}
               </span>
               <span className={`text-[11px] font-semibold ${isActive ? "text-primary" : ""}`}>{tab.label}</span>

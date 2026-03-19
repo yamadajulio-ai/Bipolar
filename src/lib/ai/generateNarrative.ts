@@ -170,7 +170,7 @@ function getHighRiskTemplate(data: Record<string, unknown>): NarrativeResult {
   const risk = data.risk as { score: number; factors: string[] } | null;
   const factorsText = sanitizeRiskFactors(risk?.factors || []);
 
-  return {
+  const result: NarrativeResult = {
     summary: `Seus dados dos últimos 30 dias apresentam indicadores que merecem atenção especial. Os fatores identificados incluem: ${factorsText}. Pode ser interessante compartilhar esses dados com seu profissional de referência.\n\nLembre-se: esses dados são ferramentas de acompanhamento e não substituem a avaliação clínica. Seu profissional poderá interpretar esses padrões dentro do contexto completo da sua saúde.`,
     highlights: [
       "Seus indicadores merecem atenção — converse com seu profissional",
@@ -183,6 +183,18 @@ function getHighRiskTemplate(data: Record<string, unknown>): NarrativeResult {
     ],
     generatedAt: new Date().toISOString(),
   };
+
+  // Defense-in-depth: verify even deterministic template is clinically safe
+  const allText = [result.summary, ...result.highlights, ...result.suggestions].join(" ");
+  if (containsForbiddenContent(allText)) {
+    Sentry.captureMessage("High-risk template contained forbidden content (phrase bank leak)", {
+      level: "error",
+      tags: { feature: "ai-narrative", reason: "template-forbidden" },
+    });
+    return getSafeFallback();
+  }
+
+  return result;
 }
 
 /**
@@ -368,7 +380,7 @@ export async function generateNarrative(
           ...NARRATIVE_JSON_SCHEMA,
         },
       },
-      store: false, // LGPD: don't persist patient data on OpenAI
+      store: false, // LGPD: opt out of storage for model improvement. OpenAI still retains API data up to 30 days for abuse monitoring per their policy.
       ...(supportsReasoning ? { reasoning: { effort: "low" } } : {}),
       max_output_tokens: 2048,
     });

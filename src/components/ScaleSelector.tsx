@@ -30,7 +30,7 @@ export function ScaleSelector({ label, value, onChange, labels, required }: Scal
               "flex-1 rounded-lg border px-2 py-2 text-xs font-medium transition-colors",
               value === n
                 ? "border-primary bg-primary text-white"
-                : "border-border bg-surface text-muted hover:border-primary/50"
+                : "border-border bg-surface text-foreground/70 hover:border-primary/50"
             )}
           >
             {labels[n]}

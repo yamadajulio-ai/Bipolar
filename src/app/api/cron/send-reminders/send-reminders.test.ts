@@ -9,17 +9,20 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 // ─── Mock setup ─────────────────────────────────────────────────────────────
 
-const mockCheckRateLimit = vi.fn(() => Promise.resolve(true));
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockCheckRateLimit = vi.fn<any>(() => Promise.resolve(true));
 vi.mock("@/lib/security", () => ({
   checkRateLimit: (...args: unknown[]) => mockCheckRateLimit(...args),
 }));
 
-const mockSendPush = vi.fn(() => Promise.resolve({ ok: true }));
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockSendPush = vi.fn<any>(() => Promise.resolve({ ok: true as const }));
 vi.mock("@/lib/web-push", () => ({
   sendPush: (...args: unknown[]) => mockSendPush(...args),
 }));
 
-const mockCaptureCheckIn = vi.fn(() => "check-in-id");
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockCaptureCheckIn = vi.fn<any>(() => "check-in-id");
 const mockCaptureException = vi.fn();
 const mockCaptureMessage = vi.fn();
 vi.mock("@sentry/nextjs", () => ({
@@ -28,9 +31,12 @@ vi.mock("@sentry/nextjs", () => ({
   captureMessage: (...args: unknown[]) => mockCaptureMessage(...args),
 }));
 
-const mockFindManySettings = vi.fn(() => Promise.resolve([]));
-const mockFindManySubs = vi.fn(() => Promise.resolve([]));
-const mockDeleteManySubs = vi.fn(() => Promise.resolve({ count: 0 }));
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockFindManySettings = vi.fn<any>(() => Promise.resolve([]));
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockFindManySubs = vi.fn<any>(() => Promise.resolve([]));
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockDeleteManySubs = vi.fn<any>(() => Promise.resolve({ count: 0 }));
 
 vi.mock("@/lib/db", () => ({
   prisma: {

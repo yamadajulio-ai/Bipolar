@@ -61,6 +61,7 @@ export default function PrivacidadePage() {
             <li><strong>Eventos de crise (SOS):</strong> registro de acionamentos do botão de crise. A página SOS é acessível sem login e não coleta dados pessoais nesse modo; os dados abaixo só são registrados quando você está logado.</li>
             <li><strong>Plano de crise:</strong> contatos de emergência (nome e telefone de pessoas de sua confiança) e estratégias pessoais. Esses dados de terceiros são armazenados exclusivamente para seu uso e não são compartilhados.</li>
             <li><strong>Chatbot de apoio (SOS):</strong> quando disponível, o chatbot registra o conteúdo da conversa para continuidade do atendimento. O chatbot utiliza IA (Claude, da Anthropic) e não é um profissional de saúde. As conversas não são usadas para treinamento de modelos.</li>
+            <li><strong>Reconhecimento de voz (SOS):</strong> o chatbot de apoio oferece entrada por voz como opção. Esse recurso usa a API nativa do navegador (Web Speech API), que pode enviar o áudio para servidores do fabricante do navegador (Google, Apple) para transcrição. O Suporte Bipolar <strong>não recebe, armazena nem processa o áudio</strong> — apenas o texto transcrito é utilizado como mensagem no chat. Você pode optar por usar o teclado a qualquer momento para privacidade total.</li>
             <li><strong>Ritmo social e rotina diária:</strong> horários-âncora do seu dia e dados de regularidade da rotina para análise de estabilidade.</li>
             <li><strong>Planejador de rotina:</strong> blocos planejados ou realizados de trabalho, social, refeições e autocuidado, com horário e categoria.</li>
             <li><strong>Perfil socioeconômico:</strong> respostas opcionais para recomendações de serviços públicos (CAPS, SUS, CRAS).</li>
@@ -99,7 +100,7 @@ export default function PrivacidadePage() {
             <li><strong>Autenticação e segurança:</strong> para proteger o acesso à sua conta.</li>
             <li><strong>Autoconhecimento:</strong> para que você acompanhe seus próprios padrões de humor, sono e rotina ao longo do tempo.</li>
             <li><strong>Insights automáticos:</strong> para gerar análises personalizadas (termômetro de humor, regularidade do sono, correlações).</li>
-            <li><strong>Resumo com IA sob demanda:</strong> quando solicitado por você, seus dados são enviados de forma segura ao modelo Claude (Anthropic) para gerar um resumo em linguagem clara. Os dados não são usados para treinar modelos.</li>
+            <li><strong>Resumo com IA sob demanda:</strong> quando solicitado por você, seus dados são enviados de forma segura ao modelo GPT (OpenAI) para gerar um resumo em linguagem clara. A OpenAI não usa dados da API para treinar modelos.</li>
             <li><strong>Chatbot de apoio (SOS):</strong> quando disponível, para oferecer continuidade contextual durante o uso do SOS. O chatbot não substitui atendimento profissional.</li>
             <li><strong>Acesso profissional:</strong> quando você gera um link de acesso, um profissional de saúde pode visualizar seus dados em modo somente leitura, mediante token e PIN.</li>
             <li><strong>Melhoria do produto:</strong> dados de uso agregados e anonimizados para aprimorar funcionalidades.</li>
@@ -110,7 +111,7 @@ export default function PrivacidadePage() {
         <section className="mb-6">
           <h2 className="mb-2 text-lg font-semibold">4. Base legal (LGPD)</h2>
           <ul className="list-inside list-disc space-y-1 text-sm text-muted">
-            <li><strong>Consentimento (art. 7º, I e art. 11, I):</strong> para dados sensíveis de saúde, integrações externas, Resumo com IA sob demanda, chatbot de apoio do SOS quando habilitado e acesso profissional.</li>
+            <li><strong>Consentimento (art. 7º, I e art. 11, I):</strong> para dados sensíveis de saúde, integrações externas, Resumo com IA sob demanda, chatbot de apoio do SOS quando habilitado, reconhecimento de voz e acesso profissional.</li>
             <li><strong>Execução de contrato (art. 7º, V):</strong> para dados necessários ao funcionamento da conta.</li>
             <li><strong>Legítimo interesse (art. 7º, IX):</strong> para logs de segurança e melhorias de produto.</li>
           </ul>
@@ -139,7 +140,8 @@ export default function PrivacidadePage() {
           </p>
           <ul className="list-inside list-disc space-y-1 text-sm text-muted">
             <li><strong>Acesso profissional:</strong> quando você gera um link e compartilha o PIN com um profissional de saúde, ele pode visualizar, em modo somente leitura, indicadores e registros do período compartilhado, como check-ins, sono, avaliações semanais, eventos de vida, avaliações de funcionalidade, medicações do plano de crise e, se você optar ao gerar o acesso, eventos do SOS. Você pode revogar o acesso a qualquer momento.</li>
-            <li><strong>IA da Anthropic:</strong> quando você solicita o Resumo com IA sob demanda ou utiliza o chatbot de apoio do SOS (quando disponível), os dados estritamente necessários para essa funcionalidade são enviados à Anthropic (Claude) para processamento. A Anthropic não utiliza esses dados para treinamento de modelos.</li>
+            <li><strong>IA — OpenAI:</strong> quando você solicita o Resumo com IA sob demanda, os dados estritamente necessários são enviados à OpenAI (GPT) para processamento. A OpenAI não utiliza dados da API para treinamento de modelos.</li>
+            <li><strong>IA — Anthropic:</strong> quando você utiliza o chatbot de apoio do SOS (quando disponível), as mensagens são enviadas à Anthropic (Claude) para processamento. A Anthropic não utiliza esses dados para treinamento de modelos.</li>
             <li><strong>Infraestrutura:</strong> dados são armazenados nos servidores da Vercel e Neon, sujeitos às suas respectivas políticas de segurança.</li>
             <li><strong>Monitoramento:</strong> dados técnicos (sem PII) são enviados ao Sentry para diagnóstico de erros.</li>
             <li><strong>Cloudflare:</strong> proxy para integração Apple Health (apenas repasse de dados, sem armazenamento).</li>

@@ -1,13 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { maskIp } from "@/lib/security";
+import { checkRateLimit, maskIp } from "@/lib/security";
 
 // POST — Grant journal data consent
 export async function POST(request: NextRequest) {
   const session = await getSession();
   if (!session.isLoggedIn) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  }
+
+  const allowed = await checkRateLimit(`journal_consent:${session.userId}`, 5);
+  if (!allowed) {
+    return NextResponse.json({ error: "Muitas requisições." }, { status: 429 });
   }
 
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;

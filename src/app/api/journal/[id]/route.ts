@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { z } from "zod/v4";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
@@ -86,6 +87,7 @@ export async function PATCH(
       crisisDetected: crisis.detected,
     });
   } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "journal-update" } });
     console.error("Journal update error:", (err as Error).message);
     return NextResponse.json({ error: "Erro ao atualizar entrada" }, { status: 500 });
   }
@@ -128,6 +130,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "journal-delete" } });
     console.error("Journal delete error:", (err as Error).message);
     return NextResponse.json({ error: "Erro ao excluir entrada" }, { status: 500 });
   }

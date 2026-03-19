@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { z } from "zod/v4";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
@@ -99,6 +100,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (err) {
     // Do NOT log content (sensitive data)
+    Sentry.captureException(err, { tags: { endpoint: "journal-create" } });
     console.error("Journal create error:", (err as Error).message);
     return NextResponse.json({ error: "Erro ao salvar entrada" }, { status: 500 });
   }

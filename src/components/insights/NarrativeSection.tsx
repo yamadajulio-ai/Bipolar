@@ -17,21 +17,28 @@ export function NarrativeSection() {
   const [retryCount, setRetryCount] = useState(0);
   const [retryCooldown, setRetryCooldown] = useState(false);
   const cooldownTimer = useRef<ReturnType<typeof setTimeout>>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
-  // Cleanup timer on unmount to prevent state updates after unmount
+  // Cleanup timer + abort in-flight fetch on unmount
   useEffect(() => {
     return () => {
       if (cooldownTimer.current) clearTimeout(cooldownTimer.current);
+      abortRef.current?.abort();
     };
   }, []);
 
   async function generate() {
     if (retryCooldown) return;
+    abortRef.current?.abort();
+    abortRef.current = new AbortController();
     setLoading(true);
     setError(null);
 
     try {
-      const res = await fetch("/api/insights-narrative", { method: "POST" });
+      const res = await fetch("/api/insights-narrative", {
+        method: "POST",
+        signal: abortRef.current.signal,
+      });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || "Erro ao gerar narrativa");

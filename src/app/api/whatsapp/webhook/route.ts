@@ -92,11 +92,12 @@ export async function POST(request: NextRequest) {
 
           if (!text || !from) continue;
 
-          // Log masked phone only (last 4 digits) — never full number
-          const maskedPhone = from.length > 4
-            ? "*".repeat(from.length - 4) + from.slice(-4)
-            : "****";
-          console.log(`[WhatsApp] Message received from ${maskedPhone}`);
+          // Breadcrumb only — no phone data in logs (even masked, PHI risk)
+          Sentry.addBreadcrumb({
+            category: "whatsapp",
+            message: "Message received",
+            level: "info",
+          });
 
           // Simple keyword-based responses for pilot
           // TODO: Expand with proper NLU or structured menus

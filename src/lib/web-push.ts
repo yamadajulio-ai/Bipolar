@@ -1,4 +1,5 @@
 import webPush from "web-push";
+import * as Sentry from "@sentry/nextjs";
 import { isAllowedPushEndpoint } from "@/lib/push-constants";
 
 let vapidConfigured = false;
@@ -34,7 +35,7 @@ export async function sendPush(
   payload: PushPayload,
 ): Promise<PushResult> {
   if (!ensureVapid()) {
-    console.error("Web Push: VAPID not configured — check NEXT_PUBLIC_VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY");
+    Sentry.captureMessage("Web Push: VAPID not configured — reminders disabled", { level: "warning" });
     return { ok: false, reason: "config" };
   }
   // Full allowlist check at send-time — guards against legacy/migrated DB rows

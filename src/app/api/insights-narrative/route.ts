@@ -54,30 +54,37 @@ export async function POST(_request: NextRequest) {
         prisma.sleepLog.findMany({
           where: { userId, date: { gte: d30str } },
           orderBy: { date: "asc" },
+          take: 500,
         }),
         prisma.diaryEntry.findMany({
           where: { userId, date: { gte: d30str } },
           orderBy: { date: "asc" },
+          take: 500,
         }),
         prisma.dailyRhythm.findMany({
           where: { userId, date: { gte: d30str } },
           orderBy: { date: "asc" },
+          take: 500,
         }),
         prisma.plannerBlock.findMany({
           where: { userId, startAt: { gte: d30 } },
           orderBy: { startAt: "asc" },
+          take: 1000,
         }),
         prisma.sleepLog.findMany({
           where: { userId, date: { gte: d90str } },
           orderBy: { date: "asc" },
+          take: 500,
         }),
         prisma.diaryEntry.findMany({
           where: { userId, date: { gte: d90str } },
           orderBy: { date: "asc" },
+          take: 500,
         }),
         prisma.financialTransaction.findMany({
           where: { userId, date: { gte: d30str } },
           orderBy: { date: "asc" },
+          take: 1000,
         }),
       ]);
 

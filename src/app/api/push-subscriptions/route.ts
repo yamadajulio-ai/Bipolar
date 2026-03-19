@@ -14,10 +14,10 @@ const subscribeSchema = z.object({
     "Push endpoint must be a known push service (FCM, Mozilla, Apple, WNS)",
   ),
   keys: z.object({
-    // p256dh: base64url-encoded P-256 public key (65 bytes raw = 88 chars base64)
-    p256dh: z.string().min(10).max(200).regex(/^[A-Za-z0-9_-]+={0,2}$/),
-    // auth: base64url-encoded auth secret (16 bytes raw = 24 chars base64)
-    auth: z.string().min(10).max(50).regex(/^[A-Za-z0-9_-]+={0,2}$/),
+    // p256dh: base64url-encoded P-256 public key (65 bytes raw = 87-88 chars base64url)
+    p256dh: z.string().min(80).max(100).regex(/^[A-Za-z0-9_-]+={0,2}$/),
+    // auth: base64url-encoded auth secret (16 bytes raw = 22-24 chars base64url)
+    auth: z.string().min(20).max(30).regex(/^[A-Za-z0-9_-]+={0,2}$/),
   }),
 });
 

@@ -22,10 +22,6 @@ export async function POST(_request: NextRequest) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
-  if (!process.env.OPENAI_API_KEY) {
-    return NextResponse.json({ error: "AI não configurada" }, { status: 503 });
-  }
-
   // Rate limit: 10 AI narrative requests per hour per user
   const allowed = await checkRateLimit(`narrative:${session.userId}`, 10, 60 * 60 * 1000);
   if (!allowed) {
@@ -39,6 +35,18 @@ export async function POST(_request: NextRequest) {
     const userId = session.userId;
     const now = new Date();
 
+    // Record AI narrative consent on first use (informed consent via UI disclosure).
+    // Upsert: only creates if no active consent exists — idempotent on retries.
+    const existingConsent = await prisma.consent.findFirst({
+      where: { userId, scope: "ai_narrative", revokedAt: null },
+      select: { id: true },
+    });
+    if (!existingConsent) {
+      await prisma.consent.create({
+        data: { userId, scope: "ai_narrative" },
+      });
+    }
+
     // Use São Paulo timezone for date boundaries (avoids off-by-one near midnight)
     const d30 = new Date(now);
     d30.setDate(d30.getDate() - 30);
@@ -48,41 +56,54 @@ export async function POST(_request: NextRequest) {
     d90.setDate(d90.getDate() - 90);
     const d90str = spDate(d90);
 
+    // Minimal select per model — LGPD data minimization (only fields used by computeInsights)
+    const sleepSelect = { date: true, bedtime: true, wakeTime: true, totalHours: true, quality: true, awakenings: true } as const;
+    const diarySelect = { date: true, mood: true, sleepHours: true, energyLevel: true, anxietyLevel: true, irritability: true, tookMedication: true, warningSigns: true } as const;
+    const rhythmSelect = { date: true, wakeTime: true, firstContact: true, mainActivityStart: true, dinnerTime: true, bedtime: true } as const;
+    const financialSelect = { date: true, amount: true } as const;
+
     // Fetch all data in parallel
     const [sleepLogs30, entries30, rhythms30, plannerBlocks, sleepLogs90, entries90, financialTxs] =
       await Promise.all([
         prisma.sleepLog.findMany({
           where: { userId, date: { gte: d30str } },
+          select: sleepSelect,
           orderBy: { date: "asc" },
           take: 500,
         }),
         prisma.diaryEntry.findMany({
           where: { userId, date: { gte: d30str } },
+          select: diarySelect,
           orderBy: { date: "asc" },
           take: 500,
         }),
         prisma.dailyRhythm.findMany({
           where: { userId, date: { gte: d30str } },
+          select: rhythmSelect,
           orderBy: { date: "asc" },
           take: 500,
         }),
         prisma.plannerBlock.findMany({
           where: { userId, startAt: { gte: d30 } },
+          select: { startAt: true, category: true },
           orderBy: { startAt: "asc" },
           take: 1000,
         }),
         prisma.sleepLog.findMany({
           where: { userId, date: { gte: d90str } },
+          select: sleepSelect,
           orderBy: { date: "asc" },
           take: 500,
         }),
         prisma.diaryEntry.findMany({
           where: { userId, date: { gte: d90str } },
+          select: diarySelect,
           orderBy: { date: "asc" },
           take: 500,
         }),
         prisma.financialTransaction.findMany({
           where: { userId, date: { gte: d30str } },
+          select: financialSelect,
           orderBy: { date: "asc" },
           take: 1000,
         }),
@@ -98,7 +119,7 @@ export async function POST(_request: NextRequest) {
       };
     });
 
-    // Compute insights
+    // Compute insights (deterministic — no AI needed yet)
     const insights = computeInsights(
       sleepLogs30,
       entries30,
@@ -111,7 +132,19 @@ export async function POST(_request: NextRequest) {
       financialTxs,
     );
 
-    // Generate narrative
+    // Check OPENAI_API_KEY only when LLM path is needed.
+    // High-risk and insufficient-data bypass LLM inside generateNarrative,
+    // so those paths work without an API key.
+    if (!process.env.OPENAI_API_KEY) {
+      const risk = insights.risk;
+      const sleepCount = sleepLogs30.length;
+      // Only block if we'd actually need the LLM
+      if (risk?.level !== "atencao_alta" && sleepCount >= 7) {
+        return NextResponse.json({ error: "AI não configurada" }, { status: 503 });
+      }
+    }
+
+    // Generate narrative (may bypass LLM for high-risk/insufficient data)
     const narrative = await generateNarrative(insights);
 
     return NextResponse.json(narrative, {

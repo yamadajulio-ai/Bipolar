@@ -113,25 +113,29 @@ describe("generateNarrative — deterministic paths", () => {
   describe("high-risk template (atencao_alta)", () => {
     it("bypasses LLM entirely for high-risk level", async () => {
       const insights = makeInsights({
-        risk: { level: "atencao_alta", score: 85, factors: ["sono irregular", "humor instável"] },
+        risk: { level: "atencao_alta", score: 85, factors: ["irregularidade_sono", "oscilacao_alta"] },
       });
 
       const result = await generateNarrative(insights) as Record<string, unknown>;
       expect(result.summary).toContain("atenção especial");
-      expect(result.summary).toContain("sono irregular");
-      expect(result.summary).toContain("humor instável");
+      // Phrase bank maps keys to safe descriptions
+      expect(result.summary).toContain("horários de sono muito irregulares");
+      expect(result.summary).toContain("oscilação de humor acima do esperado");
       expect(mockResponsesCreate).not.toHaveBeenCalled();
     });
 
-    it("includes all risk factors in template", async () => {
-      const factors = ["fator1", "fator2", "fator3"];
+    it("drops unknown factors (fail-closed) and uses fallback", async () => {
+      const factors = ["unknown_factor_1", "unknown_factor_2", "unknown_factor_3"];
       const insights = makeInsights({
         risk: { level: "atencao_alta", score: 90, factors },
       });
 
       const result = await generateNarrative(insights) as Record<string, unknown>;
+      // Unknown keys are silently dropped — fallback text used
+      expect(result.summary).toContain("múltiplos indicadores elevados");
+      // Raw factor text should NOT appear in output (phrase bank is fail-closed)
       for (const f of factors) {
-        expect(result.summary).toContain(f);
+        expect(result.summary).not.toContain(f);
       }
     });
 

@@ -68,9 +68,12 @@ export function NarrativeSection() {
         </p>
         <p className="mb-4 text-xs text-muted">
           A IA analisa seus dados de sono, humor e ritmos dos últimos 30 dias para gerar uma
-          interpretação personalizada. Ao clicar, seus dados são enviados de forma segura à
-          OpenAI (GPT) exclusivamente para gerar este resumo. A OpenAI não usa dados
-          da API para treinar modelos.
+          interpretação personalizada. Ao clicar, seus dados são enviados à OpenAI (processador
+          terceiro) exclusivamente para gerar este resumo. Seus dados não são usados para treinar
+          modelos e são retidos por até 30 dias para monitoramento de abuso, conforme a{" "}
+          <a href="https://openai.com/policies/usage-policies" target="_blank" rel="noopener noreferrer" className="underline">
+            política da OpenAI
+          </a>.
         </p>
         <button
           onClick={generate}

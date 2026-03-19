@@ -1,25 +1,11 @@
 // Suporte Bipolar — Service Worker v3
 // Static: cache-first, API: network-first (PHI safety), offline: pre-cache
 
-const CACHE_STATIC = "rb-static-v3";
-const CACHE_API = "rb-api-v3";
-const CACHE_OFFLINE = "rb-offline-v3";
-const ALL_CACHES = [CACHE_STATIC, CACHE_API, CACHE_OFFLINE];
+const CACHE_STATIC = "rb-static-v4";
+const CACHE_OFFLINE = "rb-offline-v4";
+const ALL_CACHES = [CACHE_STATIC, CACHE_OFFLINE];
 
 const OFFLINE_URL = "/offline";
-
-// Authenticated API endpoints — network-first with offline fallback only
-// These contain user-specific PHI and must never serve stale cross-user data
-const NETWORK_FIRST_API_PATHS = [
-  "/api/diario",
-  "/api/sono",
-  "/api/rotina",
-  "/api/insights-summary",
-  "/api/lembretes",
-  "/api/avaliacao-semanal",
-  "/api/planner/blocks",
-  "/api/financeiro/historico",
-];
 
 
 // --- Install ---
@@ -58,10 +44,10 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // 2. Authenticated API GETs — network-first (prevents cross-user data leaks)
-  if (request.method === "GET" && isNetworkFirstApi(url)) {
-    event.respondWith(networkFirst(request, CACHE_API));
-    return;
+  // 2. API requests — NEVER cache (PHI safety: prevents cross-user data leaks
+  // on shared devices; Cache API has no user/session partitioning)
+  if (url.pathname.startsWith("/api/")) {
+    return; // pass through to network, no SW interception
   }
 
   // 3. Admin pages — never cache, never serve offline (LGPD/PHI)
@@ -98,41 +84,15 @@ async function cacheFirst(request, cacheName) {
   }
 }
 
-/**
- * Network-first strategy for authenticated API endpoints.
- * Always fetches fresh data from server; only falls back to cache when offline.
- * This prevents cross-user PHI leaks on shared devices.
- */
-async function networkFirst(request, cacheName) {
-  const cache = await caches.open(cacheName);
-
-  try {
-    const response = await fetch(request);
-    if (response.ok) {
-      cache.put(request, response.clone());
-    } else if (response.status === 401 || response.status === 403) {
-      // Session expired — purge all cached PHI
-      await purgeApiCache();
-    }
-    return response;
-  } catch {
-    // Offline — serve cached version if available
-    const cached = await cache.match(request);
-    return cached || new Response(JSON.stringify({ error: "offline" }), {
-      status: 503,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-}
-
-// --- Cache purge (logout, session expiry, account deletion) ---
-async function purgeApiCache() {
-  await caches.delete(CACHE_API);
-}
-
+// --- Cache purge (legacy cleanup — no API cache exists in v4) ---
 self.addEventListener("message", (event) => {
   if (event.data && event.data.type === "CLEAR_AUTH_CACHES") {
-    event.waitUntil(caches.delete(CACHE_API));
+    // Clean up any legacy API caches from previous SW versions
+    event.waitUntil(
+      caches.keys().then((keys) =>
+        Promise.all(keys.filter((k) => k.startsWith("rb-api")).map((k) => caches.delete(k)))
+      )
+    );
   }
 });
 
@@ -145,12 +105,6 @@ function isStaticAsset(url) {
     url.pathname === "/apple-touch-icon.png" ||
     url.pathname === "/icon.svg" ||
     url.pathname === "/manifest.json"
-  );
-}
-
-function isNetworkFirstApi(url) {
-  return NETWORK_FIRST_API_PATHS.some(
-    (path) => url.pathname === path || url.pathname.startsWith(path + "/")
   );
 }
 

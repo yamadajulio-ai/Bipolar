@@ -63,8 +63,10 @@ function makeRequest(method: string, body: unknown): Request {
 const validPayload = {
   endpoint: "https://fcm.googleapis.com/fcm/send/abc123",
   keys: {
-    p256dh: "BNcRd1234567890abcdef",
-    auth: "auth1234567890ab",
+    // 87-char base64url P-256 public key (65 bytes raw = 87-88 chars base64url)
+    p256dh: "BNcRdreALongerTestKeyThatMatchesRealWorldP256dhLengthRequirementsForWebPushCryptoKeysXY",
+    // 22-char base64url auth secret (16 bytes raw = 22-24 chars base64url)
+    auth: "dGVzdEF1dGhTZWNyZXRLZXk",
   },
 };
 
@@ -154,7 +156,7 @@ describe("POST /api/push-subscriptions", () => {
   it("returns 400 for invalid p256dh format", async () => {
     const res = await POST(makeRequest("POST", {
       ...validPayload,
-      keys: { ...validPayload.keys, p256dh: "invalid chars!!!" },
+      keys: { ...validPayload.keys, p256dh: "invalid!!!chars!!!that!!!are!!!long!!!enough!!!to!!!pass!!!min!!!length!!!but!!!fail!!!regex!!" },
     }));
     expect(res.status).toBe(400);
   });
@@ -162,7 +164,7 @@ describe("POST /api/push-subscriptions", () => {
   it("returns 400 for invalid auth format", async () => {
     const res = await POST(makeRequest("POST", {
       ...validPayload,
-      keys: { ...validPayload.keys, auth: "short" },
+      keys: { ...validPayload.keys, auth: "too!!!short!!!invalid" },
     }));
     expect(res.status).toBe(400);
   });

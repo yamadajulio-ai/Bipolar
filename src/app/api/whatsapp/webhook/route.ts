@@ -74,21 +74,27 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
   }
 
+  let body: Record<string, unknown>;
   try {
-    const body = JSON.parse(rawBody);
+    body = JSON.parse(rawBody);
+  } catch {
+    // Malformed JSON — ack to prevent retries (not our fault, not retryable)
+    return NextResponse.json({ ok: true });
+  }
 
+  try {
     // WhatsApp may send multiple entries/changes — process all of them
     const entries = Array.isArray(body.entry) ? body.entry : [];
 
     for (const entry of entries) {
-      const changes = Array.isArray(entry.changes) ? entry.changes : [];
+      const changes = Array.isArray((entry as Record<string, unknown>).changes) ? (entry as Record<string, unknown>).changes as unknown[] : [];
       for (const change of changes) {
-        const value = change?.value;
+        const value = (change as Record<string, unknown>)?.value as Record<string, unknown> | undefined;
         if (!value?.messages) continue;
 
-        for (const message of value.messages) {
-          const from = message.from; // sender phone number
-          const text = message.text?.body?.trim().toLowerCase();
+        for (const message of value.messages as Array<Record<string, unknown>>) {
+          const from = message.from as string | undefined;
+          const text = (message.text as Record<string, unknown>)?.body;
 
           if (!text || !from) continue;
 
@@ -108,14 +114,13 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ ok: true });
   } catch (err) {
-    // Log to Sentry with severity so it triggers alerts, not just noise.
-    // We return 200 to Meta to prevent infinite retries, but the error IS tracked.
+    // Processing error — return 500 so Meta retries (they have exponential backoff).
+    // The raw body was already parsed + signature validated, so retry is safe.
     Sentry.captureException(err, {
       level: "error",
       tags: { endpoint: "whatsapp-webhook" },
-      extra: { note: "Returned 200 to Meta to prevent retries — check this error" },
     });
     console.error("WhatsApp webhook error:", err instanceof Error ? err.message : "Unknown error");
-    return NextResponse.json({ ok: true }); // Always return 200 to Meta (prevent retry storms)
+    return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
 }

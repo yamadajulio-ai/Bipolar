@@ -3,9 +3,13 @@ import * as Sentry from "@sentry/nextjs";
 import { z } from "zod/v4";
 import type { InsightsResult } from "@/lib/insights/computeInsights";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+let _openai: OpenAI | null = null;
+function getOpenAI(): OpenAI {
+  if (!_openai) {
+    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  }
+  return _openai;
+}
 
 export interface NarrativeResult {
   summary: string;       // 2-3 paragraph narrative in pt-BR
@@ -199,7 +203,7 @@ REGRAS OBRIGATÓRIAS:
   try {
     // GPT-5.2 with native Structured Outputs — guarantees 100% schema conformance at API level.
     // HealthBench 63.3%, 1.6% hallucination rate on hard medical cases.
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: "gpt-5.2",
       max_tokens: 1024,
       messages: [

@@ -639,6 +639,23 @@ export default async function HojePage() {
         </Card>
       )}
 
+      {/* === 3.5 DIÁRIO RÁPIDO === */}
+      <Link href="/meu-diario" className="block no-underline">
+        <Card className="hover:border-primary/50 transition-colors">
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-lg">
+              ✏️
+            </span>
+            <div>
+              <p className="font-medium text-foreground">Meu Diário</p>
+              <p className="text-xs text-muted mt-0.5">
+                Registre um pensamento ou sentimento
+              </p>
+            </div>
+          </div>
+        </Card>
+      </Link>
+
       {/* === 4. ROTINA + PRÓXIMAS ATIVIDADES (compact) === */}
       {(anchors.length > 0 || upcomingBlocks.length > 0) && (
         <Card>

@@ -11,7 +11,8 @@ const sections: { title: string; items: ModuleItem[] }[] = [
   {
     title: "Registros",
     items: [
-      { href: "/diario", label: "Diário", description: "Registro expandido de humor, sono e sinais" },
+      { href: "/meu-diario", label: "Meu Diário", description: "Pensamentos, sentimentos e insights pessoais" },
+      { href: "/diario", label: "Diário de Check-in", description: "Registro expandido de humor, sono e sinais" },
       { href: "/diario/tendencias", label: "Tendências do Diário", description: "Gráficos e alertas de padrão" },
       { href: "/sono", label: "Sono", description: "Registro detalhado de sono" },
       { href: "/sono/tendencias", label: "Tendências de Sono", description: "Regularidade e qualidade" },

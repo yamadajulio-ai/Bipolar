@@ -44,6 +44,8 @@ model User {
   pushSubscriptions      PushSubscription[]
   feedbacks              Feedback[]
   contextualFeedbacks    ContextualFeedback[]
+  journalEntries         JournalEntry[]
+  narratives             Narrative[]
 }
 
 model DiaryEntry {
@@ -542,6 +544,64 @@ model PushSubscription {
   @@index([userId])
 }
 
+// ── AI Narrative (persistência + feedback) ──────────────────────
+
+model Narrative {
+  id                    String              @id @default(uuid())
+  userId                String
+  createdAt             DateTime            @default(now())
+
+  periodStart           String              // YYYY-MM-DD
+  periodEnd             String              // YYYY-MM-DD
+
+  status                String              @default("completed") // completed | failed | fallback
+  riskLevel             String              // low | moderate | high
+  dataQuality           String              // ok | limited | insufficient
+
+  model                 String              // e.g. "gpt-5.4"
+  reasoningEffort       String              // low | medium | high
+  promptVersion         String              // e.g. "v2"
+  schemaVersion         String              // e.g. "narrative_v2"
+
+  sourceFingerprint     String              // SHA-256 hash of deterministic input snapshot
+  outputJson            Json                // Full NarrativeResultV2
+  renderedText          String?             @db.Text // Flattened text for search/display
+
+  shareWithProfessional Boolean             @default(false)
+  bypassLlm             Boolean             @default(false)
+  bypassReason          String?
+
+  guardrailPassed       Boolean             @default(true)
+  guardrailViolations   String[]            // Array of violation descriptions
+
+  inputTokens           Int?
+  outputTokens          Int?
+  reasoningTokens       Int?
+  latencyMs             Int?
+
+  previousNarrativeId   String?
+
+  user                  User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  feedbacks             NarrativeFeedback[]
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, sourceFingerprint])
+}
+
+model NarrativeFeedback {
+  id           String   @id @default(uuid())
+  narrativeId  String
+  createdAt    DateTime @default(now())
+
+  rating       String   // useful | not_useful
+  reasonCodes  String[] // e.g. ["too_generic", "inaccurate", "too_long"]
+  comment      String?  @db.Text
+
+  narrative    Narrative @relation(fields: [narrativeId], references: [id], onDelete: Cascade)
+
+  @@index([narrativeId, createdAt(sort: Desc)])
+}
+
 // ── Testes Cognitivos ────────────────────────────────────────────
 
 model CognitiveTest {
@@ -554,4 +614,48 @@ model CognitiveTest {
   user           User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
+}
+
+// ── Diário Pessoal + Insights Rápidos ──────────────────────────
+
+enum JournalType {
+  DIARY
+  QUICK_INSIGHT
+}
+
+enum SnapshotSource {
+  RECENT_CHECKIN  // Auto-captured from recent check-in (< 4h)
+  NONE            // No mood data available at time of entry
+}
+
+model JournalEntry {
+  id                String         @id @default(uuid())
+  userId            String
+  type              JournalType
+  content           String         // Plain text only — max 5000 (diary) or 280 (insight)
+  // ── Immutable mood snapshot at time of entry ──
+  maniaScore        Int?           // 0-100 mania axis
+  depressionScore   Int?           // 0-100 depression axis
+  energyScore       Int?           // 1-5 from check-in
+  zoneAtCapture     String?        // "depressao"|"depressao_leve"|"eutimia"|"hipomania"|"mania"
+  mixedAtCapture    Boolean?       // Was mixed features detected?
+  moodModelVersion  String         @default("v1") // Tracks threshold/EWMA changes
+  snapshotSource    SnapshotSource @default(NONE)
+  sourceCheckInId   String?        // Optional FK to DiaryEntry for provenance
+  // ── Temporal context ──
+  entryDateLocal    String         // YYYY-MM-DD in user's timezone
+  timezone          String         @default("America/Sao_Paulo")
+  capturedAt        DateTime       @default(now()) // When mood snapshot was taken
+  // ── Consent & edit tracking ──
+  aiUseAllowed      Boolean        @default(false) // Explicit opt-in for AI narrative use
+  editedAt          DateTime?      // Set on any edit (no version history in P0)
+  // ── Idempotency ──
+  idempotencyKey    String?        @unique // Client-generated key to prevent duplicate entries
+  createdAt         DateTime       @default(now())
+
+  user              User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, entryDateLocal])
+  @@index([userId, type])
 }

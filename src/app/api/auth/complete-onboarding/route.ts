@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 
+const VALID_GOALS = new Set(["sleep", "detect", "consult", "routine"]);
+
 export async function POST(request: Request) {
   const session = await getSession();
   if (!session.isLoggedIn) {
@@ -11,7 +13,7 @@ export async function POST(request: Request) {
   let goal: string | undefined;
   try {
     const body = await request.json();
-    if (body.goal && typeof body.goal === "string") {
+    if (body.goal && typeof body.goal === "string" && VALID_GOALS.has(body.goal)) {
       goal = body.goal;
     }
   } catch {

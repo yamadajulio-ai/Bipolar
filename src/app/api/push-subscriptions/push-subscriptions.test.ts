@@ -14,9 +14,10 @@ vi.mock("@/lib/auth", () => ({
   getSession: vi.fn(() => Promise.resolve(mockSession)),
 }));
 
-const mockCheckRateLimit = vi.fn(() => Promise.resolve(true));
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockCheckRateLimit: any = vi.fn().mockResolvedValue(true);
 vi.mock("@/lib/security", () => ({
-  checkRateLimit: (...args: unknown[]) => mockCheckRateLimit(...args),
+  checkRateLimit: mockCheckRateLimit,
 }));
 
 vi.mock("@sentry/nextjs", () => ({
@@ -26,7 +27,7 @@ vi.mock("@sentry/nextjs", () => ({
 
 // Prisma mock with $transaction support
 const mockCount = vi.fn(() => Promise.resolve(0));
-const mockFindUnique = vi.fn(() => Promise.resolve(null));
+const mockFindUnique = vi.fn((): Promise<{ id: string } | null> => Promise.resolve(null));
 const mockDeleteMany = vi.fn(() => Promise.resolve({ count: 0 }));
 const mockUpsert = vi.fn(() => Promise.resolve({ id: "sub-1" }));
 
@@ -39,11 +40,12 @@ const txProxy = {
   },
 };
 
-const mockTransaction = vi.fn((fn: (tx: typeof txProxy) => Promise<unknown>) => fn(txProxy));
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockTransaction: any = vi.fn((fn: (tx: typeof txProxy) => Promise<unknown>) => fn(txProxy));
 
 vi.mock("@/lib/db", () => ({
   prisma: {
-    $transaction: (...args: unknown[]) => mockTransaction(...args),
+    $transaction: mockTransaction,
     pushSubscription: {
       deleteMany: mockDeleteMany,
     },

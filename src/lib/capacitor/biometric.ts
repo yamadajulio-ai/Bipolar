@@ -2,7 +2,7 @@
  * Biometric authentication (Face ID / Touch ID) via Capacitor.
  * Provides app-lock functionality for privacy on shared devices.
  */
-import { NativeBiometric, BiometryType } from 'capacitor-native-biometric';
+import { NativeBiometric, BiometryType } from '@capgo/capacitor-native-biometric';
 import { Preferences } from '@capacitor/preferences';
 import { isNative } from './platform';
 

@@ -8,8 +8,9 @@ interface MonthSelectorProps {
 export function MonthSelector({ value, onChange }: MonthSelectorProps) {
   return (
     <div className="flex items-center gap-2">
-      <label className="text-sm font-medium text-foreground">Mês:</label>
+      <label htmlFor="month-selector" className="text-sm font-medium text-foreground">Mês:</label>
       <input
+        id="month-selector"
         type="month"
         value={value}
         onChange={(e) => onChange(e.target.value)}

@@ -21,11 +21,13 @@ export function NightHistorySelector() {
   }
 
   return (
-    <div className="flex gap-1.5">
+    <div className="flex gap-1.5" role="group" aria-label="Período do histórico">
       {OPTIONS.map((opt) => (
         <button
           key={opt.value}
           onClick={() => handleChange(opt.value)}
+          aria-pressed={current === opt.value}
+          aria-label={`Mostrar últimas ${opt.label}`}
           className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
             current === opt.value
               ? "bg-primary text-white"

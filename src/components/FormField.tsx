@@ -51,6 +51,8 @@ export function FormField({
           onChange={onChange}
           rows={rows}
           className={inputClasses}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? `${name}-error` : undefined}
         />
       ) : (
         <input
@@ -66,9 +68,11 @@ export function FormField({
           value={value}
           onChange={onChange}
           className={inputClasses}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? `${name}-error` : undefined}
         />
       )}
-      {error && <p className="mt-1 text-xs text-danger">{error}</p>}
+      {error && <p id={`${name}-error`} className="mt-1 text-xs text-danger" role="alert">{error}</p>}
     </div>
   );
 }

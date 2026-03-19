@@ -32,9 +32,16 @@ export function GoogleCalendarSync({ isConnected: initialConnected }: Props) {
     }
   }
 
-  async function handleDisconnect() {
-    if (!confirm("Desconectar Google Agenda? Blocos importados do Google serão removidos.")) return;
+  const [disconnecting, setDisconnecting] = useState(false);
+  const [confirmDisconnect, setConfirmDisconnect] = useState(false);
 
+  async function handleDisconnect() {
+    if (!confirmDisconnect) {
+      setConfirmDisconnect(true);
+      return;
+    }
+
+    setDisconnecting(true);
     try {
       const res = await fetch("/api/auth/google/disconnect", { method: "DELETE" });
       if (res.ok) {
@@ -43,6 +50,9 @@ export function GoogleCalendarSync({ isConnected: initialConnected }: Props) {
       }
     } catch {
       setError("Erro ao desconectar");
+    } finally {
+      setDisconnecting(false);
+      setConfirmDisconnect(false);
     }
   }
 
@@ -77,12 +87,31 @@ export function GoogleCalendarSync({ isConnected: initialConnected }: Props) {
         >
           {syncing ? "Sincronizando..." : "Sincronizar agora"}
         </button>
-        <button
-          onClick={handleDisconnect}
-          className="rounded border border-red-300 px-3 py-1 text-sm text-red-600"
-        >
-          Desconectar
-        </button>
+        {confirmDisconnect ? (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-red-600">Blocos importados serão removidos.</span>
+            <button
+              onClick={handleDisconnect}
+              disabled={disconnecting}
+              className="rounded bg-red-600 px-3 py-1 text-sm text-white disabled:opacity-50"
+            >
+              {disconnecting ? "Removendo..." : "Confirmar"}
+            </button>
+            <button
+              onClick={() => setConfirmDisconnect(false)}
+              className="rounded border border-border px-3 py-1 text-sm text-muted"
+            >
+              Cancelar
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={handleDisconnect}
+            className="rounded border border-red-300 px-3 py-1 text-sm text-red-600"
+          >
+            Desconectar
+          </button>
+        )}
       </div>
 
       {syncResult && (

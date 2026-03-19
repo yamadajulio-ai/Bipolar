@@ -20,7 +20,7 @@ export function QuickActions() {
       {actions.map((item) => (
         <Link key={item.href} href={item.href} className="no-underline">
           <Card className="transition-shadow hover:shadow-md text-center">
-            <div className="mb-1 text-xl">{item.icon}</div>
+            <div className="mb-1 text-xl" role="img" aria-hidden="true">{item.icon}</div>
             <h3 className="text-sm font-semibold text-foreground">{item.title}</h3>
             <p className="text-xs text-muted">{item.description}</p>
           </Card>

@@ -158,7 +158,8 @@ export default function PrivacidadePage() {
           <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-muted">
             <li><strong>Vercel</strong> (hospedagem): EUA e Europa — operador essencial, contrato com cláusulas de proteção de dados (DPA).</li>
             <li><strong>Neon</strong> (banco de dados PostgreSQL): EUA — operador essencial, contrato com DPA.</li>
-            <li><strong>Anthropic</strong> (IA): EUA — acionada sob demanda para o Resumo com IA e para o chatbot de apoio do SOS, quando disponível. Contrato com cláusula de não treinamento.</li>
+            <li><strong>OpenAI</strong> (IA — Resumo): EUA — acionada sob demanda para o Resumo com IA. Dados da API não são usados para treinamento.</li>
+            <li><strong>Anthropic</strong> (IA — Chatbot SOS): EUA — acionada sob demanda para o chatbot de apoio do SOS, quando disponível. Contrato com cláusula de não treinamento.</li>
             <li><strong>Sentry</strong> (monitoramento de erros): EUA — recebe apenas dados técnicos sem informações pessoais identificáveis.</li>
             <li><strong>Cloudflare</strong> (proxy para Apple Health): rede global — apenas repasse de dados em trânsito, sem armazenamento persistente.</li>
           </ul>

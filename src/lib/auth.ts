@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { getIronSession } from "iron-session";
+import argon2 from "argon2";
 import bcrypt from "bcryptjs";
 
 export interface SessionData {
@@ -49,13 +50,36 @@ export async function getSession() {
   return session;
 }
 
-export async function hashPassword(password: string): Promise<string> {
-  return bcrypt.hash(password, 12);
+/** Check if a hash is bcrypt (legacy) vs argon2id (current) */
+function isBcryptHash(hash: string): boolean {
+  return hash.startsWith("$2a$") || hash.startsWith("$2b$");
 }
 
+/** New hashes use argon2id (OWASP recommended) */
+export async function hashPassword(password: string): Promise<string> {
+  return argon2.hash(password, { type: argon2.argon2id });
+}
+
+/** Verify password against argon2id or legacy bcrypt hashes */
 export async function verifyPassword(
   password: string,
   hash: string,
 ): Promise<boolean> {
-  return bcrypt.compare(password, hash);
+  if (isBcryptHash(hash)) {
+    return bcrypt.compare(password, hash);
+  }
+  return argon2.verify(hash, password);
+}
+
+/** Hash PIN with argon2id */
+export async function hashPin(pin: string): Promise<string> {
+  return argon2.hash(pin, { type: argon2.argon2id });
+}
+
+/** Verify PIN against argon2id or legacy bcrypt hashes */
+export async function verifyPin(pin: string, hash: string): Promise<boolean> {
+  if (isBcryptHash(hash)) {
+    return bcrypt.compare(pin, hash);
+  }
+  return argon2.verify(hash, pin);
 }

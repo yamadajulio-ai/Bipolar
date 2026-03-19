@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
 import { maskIp } from "@/lib/security";
+import { verifyPin } from "@/lib/auth";
 import { computeInsights } from "@/lib/insights/computeInsights";
 import type { PlannerBlockInput } from "@/lib/insights/computeInsights";
 
@@ -67,8 +67,8 @@ export async function POST(
       );
     }
 
-    // bcrypt comparison before transaction (CPU-bound, safe to do outside)
-    const pinValid = await bcrypt.compare(pin, access.pinHash);
+    // Hash comparison before transaction (CPU-bound, safe to do outside)
+    const pinValid = await verifyPin(pin, access.pinHash);
     const ip = sanitizeIp(request);
 
     // Atomic transaction to prevent race conditions on concurrent PIN attempts

@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod/v4";
 import { randomBytes, randomInt } from "crypto";
-import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
-import { getSession } from "@/lib/auth";
+import { getSession, hashPin } from "@/lib/auth";
 
 const createSchema = z.object({
   label: z.string().max(100).optional(),
@@ -75,7 +74,7 @@ export async function POST(request: NextRequest) {
 
     const token = generateToken();
     const pin = generatePin();
-    const pinHash = await bcrypt.hash(pin, 10);
+    const pinHash = await hashPin(pin);
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + (parsed.data.expiresInDays ?? 30));
 

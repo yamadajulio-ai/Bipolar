@@ -40,7 +40,7 @@ export default function PrivacidadePage() {
 
           <h3 className="mb-1 mt-3 text-sm font-semibold text-foreground">2.1 Dados de cadastro</h3>
           <ul className="list-inside list-disc space-y-1 text-sm text-muted">
-            <li>E-mail e senha (armazenada com hash bcrypt, nunca em texto).</li>
+            <li>E-mail e senha (armazenada com hash Argon2id, nunca em texto).</li>
             <li>Login social via Google (recebemos nome e e-mail; tokens OAuth são criptografados com AES-256-GCM).</li>
             <li>Data de nascimento (apenas para verificar idade mínima de 18 anos).</li>
           </ul>
@@ -120,7 +120,7 @@ export default function PrivacidadePage() {
         <section className="mb-6">
           <h2 className="mb-2 text-lg font-semibold">5. Como protegemos seus dados</h2>
           <ul className="list-inside list-disc space-y-1 text-sm text-muted">
-            <li>Senhas armazenadas com hash bcrypt (nunca em texto).</li>
+            <li>Senhas armazenadas com hash Argon2id (nunca em texto).</li>
             <li>Tokens OAuth criptografados com AES-256-GCM.</li>
             <li>Sessões via cookies HttpOnly, Secure, SameSite=Lax.</li>
             <li>Proteção CSRF em todas as requisições mutantes.</li>

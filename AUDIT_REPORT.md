@@ -1,6 +1,6 @@
 # Suporte Bipolar — Relatório Completo para Auditoria GPT PRO
 
-> Atualizado em: 15/03/2026
+> Atualizado em: 19/03/2026
 > Domínio: https://suportebipolar.com (produção) | https://redebipolar.com (legacy)
 
 ---
@@ -30,7 +30,9 @@
 | iron-session | ^8.0.4 |
 | bcryptjs | ^3.0.3 |
 | Zod | ^4.3.6 |
-| Vitest | ^4.0.18 (101 testes) |
+| OpenAI SDK | ^5 (Responses API, Structured Outputs) |
+| web-push | ^3 (VAPID, Web Push API) |
+| Vitest | ^4.0.18 (704 testes, 8 suites) |
 | Deploy | Vercel (auto-deploy on push to main) |
 | DNS/CDN | Cloudflare (proxy OFF, DNS only) |
 | Package Manager | pnpm |
@@ -220,6 +222,14 @@
 - `GET /api/insights-summary` — Resumo para dashboard
 - `GET /api/relatorio` — Relatório mensal
 - `POST /api/cron/purge-access-logs` — Purge LGPD (90d, Vercel Cron 03:00 UTC)
+- `GET /api/cron/send-reminders` — Web Push reminders (Vercel Cron every minute, idempotent, batched)
+- `POST /api/push-subscriptions` — Subscribe push (SSRF allowlist, atomic $transaction, cap 5/user)
+- `DELETE /api/push-subscriptions` — Unsubscribe push
+- `POST /api/insights-narrative` — AI narrative (OpenAI Responses API, rate limit 10/hour)
+- `POST /api/whatsapp/webhook` — WhatsApp Cloud API webhook (HMAC-SHA256, masked phone logging)
+- `GET /api/whatsapp/webhook` — WhatsApp verification challenge (Meta hub.challenge)
+- `GET /api/sos/chat` — SOS chatbot with crisis detection (423 test cases)
+- `POST /api/integrations/health-connect` — Android Health Connect webhook
 
 ## 6. Banco de Dados (21 modelos Prisma)
 
@@ -253,6 +263,7 @@
 | ReminderSettings | Lembretes (wakeReminder, sleepReminder, diaryReminder, breathingReminder HH:MM, enabled) |
 | ContentView | Views de conteúdo (slug, viewedAt) |
 | CourseProgress | Progresso de cursos (courseSlug, lessonSlug, completedAt) |
+| PushSubscription | Web Push (endpoint, p256dh, auth, userId. @@unique userId_endpoint) |
 
 ## 7. Componentes (56+ componentes)
 
@@ -273,6 +284,12 @@ BreathingTimer, BreathingCircle, ProgressSteps, GroundingGuide, QuickBreathing
 
 ### Planejador
 TodayBlocks, WeeklyView, InsightsCharts, GoogleCalendarSync
+
+### Gamification
+AchievementGrid (9 achievements, progress bars, hide/show toggle)
+
+### AI Narrative
+NarrativeSection (on-demand generation, exponential backoff, inline error recovery)
 
 ### Relatório & Outros
 MonthSelector, MonthlyReport, SoundPlayer, ImportCSV, TransactionList, NewsFeed, RhythmForm, SleepRoutineChecklist, WarningSignsChecklist, CrisisPlanForm, CrisisPlanCard, ReminderManager, RegularityMeter
@@ -317,10 +334,11 @@ Features calculadas server-side:
 
 ## 10. PWA
 
-- Service Worker v2: 3 caches (static cache-first, API stale-while-revalidate 5min, offline pre-cache)
-- APIs cacheáveis: /api/diario, /api/sono, /api/rotina, /api/insights-summary, /api/lembretes
-- SW update toast: detecta nova versão → banner "Atualizar"
-- SW auto-purge on 401/403
+- Service Worker v3: 3 caches (static cache-first, API network-first for PHI safety, offline pre-cache)
+- APIs network-first: /api/diario, /api/sono, /api/rotina, /api/insights-summary, /api/lembretes, /api/avaliacao-semanal, /api/planner/blocks, /api/financeiro/historico
+- Admin pages: never cached, never served offline (LGPD/PHI)
+- SW auto-purge on 401/403 (session expiry → purge all cached PHI)
+- Web Push: push event handler + notificationclick with vibration, tag-based dedup
 - Manifest: icons (512, 192, maskable separados), shortcuts (Check-in, SOS), categories, id
 - InstallBanner: banner educacional iOS Safari (após 2ª visita, dismissível 30d)
 - Offline page: SVG acessível, CVV 188

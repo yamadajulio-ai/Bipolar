@@ -62,3 +62,5 @@ tmp_*.txt
 
 # admin docs (not for repo)
 ADMIN_DASHBOARD_BRIEFING.md
+
+.env*.local

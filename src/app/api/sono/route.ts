@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod/v4";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/security";
 import { localDateStr } from "@/lib/dateUtils";
 
 const sleepLogSchema = z.object({
@@ -21,6 +22,11 @@ export async function GET(request: NextRequest) {
   const session = await getSession();
   if (!session.isLoggedIn) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  }
+
+  // Rate limit: 60 reads per minute per user
+  if (!(await checkRateLimit(`sono_read:${session.userId}`, 60, 60_000))) {
+    return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
   }
 
   const { searchParams } = new URL(request.url);
@@ -44,6 +50,11 @@ export async function POST(request: NextRequest) {
   const session = await getSession();
   if (!session.isLoggedIn) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  }
+
+  // Rate limit: 30 writes per minute per user
+  if (!(await checkRateLimit(`sono_write:${session.userId}`, 30, 60_000))) {
+    return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
   }
 
   try {

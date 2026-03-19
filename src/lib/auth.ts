@@ -36,14 +36,23 @@ export async function getSession() {
   const session = await getIronSession<SessionData>(cookieStore, currentSessionOptions);
   if (session.isLoggedIn) return session;
 
-  // Migrate legacy cookie transparently
+  // Migrate legacy cookie transparently — will be removed after 2026-06-01
   const legacy = await getIronSession<SessionData>(cookieStore, legacySessionOptions);
-  if (legacy.isLoggedIn) {
-    session.userId = legacy.userId;
-    session.email = legacy.email;
-    session.isLoggedIn = true;
-    session.onboarded = legacy.onboarded;
-    await session.save();
+  if (legacy.isLoggedIn && legacy.userId && legacy.email) {
+    // Validate: user must still exist in DB before accepting legacy session
+    const { prisma } = await import("@/lib/db");
+    const user = await prisma.user.findUnique({
+      where: { id: legacy.userId },
+      select: { id: true, email: true, onboarded: true },
+    });
+    if (user && user.email === legacy.email) {
+      session.userId = user.id;
+      session.email = user.email;
+      session.isLoggedIn = true;
+      session.onboarded = user.onboarded;
+      await session.save();
+    }
+    // Always destroy legacy cookie regardless
     await legacy.destroy();
   }
 

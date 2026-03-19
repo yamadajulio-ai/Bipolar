@@ -71,39 +71,37 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Dados inválidos" }, { status: 400 });
     }
 
-    // Cap subscriptions per user to prevent abuse
-    const existingCount = await prisma.pushSubscription.count({
-      where: { userId: session.userId },
-    });
-    const isUpdate = await prisma.pushSubscription.findUnique({
-      where: {
-        userId_endpoint: {
-          userId: session.userId,
-          endpoint: parsed.data.endpoint,
+    // All checks + mutations in a single interactive transaction
+    // to prevent race conditions on both cap enforcement and endpoint ownership.
+    await prisma.$transaction(async (tx) => {
+      // Cap check inside transaction for atomicity
+      const existingCount = await tx.pushSubscription.count({
+        where: { userId: session.userId },
+      });
+      const isUpdate = await tx.pushSubscription.findUnique({
+        where: {
+          userId_endpoint: {
+            userId: session.userId,
+            endpoint: parsed.data.endpoint,
+          },
         },
-      },
-      select: { id: true },
-    });
+        select: { id: true },
+      });
 
-    if (!isUpdate && existingCount >= MAX_SUBSCRIPTIONS_PER_USER) {
-      return NextResponse.json(
-        { error: "Limite de dispositivos atingido. Remova um dispositivo antes de adicionar outro." },
-        { status: 409 },
-      );
-    }
+      if (!isUpdate && existingCount >= MAX_SUBSCRIPTIONS_PER_USER) {
+        throw new Error("CAP_EXCEEDED");
+      }
 
-    // Atomic: remove endpoint from other users + upsert for current user.
-    // Transaction ensures no race where two users claim the same endpoint.
-    await prisma.$transaction([
       // Shared device safety: remove this endpoint from ANY other user first.
-      prisma.pushSubscription.deleteMany({
+      await tx.pushSubscription.deleteMany({
         where: {
           endpoint: parsed.data.endpoint,
           userId: { not: session.userId },
         },
-      }),
+      });
+
       // Upsert for current user
-      prisma.pushSubscription.upsert({
+      await tx.pushSubscription.upsert({
         where: {
           userId_endpoint: {
             userId: session.userId,
@@ -120,11 +118,17 @@ export async function POST(request: NextRequest) {
           p256dh: parsed.data.keys.p256dh,
           auth: parsed.data.keys.auth,
         },
-      }),
-    ]);
+      });
+    });
 
     return NextResponse.json({ success: true });
   } catch (err) {
+    if (err instanceof Error && err.message === "CAP_EXCEEDED") {
+      return NextResponse.json(
+        { error: "Limite de dispositivos atingido. Remova um dispositivo antes de adicionar outro." },
+        { status: 409 },
+      );
+    }
     Sentry.captureException(err, { tags: { endpoint: "push-subscribe" } });
     console.error("Push subscription error:", err);
     return NextResponse.json({ error: "Erro ao salvar inscrição" }, { status: 500 });

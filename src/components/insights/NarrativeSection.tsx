@@ -32,14 +32,8 @@ export function NarrativeSection() {
       setNarrative(data);
       setRetryCount(0); // Reset backoff on success
     } catch (err) {
-      // Don't clear previous narrative on regeneration error
-      const msg = err instanceof Error ? err.message : "Erro desconhecido";
-      if (narrative) {
-        // Keep previous narrative visible, show error inline
-        setError(msg);
-      } else {
-        setError(msg);
-      }
+      // Don't clear previous narrative on regeneration error — show inline
+      setError(err instanceof Error ? err.message : "Erro desconhecido");
       // Exponential backoff: 5s, 10s, 20s, 30s max
       const delay = Math.min(5000 * Math.pow(2, retryCount), 30_000);
       setRetryCount((c) => c + 1);
@@ -59,9 +53,9 @@ export function NarrativeSection() {
         </p>
         <p className="mb-4 text-xs text-muted">
           A IA analisa seus dados de sono, humor e ritmos dos últimos 30 dias para gerar uma
-          interpretação personalizada. Ao clicar, seus dados são enviados de forma segura à
-          Anthropic (Claude) exclusivamente para gerar este resumo. A Anthropic não usa dados
-          da API para treinar modelos.
+          interpretação personalizada. Ao clicar, seus dados são enviados à OpenAI (GPT)
+          nos EUA exclusivamente para gerar este resumo. A OpenAI não usa dados da API
+          para treinar modelos.
         </p>
         <button
           onClick={generate}
@@ -70,14 +64,14 @@ export function NarrativeSection() {
           Gerar resumo com IA
         </button>
         <p className="mt-2 text-[10px] text-muted italic">
-          Powered by Claude — não substitui avaliação profissional
+          Powered by GPT-5.2 — não substitui avaliação profissional
         </p>
       </div>
     );
   }
 
-  // Loading state
-  if (loading) {
+  // Loading state (only show standalone spinner if no previous narrative)
+  if (loading && !narrative) {
     return (
       <div className="rounded-lg border border-border bg-surface p-5">
         <div className="flex items-center gap-3">

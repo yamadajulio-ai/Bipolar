@@ -151,6 +151,16 @@
 | `/acesso-profissional` | Gerar/revogar token+PIN para profissional |
 | `/noticias` | Feed de notícias científicas (PubMed + Google News) |
 
+### Admin (6)
+| Rota | Descrição |
+|------|-----------|
+| `/admin` | Admin dashboard (métricas, overview) |
+| `/admin/users` | Gestão de usuários |
+| `/admin/clinical` | Dados clínicos |
+| `/admin/compliance` | LGPD compliance |
+| `/admin/safety` | Safety monitoring |
+| `/admin/audit` | Audit trail |
+
 ### Outras (3)
 | Rota | Descrição |
 |------|-----------|
@@ -294,7 +304,7 @@ NarrativeSection (on-demand generation, exponential backoff, inline error recove
 ### Relatório & Outros
 MonthSelector, MonthlyReport, SoundPlayer, ImportCSV, TransactionList, NewsFeed, RhythmForm, SleepRoutineChecklist, WarningSignsChecklist, CrisisPlanForm, CrisisPlanCard, ReminderManager, RegularityMeter
 
-## 8. Motor de Insights (computeInsights.ts ~1800 linhas, 40 testes)
+## 8. Motor de Insights (computeInsights.ts ~1800 linhas, 40 testes + 127 narrative guardrail testes)
 
 Features calculadas server-side:
 - **Termômetro de Humor:** Dual-score M/D (0-100), EWMA α=0.4, 5 zonas (depressão severa/leve/eutimia/hipomania/mania), flag misto (forte/provável), instabilidade, ansiedade como sinal de distress
@@ -314,10 +324,13 @@ Features calculadas server-side:
 
 ### Autenticação & Defesa
 - iron-session + bcryptjs + Google OAuth
-- CSRF: Sec-Fetch-Site + Origin no middleware (exceções: cron, integrations, profissional)
-- Rate Limiting: Atômico via Prisma $transaction
+- CSRF: Sec-Fetch-Site + Origin no middleware (exceções: cron, integrations, profissional, whatsapp)
+- Rate Limiting: Atômico via Prisma $transaction (push 10/15min, narrative 10/hour, cron idempotent)
 - Google Tokens: AES-256-GCM encryption (src/lib/crypto.ts)
 - PIN profissional: bcrypt hash, failed attempts lock, token expiry
+- Push SSRF Prevention: dual allowlist (write-time Zod refine + send-time validation), 7 known push hosts
+- WhatsApp: HMAC-SHA256 signature verification (X-Hub-Signature-256), 256KB payload limit, masked phone logging
+- AI Safety: 17 forbidden clinical pattern regexes, high-risk template bypass, Zod + size guards
 
 ### LGPD Compliance
 - **Consentimento:** Modelo Consent (health_data, terms_of_use), age gate 18+, health consent checkbox no cadastro
@@ -348,8 +361,12 @@ Features calculadas server-side:
 | Integração | Status | Detalhes |
 |-----------|--------|----------|
 | Apple Health (HAE) | ✅ Funcional | Cloudflare Worker proxy → webhook Vercel, sleep stages (Core/Deep/REM/Awake), HR, HRV, steps, calories, blood_oxygen. Timezone-safe (America/Sao_Paulo). Night splitting (60min awake gap). Nap detection (<1h). Batch upserts ($transaction). maxDuration=60. |
+| Health Connect (Android) | ✅ Funcional | HC Webhook → API. Sleep, steps, HR data from Android wearables. |
 | Google Calendar | ✅ Funcional | OAuth, incremental sync (syncToken), full sync (?full=1), color mapping 1-24, auto-sync ao abrir + cada 5min |
 | Mobills (Financeiro) | ✅ Funcional | Import CSV/XLSX, batch 50, maxDuration=30 |
+| WhatsApp Cloud API | 🟡 Ready | Webhook (HMAC-SHA256, masked phone, all entries/changes). Full check-in flow pending Meta Business setup. |
+| OpenAI Responses API | ✅ Funcional | AI narrative in /insights. GPT-4.1 default (configurable via env). Structured Outputs (strict: true), store: false (LGPD), 17 forbidden clinical patterns, high-risk template bypass. |
+| Web Push (VAPID) | ✅ Funcional | Cron every-minute reminders, SSRF allowlist (7 hosts), batch 10 concurrent, expired/invalid cleanup. |
 
 ## 12. Acessibilidade (A11y)
 
@@ -359,6 +376,8 @@ Features calculadas server-side:
 - `--muted` contraste AA (~5.2:1 ratio)
 - Header: `aria-expanded`, `aria-controls`, `aria-label` nav landmarks, `aria-current="page"`
 - CalendarHeatmap: keyboard nav, aria-label legend descritivo
+- AchievementGrid: `section` landmark, `role="progressbar"` + `aria-valuenow/valuemin/valuemax/label`
+- NarrativeSection: `aria-expanded` collapse toggle
 - InfoTooltip: `role="tooltip"` + `aria-expanded` + `aria-describedby` com useId
 - SOS: `aria-live="assertive"` para mudanças de view
 - BreathingCircle: `prefers-reduced-motion` desativa animação
@@ -371,12 +390,15 @@ Features calculadas server-side:
 ## 13. Testes
 
 - Framework: Vitest 4.0.18
-- 101 testes em 5 arquivos
-- `computeInsights.test.ts`: 40 testes (sleep, mood, thermometer, risk, prediction, cycling, heatmap, rhythm, chart)
-- `healthExport.test.ts`: Parser HAE
-- `expandRecurrence.test.ts`: Expansão de recorrência do planejador
-- `parseMobillsCsv.test.ts`: Parser CSV Mobills
-- `dateUtils.test.ts`: Utilidades de data
+- **704 testes em 8 suites** (0 falhas)
+- `detectCrisis.test.ts`: 423 testes — SOS crisis detection (17 rounds of GPT Pro audit)
+- `generateNarrative.test.ts`: 127 testes — 17 forbidden clinical patterns, medication names, edge cases
+- `streaks.test.ts`: 53 testes — current/longest streak, 9 achievements, dual_streak_7 concurrency
+- `computeInsights.test.ts`: 40 testes — sleep, mood, thermometer, risk, prediction, cycling, heatmap
+- `expandRecurrence.test.ts`: 23 testes — planner recurrence expansion
+- `healthExport.test.ts`: 19 testes — HAE Apple Health parser
+- `parseMobillsCsv.test.ts`: 11 testes — Mobills CSV/XLSX parser
+- `dateUtils.test.ts`: 8 testes — date utilities
 
 ## 14. Navegação
 
@@ -474,21 +496,21 @@ Plataforma de **gestão clínica para profissionais de saúde mental** (psicólo
 
 ### P0 — Gaps Críticos (melhorariam muito o produto)
 
-1. **Lembretes via WhatsApp** — No Brasil, WhatsApp é mais eficaz que push notification. Integrar com WhatsApp Business API para lembretes de medicação, check-in, sono.
+1. ~~**Lembretes via WhatsApp**~~ → 🟡 Webhook ready, Business account pending. Push notifications implementadas como alternativa.
 
 2. **Onboarding tour interativo** — Primeiro login deveria guiar o usuário pelas features principais (check-in, sono, insights, SOS). Melhora retenção D1/D7.
 
-3. **IA narrativa para insights** — Usar LLM para gerar interpretação em linguagem natural dos dados (ex: "Nos últimos 7 dias seu sono ficou 2h abaixo da média e há correlação com queda de humor. Considere conversar com seu profissional."). Diferencial competitivo.
+3. ~~**IA narrativa para insights**~~ → ✅ **IMPLEMENTADO** (OpenAI Responses API, 17 forbidden patterns, high-risk template bypass, Structured Outputs strict: true, store: false LGPD)
 
 4. **Resultados dos testes cognitivos** — A página `/cognitivo` existe mas não mostra resultados interpretados após completar o teste. Gap UX real.
 
 ### P1 — Gaps Importantes
 
-5. **Notificações push nativas** — Web Push API para PWA. Atualmente lembretes existem mas não disparam push real.
+5. ~~**Notificações push nativas**~~ → ✅ **IMPLEMENTADO** (Web Push VAPID, cron every-minute, SSRF allowlist, batch sending, expired cleanup)
 
 6. **Compartilhamento de relatório em PDF** — Gerar PDF do relatório mensal para levar na consulta psiquiátrica. Muito pedido por pacientes.
 
-7. **Gamificação leve** — Streaks visuais, conquistas por consistência (7 dias seguidos, 30 dias). Melhora adesão.
+7. ~~**Gamificação leve**~~ → ✅ **IMPLEMENTADO** (9 achievements, dual streaks, progress bars, AchievementGrid com a11y)
 
 8. **Suporte a múltiplos idiomas** — Expansão para espanhol (América Latina tem mercado similar).
 

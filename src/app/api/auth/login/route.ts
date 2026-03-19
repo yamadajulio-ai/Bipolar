@@ -13,7 +13,8 @@ export async function POST(request: NextRequest) {
   try {
     const ip = request.headers.get("x-forwarded-for") || "unknown";
 
-    if (!(await checkRateLimit(`login:${ip}`, 5, 15 * 60 * 1000))) {
+    // IP-based rate limit: 10 attempts per 15 min (broader, catches spray attacks)
+    if (!(await checkRateLimit(`login:${ip}`, 10, 15 * 60 * 1000))) {
       return NextResponse.json(
         { error: "Muitas tentativas de login. Aguarde 15 minutos." },
         { status: 429 },
@@ -31,6 +32,14 @@ export async function POST(request: NextRequest) {
     }
 
     const { email, senha } = parsed.data;
+
+    // Email-based rate limit: 5 attempts per 15 min (tighter, prevents targeted brute force)
+    if (!(await checkRateLimit(`login:email:${email.toLowerCase()}`, 5, 15 * 60 * 1000))) {
+      return NextResponse.json(
+        { error: "Muitas tentativas para este e-mail. Aguarde 15 minutos." },
+        { status: 429 },
+      );
+    }
 
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {

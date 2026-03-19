@@ -56,8 +56,7 @@ export async function GET(request: NextRequest) {
   );
 
   try {
-    // Current time in São Paulo — with 2-minute lookback window to catch
-    // delayed cron executions (Vercel can deliver up to ~1min late).
+    // Current time in São Paulo
     const now = new Date();
 
     const spDate = now.toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
@@ -68,31 +67,25 @@ export async function GET(request: NextRequest) {
       hour12: false,
     }); // "14:30"
 
-    // Lookback: also check the previous minute to catch late deliveries
-    const oneMinAgo = new Date(now.getTime() - 60_000);
-    const spTimePrev = oneMinAgo.toLocaleTimeString("pt-BR", {
-      timeZone: "America/Sao_Paulo",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
-
-    // Idempotency: prevent duplicate sends per minute slot.
-    // Each minute slot gets its own dedupe key.
-    const cronKey = `cron:reminders:${spDate}T${spTime}`;
-    const isFirstExecution = await checkRateLimit(cronKey, 1, 60_000);
-    if (!isFirstExecution) {
-      return NextResponse.json({ ok: true, sent: 0, dedupe: true });
+    // Lookback window: also check ±2 minutes to handle cron delays/skips.
+    // This ensures reminders aren't lost if Vercel delivers the cron late.
+    const lookbackTimes = new Set<string>([spTime]);
+    for (const offset of [-2, -1, 1, 2]) {
+      const d = new Date(now.getTime() + offset * 60_000);
+      lookbackTimes.add(d.toLocaleTimeString("pt-BR", {
+        timeZone: "America/Sao_Paulo",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      }));
     }
 
-    // Find all users with push subscriptions AND matching reminder times.
-    // Check both current minute and previous minute (lookback window).
+    // Find all users with reminder times matching current window.
     const reminderKeys = Object.keys(reminderMessages) as Array<keyof typeof reminderMessages>;
-    const timesToCheck = [spTime, ...(spTimePrev !== spTime ? [spTimePrev] : [])];
 
-    // Build OR conditions for each reminder field matching current or previous minute
-    const orConditions = timesToCheck.flatMap((time) =>
-      reminderKeys.map((key) => ({ [key]: time })),
+    // Build OR conditions: match any time in the lookback window
+    const orConditions = reminderKeys.flatMap((key) =>
+      [...lookbackTimes].map((time) => ({ [key]: time })),
     );
 
     const matchingSettings = await prisma.reminderSettings.findMany({
@@ -147,16 +140,22 @@ export async function GET(request: NextRequest) {
       const userSubs = subsByUser.get(settings.userId);
       if (!userSubs || userSubs.length === 0) continue;
 
-      // Determine which reminders fire now for this user (current + lookback)
-      const payloads: PushPayload[] = [];
+      // Determine which reminders fire now for this user (match any time in window)
+      const payloads: { key: string; payload: PushPayload; scheduledTime: string }[] = [];
       for (const key of reminderKeys) {
         const settingValue = settings[key as keyof typeof settings];
-        if (timesToCheck.includes(settingValue as string)) {
-          payloads.push(reminderMessages[key]);
+        if (typeof settingValue === "string" && lookbackTimes.has(settingValue)) {
+          payloads.push({ key, payload: reminderMessages[key], scheduledTime: settingValue });
         }
       }
 
-      for (const payload of payloads) {
+      for (const { key, payload, scheduledTime } of payloads) {
+        // Per-user per-reminder idempotency: dedupe by user + reminder type + scheduled time.
+        // Prevents re-sending when lookback window overlaps across cron invocations.
+        const dedupeKey = `reminder:${settings.userId}:${key}:${spDate}T${scheduledTime}`;
+        const isFirst = await checkRateLimit(dedupeKey, 1, 5 * 60_000);
+        if (!isFirst) continue;
+
         for (const sub of userSubs) {
           tasks.push({
             subId: sub.id,

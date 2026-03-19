@@ -140,23 +140,57 @@ describe("GET /api/cron/send-reminders", () => {
 
   // ── Idempotency ──────────────────────────────────────────────────────
 
-  it("returns dedupe=true when rate limit prevents re-execution", async () => {
-    mockCheckRateLimit.mockResolvedValue(false); // already ran this minute
+  it("deduplicates per user+reminder+scheduledTime", async () => {
+    const spTime = new Date().toLocaleTimeString("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
 
-    const res = await GET(makeRequest("Bearer test-cron-secret"));
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.dedupe).toBe(true);
-    expect(body.sent).toBe(0);
+    mockFindManySettings.mockResolvedValue([
+      { userId: "u1", wakeReminder: spTime, sleepReminder: null, diaryReminder: null, breathingReminder: null },
+    ]);
+    mockFindManySubs.mockResolvedValue([
+      { id: "sub-1", userId: "u1", endpoint: "https://fcm.googleapis.com/push", p256dh: "k1", auth: "a1" },
+    ]);
+
+    // First call: rate limit returns true (first execution), then true for per-user dedupe
+    mockCheckRateLimit.mockResolvedValue(true);
+    const res1 = await GET(makeRequest("Bearer test-cron-secret"));
+    const body1 = await res1.json();
+    expect(body1.sent).toBe(1);
+
+    // Verify per-user dedupe key was used
+    expect(mockCheckRateLimit).toHaveBeenCalledWith(
+      expect.stringMatching(/^reminder:u1:wakeReminder:\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/),
+      1,
+      5 * 60_000,
+    );
   });
 
-  it("uses timezone-aligned key for idempotency", async () => {
-    await GET(makeRequest("Bearer test-cron-secret"));
-    expect(mockCheckRateLimit).toHaveBeenCalledWith(
-      expect.stringMatching(/^cron:reminders:\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/),
-      1,
-      60_000,
-    );
+  it("skips already-sent reminders via per-user dedupe", async () => {
+    const spTime = new Date().toLocaleTimeString("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+
+    mockFindManySettings.mockResolvedValue([
+      { userId: "u1", wakeReminder: spTime, sleepReminder: null, diaryReminder: null, breathingReminder: null },
+    ]);
+    mockFindManySubs.mockResolvedValue([
+      { id: "sub-1", userId: "u1", endpoint: "https://fcm.googleapis.com/push", p256dh: "k1", auth: "a1" },
+    ]);
+
+    // Per-user dedupe returns false (already sent)
+    mockCheckRateLimit.mockResolvedValue(false);
+
+    const res = await GET(makeRequest("Bearer test-cron-secret"));
+    const body = await res.json();
+    expect(body.sent).toBe(0);
+    expect(mockSendPush).not.toHaveBeenCalled();
   });
 
   // ── No matching settings ─────────────────────────────────────────────

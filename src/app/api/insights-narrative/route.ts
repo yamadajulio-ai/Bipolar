@@ -15,7 +15,7 @@ function spDate(d: Date): string {
   return d.toLocaleDateString("sv-SE", { timeZone: TZ });
 }
 
-// POST — Generate AI narrative (mutating: sends data to OpenAI GPT-5.2, consumes quota)
+// POST — Generate AI narrative (mutating: sends data to OpenAI, consumes quota)
 export async function POST(_request: NextRequest) {
   const session = await getSession();
   if (!session.isLoggedIn) {

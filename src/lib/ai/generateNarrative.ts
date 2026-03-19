@@ -25,8 +25,8 @@ const narrativeSchema = z.object({
 });
 
 /**
- * JSON Schema for OpenAI native Structured Outputs.
- * `response_format: { type: "json_schema" }` with `strict: true` guarantees
+ * JSON Schema for OpenAI Responses API Structured Outputs.
+ * `text.format: { type: "json_schema" }` with `strict: true` guarantees
  * 100% schema conformance at the API level — no parse heuristics needed.
  */
 const NARRATIVE_JSON_SCHEMA = {
@@ -96,6 +96,31 @@ function getSafeFallback(): NarrativeResult {
     summary: "Não foi possível gerar o resumo neste momento. Consulte os dados numéricos nos cards acima e converse com seu profissional de saúde sobre as tendências observadas.",
     highlights: ["Consulte os cards de insights para ver seus dados detalhados"],
     suggestions: ["Revise os dados numéricos dos insights acima", "Converse com seu profissional sobre as tendências"],
+    generatedAt: new Date().toISOString(),
+  };
+}
+
+/**
+ * High-risk template — bypasses LLM entirely when risk level is "atencao_alta".
+ * Prevents hallucination on critical data and ensures deterministic safe output.
+ */
+function getHighRiskTemplate(data: Record<string, unknown>): NarrativeResult {
+  const risk = data.risk as { score: number; factors: string[] } | null;
+  const factorsText = risk?.factors?.length
+    ? risk.factors.join("; ")
+    : "múltiplos indicadores elevados";
+
+  return {
+    summary: `Seus dados dos últimos 30 dias apresentam indicadores que merecem atenção especial. Os fatores identificados incluem: ${factorsText}. É importante que você converse com seu profissional de saúde sobre essas tendências o mais breve possível.\n\nLembre-se: esses dados são ferramentas de acompanhamento e não substituem a avaliação clínica. Seu profissional poderá interpretar esses padrões dentro do contexto completo da sua saúde.`,
+    highlights: [
+      "Seus indicadores merecem atenção — converse com seu profissional",
+      `Fatores identificados: ${factorsText}`,
+      "Os dados numéricos nos cards acima trazem mais detalhes",
+    ],
+    suggestions: [
+      "Entre em contato com seu profissional de saúde para discutir essas tendências",
+      "Continue registrando seus dados diariamente — isso ajuda no acompanhamento",
+    ],
     generatedAt: new Date().toISOString(),
   };
 }
@@ -177,51 +202,98 @@ function prepareInsightsForPrompt(insights: InsightsResult): Record<string, unkn
   };
 }
 
+/**
+ * Operational instructions prompt — hierarchical rules with output contract.
+ * Designed for Responses API `instructions` field.
+ */
+const INSTRUCTIONS = `Você é o módulo de narrativa do app "Suporte Bipolar". Recebe JSON com dados de monitoramento de 30 dias e retorna um resumo estruturado em pt-BR.
+
+# PROIBIÇÕES ABSOLUTAS (violar = falha)
+- NUNCA nomear condições clínicas: depressão, mania, hipomania, ciclotimia, episódio depressivo, transtorno bipolar, etc.
+- NUNCA fazer diagnósticos, nem tentativos ou indiretos ("sinais compatíveis com", "quadro sugestivo de", "perfil clínico de").
+- NUNCA mencionar medicamentos por nome.
+- NUNCA sugerir ajuste de medicação.
+- NUNCA inferir causalidade clínica de correlações estatísticas.
+- NUNCA usar linguagem prescritiva ("você deve procurar um psiquiatra", "recomendo que pare").
+
+# OBRIGATÓRIO
+- Descrever APENAS padrões observados nos dados: "humor abaixo da média", "sono mais curto que o habitual", "variação acentuada de energia".
+- Citar números específicos dos dados fornecidos.
+- Linguagem acolhedora, não-alarmista, em pt-BR coloquial (público leigo).
+- Para risco elevado: incentivar contato com profissional sem causar pânico.
+- Finalizar com frase de acolhimento + reforço de acompanhamento profissional.
+
+# FORMATO DE SAÍDA
+- summary: 2-3 parágrafos narrativos interpretando os dados (separados por \\n\\n)
+- highlights: 3-5 pontos-chave como frases curtas
+- suggestions: 2-3 sugestões acionáveis para o paciente (sem caráter clínico)`;
+
 export async function generateNarrative(
   insights: InsightsResult,
 ): Promise<NarrativeResult> {
   const data = prepareInsightsForPrompt(insights);
 
-  const systemPrompt = `Você é um assistente de saúde mental especializado em transtorno bipolar, integrado ao app "Suporte Bipolar". Seu papel é interpretar dados de monitoramento do paciente e gerar uma narrativa empática, clara e clinicamente informada em português brasileiro.
-
-REGRAS OBRIGATÓRIAS:
-1. NUNCA faça diagnósticos, nem tentativos. NUNCA nomeie condições clínicas (depressão, mania, hipomania, ciclotimia, episódio depressivo, etc.). Descreva APENAS padrões dos dados: "humor abaixo da média", "energia elevada nos últimos dias", "variação acentuada".
-2. SEMPRE reforce que a interpretação clínica deve ser feita pelo profissional de saúde.
-3. Use linguagem acolhedora e não-alarmista, mesmo para dados preocupantes.
-4. Seja específico: cite números e tendências dos dados fornecidos.
-5. Descreva coocorrências observadas entre sono, humor, ritmo e medicação, sem inferir efeito clínico.
-6. Para scores de risco elevado, incentive contato com o profissional sem causar pânico.
-7. Respostas SEMPRE em pt-BR.
-8. NUNCA infira causalidade clínica de uma correlação estatística.
-9. NUNCA sugira ajuste de medicação ou comportamento como se fosse recomendação clínica.
-10. NUNCA mencione nomes de medicamentos.
-11. O público é leigo — evite siglas médicas sem explicação.
-12. Termine sempre com uma frase de acolhimento e reforço de que o acompanhamento profissional é essencial.`;
+  // High-risk template routing — bypass LLM for deterministic safe output
+  const riskLevel = insights.risk?.level;
+  if (riskLevel === "atencao_alta") {
+    Sentry.addBreadcrumb({
+      message: "AI narrative: high-risk template used (bypassed LLM)",
+      level: "info",
+      data: { riskScore: insights.risk?.score },
+    });
+    return getHighRiskTemplate(data);
+  }
 
   const userPrompt = `Analise os seguintes dados de monitoramento dos últimos 30 dias e gere uma narrativa interpretativa para o paciente:\n\n${JSON.stringify(data, null, 2)}`;
 
   try {
-    // GPT-5.2 with native Structured Outputs — guarantees 100% schema conformance at API level.
-    // HealthBench 63.3%, 1.6% hallucination rate on hard medical cases.
-    const response = await getOpenAI().chat.completions.create({
-      model: "gpt-5.2",
-      max_tokens: 2048,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      response_format: {
-        type: "json_schema",
-        json_schema: NARRATIVE_JSON_SCHEMA,
+    const model = process.env.OPENAI_NARRATIVE_MODEL || "gpt-4.1";
+
+    // Only pass reasoning param for models that support it (gpt-5.x+)
+    const supportsReasoning = model.startsWith("gpt-5") || model.startsWith("o");
+
+    const response = await getOpenAI().responses.create({
+      model,
+      instructions: INSTRUCTIONS,
+      input: [{ role: "user", content: userPrompt }],
+      text: {
+        format: {
+          type: "json_schema",
+          ...NARRATIVE_JSON_SCHEMA,
+        },
       },
+      store: false, // LGPD: don't persist patient data on OpenAI
+      ...(supportsReasoning ? { reasoning: { effort: "low" } } : {}),
+      max_output_tokens: 2048,
     });
 
-    const content = response.choices[0]?.message?.content;
+    // Handle incomplete or failed responses
+    if (response.status !== "completed") {
+      Sentry.captureMessage(`AI narrative response status: ${response.status}`, {
+        level: "warning",
+        tags: { feature: "ai-narrative", reason: response.status, model },
+      });
+      return getSafeFallback();
+    }
+
+    // Handle refusal (model declined to answer)
+    const refusal = response.output.find(
+      (item) => item.type === "message" && item.content?.some((c: { type: string }) => c.type === "refusal"),
+    );
+    if (refusal) {
+      Sentry.captureMessage("AI narrative refused by model", {
+        level: "warning",
+        tags: { feature: "ai-narrative", reason: "refusal", model },
+      });
+      return getSafeFallback();
+    }
+
+    const content = response.output_text;
     if (!content) return getSafeFallback();
 
     // Guard: reject oversized responses (>10KB)
     if (content.length > 10_000) {
-      Sentry.captureMessage("AI narrative response exceeded 10KB", { level: "warning", tags: { feature: "ai-narrative", reason: "oversized" } });
+      Sentry.captureMessage("AI narrative response exceeded 10KB", { level: "warning", tags: { feature: "ai-narrative", reason: "oversized", model } });
       return getSafeFallback();
     }
 
@@ -230,28 +302,28 @@ REGRAS OBRIGATÓRIAS:
     try {
       raw = JSON.parse(content);
     } catch {
-      Sentry.captureMessage("AI narrative JSON parse failed", { level: "warning", tags: { feature: "ai-narrative", reason: "json-parse" } });
+      Sentry.captureMessage("AI narrative JSON parse failed", { level: "warning", tags: { feature: "ai-narrative", reason: "json-parse", model } });
       return getSafeFallback();
     }
 
     // Validate with Zod (defense-in-depth)
     const parsed = narrativeSchema.safeParse(raw);
     if (!parsed.success) {
-      Sentry.captureMessage("AI narrative Zod validation failed", { level: "warning", tags: { feature: "ai-narrative", reason: "zod-validation" } });
+      Sentry.captureMessage("AI narrative Zod validation failed", { level: "warning", tags: { feature: "ai-narrative", reason: "zod-validation", model } });
       return getSafeFallback();
     }
 
     const { summary, highlights, suggestions } = parsed.data;
 
     if (!summary && highlights.length === 0) {
-      Sentry.captureMessage("AI narrative returned empty content", { level: "warning", tags: { feature: "ai-narrative", reason: "empty-content" } });
+      Sentry.captureMessage("AI narrative returned empty content", { level: "warning", tags: { feature: "ai-narrative", reason: "empty-content", model } });
       return getSafeFallback();
     }
 
     // Check for forbidden clinical content
     const allText = [summary, ...highlights, ...suggestions].join(" ");
     if (containsForbiddenContent(allText)) {
-      Sentry.captureMessage("AI narrative contained forbidden clinical content", { level: "warning", tags: { feature: "ai-narrative", reason: "forbidden-content" } });
+      Sentry.captureMessage("AI narrative contained forbidden clinical content", { level: "warning", tags: { feature: "ai-narrative", reason: "forbidden-content", model } });
       return getSafeFallback();
     }
 

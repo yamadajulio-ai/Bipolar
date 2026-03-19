@@ -19,9 +19,9 @@ export interface NarrativeResult {
 }
 
 const narrativeSchema = z.object({
-  summary: z.string().min(1).max(5000),
-  highlights: z.array(z.string().max(500)).min(1).max(5),
-  suggestions: z.array(z.string().max(500)).min(1).max(3),
+  summary: z.string().min(1).max(1800),
+  highlights: z.array(z.string().min(1).max(180)).min(3).max(5),
+  suggestions: z.array(z.string().min(1).max(180)).min(2).max(3),
 });
 
 /**
@@ -60,35 +60,55 @@ const NARRATIVE_JSON_SCHEMA = {
  * Strategy: ban ALL clinical condition/episode/disorder names, even in tentative
  * phrasing like "sugere depressão" or "indícios de mania". The narrative should
  * describe DATA patterns (e.g. "humor abaixo da média"), never name conditions.
+ *
+ * Per GPT Pro audit: patterns run against normalized text (lowercase, no accents,
+ * collapsed spaces) to catch unaccented and colloquial pt-BR variations.
  */
 const FORBIDDEN_PATTERNS = [
-  /\bdiagn[oó]stic/i,
-  /\bajust(?:e|ar|ando)\s+(?:(?:a|de)\s+)?medica[çc][ãa]o/i,
-  /\bvoc[êe]\s+(?:tem|possui|sofre\s+de)\s+/i,
-  /\bcausa(?:do|da|r)\s+(?:por|pelo|pela)\b/i,
-  /\brecomend(?:o|amos)\s+(?:que\s+)?(?:par|tom|aument|diminu)/i,
+  /\bdiagnostic/,
+  /\bajust(?:e|ar|ando)\s+(?:(?:a|de)\s+)?medicacao/,
+  /\bvoce\s+(?:tem|possui|sofre\s+de)\s+/,
+  /\bcausa(?:do|da|r)\s+(?:por|pelo|pela)\b/,
+  /\brecomend(?:o|amos)\s+(?:que\s+)?(?:par|tom|aument|diminu)/,
   // Indirect diagnostic phrasing
-  /\bsina(?:l|is)\s+compat[ií]ve(?:l|is)\s+com\b/i,
-  /\bpadr[ãa]o\s+sugestivo\s+de\b/i,
-  /\bquadro\s+(?:cl[ií]nico\s+)?(?:compat[ií]vel|indicativo|sugestivo)\b/i,
-  /\bcaracter[ií]stic(?:o|a)s?\s+de\s+(?:um|uma)?\s*(?:epis[oó]dio|transtorno|fase)\b/i,
-  /\bperfil\s+(?:cl[ií]nico|compat[ií]vel)\b/i,
-  /\bconfirma(?:r|ndo|[çc][ãa]o)\s+(?:de\s+)?(?:diagn[oó]stic|transtorno|epis[oó]dio)\b/i,
-  /\b(?:interromp|suspend|retir)(?:a|e|ar|ir|er)\s+(?:a\s+)?medica[çc][ãa]o\b/i,
+  /\bsina(?:l|is)\s+compative(?:l|is)\s+com\b/,
+  /\bpadrao\s+sugestivo\s+de\b/,
+  /\bquadro\s+(?:clinico\s+)?(?:compativel|indicativo|sugestivo)\b/,
+  /\bcaracteristic(?:o|a)s?\s+de\s+(?:um|uma)?\s*(?:episodio|transtorno|fase)\b/,
+  /\bperfil\s+(?:clinico|compativel)\b/,
+  /\bconfirma(?:r|ndo|cao)\s+(?:de\s+)?(?:diagnostic|transtorno|episodio)\b/,
+  /\b(?:interromp|suspend|retir)(?:a|e|ar|ir|er)\s+(?:a\s+)?medicacao\b/,
   // Prescriptive language disguised as observation
-  /\bvoc[êe]\s+(?:deve|precisa|deveria)\s+(?:procurar|buscar|ir)\s+(?:um|ao)\s+(?:m[ée]dic|psiqui)/i,
-  /\b(?:claramente|evidentemente|obviamente)\s+(?:um|uma)\s+(?:epis[oó]dio|crise|fase)\b/i,
-  // Explicit medication names — generic and common brand names
-  /\b(?:l[ií]tio|carbolitium|carbamazepina|tegretol|valproato|depakote|depakene|lamotrigina|lamictal|quetiapina|seroquel|olanzapina|zyprexa|risperidona|risperdal|aripiprazol|abilify|clozapina|clozaril|haloperidol|haldol|topiramato|topamax)\b/i,
-  // BAN condition/episode/disorder names outright — even in tentative phrasing.
-  // The narrative must describe data patterns, never name clinical conditions.
-  // This catches "sugere depressão", "indícios de mania", "possível hipomania", etc.
-  /\b(?:depress[ãa]o|mania|hipomania|man[ií]ac[oa]|hipoman[ií]ac[oa]|ciclotimia|distimia|psicose|psic[oó]tic[oa])\b/i,
-  /\b(?:epis[oó]dio|transtorno|s[ií]ndrome)\s+(?:bipolar|depressiv[oa]|man[ií]ac[oa]|mist[oa]|afetiv[oa])\b/i,
+  /\bvoce\s+(?:deve|precisa|deveria)\s+(?:procurar|buscar|ir)\s+(?:um|ao)\s+(?:medic|psiqui)/,
+  /\b(?:claramente|evidentemente|obviamente)\s+(?:um|uma)\s+(?:episodio|crise|fase)\b/,
+  // Explicit medication names — generic and common brand names (Brazil market)
+  /\b(?:litio|carbolitium|carbamazepina|tegretol|valproato|depakote|depakene|lamotrigina|lamictal|quetiapina|seroquel|olanzapina|zyprexa|risperidona|risperdal|aripiprazol|abilify|clozapina|clozaril|haloperidol|haldol|topiramato|topamax|fluoxetina|prozac|sertralina|zoloft|escitalopram|lexapro|venlafaxina|effexor|duloxetina|cymbalta|bupropiona|wellbutrin|clonazepam|rivotril|diazepam|valium|alprazolam|frontal|lorazepam)\b/,
+  // Drug classes and generic therapeutic terms
+  /\b(?:estabilizador(?:es)?\s+(?:de\s+|do\s+)?humor|antipsicotico|neuroleptico|antidepressivo|ansiolitico|benzodiazepnico|anticonvulsivante|psicofarma)/,
+  // BAN condition/episode/disorder names outright
+  /\b(?:depressao|mania|hipomania|maniaco|hipomaniaco|ciclotimia|distimia|psicose|psicotico|eutimia|ansiedade\s+generalizada)\b/,
+  /\b(?:episodio|transtorno|sindrome)\s+(?:bipolar|depressivo|maniaco|misto|afetivo)\b/,
+  // Speculative clinical language
+  /\b(?:indica|sugere|aponta\s+para|compativel\s+com)\s+(?:um|uma)?\s*(?:episodio|transtorno|quadro|crise|fase|sindrome)\b/,
 ];
 
+/**
+ * Normalize text for safety check: lowercase, strip accents, collapse whitespace.
+ * This catches unaccented and colloquial pt-BR variations that would bypass
+ * accent-dependent regex.
+ */
+function normalizeForSafetyCheck(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // strip combining diacriticals
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function containsForbiddenContent(text: string): boolean {
-  return FORBIDDEN_PATTERNS.some((p) => p.test(text));
+  const normalized = normalizeForSafetyCheck(text);
+  return FORBIDDEN_PATTERNS.some((p) => p.test(normalized));
 }
 
 function getSafeFallback(): NarrativeResult {
@@ -211,22 +231,25 @@ const INSTRUCTIONS = `Você é o módulo de narrativa do app "Suporte Bipolar". 
 # PROIBIÇÕES ABSOLUTAS (violar = falha)
 - NUNCA nomear condições clínicas: depressão, mania, hipomania, ciclotimia, episódio depressivo, transtorno bipolar, etc.
 - NUNCA fazer diagnósticos, nem tentativos ou indiretos ("sinais compatíveis com", "quadro sugestivo de", "perfil clínico de").
-- NUNCA mencionar medicamentos por nome.
-- NUNCA sugerir ajuste de medicação.
+- NUNCA mencionar medicamentos por nome, classe ou tipo (antidepressivo, estabilizador, etc.).
+- NUNCA sugerir iniciar, parar, aumentar, reduzir ou trocar tratamento.
 - NUNCA inferir causalidade clínica de correlações estatísticas.
-- NUNCA usar linguagem prescritiva ("você deve procurar um psiquiatra", "recomendo que pare").
+- NUNCA usar linguagem prescritiva ou imperativa para buscar profissional.
+- NUNCA inventar números, datas, percentuais ou tendências que não estejam no payload.
 
 # OBRIGATÓRIO
 - Descrever APENAS padrões observados nos dados: "humor abaixo da média", "sono mais curto que o habitual", "variação acentuada de energia".
 - Citar números específicos dos dados fornecidos.
 - Linguagem acolhedora, não-alarmista, em pt-BR coloquial (público leigo).
-- Para risco elevado: incentivar contato com profissional sem causar pânico.
-- Finalizar com frase de acolhimento + reforço de acompanhamento profissional.
+- Se dados insuficientes, dizer claramente.
+- Para indicadores que merecem atenção, usar EXATAMENTE a frase: "pode ser interessante compartilhar esses dados com seu profissional de referência".
+- Finalizar com frase de acolhimento + reforço de que o app é ferramenta de acompanhamento.
+- Texto adequado para leitura em iPhone — parágrafos curtos.
 
 # FORMATO DE SAÍDA
-- summary: 2-3 parágrafos narrativos interpretando os dados (separados por \\n\\n)
+- summary: exatamente 2 parágrafos curtos (separados por \\n\\n)
 - highlights: 3-5 pontos-chave como frases curtas
-- suggestions: 2-3 sugestões acionáveis para o paciente (sem caráter clínico)`;
+- suggestions: 2-3 sugestões práticas do dia a dia (sem caráter clínico)`;
 
 export async function generateNarrative(
   insights: InsightsResult,
@@ -247,7 +270,7 @@ export async function generateNarrative(
   const userPrompt = `Analise os seguintes dados de monitoramento dos últimos 30 dias e gere uma narrativa interpretativa para o paciente:\n\n${JSON.stringify(data, null, 2)}`;
 
   try {
-    const model = process.env.OPENAI_NARRATIVE_MODEL || "gpt-4.1";
+    const model = process.env.OPENAI_NARRATIVE_MODEL || "gpt-5.4";
 
     // Only pass reasoning param for models that support it (gpt-5.x+)
     const supportsReasoning = model.startsWith("gpt-5") || model.startsWith("o");

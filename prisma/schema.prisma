@@ -136,6 +136,7 @@ model ReminderSettings {
   diaryReminder     String? // HH:MM
   breathingReminder String? // HH:MM
   enabled           Boolean @default(true)
+  privacyMode       Boolean @default(false) // Generic notification text (hides health content on lock screen)
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
@@ -562,6 +563,8 @@ model Narrative {
   reasoningEffort       String              // low | medium | high
   promptVersion         String              // e.g. "v2"
   schemaVersion         String              // e.g. "narrative_v2"
+  analyticsVersion      String?             // computeInsights version
+  guardrailVersion      String?             // forbidden patterns version
 
   sourceFingerprint     String              // SHA-256 hash of deterministic input snapshot
   outputJson            Json                // Full NarrativeResultV2
@@ -570,11 +573,13 @@ model Narrative {
   shareWithProfessional Boolean             @default(false)
   bypassLlm             Boolean             @default(false)
   bypassReason          String?
+  llmAttempted          Boolean             @default(false)
 
   guardrailPassed       Boolean             @default(true)
   guardrailViolations   String[]            // Array of violation descriptions
 
   inputTokens           Int?
+  cachedInputTokens     Int?
   outputTokens          Int?
   reasoningTokens       Int?
   latencyMs             Int?

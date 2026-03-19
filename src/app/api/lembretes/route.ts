@@ -11,6 +11,7 @@ const lembreteSchema = z.object({
   diaryReminder: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
   breathingReminder: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
   enabled: z.boolean().optional(),
+  privacyMode: z.boolean().optional(),
 });
 
 export async function GET() {
@@ -79,6 +80,7 @@ export async function PUT(request: NextRequest) {
         diaryReminder: parsed.data.diaryReminder ?? null,
         breathingReminder: parsed.data.breathingReminder ?? null,
         enabled: parsed.data.enabled ?? true,
+        privacyMode: parsed.data.privacyMode ?? false,
       },
       create: {
         userId: session.userId,
@@ -87,6 +89,7 @@ export async function PUT(request: NextRequest) {
         diaryReminder: parsed.data.diaryReminder ?? null,
         breathingReminder: parsed.data.breathingReminder ?? null,
         enabled: parsed.data.enabled ?? true,
+        privacyMode: parsed.data.privacyMode ?? false,
       },
     });
 

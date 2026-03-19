@@ -23,6 +23,27 @@ interface JournalEntry {
   createdAt: string;
 }
 
+interface ReflectionData {
+  periodStart: string;
+  periodEnd: string;
+  stats: {
+    totalEntries: number;
+    diaryCount: number;
+    insightCount: number;
+    daysWithEntries: number;
+    avgMood: number | null;
+    avgSleep: number | null;
+    medicationAdherence: number | null;
+  };
+  moodJourney: {
+    zone: string;
+    label: string;
+    count: number;
+    excerpts: string[];
+  }[];
+  highlights: string[];
+}
+
 interface Props {
   initialEntries: JournalEntry[];
   hasConsent: boolean;
@@ -59,6 +80,8 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
   );
   const [loadingMore, setLoadingMore] = useState(false);
   const [filter, setFilter] = useState<JournalType | "ALL">("ALL");
+  const [reflection, setReflection] = useState<ReflectionData | null>(null);
+  const [loadingReflection, setLoadingReflection] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const maxChars = tab === "DIARY" ? DIARY_MAX : INSIGHT_MAX;
@@ -242,6 +265,22 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
     }
   };
 
+  // ── Load weekly reflection ──────────────────────────────────
+
+  const loadReflection = async () => {
+    if (loadingReflection) return;
+    setLoadingReflection(true);
+    try {
+      const res = await fetch("/api/journal/reflection");
+      if (res.ok) {
+        const data = await res.json();
+        setReflection(data.reflection);
+      }
+    } finally {
+      setLoadingReflection(false);
+    }
+  };
+
   // ── Filtered entries ───────────────────────────────────────
 
   const filteredEntries =
@@ -358,9 +397,9 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
         </div>
       </Card>
 
-      {/* Filter */}
+      {/* Filter + Export */}
       {entries.length > 0 && (
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           {(["ALL", "DIARY", "QUICK_INSIGHT"] as const).map((f) => (
             <button
               key={f}
@@ -374,7 +413,105 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
               {f === "ALL" ? "Todos" : f === "DIARY" ? "Diário" : "Insights"}
             </button>
           ))}
+          <a
+            href="/api/journal/export"
+            download
+            className="ml-auto rounded-full px-3 py-1 text-xs font-medium bg-surface-alt text-muted hover:text-foreground"
+            title="Exportar todas as entradas (JSON)"
+          >
+            Exportar
+          </a>
         </div>
+      )}
+
+      {/* Weekly Reflection */}
+      {entries.length >= 3 && (
+        <Card>
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold">Reflexão da semana</h3>
+            {!reflection && (
+              <button
+                onClick={loadReflection}
+                disabled={loadingReflection}
+                className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted hover:text-foreground disabled:opacity-50"
+              >
+                {loadingReflection ? "Gerando..." : "Ver reflexão"}
+              </button>
+            )}
+            {reflection && (
+              <button
+                onClick={() => setReflection(null)}
+                className="text-xs text-muted hover:text-foreground"
+              >
+                Fechar
+              </button>
+            )}
+          </div>
+
+          {reflection && (
+            <div className="mt-3 space-y-3">
+              {/* Stats */}
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="rounded-lg bg-surface-alt p-2">
+                  <p className="text-lg font-bold text-primary">{reflection.stats.totalEntries}</p>
+                  <p className="text-[10px] text-muted">entradas</p>
+                </div>
+                <div className="rounded-lg bg-surface-alt p-2">
+                  <p className="text-lg font-bold text-primary">{reflection.stats.daysWithEntries}</p>
+                  <p className="text-[10px] text-muted">dias</p>
+                </div>
+                <div className="rounded-lg bg-surface-alt p-2">
+                  <p className="text-lg font-bold text-primary">
+                    {reflection.stats.avgMood ?? "—"}
+                  </p>
+                  <p className="text-[10px] text-muted">humor médio</p>
+                </div>
+              </div>
+
+              {/* Mood journey */}
+              {reflection.moodJourney.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-muted mb-2">
+                    O que você escreveu em cada estado:
+                  </p>
+                  <div className="space-y-2">
+                    {reflection.moodJourney.map((mj) => (
+                      <div key={mj.zone} className="rounded-lg border border-border p-2.5">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs font-medium">{mj.label}</span>
+                          <span className="text-[10px] text-muted">
+                            ({mj.count} {mj.count === 1 ? "entrada" : "entradas"})
+                          </span>
+                        </div>
+                        {mj.excerpts.map((ex, i) => (
+                          <p key={i} className="text-xs text-muted italic pl-2 border-l-2 border-primary/20 mt-1">
+                            &ldquo;{ex}&rdquo;
+                          </p>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Highlights */}
+              {reflection.highlights.length > 0 && (
+                <div className="rounded-lg bg-primary/5 p-3">
+                  <p className="text-xs font-medium text-primary mb-1">Destaques</p>
+                  <ul className="space-y-1">
+                    {reflection.highlights.map((h, i) => (
+                      <li key={i} className="text-xs text-foreground">{h}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              <p className="text-[10px] text-muted italic text-center">
+                Período: {formatPeriod(reflection.periodStart)} a {formatPeriod(reflection.periodEnd)}
+              </p>
+            </div>
+          )}
+        </Card>
       )}
 
       {/* Entries list */}
@@ -530,6 +667,18 @@ function MoodBadge({
 }
 
 // ── Date formatter ───────────────────────────────────────────
+
+function formatPeriod(dateStr: string): string {
+  try {
+    return new Date(dateStr + "T12:00:00Z").toLocaleDateString("pt-BR", {
+      day: "numeric",
+      month: "short",
+      timeZone: "UTC",
+    });
+  } catch {
+    return dateStr;
+  }
+}
 
 function formatDate(dateLocal: string, createdAt: string): string {
   const now = new Date();

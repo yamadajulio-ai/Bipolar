@@ -37,6 +37,14 @@ const reminderMessages: Record<string, PushPayload> = {
   },
 };
 
+// Privacy mode: generic text that hides health content on lock screens
+const PRIVACY_PAYLOAD: PushPayload = {
+  title: "Suporte Bipolar",
+  body: "Você tem um lembrete pendente.",
+  tag: "reminder",
+  url: "/",
+};
+
 export const maxDuration = 30;
 
 export async function GET(request: NextRequest) {
@@ -99,6 +107,7 @@ export async function GET(request: NextRequest) {
         sleepReminder: true,
         diaryReminder: true,
         breathingReminder: true,
+        privacyMode: true,
       },
     });
 
@@ -156,13 +165,14 @@ export async function GET(request: NextRequest) {
         const isFirst = await checkRateLimit(dedupeKey, 1, 5 * 60_000);
         if (!isFirst) continue;
 
+        const effectivePayload = settings.privacyMode ? { ...PRIVACY_PAYLOAD, url: payload.url } : payload;
         for (const sub of userSubs) {
           tasks.push({
             subId: sub.id,
             endpoint: sub.endpoint,
             p256dh: sub.p256dh,
             auth: sub.auth,
-            payload,
+            payload: effectivePayload,
           });
         }
       }

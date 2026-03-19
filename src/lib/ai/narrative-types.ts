@@ -142,12 +142,17 @@ export interface NarrativePersistenceData {
   reasoningEffort: string;
   promptVersion: string;
   schemaVersion: string;
+  analyticsVersion: string | null;
+  guardrailVersion: string | null;
   sourceFingerprint: string;
   bypassLlm: boolean;
   bypassReason: string | null;
+  /** Whether data was actually sent to OpenAI (true even if result was fallback) */
+  llmAttempted: boolean;
   guardrailPassed: boolean;
   guardrailViolations: string[];
   inputTokens: number | null;
+  cachedInputTokens: number | null;
   outputTokens: number | null;
   reasoningTokens: number | null;
   latencyMs: number | null;

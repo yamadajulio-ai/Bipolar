@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/security";
 import { computeInsights, type PlannerBlockInput } from "@/lib/insights/computeInsights";
-import { generateNarrative, computeSourceFingerprint, prepareNarrativeInput, PROMPT_VERSION, SCHEMA_VERSION } from "@/lib/ai/generateNarrative";
+import { generateNarrative, computeSourceFingerprint, prepareNarrativeInput, PROMPT_VERSION, SCHEMA_VERSION, ANALYTICS_VERSION, GUARDRAIL_VERSION } from "@/lib/ai/generateNarrative";
 import type { NarrativeExtraData, AssessmentSnapshot, LifeEventSnapshot, CognitiveSnapshot } from "@/lib/ai/narrative-types";
 
 const TZ = "America/Sao_Paulo";
@@ -157,10 +157,20 @@ export async function POST(_request: NextRequest) {
     }
 
     // Check OPENAI_API_KEY only when LLM path is needed
-    if (!process.env.OPENAI_API_KEY) {
-      const risk = insights.risk;
-      if (risk?.level !== "atencao_alta" && sleepLogs30.length >= 7) {
-        return NextResponse.json({ error: "AI não configurada" }, { status: 503 });
+    const willCallLlm = insights.risk?.level !== "atencao_alta" && sleepLogs30.length >= 7;
+    if (!process.env.OPENAI_API_KEY && willCallLlm) {
+      return NextResponse.json({ error: "AI não configurada" }, { status: 503 });
+    }
+
+    // Enforce consent BEFORE sending data to OpenAI (not after).
+    // For deterministic templates (high-risk, insufficient data), no consent needed.
+    if (willCallLlm) {
+      const existingConsent = await prisma.consent.findFirst({
+        where: { userId, scope: "ai_narrative", revokedAt: null },
+        select: { id: true },
+      });
+      if (!existingConsent) {
+        await prisma.consent.create({ data: { userId, scope: "ai_narrative" } });
       }
     }
 
@@ -171,17 +181,6 @@ export async function POST(_request: NextRequest) {
 
     // Generate narrative V2
     const { narrative, persistence } = await generateNarrative(insights, extraData, now, TZ);
-
-    // Record AI consent only when LLM was actually used (not for deterministic templates)
-    if (narrative.source === "llm") {
-      const existingConsent = await prisma.consent.findFirst({
-        where: { userId, scope: "ai_narrative", revokedAt: null },
-        select: { id: true },
-      });
-      if (!existingConsent) {
-        await prisma.consent.create({ data: { userId, scope: "ai_narrative" } });
-      }
-    }
 
     // Persist narrative to DB
     const periodStart = spDate(d30);
@@ -198,14 +197,18 @@ export async function POST(_request: NextRequest) {
         reasoningEffort: persistence.reasoningEffort,
         promptVersion: persistence.promptVersion,
         schemaVersion: persistence.schemaVersion,
+        analyticsVersion: persistence.analyticsVersion,
+        guardrailVersion: persistence.guardrailVersion,
         sourceFingerprint: persistence.sourceFingerprint,
         outputJson: JSON.parse(JSON.stringify(narrative)),
         shareWithProfessional: narrative.actions.shareWithProfessional,
         bypassLlm: persistence.bypassLlm,
         bypassReason: persistence.bypassReason,
+        llmAttempted: persistence.llmAttempted,
         guardrailPassed: persistence.guardrailPassed,
         guardrailViolations: persistence.guardrailViolations,
         inputTokens: persistence.inputTokens,
+        cachedInputTokens: persistence.cachedInputTokens,
         outputTokens: persistence.outputTokens,
         reasoningTokens: persistence.reasoningTokens,
         latencyMs: persistence.latencyMs,

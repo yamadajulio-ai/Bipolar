@@ -17,6 +17,8 @@ export type { NarrativeResultV2, NarrativeGenerationResult, NarrativePersistence
 
 export const PROMPT_VERSION = "v2";
 export const SCHEMA_VERSION = "narrative_v2";
+export const ANALYTICS_VERSION = "insights_v1";
+export const GUARDRAIL_VERSION = "forbidden_v1";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -397,7 +399,9 @@ export function prepareNarrativeInput(insights: InsightsResult, extra: Narrative
 // ── Source fingerprint ─────────────────────────────────────────
 
 export function computeSourceFingerprint(input: NarrativeInputV2): string {
-  return createHash("sha256").update(JSON.stringify(input)).digest("hex").slice(0, 32);
+  // Include prompt + schema version so cache invalidates when generation logic changes
+  const payload = { v: `${PROMPT_VERSION}:${SCHEMA_VERSION}`, input };
+  return createHash("sha256").update(JSON.stringify(payload)).digest("hex").slice(0, 32);
 }
 
 // ── Deterministic templates ────────────────────────────────────
@@ -477,9 +481,11 @@ export async function generateNarrative(
 
   const basePersistence: NarrativePersistenceData = {
     model, reasoningEffort, promptVersion: PROMPT_VERSION, schemaVersion: SCHEMA_VERSION,
+    analyticsVersion: ANALYTICS_VERSION, guardrailVersion: GUARDRAIL_VERSION,
     sourceFingerprint, bypassLlm: false, bypassReason: null,
+    llmAttempted: false,
     guardrailPassed: true, guardrailViolations: [],
-    inputTokens: null, outputTokens: null, reasoningTokens: null, latencyMs: null,
+    inputTokens: null, cachedInputTokens: null, outputTokens: null, reasoningTokens: null, latencyMs: null,
   };
 
   if (input.riskLevel === "high") {
@@ -501,6 +507,9 @@ export async function generateNarrative(
   const userPrompt = `Verbalize as seguintes evidências estruturadas por domínio em uma narrativa para o paciente. Use APENAS as evidências listadas — não interprete, não infira, apenas descreva de forma acolhedora:\n\n${JSON.stringify(input, null, 2)}`;
   const startMs = Date.now();
 
+  // Mark llmAttempted BEFORE the call — even if it fails, data was sent to OpenAI
+  basePersistence.llmAttempted = true;
+
   try {
     const supportsReasoning = model.startsWith("gpt-5") || model.startsWith("o");
     const response = await getOpenAI().responses.create({
@@ -515,6 +524,8 @@ export async function generateNarrative(
     const latencyMs = Date.now() - startMs;
     const usage = response.usage;
     basePersistence.inputTokens = usage?.input_tokens ?? null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    basePersistence.cachedInputTokens = (usage as any)?.input_tokens_details?.cached_tokens ?? null;
     basePersistence.outputTokens = usage?.output_tokens ?? null;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     basePersistence.reasoningTokens = (usage as any)?.reasoning_tokens ?? null;

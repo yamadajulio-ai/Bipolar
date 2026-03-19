@@ -11,6 +11,7 @@ interface Settings {
   diaryReminder: string | null;
   breathingReminder: string | null;
   enabled: boolean;
+  privacyMode: boolean;
 }
 
 const reminderFields = [
@@ -52,6 +53,7 @@ export default function LembretesPage() {
     const formData = new FormData(e.currentTarget);
     const data: Record<string, string | boolean | null> = {
       enabled: formData.get("enabled") === "on",
+      privacyMode: formData.get("privacyMode") === "on",
     };
 
     for (const field of reminderFields) {
@@ -110,7 +112,7 @@ export default function LembretesPage() {
 
       <Card>
         <form onSubmit={handleSubmit}>
-          <div className="mb-4">
+          <div className="mb-4 space-y-3">
             <label className="flex items-center gap-2 text-sm font-medium text-foreground">
               <input
                 type="checkbox"
@@ -120,6 +122,18 @@ export default function LembretesPage() {
               />
               Lembretes ativados
             </label>
+            <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+              <input
+                type="checkbox"
+                name="privacyMode"
+                defaultChecked={settings?.privacyMode ?? false}
+                className="h-4 w-4 rounded border-border"
+              />
+              Modo privado
+            </label>
+            <p className="ml-6 text-xs text-muted">
+              Exibe notificações genéricas sem mencionar saúde mental, para proteger sua privacidade na tela de bloqueio.
+            </p>
           </div>
 
           {reminderFields.map((field) => (

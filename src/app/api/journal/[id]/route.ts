@@ -40,10 +40,10 @@ export async function PATCH(
       return NextResponse.json({ error: "Dados inválidos" }, { status: 400 });
     }
 
-    // Verify ownership
+    // Verify ownership + get current content for diff check
     const existing = await prisma.journalEntry.findUnique({
       where: { id },
-      select: { userId: true, type: true },
+      select: { userId: true, type: true, content: true, aiUseAllowed: true },
     });
 
     if (!existing || existing.userId !== session.userId) {
@@ -62,11 +62,20 @@ export async function PATCH(
       );
     }
 
+    // Only set editedAt when content actually changed (avoid noise)
+    const contentChanged = parsed.data.content !== undefined && parsed.data.content !== existing.content;
+    const aiChanged = parsed.data.aiUseAllowed !== undefined && parsed.data.aiUseAllowed !== existing.aiUseAllowed;
+    const hasRealChange = contentChanged || aiChanged;
+
+    if (!hasRealChange) {
+      return NextResponse.json({ id, noChange: true });
+    }
+
     const updated = await prisma.journalEntry.update({
       where: { id },
       data: {
         ...parsed.data,
-        editedAt: new Date(),
+        ...(contentChanged ? { editedAt: new Date() } : {}),
       },
       select: {
         id: true,

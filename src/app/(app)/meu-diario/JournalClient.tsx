@@ -32,11 +32,11 @@ interface Props {
 // ── Zone config ──────────────────────────────────────────────
 
 const ZONE_LABELS: Record<string, { label: string; color: string; bg: string }> = {
-  depressao: { label: "Depressão", color: "text-blue-800", bg: "bg-blue-100" },
+  depressao: { label: "Humor muito baixo", color: "text-blue-800", bg: "bg-blue-100" },
   depressao_leve: { label: "Humor baixo", color: "text-blue-700", bg: "bg-blue-50" },
-  eutimia: { label: "Estável", color: "text-emerald-800", bg: "bg-emerald-100" },
-  hipomania: { label: "Elevado", color: "text-amber-800", bg: "bg-amber-100" },
-  mania: { label: "Mania", color: "text-red-800", bg: "bg-red-100" },
+  eutimia: { label: "Humor estável", color: "text-emerald-800", bg: "bg-emerald-100" },
+  hipomania: { label: "Humor elevado", color: "text-amber-800", bg: "bg-amber-100" },
+  mania: { label: "Humor muito elevado", color: "text-red-800", bg: "bg-red-100" },
 };
 
 const DIARY_MAX = 5000;
@@ -98,6 +98,10 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
             <li>O uso por inteligência artificial é opcional e controlado por você</li>
             <li>Ao excluir sua conta, todas as entradas são permanentemente apagadas</li>
           </ul>
+          <p className="text-xs">
+            Este diário é uma ferramenta de auto-observação, não um canal de emergência.
+            Em caso de crise, ligue CVV 188 ou SAMU 192.
+          </p>
           <p className="text-xs">
             Ao continuar, você consente com o armazenamento dos seus textos conforme
             a LGPD Art. 11, I. Você pode revogar este consentimento a qualquer momento
@@ -247,36 +251,45 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
 
   return (
     <div className="space-y-6">
-      {/* SOS Banner */}
+      {/* SOS Banner — supportive, never accusatory */}
       {showSOS && (
         <Card className="border-red-300 bg-red-50">
-          <div className="space-y-2">
+          <div className="space-y-3">
             <p className="font-semibold text-red-900">
-              Notamos que você pode estar passando por um momento difícil.
+              Você não está sozinho.
             </p>
             <p className="text-sm text-red-800">
-              Sua entrada foi salva normalmente. Se precisar de ajuda, estamos aqui:
+              Sua entrada foi salva. Se estiver precisando de apoio agora, há pessoas prontas para ouvir você:
             </p>
-            <div className="flex flex-wrap gap-2 mt-2">
+            <div className="flex flex-wrap gap-2">
               <a
                 href="tel:188"
                 className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white"
               >
-                Ligar CVV 188
+                CVV 188 (24h)
+              </a>
+              <a
+                href="tel:192"
+                className="rounded-lg bg-red-700 px-4 py-2 text-sm font-medium text-white"
+              >
+                SAMU 192
               </a>
               <a
                 href="/sos"
                 className="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-800"
               >
-                Abrir SOS
+                Meu plano SOS
               </a>
-              <button
-                onClick={() => setShowSOS(false)}
-                className="rounded-lg border border-red-200 px-4 py-2 text-sm text-red-600"
-              >
-                Estou bem, obrigado
-              </button>
             </div>
+            <button
+              onClick={() => setShowSOS(false)}
+              className="text-xs text-red-500 hover:text-red-700 mt-1"
+            >
+              Fechar esta mensagem
+            </button>
+            <p className="text-[10px] text-red-600/70 italic">
+              Esta é uma sugestão automática — não substitui avaliação profissional.
+            </p>
           </div>
         </Card>
       )}
@@ -395,14 +408,18 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
                   )}
                 </div>
 
-                {/* Mood badge */}
-                {entry.zoneAtCapture && entry.snapshotSource === "RECENT_CHECKIN" && (
+                {/* Mood badge — shows mood state at time of writing */}
+                {entry.snapshotSource === "RECENT_CHECKIN" && entry.zoneAtCapture ? (
                   <MoodBadge
                     zone={entry.zoneAtCapture}
                     maniaScore={entry.maniaScore}
                     depressionScore={entry.depressionScore}
                     mixed={entry.mixedAtCapture}
                   />
+                ) : (
+                  <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] text-gray-500">
+                    Sem registro de humor
+                  </span>
                 )}
               </div>
 
@@ -495,8 +512,11 @@ function MoodBadge({
   return (
     <div className="flex items-center gap-1.5">
       {mixed && (
-        <span className="rounded-full bg-purple-100 px-1.5 py-0.5 text-[10px] font-medium text-purple-800">
-          Misto
+        <span
+          className="rounded-full bg-purple-100 px-1.5 py-0.5 text-[10px] font-medium text-purple-800"
+          title="Sinais de mania e depressão ao mesmo tempo"
+        >
+          Sinais mistos
         </span>
       )}
       <span

@@ -33,35 +33,50 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const body = await request.json().catch(() => null);
+  if (!body) {
+    return NextResponse.json({ error: "Dados inválidos" }, { status: 400 });
+  }
+
+  const parsed = createSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Dados inválidos" }, { status: 400 });
+  }
+
+  const { type, content, aiUseAllowed, idempotencyKey } = parsed.data;
+
+  // Enforce consent — server-side gate (cannot be bypassed by skipping UI)
+  const consent = await prisma.consent.findFirst({
+    where: { userId: session.userId, scope: "journal_data", revokedAt: null },
+    select: { id: true },
+  });
+  if (!consent) {
+    return NextResponse.json(
+      { error: "Consentimento do diário não concedido. Acesse /meu-diario para autorizar." },
+      { status: 403 },
+    );
+  }
+
+  // Enforce type-specific limits
+  if (type === "QUICK_INSIGHT" && content.length > 280) {
+    return NextResponse.json(
+      { error: "Insight rápido deve ter no máximo 280 caracteres." },
+      { status: 400 },
+    );
+  }
+
+  // Idempotency check (pre-check; race condition handled in catch)
+  if (idempotencyKey) {
+    const existing = await prisma.journalEntry.findUnique({
+      where: { idempotencyKey },
+      select: { id: true },
+    });
+    if (existing) {
+      return NextResponse.json({ id: existing.id, deduplicated: true });
+    }
+  }
+
   try {
-    const body = await request.json();
-    const parsed = createSchema.safeParse(body);
-
-    if (!parsed.success) {
-      return NextResponse.json({ error: "Dados inválidos" }, { status: 400 });
-    }
-
-    const { type, content, aiUseAllowed, idempotencyKey } = parsed.data;
-
-    // Enforce type-specific limits
-    if (type === "QUICK_INSIGHT" && content.length > 280) {
-      return NextResponse.json(
-        { error: "Insight rápido deve ter no máximo 280 caracteres." },
-        { status: 400 },
-      );
-    }
-
-    // Idempotency check
-    if (idempotencyKey) {
-      const existing = await prisma.journalEntry.findUnique({
-        where: { idempotencyKey },
-        select: { id: true },
-      });
-      if (existing) {
-        return NextResponse.json({ id: existing.id, deduplicated: true });
-      }
-    }
-
     // Capture mood snapshot (only if recent check-in exists)
     const snapshot = await captureMoodSnapshot(session.userId);
 
@@ -99,6 +114,22 @@ export async function POST(request: NextRequest) {
       crisisDetected: crisis.detected,
     });
   } catch (err) {
+    // Handle idempotency race condition: two concurrent requests with same key
+    // Prisma P2002 = unique constraint violation
+    if (
+      idempotencyKey &&
+      err instanceof Error &&
+      "code" in err &&
+      (err as { code: string }).code === "P2002"
+    ) {
+      const existing = await prisma.journalEntry.findUnique({
+        where: { idempotencyKey },
+        select: { id: true },
+      });
+      if (existing) {
+        return NextResponse.json({ id: existing.id, deduplicated: true });
+      }
+    }
     // Do NOT log content (sensitive data)
     Sentry.captureException(err, { tags: { endpoint: "journal-create" } });
     console.error("Journal create error:", (err as Error).message);
@@ -138,7 +169,7 @@ export async function GET(request: NextRequest) {
 
   const entries = await prisma.journalEntry.findMany({
     where,
-    orderBy: { createdAt: "desc" },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }], // stable cursor pagination
     take: limit + 1, // extra for cursor
     ...(cursor
       ? {

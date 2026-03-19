@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod/v4";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/security";
+import * as Sentry from "@sentry/nextjs";
 
 const rulesSchema = z.object({
   lateEventCutoffMin: z.number().int().min(0).max(1440).optional(),
@@ -19,23 +21,38 @@ export async function GET() {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
-  let rules = await prisma.stabilityRule.findUnique({
-    where: { userId: session.userId },
-  });
-
-  if (!rules) {
-    rules = await prisma.stabilityRule.create({
-      data: { userId: session.userId },
-    });
+  const allowed = await checkRateLimit(`planner_rules_read:${session.userId}`, 60, 60_000);
+  if (!allowed) {
+    return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
   }
 
-  return NextResponse.json(rules);
+  try {
+    let rules = await prisma.stabilityRule.findUnique({
+      where: { userId: session.userId },
+    });
+
+    if (!rules) {
+      rules = await prisma.stabilityRule.create({
+        data: { userId: session.userId },
+      });
+    }
+
+    return NextResponse.json(rules);
+  } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "planner_rules" } });
+    return NextResponse.json({ error: "Erro interno" }, { status: 500 });
+  }
 }
 
 export async function PUT(request: NextRequest) {
   const session = await getSession();
   if (!session.isLoggedIn) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  }
+
+  const allowed = await checkRateLimit(`planner_rules_write:${session.userId}`, 30, 60_000);
+  if (!allowed) {
+    return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
   }
 
   try {
@@ -70,7 +87,8 @@ export async function PUT(request: NextRequest) {
     });
 
     return NextResponse.json(rules);
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "planner_rules" } });
     return NextResponse.json(
       { error: "Erro ao salvar regras." },
       { status: 500 },

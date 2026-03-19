@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/security";
+import * as Sentry from "@sentry/nextjs";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
   if (!session.isLoggedIn) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  }
+
+  const limited = await checkRateLimit(`relatorio_read:${session.userId}`, 60, 60_000);
+  if (limited) {
+    return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
   }
 
   const { searchParams } = new URL(request.url);
@@ -55,7 +62,8 @@ export async function GET(request: NextRequest) {
       orderBy: { date: "asc" },
     }),
   ]);
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "relatorio" } });
     return NextResponse.json({ error: "Erro ao buscar dados" }, { status: 500 });
   }
 

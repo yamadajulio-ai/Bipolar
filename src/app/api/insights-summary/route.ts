@@ -2,40 +2,58 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { computeInsights, formatSleepDuration } from "@/lib/insights/computeInsights";
+import { checkRateLimit } from "@/lib/security";
+import * as Sentry from "@sentry/nextjs";
 
 const TZ = "America/Sao_Paulo";
 
 export async function GET() {
   const session = await getSession();
-  const now = new Date();
+  if (!session.isLoggedIn) {
+    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  }
 
-  const cutoff30 = new Date(now);
-  cutoff30.setDate(cutoff30.getDate() - 30);
-  const cutoff30Str = cutoff30.toLocaleDateString("sv-SE", { timeZone: TZ });
+  if (!(await checkRateLimit(`insights_summary_read:${session.userId}`, 60, 60_000))) {
+    return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
+  }
 
-  const sleepLogs = await prisma.sleepLog.findMany({
-    where: { userId: session.userId, date: { gte: cutoff30Str }, totalHours: { gte: 1 } },
-    orderBy: { date: "asc" },
-  });
+  try {
+    const now = new Date();
 
-  const entries = await prisma.diaryEntry.findMany({
-    where: { userId: session.userId, date: { gte: cutoff30Str } },
-    orderBy: { date: "asc" },
-  });
+    const cutoff30 = new Date(now);
+    cutoff30.setDate(cutoff30.getDate() - 30);
+    const cutoff30Str = cutoff30.toLocaleDateString("sv-SE", { timeZone: TZ });
 
-  const rhythms = await prisma.dailyRhythm.findMany({
-    where: { userId: session.userId, date: { gte: cutoff30Str } },
-    orderBy: { date: "asc" },
-  });
+    const sleepLogs = await prisma.sleepLog.findMany({
+      where: { userId: session.userId, date: { gte: cutoff30Str }, totalHours: { gte: 1 } },
+      orderBy: { date: "asc" },
+    });
 
-  const insights = computeInsights(sleepLogs, entries, rhythms, [], now, TZ);
+    const entries = await prisma.diaryEntry.findMany({
+      where: { userId: session.userId, date: { gte: cutoff30Str } },
+      orderBy: { date: "asc" },
+    });
 
-  return NextResponse.json({
-    midpoint: insights.sleep.midpoint,
-    avgDuration: insights.sleep.avgDuration,
-    bedtimeVariance: insights.sleep.bedtimeVariance,
-    avgDurationFormatted: insights.sleep.avgDuration !== null
-      ? formatSleepDuration(insights.sleep.avgDuration)
-      : null,
-  });
+    const rhythms = await prisma.dailyRhythm.findMany({
+      where: { userId: session.userId, date: { gte: cutoff30Str } },
+      orderBy: { date: "asc" },
+    });
+
+    const insights = computeInsights(sleepLogs, entries, rhythms, [], now, TZ);
+
+    return NextResponse.json({
+      midpoint: insights.sleep.midpoint,
+      avgDuration: insights.sleep.avgDuration,
+      bedtimeVariance: insights.sleep.bedtimeVariance,
+      avgDurationFormatted: insights.sleep.avgDuration !== null
+        ? formatSleepDuration(insights.sleep.avgDuration)
+        : null,
+    });
+  } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "insights_summary" } });
+    return NextResponse.json(
+      { error: "Erro ao calcular resumo de insights." },
+      { status: 500 },
+    );
+  }
 }

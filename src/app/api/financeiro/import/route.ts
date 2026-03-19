@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/security";
+import * as Sentry from "@sentry/nextjs";
 import { parseMobillsCsv } from "@/lib/financeiro/parseMobillsCsv";
 import { parseMobillsXlsx } from "@/lib/financeiro/parseMobillsXlsx";
 
@@ -10,6 +12,11 @@ export async function POST(request: NextRequest) {
   const session = await getSession();
   if (!session.isLoggedIn) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  }
+
+  const allowed = await checkRateLimit(`financeiro_import_write:${session.userId}`, 30, 60_000);
+  if (!allowed) {
+    return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
   }
 
   try {
@@ -85,7 +92,8 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ imported, skipped, total: transactions.length });
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "financeiro_import" } });
     return NextResponse.json(
       { error: "Erro ao importar arquivo." },
       { status: 500 },

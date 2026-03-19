@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod/v4";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/security";
+import * as Sentry from "@sentry/nextjs";
 
 const lembreteSchema = z.object({
   wakeReminder: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
@@ -17,26 +19,42 @@ export async function GET() {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
-  let settings = await prisma.reminderSettings.findUnique({
-    where: { userId: session.userId },
-  });
-
-  if (!settings) {
-    settings = await prisma.reminderSettings.create({
-      data: {
-        userId: session.userId,
-        enabled: true,
-      },
-    });
+  if (!(await checkRateLimit(`lembretes_read:${session.userId}`, 60, 60_000))) {
+    return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
   }
 
-  return NextResponse.json(settings);
+  try {
+    let settings = await prisma.reminderSettings.findUnique({
+      where: { userId: session.userId },
+    });
+
+    if (!settings) {
+      settings = await prisma.reminderSettings.create({
+        data: {
+          userId: session.userId,
+          enabled: true,
+        },
+      });
+    }
+
+    return NextResponse.json(settings);
+  } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "lembretes" } });
+    return NextResponse.json(
+      { error: "Erro ao buscar configurações." },
+      { status: 500 },
+    );
+  }
 }
 
 export async function PUT(request: NextRequest) {
   const session = await getSession();
   if (!session.isLoggedIn) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  }
+
+  if (!(await checkRateLimit(`lembretes_write:${session.userId}`, 30, 60_000))) {
+    return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
   }
 
   try {
@@ -73,7 +91,8 @@ export async function PUT(request: NextRequest) {
     });
 
     return NextResponse.json(settings);
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "lembretes" } });
     return NextResponse.json(
       { error: "Erro ao salvar configurações." },
       { status: 500 },

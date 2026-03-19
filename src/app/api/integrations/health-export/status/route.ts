@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { checkRateLimit } from "@/lib/security";
+import * as Sentry from "@sentry/nextjs";
 
 /**
  * GET — Show imported sleep records, health metrics, and integration status.
@@ -8,7 +10,16 @@ import { prisma } from "@/lib/db";
  */
 export async function GET() {
   const session = await getSession();
+  if (!session?.userId) {
+    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  }
 
+  const limited = await checkRateLimit(`hae_status_read:${session.userId}`, 60, 60_000);
+  if (limited) {
+    return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
+  }
+
+  try {
   const integration = await prisma.integrationKey.findFirst({
     where: { userId: session.userId, service: "health_auto_export" },
   });
@@ -50,6 +61,10 @@ export async function GET() {
       unit: m.unit,
     })),
   });
+  } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "hae_status" } });
+    return NextResponse.json({ error: "Erro ao buscar status" }, { status: 500 });
+  }
 }
 
 /**
@@ -57,7 +72,16 @@ export async function GET() {
  */
 export async function DELETE() {
   const session = await getSession();
+  if (!session?.userId) {
+    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  }
 
+  const limitedDel = await checkRateLimit(`hae_status_write:${session.userId}`, 30, 60_000);
+  if (limitedDel) {
+    return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
+  }
+
+  try {
   const deletedSleep = await prisma.sleepLog.deleteMany({
     where: { userId: session.userId },
   });
@@ -69,4 +93,8 @@ export async function DELETE() {
     deleted: deletedSleep.count,
     deletedMetrics: deletedMetrics.count,
   });
+  } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "hae_status" } });
+    return NextResponse.json({ error: "Erro ao limpar dados" }, { status: 500 });
+  }
 }

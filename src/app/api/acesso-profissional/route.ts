@@ -3,6 +3,8 @@ import { z } from "zod/v4";
 import { randomBytes, randomInt } from "crypto";
 import { prisma } from "@/lib/db";
 import { getSession, hashPin } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/security";
+import * as Sentry from "@sentry/nextjs";
 
 const createSchema = z.object({
   label: z.string().max(100).optional(),
@@ -25,6 +27,12 @@ export async function GET() {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
+  const limited = await checkRateLimit(`acesso_prof_read:${session.userId}`, 60, 60_000);
+  if (limited) {
+    return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
+  }
+
+  try {
   const accesses = await prisma.professionalAccess.findMany({
     where: { userId: session.userId, revokedAt: null },
     select: {
@@ -45,6 +53,10 @@ export async function GET() {
   });
 
   return NextResponse.json(accesses);
+  } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "acesso_prof" } });
+    return NextResponse.json({ error: "Erro ao buscar acessos" }, { status: 500 });
+  }
 }
 
 // POST: Create a new access link
@@ -52,6 +64,11 @@ export async function POST(request: NextRequest) {
   const session = await getSession();
   if (!session.isLoggedIn) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  }
+
+  const limitedPost = await checkRateLimit(`acesso_prof_write:${session.userId}`, 30, 60_000);
+  if (limitedPost) {
+    return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
   }
 
   try {
@@ -97,7 +114,8 @@ export async function POST(request: NextRequest) {
       label: access.label,
       expiresAt: access.expiresAt,
     });
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "acesso_prof" } });
     return NextResponse.json({ error: "Erro ao criar acesso" }, { status: 500 });
   }
 }
@@ -109,6 +127,12 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
+  const limitedDel = await checkRateLimit(`acesso_prof_write:${session.userId}`, 30, 60_000);
+  if (limitedDel) {
+    return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
+  }
+
+  try {
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");
   if (!id) {
@@ -128,4 +152,8 @@ export async function DELETE(request: NextRequest) {
   });
 
   return NextResponse.json({ ok: true });
+  } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "acesso_prof" } });
+    return NextResponse.json({ error: "Erro ao revogar acesso" }, { status: 500 });
+  }
 }

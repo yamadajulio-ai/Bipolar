@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/security";
+import * as Sentry from "@sentry/nextjs";
 
 export async function GET(
   _request: NextRequest,
@@ -11,15 +13,25 @@ export async function GET(
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
-  const { id } = await params;
-  const block = await prisma.plannerBlock.findUnique({
-    where: { id },
-    include: { recurrence: true, exceptions: true },
-  });
-
-  if (!block || block.userId !== session.userId) {
-    return NextResponse.json({ error: "Bloco não encontrado" }, { status: 404 });
+  const allowed = await checkRateLimit(`planner_block_read:${session.userId}`, 60, 60_000);
+  if (!allowed) {
+    return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
   }
 
-  return NextResponse.json(block);
+  const { id } = await params;
+  try {
+    const block = await prisma.plannerBlock.findUnique({
+      where: { id },
+      include: { recurrence: true, exceptions: true },
+    });
+
+    if (!block || block.userId !== session.userId) {
+      return NextResponse.json({ error: "Bloco não encontrado" }, { status: 404 });
+    }
+
+    return NextResponse.json(block);
+  } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "planner_block" } });
+    return NextResponse.json({ error: "Erro interno" }, { status: 500 });
+  }
 }

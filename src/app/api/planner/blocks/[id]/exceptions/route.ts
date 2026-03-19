@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod/v4";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/security";
+import * as Sentry from "@sentry/nextjs";
 import { localDateStr, startOfDay, endOfDay } from "@/lib/dateUtils";
 
 const exceptionUpsertSchema = z.object({
@@ -20,6 +22,11 @@ export async function POST(
   const session = await getSession();
   if (!session.isLoggedIn) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  }
+
+  const allowed = await checkRateLimit(`planner_exception_write:${session.userId}`, 30, 60_000);
+  if (!allowed) {
+    return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
   }
 
   const { id } = await params;
@@ -139,7 +146,8 @@ export async function POST(
     }
 
     return NextResponse.json(exception, { status: 201 });
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "planner_exception" } });
     return NextResponse.json(
       { error: "Erro ao salvar exceção." },
       { status: 500 },

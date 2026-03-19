@@ -3,6 +3,8 @@ import { z } from "zod/v4";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { generateApiKey } from "@/lib/integrations/healthExport";
+import { checkRateLimit } from "@/lib/security";
+import * as Sentry from "@sentry/nextjs";
 
 const VALID_SERVICES = ["health_auto_export", "health_connect"] as const;
 
@@ -21,18 +23,33 @@ export async function GET() {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
-  const keys = await prisma.integrationKey.findMany({
-    where: { userId: session.userId },
-    select: { id: true, service: true, apiKey: true, enabled: true, createdAt: true },
-  });
+  const limited = await checkRateLimit(`integ_settings_read:${session.userId}`, 60, 60_000);
+  if (limited) {
+    return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
+  }
 
-  return NextResponse.json(keys);
+  try {
+    const keys = await prisma.integrationKey.findMany({
+      where: { userId: session.userId },
+      select: { id: true, service: true, apiKey: true, enabled: true, createdAt: true },
+    });
+
+    return NextResponse.json(keys);
+  } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "integ_settings" } });
+    return NextResponse.json({ error: "Erro ao buscar integrações" }, { status: 500 });
+  }
 }
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
   if (!session.isLoggedIn) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  }
+
+  const limited = await checkRateLimit(`integ_settings_write:${session.userId}`, 30, 60_000);
+  if (limited) {
+    return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
   }
 
   try {
@@ -65,7 +82,8 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json(key, { status: 201 });
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "integ_settings" } });
     return NextResponse.json(
       { error: "Erro ao gerar chave de integracao." },
       { status: 500 },
@@ -77,6 +95,11 @@ export async function PATCH(request: NextRequest) {
   const session = await getSession();
   if (!session.isLoggedIn) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  }
+
+  const limitedPatch = await checkRateLimit(`integ_settings_write:${session.userId}`, 30, 60_000);
+  if (limitedPatch) {
+    return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
   }
 
   try {
@@ -109,7 +132,8 @@ export async function PATCH(request: NextRequest) {
     });
 
     return NextResponse.json(updated);
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "integ_settings" } });
     return NextResponse.json(
       { error: "Erro ao atualizar integracao." },
       { status: 500 },
@@ -121,6 +145,11 @@ export async function DELETE(request: NextRequest) {
   const session = await getSession();
   if (!session.isLoggedIn) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  }
+
+  const limitedDel = await checkRateLimit(`integ_settings_write:${session.userId}`, 30, 60_000);
+  if (limitedDel) {
+    return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
   }
 
   try {
@@ -142,7 +171,8 @@ export async function DELETE(request: NextRequest) {
     });
 
     return NextResponse.json({ ok: true });
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "integ_settings" } });
     return NextResponse.json(
       { error: "Erro ao remover integracao." },
       { status: 500 },

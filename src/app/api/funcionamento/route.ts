@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod/v4";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/security";
+import * as Sentry from "@sentry/nextjs";
 
 const functioningSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data deve ser YYYY-MM-DD"),
@@ -19,16 +21,29 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
-  const { searchParams } = new URL(request.url);
-  const limit = Math.min(parseInt(searchParams.get("limit") || "12", 10), 52);
+  const allowed = await checkRateLimit(`funcionamento_read:${session.userId}`, 60, 60_000);
+  if (!allowed) {
+    return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
+  }
 
-  const assessments = await prisma.functioningAssessment.findMany({
-    where: { userId: session.userId },
-    orderBy: { date: "desc" },
-    take: limit,
-  });
+  try {
+    const { searchParams } = new URL(request.url);
+    const limit = Math.min(parseInt(searchParams.get("limit") || "12", 10), 52);
 
-  return NextResponse.json(assessments);
+    const assessments = await prisma.functioningAssessment.findMany({
+      where: { userId: session.userId },
+      orderBy: { date: "desc" },
+      take: limit,
+    });
+
+    return NextResponse.json(assessments);
+  } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "funcionamento" } });
+    return NextResponse.json(
+      { error: "Erro ao buscar avaliações de funcionamento." },
+      { status: 500 },
+    );
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -37,47 +52,60 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
-  const body = await request.json();
-  const parsed = functioningSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json(
-      { error: "Dados inválidos", details: parsed.error.issues },
-      { status: 400 },
-    );
+  const allowed = await checkRateLimit(`funcionamento_write:${session.userId}`, 30, 60_000);
+  if (!allowed) {
+    return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
   }
 
-  const { date, work, social, selfcare, finances, cognition, leisure } = parsed.data;
+  try {
+    const body = await request.json();
+    const parsed = functioningSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Dados inválidos", details: parsed.error.issues },
+        { status: 400 },
+      );
+    }
 
-  const scores = [work, social, selfcare, finances, cognition, leisure].filter(
-    (s): s is number => s !== undefined,
-  );
-  const avgScore = scores.length > 0
-    ? Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 10) / 10
-    : null;
+    const { date, work, social, selfcare, finances, cognition, leisure } = parsed.data;
 
-  const assessment = await prisma.functioningAssessment.upsert({
-    where: { userId_date: { userId: session.userId, date } },
-    create: {
-      userId: session.userId,
-      date,
-      work: work ?? null,
-      social: social ?? null,
-      selfcare: selfcare ?? null,
-      finances: finances ?? null,
-      cognition: cognition ?? null,
-      leisure: leisure ?? null,
-      avgScore,
-    },
-    update: {
-      work: work !== undefined ? work : undefined,
-      social: social !== undefined ? social : undefined,
-      selfcare: selfcare !== undefined ? selfcare : undefined,
-      finances: finances !== undefined ? finances : undefined,
-      cognition: cognition !== undefined ? cognition : undefined,
-      leisure: leisure !== undefined ? leisure : undefined,
-      avgScore: avgScore ?? undefined,
-    },
-  });
+    const scores = [work, social, selfcare, finances, cognition, leisure].filter(
+      (s): s is number => s !== undefined,
+    );
+    const avgScore = scores.length > 0
+      ? Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 10) / 10
+      : null;
 
-  return NextResponse.json(assessment, { status: 201 });
+    const assessment = await prisma.functioningAssessment.upsert({
+      where: { userId_date: { userId: session.userId, date } },
+      create: {
+        userId: session.userId,
+        date,
+        work: work ?? null,
+        social: social ?? null,
+        selfcare: selfcare ?? null,
+        finances: finances ?? null,
+        cognition: cognition ?? null,
+        leisure: leisure ?? null,
+        avgScore,
+      },
+      update: {
+        work: work !== undefined ? work : undefined,
+        social: social !== undefined ? social : undefined,
+        selfcare: selfcare !== undefined ? selfcare : undefined,
+        finances: finances !== undefined ? finances : undefined,
+        cognition: cognition !== undefined ? cognition : undefined,
+        leisure: leisure !== undefined ? leisure : undefined,
+        avgScore: avgScore ?? undefined,
+      },
+    });
+
+    return NextResponse.json(assessment, { status: 201 });
+  } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "funcionamento" } });
+    return NextResponse.json(
+      { error: "Erro ao salvar avaliação de funcionamento." },
+      { status: 500 },
+    );
+  }
 }

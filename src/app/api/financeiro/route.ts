@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod/v4";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/security";
+import * as Sentry from "@sentry/nextjs";
 
 const transactionSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data deve ser YYYY-MM-DD"),
@@ -20,6 +22,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401, headers: HEADERS });
   }
 
+  const allowed = await checkRateLimit(`financeiro_read:${session.userId}`, 60, 60_000);
+  if (!allowed) {
+    return NextResponse.json({ error: "Muitas requisições" }, { status: 429, headers: HEADERS });
+  }
+
   const { searchParams } = new URL(request.url);
   const month = searchParams.get("month"); // YYYY-MM
   let dateFilter: { gte: string; lte?: string };
@@ -35,18 +42,28 @@ export async function GET(request: NextRequest) {
     dateFilter = { gte: `${cutoff.getFullYear()}-${String(cutoff.getMonth() + 1).padStart(2, "0")}-${String(cutoff.getDate()).padStart(2, "0")}` };
   }
 
-  const transactions = await prisma.financialTransaction.findMany({
-    where: { userId: session.userId, date: dateFilter },
-    orderBy: { date: "desc" },
-  });
+  try {
+    const transactions = await prisma.financialTransaction.findMany({
+      where: { userId: session.userId, date: dateFilter },
+      orderBy: { date: "desc" },
+    });
 
-  return NextResponse.json(transactions, { headers: HEADERS });
+    return NextResponse.json(transactions, { headers: HEADERS });
+  } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "financeiro" } });
+    return NextResponse.json({ error: "Erro interno" }, { status: 500, headers: HEADERS });
+  }
 }
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
   if (!session.isLoggedIn) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401, headers: HEADERS });
+  }
+
+  const allowed = await checkRateLimit(`financeiro_write:${session.userId}`, 30, 60_000);
+  if (!allowed) {
+    return NextResponse.json({ error: "Muitas requisições" }, { status: 429, headers: HEADERS });
   }
 
   try {
@@ -77,7 +94,8 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json(tx, { status: 201, headers: HEADERS });
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "financeiro" } });
     return NextResponse.json(
       { error: "Erro ao criar transação." },
       { status: 500, headers: HEADERS },

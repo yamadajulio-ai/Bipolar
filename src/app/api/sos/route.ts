@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod/v4";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/security";
+import * as Sentry from "@sentry/nextjs";
 
 const sosLogSchema = z.object({
   action: z.enum([
@@ -28,6 +30,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
+  const limited = await checkRateLimit(`sos_write:${session.userId}`, 60, 60_000);
+  if (limited) {
+    return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
+  }
+
   try {
     const body = await request.json();
     const parsed = sosLogSchema.safeParse(body);
@@ -43,7 +50,8 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({ ok: true });
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "sos" } });
     return NextResponse.json({ error: "Erro ao registrar" }, { status: 500 });
   }
 }

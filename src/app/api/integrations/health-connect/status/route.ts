@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { checkRateLimit } from "@/lib/security";
+import * as Sentry from "@sentry/nextjs";
 
 /**
  * GET — Show Health Connect integration status (session auth).
@@ -13,6 +15,12 @@ export async function GET() {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
+  const limited = await checkRateLimit(`hc_status_read:${session.userId}`, 60, 60_000);
+  if (limited) {
+    return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
+  }
+
+  try {
   const integration = await prisma.integrationKey.findFirst({
     where: { userId: session.userId, service: "health_connect" },
   });
@@ -54,4 +62,8 @@ export async function GET() {
       unit: m.unit,
     })),
   });
+  } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "hc_status" } });
+    return NextResponse.json({ error: "Erro ao buscar status" }, { status: 500 });
+  }
 }

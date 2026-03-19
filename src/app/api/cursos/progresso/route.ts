@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod/v4";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/security";
+import * as Sentry from "@sentry/nextjs";
 
 const progressSchema = z.object({
   courseSlug: z.string().min(1),
@@ -14,18 +16,34 @@ export async function GET() {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
-  const progress = await prisma.courseProgress.findMany({
-    where: { userId: session.userId },
-    orderBy: { completedAt: "desc" },
-  });
+  if (!(await checkRateLimit(`cursos_progresso_read:${session.userId}`, 60, 60_000))) {
+    return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
+  }
 
-  return NextResponse.json(progress);
+  try {
+    const progress = await prisma.courseProgress.findMany({
+      where: { userId: session.userId },
+      orderBy: { completedAt: "desc" },
+    });
+
+    return NextResponse.json(progress);
+  } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "cursos_progresso" } });
+    return NextResponse.json(
+      { error: "Erro ao buscar progresso." },
+      { status: 500 },
+    );
+  }
 }
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
   if (!session.isLoggedIn) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  }
+
+  if (!(await checkRateLimit(`cursos_progresso_write:${session.userId}`, 30, 60_000))) {
+    return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
   }
 
   try {
@@ -57,7 +75,8 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({ success: true }, { status: 201 });
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "cursos_progresso" } });
     return NextResponse.json({ error: "Erro ao salvar progresso" }, { status: 500 });
   }
 }

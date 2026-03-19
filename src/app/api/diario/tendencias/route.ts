@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { localDateStr } from "@/lib/dateUtils";
+import { checkRateLimit } from "@/lib/security";
+import * as Sentry from "@sentry/nextjs";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -9,6 +11,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
+  const limited = await checkRateLimit(`diario_tendencias_read:${session.userId}`, 60, 60_000);
+  if (limited) {
+    return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
+  }
+
+  try {
   const { searchParams } = new URL(request.url);
   const days = parseInt(searchParams.get("days") || "30", 10);
   const cutoff = new Date();
@@ -65,4 +73,8 @@ export async function GET(request: NextRequest) {
     },
     alerts,
   });
+  } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "diario_tendencias" } });
+    return NextResponse.json({ error: "Erro ao buscar tendências" }, { status: 500 });
+  }
 }

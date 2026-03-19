@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod/v4";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/security";
+import * as Sentry from "@sentry/nextjs";
 
 const crisisPlanSchema = z.object({
   trustedContacts: z.string().optional(),
@@ -18,17 +20,35 @@ export async function GET() {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
-  const plan = await prisma.crisisPlan.findUnique({
-    where: { userId: session.userId },
-  });
+  const allowed = await checkRateLimit(`crisisplan_read:${session.userId}`, 60, 60_000);
+  if (!allowed) {
+    return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
+  }
 
-  return NextResponse.json(plan);
+  try {
+    const plan = await prisma.crisisPlan.findUnique({
+      where: { userId: session.userId },
+    });
+
+    return NextResponse.json(plan);
+  } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "crisisplan" } });
+    return NextResponse.json(
+      { error: "Erro ao buscar plano de crise." },
+      { status: 500 },
+    );
+  }
 }
 
 export async function PUT(request: NextRequest) {
   const session = await getSession();
   if (!session.isLoggedIn) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  }
+
+  const allowed = await checkRateLimit(`crisisplan_write:${session.userId}`, 30, 60_000);
+  if (!allowed) {
+    return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
   }
 
   try {
@@ -67,7 +87,8 @@ export async function PUT(request: NextRequest) {
     });
 
     return NextResponse.json(plan);
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "crisisplan" } });
     return NextResponse.json(
       { error: "Erro ao salvar plano de crise." },
       { status: 500 },

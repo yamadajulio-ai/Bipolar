@@ -32,6 +32,9 @@ export const metadata: Metadata = {
   verification: {
     google: "AAA3yfmYp14DN--PF0B-YOf6-n80AVMzPt5igjY37Gs",
   },
+  other: {
+    "facebook-domain-verification": "y7ivnoop9rnuuvjc6c19dk8d4kqtj7",
+  },
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,

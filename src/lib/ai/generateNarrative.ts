@@ -20,6 +20,15 @@ export const SCHEMA_VERSION = "narrative_v2";
 export const ANALYTICS_VERSION = "insights_v1";
 export const GUARDRAIL_VERSION = "forbidden_v1";
 
+// Model allowlist — only approved models can be used for clinical narratives
+const ALLOWED_MODELS = new Set([
+  "gpt-5.4", "gpt-5.2", "gpt-5",
+  "gpt-4.1", "gpt-4.1-mini", "gpt-4.1-nano",
+  "o4-mini", "o3", "o3-mini",
+]);
+
+const DEFAULT_MODEL = "gpt-5.4";
+
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
   if (!_openai) {
@@ -550,7 +559,8 @@ export async function generateNarrative(
 ): Promise<NarrativeGenerationResult> {
   const input = prepareNarrativeInput(insights, extra, now, tz);
   const sourceFingerprint = computeSourceFingerprint(input);
-  const model = process.env.OPENAI_NARRATIVE_MODEL || "gpt-5.4";
+  const requestedModel = process.env.OPENAI_NARRATIVE_MODEL || DEFAULT_MODEL;
+  const model = ALLOWED_MODELS.has(requestedModel) ? requestedModel : DEFAULT_MODEL;
   const reasoningEffort = "medium";
 
   const basePersistence: NarrativePersistenceData = {

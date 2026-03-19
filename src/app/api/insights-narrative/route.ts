@@ -44,6 +44,11 @@ export async function GET(_request: NextRequest) {
 
 // POST — Generate AI narrative V2
 export async function POST(_request: NextRequest) {
+  // Kill switch: disable AI narrative generation entirely
+  if (process.env.KILL_AI_NARRATIVE === "true") {
+    return NextResponse.json({ error: "Funcionalidade temporariamente desabilitada" }, { status: 503 });
+  }
+
   const session = await getSession();
   if (!session.isLoggedIn) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });

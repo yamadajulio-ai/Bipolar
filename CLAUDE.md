@@ -8,7 +8,10 @@
 - TypeScript, Tailwind CSS
 - Prisma + PostgreSQL (Neon)
 - Recharts para gráficos
-- Deploy: Vercel
+- Deploy: Vercel Pro ($20/mês)
+- CDN/WAF: Cloudflare Pro ($20/ano, proxy ON, SSL Full strict)
+- Workers: Cloudflare Workers Paid ($5/mês)
+- Backup: Cloudflare R2 (bucket `suporte-bipolar-backups`)
 - Integrações: Apple Health via Health Auto Export (HAE) + Cloudflare Worker proxy
 
 ## Público-alvo
@@ -49,9 +52,10 @@
 - Histórico configurável pelo usuário: 7, 15, 30 noites ou 3 meses (via `?noites=N`)
 
 ## Domínios
-- **Produção**: suportebipolar.com (Vercel + Cloudflare DNS, proxy OFF)
+- **Produção**: suportebipolar.com (Vercel Pro + Cloudflare Pro, proxy ON, SSL Full strict)
 - **Legacy**: redebipolar.com (ainda ativo)
-- **HAE Worker**: hae-proxy on Cloudflare Workers → suportebipolar.com/api/integrations/health-export
+- **HAE Worker**: hae-proxy on Cloudflare Workers Paid → suportebipolar.com/api/integrations/health-export
+- **Backups**: Cloudflare R2 bucket `suporte-bipolar-backups` (ENAM, Standard)
 
 ## Insights — Arquitetura
 - Página: `src/app/(app)/insights/page.tsx` (Server Component)

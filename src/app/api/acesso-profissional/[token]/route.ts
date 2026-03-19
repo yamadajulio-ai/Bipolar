@@ -35,6 +35,11 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ token: string }> },
 ) {
+  // Kill switch: disable professional sharing entirely
+  if (process.env.KILL_PROFESSIONAL_SHARING === "true") {
+    return privateJson({ error: "Funcionalidade temporariamente desabilitada" }, { status: 503 });
+  }
+
   const { token } = await params;
 
   try {

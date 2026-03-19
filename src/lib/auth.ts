@@ -9,11 +9,14 @@ export interface SessionData {
   isLoggedIn: boolean;
   onboarded?: boolean;
   lastActive?: number;
+  createdAt?: number; // Absolute session lifetime tracking
 }
 
 // Session sliding window: expire after 7 days of inactivity, refresh stamp every 1h
 const INACTIVITY_TIMEOUT = 7 * 24 * 60 * 60 * 1000;
 const REFRESH_INTERVAL = 60 * 60 * 1000;
+// Absolute session lifetime: 30 days max regardless of activity (matches cookie maxAge)
+const ABSOLUTE_LIFETIME = 30 * 24 * 60 * 60 * 1000;
 
 const baseCookieOptions = {
   httpOnly: true,
@@ -41,6 +44,12 @@ export async function getSession() {
   const session = await getIronSession<SessionData>(cookieStore, currentSessionOptions);
   if (session.isLoggedIn) {
     const now = Date.now();
+
+    // Absolute lifetime check: destroy session after 30 days regardless of activity
+    if (session.createdAt && now - session.createdAt > ABSOLUTE_LIFETIME) {
+      await session.destroy();
+      return session;
+    }
 
     // Inactivity check: destroy session if idle > 7 days
     if (session.lastActive && now - session.lastActive > INACTIVITY_TIMEOUT) {
@@ -72,6 +81,7 @@ export async function getSession() {
       session.isLoggedIn = true;
       session.onboarded = user.onboarded;
       session.lastActive = Date.now();
+      session.createdAt = Date.now();
       await session.save();
     }
     // Always destroy legacy cookie regardless

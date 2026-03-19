@@ -73,6 +73,7 @@ export async function GET(request: NextRequest) {
     session.isLoggedIn = true;
     session.onboarded = user.onboarded;
     session.lastActive = Date.now();
+    session.createdAt = Date.now();
     await session.save();
 
     const redirectTo = user.onboarded ? "/hoje" : "/onboarding";

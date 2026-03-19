@@ -74,6 +74,7 @@ export async function POST(request: NextRequest) {
     session.isLoggedIn = true;
     session.onboarded = user.onboarded;
     session.lastActive = Date.now();
+    session.createdAt = Date.now();
     await session.save();
 
     return NextResponse.json({ success: true, onboarded: user.onboarded });

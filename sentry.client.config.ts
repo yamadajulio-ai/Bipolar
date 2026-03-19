@@ -31,7 +31,21 @@ function scrubSpanData(data: Record<string, unknown> | undefined): Record<string
   return scrubbed;
 }
 
+/** Scrub exception messages that may contain PHI */
+function scrubExceptionValues(event: Sentry.ErrorEvent): void {
+  if (!event.exception?.values) return;
+  for (const ex of event.exception.values) {
+    if (typeof ex.value === "string") {
+      ex.value = ex.value
+        .replace(/Argument `?\w+`? for data\.\w+[^.]*\./g, "Argument [field] for data.[redacted].")
+        .replace(/`[^`]{40,}`/g, "`[redacted]`")
+        .replace(/"[^"]{80,}"/g, '"[redacted]"');
+    }
+  }
+}
+
 function scrubEvent(event: Sentry.ErrorEvent) {
+  scrubExceptionValues(event);
   if (event.request?.url) {
     event.request.url = scrubUrl(event.request.url)!;
   }

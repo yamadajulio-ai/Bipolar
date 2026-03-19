@@ -26,6 +26,20 @@ function scrubSpanData(data: Record<string, unknown> | undefined): Record<string
   return scrubbed;
 }
 
+/** Scrub exception messages that may contain PHI from clinical endpoints */
+function scrubExceptionValues(event: Sentry.ErrorEvent): Sentry.ErrorEvent {
+  if (!event.exception?.values) return event;
+  for (const ex of event.exception.values) {
+    if (typeof ex.value === "string") {
+      ex.value = ex.value
+        .replace(/Argument `?\w+`? for data\.\w+[^.]*\./g, "Argument [field] for data.[redacted].")
+        .replace(/`[^`]{40,}`/g, "`[redacted]`")
+        .replace(/"[^"]{80,}"/g, '"[redacted]"');
+    }
+  }
+  return event;
+}
+
 Sentry.init({
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
   tracesSampleRate: 0.1,
@@ -47,6 +61,7 @@ Sentry.init({
     return breadcrumb;
   },
   beforeSend(event) {
+    scrubExceptionValues(event);
     if (event.request?.url) {
       event.request.url = scrubUrl(event.request.url)!;
     }

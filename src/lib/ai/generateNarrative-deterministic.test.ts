@@ -382,6 +382,20 @@ describe("generateNarrative — deterministic paths", () => {
       const call = mockResponsesCreate.mock.calls[0][0];
       expect(call.reasoning).toBeUndefined();
     });
+
+    it("rejects non-allowlisted model and falls back to default", async () => {
+      process.env.OPENAI_NARRATIVE_MODEL = "ft:gpt-4o-mini:evil:2024";
+      vi.resetModules();
+      const mod = await import("./generateNarrative");
+      const gen = mod.generateNarrative as unknown as (insights: unknown, extra: unknown) => Promise<unknown>;
+
+      mockResponsesCreate.mockResolvedValue(makeValidResponse(makeValidV2Narrative()));
+
+      await gen(makeInsights(), makeExtra());
+      expect(mockResponsesCreate).toHaveBeenCalledWith(
+        expect.objectContaining({ model: "gpt-5.4" }),
+      );
+    });
   });
 
   // ── Response handling ─────────────────────────────────────────────────

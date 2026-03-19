@@ -48,6 +48,11 @@ const PRIVACY_PAYLOAD: PushPayload = {
 export const maxDuration = 30;
 
 export async function GET(request: NextRequest) {
+  // Kill switch: disable push notifications entirely
+  if (process.env.KILL_PUSH_NOTIFICATIONS === "true") {
+    return NextResponse.json({ skipped: true, reason: "kill_switch" });
+  }
+
   const authHeader = request.headers.get("authorization");
   if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

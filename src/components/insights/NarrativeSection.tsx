@@ -88,9 +88,10 @@ export function NarrativeSection() {
   // Loading state (only show standalone spinner if no previous narrative)
   if (loading && !narrative) {
     return (
-      <div className="rounded-lg border border-border bg-surface p-5">
+      <div className="rounded-lg border border-border bg-surface p-5" role="status" aria-live="polite">
         <div className="flex items-center gap-3">
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent"
+            aria-hidden="true" />
           <p className="text-sm text-muted">Analisando seus dados...</p>
         </div>
       </div>

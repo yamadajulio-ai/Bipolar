@@ -133,6 +133,11 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "Endpoint inválido" }, { status: 400 });
     }
 
+    // Validate URL format and push service allowlist (matches POST validation)
+    if (!isAllowedPushEndpoint(endpoint)) {
+      return NextResponse.json({ error: "Endpoint inválido" }, { status: 400 });
+    }
+
     await prisma.pushSubscription.deleteMany({
       where: {
         userId: session.userId,

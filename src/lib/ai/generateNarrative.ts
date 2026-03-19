@@ -48,6 +48,13 @@ export const FORBIDDEN_PATTERNS = [
   /\b(?:depressao|mania|hipomania|maniaco|hipomaniaco|ciclotimia|distimia|psicose|psicotico|eutimia|ansiedade\s+generalizada)\b/,
   /\b(?:episodio|transtorno|sindrome)\s+(?:bipolar|depressiv[oa]|maniac[oa]|mist[oa]|afetiv[oa])\b/,
   /\b(?:indica[mn]?|sugere[mn]?|aponta[mn]?\s+para|compative(?:l|is)\s+com)\s+(?:um|uma)?\s*(?:episodio|transtorno|quadro|crise|fase|sindrome)\b/,
+  // ── Semantic false-negative patches (GPT Pro R4 audit) ──────
+  /\b(?:seria\s+(?:bom|importante|necessario|ideal|prudente|hora\s+de)|considere|(?:vale|convem)\s+a?\s*pena|talvez\s+(?:fosse|seja)\s+(?:bom|importante|hora\s+de)|importante)\s+(?:conversar|falar|consultar|ir|procurar|buscar|marcar|ver)\s+(?:com\s+)?(?:um|o|ao|seu)\s*(?:medic|psiqui)/,
+  /\bpolo\s+(?:depressiv[oa]|maniac[oa]|mist[oa])\b/,
+  /\bciclagem\s+(?:rapida|lenta|de\s+humor)\b/,
+  /\bestado\s+(?:mist[oa]|depressiv[oa]|hipomaniac[oa])\b/,
+  /\bfase\s+(?:de\s+)?(?:baixa|alta|depressiv[oa]|maniac[oa]|mist[oa]|hipomaniac[oa])\b/,
+  /\b(?:caracteristic[oa]s?|sintomas?|crise|quadro)\s+(?:mist[oa]s?|depressiv[oa]s?|maniac[oa]s?|hipomaniac[oa]s?|psicoticos?)\b/,
 ];
 
 export function normalizeForSafetyCheck(text: string): string {

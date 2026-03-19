@@ -16,6 +16,11 @@
 - Uso principal via iPhone (mobile-first)
 - Idioma: pt-BR
 
+## Padrão de Qualidade
+- **Meta de auditoria GPT Pro: média 9,5/10 no projeto inteiro.** Toda feature, rota, componente e teste deve atingir esse nível. Se uma auditoria retornar abaixo de 9,5, corrigir os achados até alcançar.
+- **Usar TODAS as ferramentas disponíveis no mercado** para atingir 9,5. Se não existir a ferramenta certa, inventar.
+- Nenhum P0 ou P1 pode ficar aberto. P2 devem ser resolvidos antes de nova feature.
+
 ## Princípios
 - Baseado em protocolos IPSRT e pesquisas do PROMAN/USP
 - Linguagem clínica cuidadosa — nunca fazer afirmações diagnósticas diretas

@@ -92,33 +92,36 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Shared device safety: remove this endpoint from ANY other user first.
-    // Prevents cross-user notification leak on shared browsers/devices.
-    await prisma.pushSubscription.deleteMany({
-      where: {
-        endpoint: parsed.data.endpoint,
-        userId: { not: session.userId },
-      },
-    });
-
-    await prisma.pushSubscription.upsert({
-      where: {
-        userId_endpoint: {
+    // Atomic: remove endpoint from other users + upsert for current user.
+    // Transaction ensures no race where two users claim the same endpoint.
+    await prisma.$transaction([
+      // Shared device safety: remove this endpoint from ANY other user first.
+      prisma.pushSubscription.deleteMany({
+        where: {
+          endpoint: parsed.data.endpoint,
+          userId: { not: session.userId },
+        },
+      }),
+      // Upsert for current user
+      prisma.pushSubscription.upsert({
+        where: {
+          userId_endpoint: {
+            userId: session.userId,
+            endpoint: parsed.data.endpoint,
+          },
+        },
+        update: {
+          p256dh: parsed.data.keys.p256dh,
+          auth: parsed.data.keys.auth,
+        },
+        create: {
           userId: session.userId,
           endpoint: parsed.data.endpoint,
+          p256dh: parsed.data.keys.p256dh,
+          auth: parsed.data.keys.auth,
         },
-      },
-      update: {
-        p256dh: parsed.data.keys.p256dh,
-        auth: parsed.data.keys.auth,
-      },
-      create: {
-        userId: session.userId,
-        endpoint: parsed.data.endpoint,
-        p256dh: parsed.data.keys.p256dh,
-        auth: parsed.data.keys.auth,
-      },
-    });
+      }),
+    ]);
 
     return NextResponse.json({ success: true });
   } catch (err) {

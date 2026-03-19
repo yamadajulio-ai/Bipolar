@@ -30,8 +30,16 @@ export function NarrativeSection() {
       }
       const data: NarrativeData = await res.json();
       setNarrative(data);
+      setRetryCount(0); // Reset backoff on success
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro desconhecido");
+      // Don't clear previous narrative on regeneration error
+      const msg = err instanceof Error ? err.message : "Erro desconhecido";
+      if (narrative) {
+        // Keep previous narrative visible, show error inline
+        setError(msg);
+      } else {
+        setError(msg);
+      }
       // Exponential backoff: 5s, 10s, 20s, 30s max
       const delay = Math.min(5000 * Math.pow(2, retryCount), 30_000);
       setRetryCount((c) => c + 1);
@@ -51,9 +59,9 @@ export function NarrativeSection() {
         </p>
         <p className="mb-4 text-xs text-muted">
           A IA analisa seus dados de sono, humor e ritmos dos últimos 30 dias para gerar uma
-          interpretação personalizada. Ao clicar, esses dados são enviados de forma segura à
-          Anthropic (Claude) exclusivamente para gerar este resumo — a Anthropic não usa dados
-          da API para treinar modelos. Nenhum dado é armazenado fora do app.
+          interpretação personalizada. Ao clicar, seus dados são enviados de forma segura à
+          Anthropic (Claude) exclusivamente para gerar este resumo. A Anthropic não usa dados
+          da API para treinar modelos.
         </p>
         <button
           onClick={generate}
@@ -80,8 +88,8 @@ export function NarrativeSection() {
     );
   }
 
-  // Error state
-  if (error) {
+  // Error state (only show full error if no previous narrative exists)
+  if (error && !narrative) {
     return (
       <div className="rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950">
         <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
@@ -174,12 +182,18 @@ export function NarrativeSection() {
             . Esta análise é educacional e não substitui avaliação profissional.
           </p>
 
+          {/* Inline error when regeneration fails */}
+          {error && (
+            <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
+          )}
+
           {/* Regenerate button */}
           <button
             onClick={generate}
-            className="text-xs text-primary underline"
+            disabled={retryCooldown || loading}
+            className="text-xs text-primary underline disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Gerar novo resumo
+            {loading ? "Gerando..." : retryCooldown ? "Aguarde..." : "Gerar novo resumo"}
           </button>
         </div>
       )}

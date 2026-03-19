@@ -151,13 +151,15 @@ const ACHIEVEMENT_DEFS: Array<{
   {
     key: "dual_streak_7",
     label: "Dupla dedicação",
-    description: "7 dias seguidos com check-in E sono",
+    description: "7 dias seguidos com check-in E sono ao mesmo tempo",
     icon: "🎯",
     check: (d) => {
-      const unlocked = d.bestCheckinStreak >= 7 && d.bestSleepStreak >= 7;
+      // Must be concurrent: both current streaks >= 7 at the same time.
+      // Using current streaks (not best) ensures overlap, not disjoint periods.
+      const unlocked = d.checkinStreak >= 7 && d.sleepStreak >= 7;
       return {
         unlocked,
-        progress: unlocked ? 1 : Math.min(Math.min(d.bestCheckinStreak, d.bestSleepStreak) / 7, 1),
+        progress: unlocked ? 1 : Math.min(Math.min(d.checkinStreak, d.sleepStreak) / 7, 1),
         target: 7,
       };
     },

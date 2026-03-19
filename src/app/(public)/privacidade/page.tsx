@@ -57,6 +57,7 @@ export default function PrivacidadePage() {
             <li><strong>Avaliações semanais:</strong> questionários padronizados (ASRM, PHQ-9, FAST resumido).</li>
             <li><strong>Eventos de vida:</strong> registros no Life Chart (tipo, data, notas).</li>
             <li><strong>Testes cognitivos:</strong> tempo de reação e span de dígitos (pontuações).</li>
+            <li><strong>Diário pessoal (Meu Diário):</strong> entradas de texto livre (diário e insights rápidos) escritas por você. Cada entrada registra também o estado de humor no momento da escrita (capturado automaticamente do último check-in, se recente). O uso dos textos do diário por inteligência artificial é controlado individualmente por entrada — você decide se permite ou não. Essas entradas são armazenadas com base em consentimento específico e separado (<code>journal_data</code>), que pode ser revogado a qualquer momento. A exclusão de entradas é permanente (hard delete).</li>
             <li><strong>Exercícios de bem-estar:</strong> registros de respiração guiada e relaxamento.</li>
             <li><strong>Eventos de crise (SOS):</strong> registro de acionamentos do botão de crise. A página SOS é acessível sem login e não coleta dados pessoais nesse modo; os dados abaixo só são registrados quando você está logado.</li>
             <li><strong>Plano de crise:</strong> contatos de emergência (nome e telefone de pessoas de sua confiança) e estratégias pessoais. Esses dados de terceiros são armazenados exclusivamente para seu uso e não são compartilhados.</li>
@@ -98,7 +99,7 @@ export default function PrivacidadePage() {
           <h2 className="mb-2 text-lg font-semibold">3. Por que coletamos</h2>
           <ul className="list-inside list-disc space-y-1 text-sm text-muted">
             <li><strong>Autenticação e segurança:</strong> para proteger o acesso à sua conta.</li>
-            <li><strong>Autoconhecimento:</strong> para que você acompanhe seus próprios padrões de humor, sono e rotina ao longo do tempo.</li>
+            <li><strong>Autoconhecimento:</strong> para que você acompanhe seus próprios padrões de humor, sono e rotina ao longo do tempo. Isso inclui o diário pessoal, onde você pode registrar pensamentos e sentimentos e depois revisitar o que escreveu em diferentes estados de humor.</li>
             <li><strong>Insights automáticos:</strong> para gerar análises personalizadas (termômetro de humor, regularidade do sono, correlações).</li>
             <li><strong>Resumo com IA sob demanda:</strong> quando solicitado por você, seus dados são enviados de forma segura ao modelo GPT (OpenAI) para gerar um resumo em linguagem clara. A OpenAI não usa dados da API para treinar modelos.</li>
             <li><strong>Chatbot de apoio (SOS):</strong> quando disponível, para oferecer continuidade contextual durante o uso do SOS. O chatbot não substitui atendimento profissional.</li>
@@ -111,7 +112,7 @@ export default function PrivacidadePage() {
         <section className="mb-6">
           <h2 className="mb-2 text-lg font-semibold">4. Base legal (LGPD)</h2>
           <ul className="list-inside list-disc space-y-1 text-sm text-muted">
-            <li><strong>Consentimento (art. 7º, I e art. 11, I):</strong> para dados sensíveis de saúde, integrações externas, Resumo com IA sob demanda, chatbot de apoio do SOS quando habilitado, reconhecimento de voz e acesso profissional.</li>
+            <li><strong>Consentimento (art. 7º, I e art. 11, I):</strong> para dados sensíveis de saúde, diário pessoal (consentimento específico <code>journal_data</code>), integrações externas, Resumo com IA sob demanda, chatbot de apoio do SOS quando habilitado, reconhecimento de voz e acesso profissional.</li>
             <li><strong>Execução de contrato (art. 7º, V):</strong> para dados necessários ao funcionamento da conta.</li>
             <li><strong>Legítimo interesse (art. 7º, IX):</strong> para logs de segurança e melhorias de produto.</li>
           </ul>
@@ -183,7 +184,7 @@ export default function PrivacidadePage() {
             <li><strong>Dados da conta:</strong> mantidos enquanto sua conta estiver ativa.</li>
             <li><strong>Logs de acesso:</strong> purgados automaticamente após 90 dias.</li>
             <li><strong>Exclusão da conta:</strong> você pode excluir sua conta e os dados associados ao uso da plataforma a qualquer momento pela página &quot;Conta&quot;. A exclusão é irreversível e processada imediatamente no banco de dados principal, abrangendo, entre outros, dados da conta, check-ins, diário, sono, avaliações, dados de rotina e planejador, finanças, integrações, eventos de vida, testes cognitivos, exercícios, plano de crise, eventos do SOS, conversas do chatbot de apoio, perfil socioeconômico, acessos profissionais gerados e logs de acesso. Cópias residuais em backups automáticos dos operadores de infraestrutura podem persistir por até 30 dias, conforme as políticas de retenção desses serviços.</li>
-            <li><strong>Portabilidade:</strong> entre em contato conosco para solicitar uma cópia dos seus dados.</li>
+            <li><strong>Portabilidade:</strong> entre em contato conosco para solicitar uma cópia dos seus dados. Seus textos do diário pessoal podem ser exportados diretamente em formato JSON pela página &quot;Meu Diário&quot;.</li>
           </ul>
         </section>
 

@@ -17,6 +17,8 @@ export function isAllowedPushEndpoint(endpoint: string): boolean {
   try {
     const url = new URL(endpoint);
     if (url.protocol !== "https:") return false;
+    // Only allow default HTTPS port (443) — reject arbitrary ports
+    if (url.port !== "" && url.port !== "443") return false;
     return PUSH_SERVICE_HOSTS.some(
       (host) => url.hostname === host || url.hostname.endsWith("." + host),
     );

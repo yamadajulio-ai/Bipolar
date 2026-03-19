@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import * as Sentry from "@sentry/nextjs";
+import { checkRateLimit } from "@/lib/security";
 
 /**
  * WhatsApp Cloud API webhook.
@@ -93,10 +94,18 @@ export async function POST(request: NextRequest) {
         if (!value?.messages) continue;
 
         for (const message of value.messages as Array<Record<string, unknown>>) {
+          const messageId = message.id as string | undefined;
           const from = message.from as string | undefined;
           const text = (message.text as Record<string, unknown>)?.body;
 
           if (!text || !from) continue;
+
+          // Idempotency: dedupe by message.id to handle Meta retries.
+          // Window of 10 minutes covers Meta's retry policy with exponential backoff.
+          if (messageId) {
+            const isFirst = await checkRateLimit(`wa:msg:${messageId}`, 1, 10 * 60_000);
+            if (!isFirst) continue; // Already processed this message
+          }
 
           // Breadcrumb only — no phone data in logs (even masked, PHI risk)
           Sentry.addBreadcrumb({

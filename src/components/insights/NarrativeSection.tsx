@@ -312,9 +312,12 @@ export function NarrativeSection() {
             <p className="text-sm italic text-foreground/60">{narrative.closing.text}</p>
           )}
 
-          {/* Disclaimer + timestamp — source-aware disclosure */}
+          {/* Disclaimer + timestamp — source-aware disclosure.
+              "fallback" after LLM attempt still means data was sent to OpenAI. */}
           <p className="text-[10px] text-muted italic">
-            {narrative.source === "llm" ? "Gerado por IA" : "Resumo automático"}
+            {narrative.source === "llm" ? "Gerado por IA"
+              : narrative.source === "fallback" ? "Processado por IA (resumo indisponível)"
+              : "Resumo automático"}
             {narrative.generatedAt && ` em ${new Date(narrative.generatedAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}`}
             . {APP_DISCLAIMER}
           </p>

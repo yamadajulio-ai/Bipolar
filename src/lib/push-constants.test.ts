@@ -116,8 +116,8 @@ describe("isAllowedPushEndpoint", () => {
     });
 
     it("rejects non-standard port on valid host", () => {
-      // Port 8080 on valid host — hostname still matches, but unusual
-      expect(isAllowedPushEndpoint("https://fcm.googleapis.com:8080/push")).toBe(true);
+      // Port 8080 on valid host — rejected to prevent SSRF via arbitrary ports
+      expect(isAllowedPushEndpoint("https://fcm.googleapis.com:8080/push")).toBe(false);
     });
 
     it("case sensitivity — uppercase hostname rejected by URL normalization", () => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { Card } from "@/components/Card";
 
 // ── Types ────────────────────────────────────────────────────
@@ -63,12 +63,69 @@ const ZONE_LABELS: Record<string, { label: string; color: string; bg: string }> 
 const DIARY_MAX = 5000;
 const INSIGHT_MAX = 280;
 
+// ── Local draft persistence (24h TTL) ────────────────────────
+
+const DRAFT_KEY = "journal_draft";
+const DRAFT_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+interface Draft {
+  tab: JournalType;
+  content: string;
+  savedAt: number;
+}
+
+function loadDraft(): Draft | null {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return null;
+    const draft: Draft = JSON.parse(raw);
+    if (Date.now() - draft.savedAt > DRAFT_TTL_MS) {
+      localStorage.removeItem(DRAFT_KEY);
+      return null;
+    }
+    return draft;
+  } catch {
+    return null;
+  }
+}
+
+function saveDraft(tab: JournalType, content: string) {
+  try {
+    if (!content.trim()) {
+      localStorage.removeItem(DRAFT_KEY);
+      return;
+    }
+    const draft: Draft = { tab, content, savedAt: Date.now() };
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+  } catch {
+    // localStorage full or unavailable — silently ignore
+  }
+}
+
+function clearDraft() {
+  try {
+    localStorage.removeItem(DRAFT_KEY);
+  } catch {
+    // ignore
+  }
+}
+
 // ── Component ────────────────────────────────────────────────
 
 export function JournalClient({ initialEntries, hasConsent }: Props) {
   const [entries, setEntries] = useState<JournalEntry[]>(initialEntries);
-  const [tab, setTab] = useState<JournalType>("DIARY");
-  const [content, setContent] = useState("");
+  const [tab, setTab] = useState<JournalType>(() => {
+    const draft = loadDraft();
+    return draft?.tab ?? "DIARY";
+  });
+  const [content, setContent] = useState(() => {
+    const draft = loadDraft();
+    return draft?.content ?? "";
+  });
+  const [draftRestored, setDraftRestored] = useState(() => {
+    const draft = loadDraft();
+    return draft !== null && draft.content.trim().length > 0;
+  });
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState("");
@@ -83,6 +140,14 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
   const [reflection, setReflection] = useState<ReflectionData | null>(null);
   const [loadingReflection, setLoadingReflection] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-save draft to localStorage on content/tab change
+  useEffect(() => {
+    saveDraft(tab, content);
+    if (draftRestored && content.trim().length === 0) {
+      setDraftRestored(false);
+    }
+  }, [tab, content, draftRestored]);
 
   const maxChars = tab === "DIARY" ? DIARY_MAX : INSIGHT_MAX;
   const editMaxChars = editingId
@@ -181,6 +246,8 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
 
       // Reload entries to get full data
       setContent("");
+      clearDraft();
+      setDraftRestored(false);
       const listRes = await fetch("/api/journal?limit=20");
       if (listRes.ok) {
         const listData = await listRes.json();
@@ -335,10 +402,25 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
 
       {/* New Entry */}
       <Card>
+        {/* Draft restored banner */}
+        {draftRestored && (
+          <div className="mb-3 flex items-center justify-between rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
+            <p className="text-xs text-amber-800">
+              Rascunho recuperado automaticamente.
+            </p>
+            <button
+              onClick={() => { setContent(""); setDraftRestored(false); clearDraft(); }}
+              className="text-xs text-amber-600 hover:text-amber-800 font-medium ml-2"
+            >
+              Descartar
+            </button>
+          </div>
+        )}
+
         {/* Tab selector */}
         <div className="flex gap-1 mb-4 rounded-lg bg-surface-alt p-1">
           <button
-            onClick={() => { setTab("DIARY"); setContent(""); }}
+            onClick={() => { setTab("DIARY"); if (!content.trim()) setContent(""); }}
             className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
               tab === "DIARY"
                 ? "bg-primary text-white shadow-sm"
@@ -348,7 +430,7 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
             Diário
           </button>
           <button
-            onClick={() => { setTab("QUICK_INSIGHT"); setContent(""); }}
+            onClick={() => { setTab("QUICK_INSIGHT"); if (!content.trim()) setContent(""); }}
             className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
               tab === "QUICK_INSIGHT"
                 ? "bg-primary text-white shadow-sm"

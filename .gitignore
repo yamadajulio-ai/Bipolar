@@ -54,3 +54,11 @@ prompt-gpt-*.md
 IDEIAS REDE BIPOLAR.txt
 
 .env*.local
+.env.vercel
+
+# temporary/generated scripts (keep only backup-db.sh)
+scripts/*.js
+tmp_*.txt
+
+# admin docs (not for repo)
+ADMIN_DASHBOARD_BRIEFING.md

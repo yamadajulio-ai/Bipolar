@@ -6,6 +6,8 @@ import type { HeatmapDay } from "@/lib/insights/computeInsights";
 interface Props {
   data: HeatmapDay[];
   metric: "mood" | "sleep" | "energy";
+  onDaySelect?: (date: string) => void;
+  selectedDate?: string | null;
 }
 
 const MOOD_COLORS: Record<number, string> = {
@@ -33,7 +35,7 @@ function getEnergyColor(energy: number | null): string {
 
 const WEEKDAY_LABELS = ["D", "S", "T", "Q", "Q", "S", "S"];
 
-export function CalendarHeatmap({ data, metric }: Props) {
+export function CalendarHeatmap({ data, metric, onDaySelect, selectedDate }: Props) {
   const [tooltip, setTooltip] = useState<{ day: HeatmapDay; x: number; y: number } | null>(null);
 
   if (data.length === 0) return null;
@@ -127,7 +129,7 @@ export function CalendarHeatmap({ data, metric }: Props) {
                 aria-label={day?.hasEntry ? getTooltipText(day) : undefined}
                 className={`h-[12px] w-[12px] rounded-sm ${getCellColor(day)} ${
                   day?.hasEntry ? "cursor-pointer hover:ring-1 hover:ring-foreground/30 focus:ring-1 focus:ring-foreground/30 focus:outline-none" : ""
-                }`}
+                } ${day && selectedDate === day.date ? "ring-2 ring-primary" : ""}`}
                 onMouseEnter={(e) => {
                   if (day?.hasEntry) {
                     setTooltip({ day, x: e.clientX, y: e.clientY });
@@ -137,6 +139,7 @@ export function CalendarHeatmap({ data, metric }: Props) {
                 onClick={(e) => {
                   if (day?.hasEntry) {
                     setTooltip((prev) => prev?.day === day ? null : { day, x: e.clientX, y: e.clientY });
+                    if (onDaySelect) onDaySelect(day.date);
                   }
                 }}
                 onKeyDown={(e) => {

@@ -13,6 +13,7 @@ import { SafetyNudge } from "@/components/insights/SafetyNudge";
 import { EpisodePrediction } from "@/components/insights/EpisodePrediction";
 import { CyclingAnalysis } from "@/components/insights/CyclingAnalysis";
 import { CalendarHeatmap } from "@/components/insights/CalendarHeatmap";
+import { HeatmapWithJournal } from "@/components/insights/HeatmapWithJournal";
 import { Sparkline } from "@/components/insights/Sparkline";
 import { NarrativeSection } from "@/components/insights/NarrativeSection";
 import { InsightsTabs } from "@/components/insights/InsightsTabs";
@@ -164,7 +165,7 @@ export default async function InsightsPage({
   cutoff30.setDate(cutoff30.getDate() - 30);
   const cutoff30Str = cutoff30.toLocaleDateString("sv-SE", { timeZone: TZ });
 
-  const [allSleepLogs, allEntries, rhythms, rawPlannerBlocks, financialTxs] = await Promise.all([
+  const [allSleepLogs, allEntries, rhythms, rawPlannerBlocks, financialTxs, journalEntries90] = await Promise.all([
     prisma.sleepLog.findMany({
       where: { userId: session.userId, date: { gte: cutoff90Str } },
       orderBy: { date: "asc" },
@@ -189,6 +190,21 @@ export default async function InsightsPage({
     prisma.financialTransaction.findMany({
       where: { userId: session.userId, date: { gte: cutoff30Str } },
       select: { date: true, amount: true },
+    }),
+    // Journal entries for heatmap day detail (90 days, no content in server logs)
+    prisma.journalEntry.findMany({
+      where: { userId: session.userId, entryDateLocal: { gte: cutoff90Str } },
+      orderBy: { createdAt: "asc" },
+      select: {
+        id: true,
+        type: true,
+        content: true,
+        zoneAtCapture: true,
+        mixedAtCapture: true,
+        snapshotSource: true,
+        entryDateLocal: true,
+        createdAt: true,
+      },
     }),
   ]);
 
@@ -794,25 +810,31 @@ export default async function InsightsPage({
             </section>
           )}
 
-          {/* ── Heatmap 90 dias ─────────────────────────── */}
+          {/* ── Heatmap 90 dias + Diário integrado ──────── */}
           {insights.heatmap.length > 0 && (
             <section className="mb-8">
-              <Card>
-                <h2 className="mb-1 text-lg font-semibold">Visão geral — 90 dias</h2>
-                <p className="mb-4 text-[11px] text-muted">
-                  Cada quadrado representa um dia. Cores indicam a intensidade — toque ou passe o mouse para ver detalhes.
-                </p>
-                <div className="space-y-5">
-                  <div>
-                    <p className="mb-1.5 text-xs font-medium text-foreground/70">Humor (1=deprimido, 3=estável, 5=elevado)</p>
-                    <CalendarHeatmap data={insights.heatmap} metric="mood" />
-                  </div>
-                  <div>
-                    <p className="mb-1.5 text-xs font-medium text-foreground/70">Sono (verde=7-9h ideal, vermelho=pouco, azul=excesso)</p>
-                    <CalendarHeatmap data={insights.heatmap} metric="sleep" />
-                  </div>
-                </div>
-              </Card>
+              <HeatmapWithJournal
+                heatmapData={insights.heatmap}
+                diaryEntries={allEntries.map((e) => ({
+                  date: e.date,
+                  mood: e.mood,
+                  energyLevel: e.energyLevel,
+                  anxietyLevel: e.anxietyLevel,
+                  irritability: e.irritability,
+                  sleepHours: e.sleepHours,
+                  tookMedication: e.tookMedication,
+                  note: e.note,
+                }))}
+                journalEntries={journalEntries90.map((j) => ({
+                  id: j.id,
+                  type: j.type,
+                  content: j.content,
+                  zoneAtCapture: j.zoneAtCapture,
+                  mixedAtCapture: j.mixedAtCapture,
+                  snapshotSource: j.snapshotSource,
+                  createdAt: j.createdAt.toISOString(),
+                }))}
+              />
             </section>
           )}
 

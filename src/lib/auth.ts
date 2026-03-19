@@ -8,7 +8,12 @@ export interface SessionData {
   email: string;
   isLoggedIn: boolean;
   onboarded?: boolean;
+  lastActive?: number;
 }
+
+// Session sliding window: expire after 7 days of inactivity, refresh stamp every 1h
+const INACTIVITY_TIMEOUT = 7 * 24 * 60 * 60 * 1000;
+const REFRESH_INTERVAL = 60 * 60 * 1000;
 
 const baseCookieOptions = {
   httpOnly: true,
@@ -34,7 +39,23 @@ export async function getSession() {
   const cookieStore = await cookies();
 
   const session = await getIronSession<SessionData>(cookieStore, currentSessionOptions);
-  if (session.isLoggedIn) return session;
+  if (session.isLoggedIn) {
+    const now = Date.now();
+
+    // Inactivity check: destroy session if idle > 7 days
+    if (session.lastActive && now - session.lastActive > INACTIVITY_TIMEOUT) {
+      await session.destroy();
+      return session;
+    }
+
+    // Sliding refresh: update lastActive stamp every ~1h
+    if (!session.lastActive || now - session.lastActive > REFRESH_INTERVAL) {
+      session.lastActive = now;
+      try { await session.save(); } catch { /* Server Component — read-only cookies, skip */ }
+    }
+
+    return session;
+  }
 
   // Migrate legacy cookie transparently — will be removed after 2026-06-01
   const legacy = await getIronSession<SessionData>(cookieStore, legacySessionOptions);
@@ -50,6 +71,7 @@ export async function getSession() {
       session.email = user.email;
       session.isLoggedIn = true;
       session.onboarded = user.onboarded;
+      session.lastActive = Date.now();
       await session.save();
     }
     // Always destroy legacy cookie regardless

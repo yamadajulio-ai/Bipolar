@@ -83,6 +83,7 @@ export async function POST(request: NextRequest) {
     session.email = user.email;
     session.isLoggedIn = true;
     session.onboarded = false;
+    session.lastActive = Date.now();
     await session.save();
 
     return NextResponse.json({ success: true }, { status: 201 });

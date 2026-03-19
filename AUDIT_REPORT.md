@@ -32,7 +32,7 @@
 | Zod | ^4.3.6 |
 | OpenAI SDK | ^5 (Responses API, Structured Outputs) |
 | web-push | ^3 (VAPID, Web Push API) |
-| Vitest | ^4.0.18 (951 testes, 11 suites) |
+| Vitest | ^4.0.18 (1031 testes, 14 suites) |
 | Deploy | Vercel (auto-deploy on push to main) |
 | DNS/CDN | Cloudflare (proxy OFF, DNS only) |
 | Package Manager | pnpm |
@@ -390,12 +390,15 @@ Features calculadas server-side:
 ## 13. Testes
 
 - Framework: Vitest 4.0.18
-- **951 testes em 11 suites** (0 falhas)
+- **1031 testes em 14 suites** (0 falhas)
 - `detectCrisis.test.ts`: 423 testes — SOS crisis detection (17 rounds of GPT Pro audit)
 - `webhook.test.ts`: 201 testes — WhatsApp HMAC-SHA256 verification, payload parsing, size limits
 - `generateNarrative.test.ts`: 127 testes — 17 forbidden clinical patterns, medication names, edge cases
+- `generateNarrative-deterministic.test.ts`: 30 testes — high-risk template, insufficient data bypass, OpenAI Responses API, forbidden content in response, data preparation
 - `streaks.test.ts`: 53 testes — current/longest streak, 9 achievements, dual_streak_7 concurrency
 - `computeInsights.test.ts`: 40 testes — sleep, mood, thermometer, risk, prediction, cycling, heatmap
+- `push-subscriptions.test.ts`: 30 testes — auth, validation, SSRF allowlist, atomic cap, shared device safety, DELETE
+- `send-reminders.test.ts`: 19 testes — auth, idempotency, Sentry check-in, batch sending, cleanup, error handling
 - `push-constants.test.ts`: 26 testes — SSRF allowlist, protocol enforcement, subdomain matching, edge cases
 - `expandRecurrence.test.ts`: 23 testes — planner recurrence expansion
 - `web-push.test.ts`: 20 testes — VAPID config, endpoint allowlist send-time, HTTP status mapping, payload/TTL

@@ -11,7 +11,7 @@ export default function TermosPage() {
       <Header />
       <main className="mx-auto max-w-3xl flex-1 px-4 py-8">
         <h1 className="mb-6 text-2xl font-bold">Termos de Uso</h1>
-        <p className="mb-6 text-sm text-muted">Última atualização: 18 de março de 2026</p>
+        <p className="mb-6 text-sm text-muted">Última atualização: 19 de março de 2026</p>
 
         <p className="mb-6 text-sm text-muted">
           Ao utilizar o Suporte Bipolar (&quot;plataforma&quot;, &quot;aplicativo&quot;), de
@@ -36,7 +36,7 @@ export default function TermosPage() {
             <li>Exercícios de bem-estar (respiração guiada, relaxamento muscular).</li>
             <li>Acompanhamento financeiro com importação de dados (Mobills CSV/XLSX).</li>
             <li>Insights automáticos: termômetro de humor, correlações, regularidade do sono, análise de ritmos sociais.</li>
-            <li>Resumo com IA sob demanda (gerado por Claude, modelo da Anthropic).</li>
+            <li>Resumo com IA sob demanda (gerado por GPT, da OpenAI).</li>
             <li>Integrações com Apple Health, Health Connect (Android) e Google Agenda.</li>
             <li>Acesso profissional em modo somente leitura (via link com token e PIN).</li>
             <li>Planejador de rotina baseado em protocolos IPSRT.</li>
@@ -155,14 +155,12 @@ export default function TermosPage() {
         <section className="mb-6">
           <h2 className="mb-2 text-lg font-semibold">9. Inteligência artificial</h2>
           <p className="text-sm text-muted">
-            O aplicativo utiliza inteligência artificial (Claude, da Anthropic) para o Resumo
-            com IA sob demanda e, quando disponível, no chatbot de apoio do SOS. Sobre o uso
-            de IA:
+            O aplicativo utiliza inteligência artificial em duas funcionalidades:
           </p>
           <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-muted">
-            <li>Os resumos com IA são gerados a partir dos seus dados e não constituem avaliação clínica.</li>
-            <li>Os dados enviados à Anthropic não são utilizados para treinamento de modelos.</li>
-            <li>Os resultados da IA devem ser interpretados como sugestões informativas, nunca como diagnóstico ou orientação médica.</li>
+            <li><strong>Resumo com IA sob demanda:</strong> gerado por GPT (OpenAI) a partir dos seus dados de monitoramento. A OpenAI não utiliza dados da API para treinamento de modelos.</li>
+            <li><strong>Chatbot de apoio do SOS:</strong> quando disponível, utiliza Claude (Anthropic). A Anthropic não utiliza esses dados para treinamento de modelos.</li>
+            <li>Os resumos e respostas da IA não constituem avaliação clínica e devem ser interpretados como sugestões informativas, nunca como diagnóstico ou orientação médica.</li>
           </ul>
         </section>
 

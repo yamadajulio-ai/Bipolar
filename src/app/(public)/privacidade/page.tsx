@@ -11,7 +11,7 @@ export default function PrivacidadePage() {
       <Header />
       <main className="mx-auto max-w-3xl flex-1 px-4 py-8">
         <h1 className="mb-6 text-2xl font-bold">Política de Privacidade</h1>
-        <p className="mb-6 text-sm text-muted">Última atualização: 18 de março de 2026</p>
+        <p className="mb-6 text-sm text-muted">Última atualização: 19 de março de 2026</p>
 
         <p className="mb-6 text-sm text-muted">
           O Suporte Bipolar (&quot;nós&quot;, &quot;nosso&quot;) leva a proteção dos seus dados a
@@ -160,6 +160,9 @@ export default function PrivacidadePage() {
             <li><strong>Neon</strong> (banco de dados PostgreSQL): EUA — operador essencial, contrato com DPA.</li>
             <li><strong>OpenAI</strong> (IA — Resumo): EUA — acionada sob demanda para o Resumo com IA. Dados da API não são usados para treinamento.</li>
             <li><strong>Anthropic</strong> (IA — Chatbot SOS): EUA — acionada sob demanda para o chatbot de apoio do SOS, quando disponível. Contrato com cláusula de não treinamento.</li>
+            <li><strong>Google</strong> (Analytics): EUA — dados de navegação agregados para melhoria do produto.</li>
+            <li><strong>Microsoft</strong> (Clarity): EUA — análise de comportamento de navegação, sem dados de saúde.</li>
+            <li><strong>Meta</strong> (Pixel/CAPI): EUA — medição de eficácia de campanhas de divulgação, sem dados de saúde.</li>
             <li><strong>Sentry</strong> (monitoramento de erros): EUA — recebe apenas dados técnicos sem informações pessoais identificáveis.</li>
             <li><strong>Cloudflare</strong> (proxy para Apple Health): rede global — apenas repasse de dados em trânsito, sem armazenamento persistente.</li>
           </ul>
@@ -222,12 +225,36 @@ export default function PrivacidadePage() {
           </p>
         </section>
 
-        {/* 11. Cookies */}
+        {/* 11. Cookies e tecnologias de rastreamento */}
         <section className="mb-6">
-          <h2 className="mb-2 text-lg font-semibold">11. Cookies</h2>
+          <h2 className="mb-2 text-lg font-semibold">11. Cookies e tecnologias de rastreamento</h2>
+          <h3 className="mb-1 mt-3 text-sm font-semibold text-foreground">11.1 Cookies essenciais</h3>
           <p className="text-sm text-muted">
-            Utilizamos apenas cookies essenciais para funcionamento da autenticação (cookie de sessão
-            HttpOnly). Não utilizamos cookies de rastreamento, publicidade ou analytics de terceiros.
+            Utilizamos um cookie essencial para funcionamento da autenticação (cookie de sessão
+            HttpOnly, Secure, SameSite=Lax). Este cookie é estritamente necessário e não requer consentimento.
+          </p>
+          <h3 className="mb-1 mt-3 text-sm font-semibold text-foreground">11.2 Analytics e medição</h3>
+          <p className="mb-2 text-sm text-muted">
+            Para entender como a plataforma é utilizada e melhorar a experiência, utilizamos os seguintes
+            serviços de terceiros:
+          </p>
+          <ul className="list-inside list-disc space-y-1 text-sm text-muted">
+            <li><strong>Vercel Analytics e Speed Insights:</strong> métricas de performance e uso agregado, sem cookies de rastreamento.</li>
+            <li><strong>Google Analytics:</strong> dados de navegação e uso (Google LLC, EUA). Pode definir cookies como <code>_ga</code> e <code>_gid</code>.</li>
+            <li><strong>Microsoft Clarity:</strong> análise de comportamento de navegação, como mapas de calor e gravações de sessão (Microsoft, EUA). Pode definir cookies como <code>_clck</code> e <code>_clsk</code>. Gravações não capturam campos de entrada de dados sensíveis.</li>
+          </ul>
+          <h3 className="mb-1 mt-3 text-sm font-semibold text-foreground">11.3 Publicidade e conversão</h3>
+          <ul className="list-inside list-disc space-y-1 text-sm text-muted">
+            <li><strong>Meta Pixel (Facebook):</strong> utilizado para medir a eficácia de campanhas de divulgação (Meta Platforms, EUA). Pode definir cookies como <code>_fbp</code> e <code>_fbc</code>. Eventos enviados: PageView, ViewContent e CompleteRegistration — nenhum dado de saúde é incluído nesses eventos.</li>
+          </ul>
+          <p className="mt-3 text-sm text-muted">
+            Esses serviços podem coletar dados como endereço IP, tipo de navegador, páginas visitadas e
+            horários de acesso. <strong>Nenhum dado de saúde, humor, sono ou check-in é compartilhado
+            com esses serviços.</strong> Para mais informações, consulte as políticas de privacidade
+            do{" "}
+            <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Google</a>,{" "}
+            <a href="https://privacy.microsoft.com/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Microsoft</a> e{" "}
+            <a href="https://www.facebook.com/privacy/policy/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Meta</a>.
           </p>
         </section>
 

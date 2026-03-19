@@ -27,7 +27,7 @@ export interface PushPayload {
 
 export type PushResult =
   | { ok: true }
-  | { ok: false; reason: "expired" | "transient" | "config" | "invalid-endpoint" };
+  | { ok: false; reason: "expired" | "transient" | "config" | "invalid-endpoint" | "invalid-key" };
 
 export async function sendPush(
   subscription: { endpoint: string; p256dh: string; auth: string },
@@ -60,6 +60,10 @@ export async function sendPush(
     // 404 or 410 means subscription is no longer valid
     if (statusCode === 404 || statusCode === 410) {
       return { ok: false, reason: "expired" };
+    }
+    // 400/403 = permanent error (bad key format, auth mismatch) — don't retry
+    if (statusCode === 400 || statusCode === 403) {
+      return { ok: false, reason: "invalid-key" };
     }
     console.error("Web Push error:", err);
     return { ok: false, reason: "transient" };

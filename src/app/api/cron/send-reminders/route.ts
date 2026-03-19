@@ -180,8 +180,8 @@ export async function GET(request: NextRequest) {
           sent++;
         } else if (result.reason === "expired") {
           expiredIds.push(task.subId);
-        } else if (result.reason === "invalid-endpoint") {
-          // Legacy data with non-allowlisted host — quarantine
+        } else if (result.reason === "invalid-endpoint" || result.reason === "invalid-key") {
+          // Legacy/corrupt data — quarantine and delete
           invalidIds.push(task.subId);
         } else if (result.reason === "config" && !configErrorLogged) {
           Sentry.captureMessage("Web Push VAPID not configured — reminders cannot be sent", { level: "warning" });

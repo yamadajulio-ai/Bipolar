@@ -116,6 +116,15 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
+  // Rate limit: share same bucket as POST (subscription changes)
+  const allowed = await checkRateLimit(`push_sub:${session.userId}`, 10);
+  if (!allowed) {
+    return NextResponse.json(
+      { error: "Muitas requisições. Tente novamente mais tarde." },
+      { status: 429 }
+    );
+  }
+
   try {
     const body = await request.json();
     const endpoint = body.endpoint;

@@ -93,7 +93,7 @@ export function NarrativeSection() {
   // Error state (only show full error if no previous narrative exists)
   if (error && !narrative) {
     return (
-      <div className="rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950">
+      <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950">
         <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
         <button
           onClick={generate}
@@ -186,7 +186,7 @@ export function NarrativeSection() {
 
           {/* Inline error when regeneration fails */}
           {error && (
-            <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
+            <p role="alert" className="text-xs text-red-600 dark:text-red-400">{error}</p>
           )}
 
           {/* Regenerate button */}

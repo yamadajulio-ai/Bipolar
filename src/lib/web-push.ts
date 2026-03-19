@@ -28,7 +28,7 @@ export interface PushPayload {
 
 export type PushResult =
   | { ok: true }
-  | { ok: false; reason: "expired" | "transient" | "config" | "invalid-endpoint" | "invalid-key" };
+  | { ok: false; reason: "expired" | "transient" | "config" | "invalid-endpoint" };
 
 export async function sendPush(
   subscription: { endpoint: string; p256dh: string; auth: string },
@@ -62,9 +62,14 @@ export async function sendPush(
     if (statusCode === 404 || statusCode === 410) {
       return { ok: false, reason: "expired" };
     }
-    // 400/403 = permanent error (bad key format, auth mismatch) — don't retry
+    // 400/403 = possibly VAPID config issue, not necessarily dead subscription.
+    // Treat as transient to avoid deleting valid subscriptions on our config errors.
     if (statusCode === 400 || statusCode === 403) {
-      return { ok: false, reason: "invalid-key" };
+      Sentry.captureMessage(`Web Push ${statusCode} error — possible VAPID/config issue`, {
+        level: "warning",
+        tags: { feature: "web-push", statusCode: String(statusCode) },
+      });
+      return { ok: false, reason: "transient" };
     }
     console.error("Web Push error:", err);
     return { ok: false, reason: "transient" };

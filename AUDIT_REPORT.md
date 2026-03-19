@@ -1,6 +1,6 @@
 # Suporte Bipolar — Relatório Completo para Auditoria GPT PRO
 
-> Atualizado em: 19/03/2026
+> Atualizado em: 19/03/2026 (R4 fixes applied)
 > Domínio: https://suportebipolar.com (produção) | https://redebipolar.com (legacy)
 
 ---
@@ -32,7 +32,7 @@
 | Zod | ^4.3.6 |
 | OpenAI SDK | ^5 (Responses API, Structured Outputs) |
 | web-push | ^3 (VAPID, Web Push API) |
-| Vitest | ^4.0.18 (1031 testes, 14 suites) |
+| Vitest | ^4.0.18 (1030 testes, 14 suites) |
 | Deploy | Vercel (auto-deploy on push to main) |
 | DNS/CDN | Cloudflare (proxy OFF, DNS only) |
 | Package Manager | pnpm |
@@ -390,7 +390,7 @@ Features calculadas server-side:
 ## 13. Testes
 
 - Framework: Vitest 4.0.18
-- **1031 testes em 14 suites** (0 falhas)
+- **1030 testes em 14 suites** (0 falhas)
 - `detectCrisis.test.ts`: 423 testes — SOS crisis detection (17 rounds of GPT Pro audit)
 - `webhook.test.ts`: 201 testes — WhatsApp HMAC-SHA256 verification, payload parsing, size limits
 - `generateNarrative.test.ts`: 127 testes — 17 forbidden clinical patterns, medication names, edge cases

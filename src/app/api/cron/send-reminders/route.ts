@@ -56,29 +56,44 @@ export async function GET(request: NextRequest) {
   );
 
   try {
-    // Current time in São Paulo (HH:MM)
+    // Current time in São Paulo — with 2-minute lookback window to catch
+    // delayed cron executions (Vercel can deliver up to ~1min late).
     const now = new Date();
 
-    // Idempotency: prevent duplicate sends if Vercel delivers the same cron event twice.
-    // Key uses SP date+time so dedup is aligned with the user-facing schedule.
-    const spDate = now.toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" }); // "2026-03-18"
+    const spDate = now.toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
     const spTime = now.toLocaleTimeString("pt-BR", {
       timeZone: "America/Sao_Paulo",
       hour: "2-digit",
       minute: "2-digit",
       hour12: false,
     }); // "14:30"
+
+    // Lookback: also check the previous minute to catch late deliveries
+    const oneMinAgo = new Date(now.getTime() - 60_000);
+    const spTimePrev = oneMinAgo.toLocaleTimeString("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+
+    // Idempotency: prevent duplicate sends per minute slot.
+    // Each minute slot gets its own dedupe key.
     const cronKey = `cron:reminders:${spDate}T${spTime}`;
     const isFirstExecution = await checkRateLimit(cronKey, 1, 60_000);
     if (!isFirstExecution) {
       return NextResponse.json({ ok: true, sent: 0, dedupe: true });
     }
 
-    // Find all users with push subscriptions AND matching reminder times
+    // Find all users with push subscriptions AND matching reminder times.
+    // Check both current minute and previous minute (lookback window).
     const reminderKeys = Object.keys(reminderMessages) as Array<keyof typeof reminderMessages>;
+    const timesToCheck = [spTime, ...(spTimePrev !== spTime ? [spTimePrev] : [])];
 
-    // Build OR conditions for each reminder field matching current time
-    const orConditions = reminderKeys.map((key) => ({ [key]: spTime }));
+    // Build OR conditions for each reminder field matching current or previous minute
+    const orConditions = timesToCheck.flatMap((time) =>
+      reminderKeys.map((key) => ({ [key]: time })),
+    );
 
     const matchingSettings = await prisma.reminderSettings.findMany({
       where: {
@@ -132,11 +147,11 @@ export async function GET(request: NextRequest) {
       const userSubs = subsByUser.get(settings.userId);
       if (!userSubs || userSubs.length === 0) continue;
 
-      // Determine which reminders fire now for this user
+      // Determine which reminders fire now for this user (current + lookback)
       const payloads: PushPayload[] = [];
       for (const key of reminderKeys) {
         const settingValue = settings[key as keyof typeof settings];
-        if (settingValue === spTime) {
+        if (timesToCheck.includes(settingValue as string)) {
           payloads.push(reminderMessages[key]);
         }
       }
@@ -157,7 +172,6 @@ export async function GET(request: NextRequest) {
     let sent = 0;
     let configErrorLogged = false;
     const expiredIds: string[] = [];
-    const invalidIds: string[] = [];
 
     // Send in concurrent batches of 10 to balance speed vs resource usage
     const BATCH_SIZE = 10;
@@ -179,31 +193,28 @@ export async function GET(request: NextRequest) {
         if (result.ok) {
           sent++;
         } else if (result.reason === "expired") {
+          // 404/410 = subscription genuinely gone — safe to delete
           expiredIds.push(task.subId);
-        } else if (result.reason === "invalid-endpoint" || result.reason === "invalid-key") {
-          // Legacy/corrupt data — quarantine and delete
-          invalidIds.push(task.subId);
+        } else if (result.reason === "invalid-endpoint") {
+          // Non-allowlisted legacy endpoint — safe to delete
+          expiredIds.push(task.subId);
         } else if (result.reason === "config" && !configErrorLogged) {
           Sentry.captureMessage("Web Push VAPID not configured — reminders cannot be sent", { level: "warning" });
           configErrorLogged = true;
         }
+        // "transient" (including 400/403) — do NOT delete, may be our config issue
       }
     }
 
-    // Clean up expired + invalid subscriptions
-    const toDelete = [...expiredIds, ...invalidIds];
-    if (toDelete.length > 0) {
+    // Clean up only confirmed-dead subscriptions (expired + invalid-endpoint)
+    if (expiredIds.length > 0) {
       await prisma.pushSubscription.deleteMany({
-        where: { id: { in: toDelete } },
+        where: { id: { in: expiredIds } },
       });
     }
 
-    if (invalidIds.length > 0) {
-      Sentry.captureMessage(`Cleaned ${invalidIds.length} legacy push subscriptions with non-allowlisted endpoints`, { level: "info" });
-    }
-
     Sentry.captureCheckIn({ checkInId, monitorSlug: "send-reminders", status: "ok" });
-    return NextResponse.json({ ok: true, sent, cleaned: toDelete.length });
+    return NextResponse.json({ ok: true, sent, cleaned: expiredIds.length });
   } catch (err) {
     Sentry.captureCheckIn({ checkInId, monitorSlug: "send-reminders", status: "error" });
     Sentry.captureException(err, { tags: { endpoint: "cron-send-reminders" } });

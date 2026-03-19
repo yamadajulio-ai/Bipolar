@@ -210,20 +210,20 @@ describe("sendPush", () => {
       expect(result).toEqual({ ok: false, reason: "expired" });
     });
 
-    it("returns invalid-key on 400 Bad Request", async () => {
+    it("returns transient on 400 Bad Request (possible VAPID config issue)", async () => {
       const { sendPush } = await loadModule();
       mockSendNotification.mockRejectedValueOnce({ statusCode: 400 });
 
       const result = await sendPush(validSub, payload);
-      expect(result).toEqual({ ok: false, reason: "invalid-key" });
+      expect(result).toEqual({ ok: false, reason: "transient" });
     });
 
-    it("returns invalid-key on 403 Forbidden", async () => {
+    it("returns transient on 403 Forbidden (possible VAPID config issue)", async () => {
       const { sendPush } = await loadModule();
       mockSendNotification.mockRejectedValueOnce({ statusCode: 403 });
 
       const result = await sendPush(validSub, payload);
-      expect(result).toEqual({ ok: false, reason: "invalid-key" });
+      expect(result).toEqual({ ok: false, reason: "transient" });
     });
 
     it("returns transient on 500 Server Error", async () => {

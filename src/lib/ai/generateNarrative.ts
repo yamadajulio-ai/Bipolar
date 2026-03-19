@@ -113,32 +113,72 @@ function containsForbiddenContent(text: string): boolean {
 
 function getSafeFallback(): NarrativeResult {
   return {
-    summary: "Não foi possível gerar o resumo neste momento. Consulte os dados numéricos nos cards acima e converse com seu profissional de saúde sobre as tendências observadas.",
-    highlights: ["Consulte os cards de insights para ver seus dados detalhados"],
+    summary: "Não foi possível gerar o resumo neste momento. Consulte os dados numéricos nos cards acima e converse com seu profissional de saúde sobre as tendências observadas.\n\nSeus registros continuam sendo salvos normalmente — tente gerar o resumo novamente mais tarde.",
+    highlights: [
+      "O resumo não pôde ser gerado neste momento",
+      "Seus dados estão seguros e disponíveis nos cards acima",
+      "Tente novamente em alguns minutos",
+    ],
     suggestions: ["Revise os dados numéricos dos insights acima", "Converse com seu profissional sobre as tendências"],
     generatedAt: new Date().toISOString(),
   };
 }
 
 /**
+ * Phrase bank for risk factors — maps upstream factor keys to pre-approved
+ * patient-safe descriptions. Any factor not in the bank is dropped (fail-closed).
+ * This prevents clinical language from leaking through risk.factors.
+ */
+const RISK_FACTOR_PHRASES: Record<string, string> = {
+  // Sleep
+  "sono_insuficiente": "duração do sono abaixo do esperado",
+  "sono_excessivo": "duração do sono acima do esperado",
+  "irregularidade_sono": "horários de sono muito irregulares",
+  "privacao_sono": "poucos registros de sono nos últimos dias",
+  "variabilidade_alta": "grande variação na duração do sono",
+  // Mood
+  "humor_baixo": "humor abaixo da média nos últimos dias",
+  "humor_elevado": "humor acima da média nos últimos dias",
+  "oscilacao_alta": "oscilação de humor acima do esperado",
+  "amplitude_extrema": "variações amplas de humor registradas",
+  // Medication
+  "adesao_baixa": "adesão ao tratamento abaixo do esperado",
+  // Risk
+  "risco_elevado": "indicadores gerais de atenção elevados",
+  "item9_positivo": "respostas que merecem atenção especial",
+  // Generic
+  "multiplos_indicadores": "múltiplos indicadores elevados",
+};
+
+/**
+ * Sanitize risk factors through phrase bank — only pre-approved text reaches the patient.
+ * Unknown factors are silently dropped (fail-closed, not fail-open).
+ */
+function sanitizeRiskFactors(factors: string[]): string {
+  const safe = factors
+    .map((f) => RISK_FACTOR_PHRASES[f])
+    .filter(Boolean);
+  return safe.length > 0 ? safe.join("; ") : "múltiplos indicadores elevados";
+}
+
+/**
  * High-risk template — bypasses LLM entirely when risk level is "atencao_alta".
  * Prevents hallucination on critical data and ensures deterministic safe output.
+ * All factor text passes through phrase bank — no raw upstream strings reach the patient.
  */
 function getHighRiskTemplate(data: Record<string, unknown>): NarrativeResult {
   const risk = data.risk as { score: number; factors: string[] } | null;
-  const factorsText = risk?.factors?.length
-    ? risk.factors.join("; ")
-    : "múltiplos indicadores elevados";
+  const factorsText = sanitizeRiskFactors(risk?.factors || []);
 
   return {
-    summary: `Seus dados dos últimos 30 dias apresentam indicadores que merecem atenção especial. Os fatores identificados incluem: ${factorsText}. É importante que você converse com seu profissional de saúde sobre essas tendências o mais breve possível.\n\nLembre-se: esses dados são ferramentas de acompanhamento e não substituem a avaliação clínica. Seu profissional poderá interpretar esses padrões dentro do contexto completo da sua saúde.`,
+    summary: `Seus dados dos últimos 30 dias apresentam indicadores que merecem atenção especial. Os fatores identificados incluem: ${factorsText}. Pode ser interessante compartilhar esses dados com seu profissional de referência.\n\nLembre-se: esses dados são ferramentas de acompanhamento e não substituem a avaliação clínica. Seu profissional poderá interpretar esses padrões dentro do contexto completo da sua saúde.`,
     highlights: [
       "Seus indicadores merecem atenção — converse com seu profissional",
       `Fatores identificados: ${factorsText}`,
       "Os dados numéricos nos cards acima trazem mais detalhes",
     ],
     suggestions: [
-      "Entre em contato com seu profissional de saúde para discutir essas tendências",
+      "Compartilhe esses dados com seu profissional de saúde na próxima consulta",
       "Continue registrando seus dados diariamente — isso ajuda no acompanhamento",
     ],
     generatedAt: new Date().toISOString(),

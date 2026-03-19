@@ -278,31 +278,6 @@ describe("GET /api/cron/send-reminders", () => {
     const res = await GET(makeRequest("Bearer test-cron-secret"));
     const body = await res.json();
     expect(body.cleaned).toBe(1);
-    expect(mockCaptureMessage).toHaveBeenCalledWith(
-      expect.stringContaining("legacy push subscriptions"),
-      expect.anything(),
-    );
-  });
-
-  it("deletes invalid-key subscriptions", async () => {
-    const spTime = new Date().toLocaleTimeString("pt-BR", {
-      timeZone: "America/Sao_Paulo",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
-
-    mockFindManySettings.mockResolvedValue([
-      { userId: "u1", wakeReminder: spTime, sleepReminder: null, diaryReminder: null, breathingReminder: null },
-    ]);
-    mockFindManySubs.mockResolvedValue([
-      { id: "sub-1", userId: "u1", endpoint: "https://fcm.googleapis.com/push", p256dh: "k1", auth: "a1" },
-    ]);
-    mockSendPush.mockResolvedValue({ ok: false, reason: "invalid-key" });
-
-    const res = await GET(makeRequest("Bearer test-cron-secret"));
-    const body = await res.json();
-    expect(body.cleaned).toBe(1);
   });
 
   // ── VAPID not configured ──────────────────────────────────────────────

@@ -538,6 +538,7 @@ model PushSubscription {
   user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, endpoint])
+  @@unique([endpoint])        // Global: one endpoint → one user (DB-enforced)
   @@index([userId])
 }
 

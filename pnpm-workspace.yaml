@@ -1,3 +1,4 @@
-ignoredBuiltDependencies:
+onlyBuiltDependencies:
+  - argon2
   - sharp
   - unrs-resolver

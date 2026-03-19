@@ -1,9 +1,10 @@
-import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
+import * as Sentry from "@sentry/nextjs";
 import { z } from "zod/v4";
 import type { InsightsResult } from "@/lib/insights/computeInsights";
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 export interface NarrativeResult {
@@ -20,36 +21,42 @@ const narrativeSchema = z.object({
 });
 
 /**
- * Tool definition for Anthropic structured output.
- * Using tool_use with forced tool_choice guarantees schema conformance
- * without relying on prompt + parse heuristics.
+ * JSON Schema for OpenAI native Structured Outputs.
+ * `response_format: { type: "json_schema" }` with `strict: true` guarantees
+ * 100% schema conformance at the API level — no parse heuristics needed.
  */
-const NARRATIVE_TOOL: Anthropic.Messages.Tool = {
-  name: "generate_narrative",
-  description: "Output the structured narrative for the patient's monitoring data.",
-  input_schema: {
+const NARRATIVE_JSON_SCHEMA = {
+  name: "narrative",
+  strict: true,
+  schema: {
     type: "object" as const,
     properties: {
       summary: {
-        type: "string",
-        description: "2-3 paragraph narrative in pt-BR interpreting the data",
+        type: "string" as const,
+        description: "2-3 paragraph narrative in pt-BR interpreting the patient's monitoring data",
       },
       highlights: {
-        type: "array",
-        items: { type: "string" },
+        type: "array" as const,
+        items: { type: "string" as const },
         description: "3-5 key takeaways as bullet points",
       },
       suggestions: {
-        type: "array",
-        items: { type: "string" },
+        type: "array" as const,
+        items: { type: "string" as const },
         description: "2-3 actionable suggestions for the patient",
       },
     },
-    required: ["summary", "highlights", "suggestions"],
+    required: ["summary", "highlights", "suggestions"] as const,
+    additionalProperties: false as const,
   },
 };
 
-/** Phrases that violate clinical guardrails — if present, fall back. */
+/**
+ * Phrases that violate clinical guardrails — if present, fall back.
+ * Strategy: ban ALL clinical condition/episode/disorder names, even in tentative
+ * phrasing like "sugere depressão" or "indícios de mania". The narrative should
+ * describe DATA patterns (e.g. "humor abaixo da média"), never name conditions.
+ */
 const FORBIDDEN_PATTERNS = [
   /\bdiagn[oó]stic/i,
   /\bajust(?:e|ar|ando)\s+(?:a\s+)?medica[çc][ãa]o/i,
@@ -67,8 +74,13 @@ const FORBIDDEN_PATTERNS = [
   // Prescriptive language disguised as observation
   /\bvoc[êe]\s+(?:deve|precisa|deveria)\s+(?:procurar|buscar|ir)\s+(?:um|ao)\s+(?:m[ée]dic|psiqui)/i,
   /\b(?:claramente|evidentemente|obviamente)\s+(?:um|uma)\s+(?:epis[oó]dio|crise|fase)\b/i,
-  // Explicit medication names — generic and common brand names (should never appear in narrative)
+  // Explicit medication names — generic and common brand names
   /\b(?:l[ií]tio|carbolitium|carbamazepina|tegretol|valproato|depakote|depakene|lamotrigina|lamictal|quetiapina|seroquel|olanzapina|zyprexa|risperidona|risperdal|aripiprazol|abilify|clozapina|clozaril|haloperidol|haldol|topiramato|topamax)\b/i,
+  // BAN condition/episode/disorder names outright — even in tentative phrasing.
+  // The narrative must describe data patterns, never name clinical conditions.
+  // This catches "sugere depressão", "indícios de mania", "possível hipomania", etc.
+  /\b(?:depress[ãa]o|mania|hipomania|man[ií]ac[oa]|hipoman[ií]ac[oa]|ciclotimia|distimia|psicose|psic[oó]tic[oa])\b/i,
+  /\b(?:epis[oó]dio|transtorno|s[ií]ndrome)\s+(?:bipolar|depressiv[oa]|man[ií]ac[oa]|mist[oa]|afetiv[oa])\b/i,
 ];
 
 function containsForbiddenContent(text: string): boolean {
@@ -78,7 +90,7 @@ function containsForbiddenContent(text: string): boolean {
 function getSafeFallback(): NarrativeResult {
   return {
     summary: "Não foi possível gerar o resumo neste momento. Consulte os dados numéricos nos cards acima e converse com seu profissional de saúde sobre as tendências observadas.",
-    highlights: [],
+    highlights: ["Consulte os cards de insights para ver seus dados detalhados"],
     suggestions: ["Revise os dados numéricos dos insights acima", "Converse com seu profissional sobre as tendências"],
     generatedAt: new Date().toISOString(),
   };
@@ -169,7 +181,7 @@ export async function generateNarrative(
   const systemPrompt = `Você é um assistente de saúde mental especializado em transtorno bipolar, integrado ao app "Suporte Bipolar". Seu papel é interpretar dados de monitoramento do paciente e gerar uma narrativa empática, clara e clinicamente informada em português brasileiro.
 
 REGRAS OBRIGATÓRIAS:
-1. NUNCA faça diagnósticos. Use linguagem como "os dados sugerem", "pode indicar", "é possível que".
+1. NUNCA faça diagnósticos, nem tentativos. NUNCA nomeie condições clínicas (depressão, mania, hipomania, ciclotimia, episódio depressivo, etc.). Descreva APENAS padrões dos dados: "humor abaixo da média", "energia elevada nos últimos dias", "variação acentuada".
 2. SEMPRE reforce que a interpretação clínica deve ser feita pelo profissional de saúde.
 3. Use linguagem acolhedora e não-alarmista, mesmo para dados preocupantes.
 4. Seja específico: cite números e tendências dos dados fornecidos.
@@ -178,44 +190,66 @@ REGRAS OBRIGATÓRIAS:
 7. Respostas SEMPRE em pt-BR.
 8. NUNCA infira causalidade clínica de uma correlação estatística.
 9. NUNCA sugira ajuste de medicação ou comportamento como se fosse recomendação clínica.
-
-Responda APENAS com JSON válido no formato:
-{"summary": "string", "highlights": ["string"], "suggestions": ["string"]}`;
+10. NUNCA mencione nomes de medicamentos.
+11. O público é leigo — evite siglas médicas sem explicação.
+12. Termine sempre com uma frase de acolhimento e reforço de que o acompanhamento profissional é essencial.`;
 
   const userPrompt = `Analise os seguintes dados de monitoramento dos últimos 30 dias e gere uma narrativa interpretativa para o paciente:\n\n${JSON.stringify(data, null, 2)}`;
 
   try {
-    // Use tool_use with forced tool_choice for guaranteed schema conformance.
-    // This eliminates prompt+parse heuristics (no regex/brace extraction needed).
-    const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
+    // GPT-5.2 with native Structured Outputs — guarantees 100% schema conformance at API level.
+    // HealthBench 63.3%, 1.6% hallucination rate on hard medical cases.
+    const response = await openai.chat.completions.create({
+      model: "gpt-5.2",
       max_tokens: 1024,
-      system: systemPrompt,
-      tools: [NARRATIVE_TOOL],
-      tool_choice: { type: "tool", name: "generate_narrative" },
-      messages: [{ role: "user", content: userPrompt }],
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      response_format: {
+        type: "json_schema",
+        json_schema: NARRATIVE_JSON_SCHEMA,
+      },
     });
 
-    // Extract tool_use block (guaranteed by tool_choice)
-    const toolBlock = response.content.find(
-      (block): block is Anthropic.Messages.ToolUseBlock => block.type === "tool_use",
-    );
-    if (!toolBlock) return getSafeFallback();
+    const content = response.choices[0]?.message?.content;
+    if (!content) return getSafeFallback();
 
-    // Validate with Zod (defense-in-depth even with structured output)
-    const parsed = narrativeSchema.safeParse(toolBlock.input);
-    if (!parsed.success) return getSafeFallback();
+    // Guard: reject oversized responses (>10KB)
+    if (content.length > 10_000) {
+      Sentry.captureMessage("AI narrative response exceeded 10KB", { level: "warning", tags: { feature: "ai-narrative", reason: "oversized" } });
+      return getSafeFallback();
+    }
+
+    // Parse JSON — guaranteed valid by Structured Outputs, but defense-in-depth
+    let raw: unknown;
+    try {
+      raw = JSON.parse(content);
+    } catch {
+      Sentry.captureMessage("AI narrative JSON parse failed", { level: "warning", tags: { feature: "ai-narrative", reason: "json-parse" } });
+      return getSafeFallback();
+    }
+
+    // Validate with Zod (defense-in-depth)
+    const parsed = narrativeSchema.safeParse(raw);
+    if (!parsed.success) {
+      Sentry.captureMessage("AI narrative Zod validation failed", { level: "warning", tags: { feature: "ai-narrative", reason: "zod-validation" } });
+      return getSafeFallback();
+    }
 
     const { summary, highlights, suggestions } = parsed.data;
 
-    if (!summary && highlights.length === 0) return getSafeFallback();
-
-    // Guard: reject oversized responses (>10KB combined)
-    const allText = [summary, ...highlights, ...suggestions].join(" ");
-    if (allText.length > 10_000) return getSafeFallback();
+    if (!summary && highlights.length === 0) {
+      Sentry.captureMessage("AI narrative returned empty content", { level: "warning", tags: { feature: "ai-narrative", reason: "empty-content" } });
+      return getSafeFallback();
+    }
 
     // Check for forbidden clinical content
-    if (containsForbiddenContent(allText)) return getSafeFallback();
+    const allText = [summary, ...highlights, ...suggestions].join(" ");
+    if (containsForbiddenContent(allText)) {
+      Sentry.captureMessage("AI narrative contained forbidden clinical content", { level: "warning", tags: { feature: "ai-narrative", reason: "forbidden-content" } });
+      return getSafeFallback();
+    }
 
     return {
       summary,
@@ -223,7 +257,11 @@ Responda APENAS com JSON válido no formato:
       suggestions,
       generatedAt: new Date().toISOString(),
     };
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, {
+      tags: { feature: "ai-narrative" },
+      extra: { note: "Returned safe fallback — check if model is failing" },
+    });
     return getSafeFallback();
   }
 }

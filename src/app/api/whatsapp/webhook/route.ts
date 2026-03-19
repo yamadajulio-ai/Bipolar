@@ -77,31 +77,32 @@ export async function POST(request: NextRequest) {
   try {
     const body = JSON.parse(rawBody);
 
-    // WhatsApp sends nested structure
-    const entry = body.entry?.[0];
-    const changes = entry?.changes?.[0];
-    const value = changes?.value;
+    // WhatsApp may send multiple entries/changes — process all of them
+    const entries = Array.isArray(body.entry) ? body.entry : [];
 
-    if (!value?.messages) {
-      // Status update or other non-message event
-      return NextResponse.json({ ok: true });
-    }
+    for (const entry of entries) {
+      const changes = Array.isArray(entry.changes) ? entry.changes : [];
+      for (const change of changes) {
+        const value = change?.value;
+        if (!value?.messages) continue;
 
-    for (const message of value.messages) {
-      const from = message.from; // sender phone number
-      const text = message.text?.body?.trim().toLowerCase();
+        for (const message of value.messages) {
+          const from = message.from; // sender phone number
+          const text = message.text?.body?.trim().toLowerCase();
 
-      if (!text || !from) continue;
+          if (!text || !from) continue;
 
-      // Log masked phone only (last 4 digits) — never full number
-      const maskedPhone = from.length > 4
-        ? "*".repeat(from.length - 4) + from.slice(-4)
-        : "****";
-      console.log(`[WhatsApp] Message received from ${maskedPhone}`);
+          // Log masked phone only (last 4 digits) — never full number
+          const maskedPhone = from.length > 4
+            ? "*".repeat(from.length - 4) + from.slice(-4)
+            : "****";
+          console.log(`[WhatsApp] Message received from ${maskedPhone}`);
 
-      // Simple keyword-based responses for pilot
-      // TODO: Expand with proper NLU or structured menus
-      // Full check-in flow will be implemented when Meta Business is set up
+          // Simple keyword-based responses for pilot
+          // TODO: Expand with proper NLU or structured menus
+          // Full check-in flow will be implemented when Meta Business is set up
+        }
+      }
     }
 
     return NextResponse.json({ ok: true });

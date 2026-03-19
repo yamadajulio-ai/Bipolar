@@ -14,8 +14,11 @@ export function NarrativeSection() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(true);
+  const [retryCount, setRetryCount] = useState(0);
+  const [retryCooldown, setRetryCooldown] = useState(false);
 
   async function generate() {
+    if (retryCooldown) return;
     setLoading(true);
     setError(null);
 
@@ -29,6 +32,11 @@ export function NarrativeSection() {
       setNarrative(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro desconhecido");
+      // Exponential backoff: 5s, 10s, 20s, 30s max
+      const delay = Math.min(5000 * Math.pow(2, retryCount), 30_000);
+      setRetryCount((c) => c + 1);
+      setRetryCooldown(true);
+      setTimeout(() => setRetryCooldown(false), delay);
     } finally {
       setLoading(false);
     }
@@ -42,7 +50,10 @@ export function NarrativeSection() {
           Resumo inteligente
         </p>
         <p className="mb-4 text-xs text-muted">
-          A IA analisa seus dados e gera uma interpretação personalizada dos seus padrões.
+          A IA analisa seus dados de sono, humor e ritmos dos últimos 30 dias para gerar uma
+          interpretação personalizada. Ao clicar, esses dados são enviados de forma segura à
+          Anthropic (Claude) exclusivamente para gerar este resumo — a Anthropic não usa dados
+          da API para treinar modelos. Nenhum dado é armazenado fora do app.
         </p>
         <button
           onClick={generate}
@@ -76,9 +87,10 @@ export function NarrativeSection() {
         <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
         <button
           onClick={generate}
-          className="mt-2 text-xs text-primary underline"
+          disabled={retryCooldown}
+          className="mt-2 text-xs text-primary underline disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Tentar novamente
+          {retryCooldown ? "Aguarde antes de tentar novamente..." : "Tentar novamente"}
         </button>
       </div>
     );

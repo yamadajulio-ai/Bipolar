@@ -33,6 +33,13 @@ export async function sendPush(
   payload: PushPayload,
 ): Promise<PushResult> {
   if (!ensureVapid()) {
+    console.error("Web Push: VAPID not configured — check NEXT_PUBLIC_VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY");
+    return { ok: false, reason: "config" };
+  }
+  // Reject non-HTTPS endpoints (push protocol requires TLS)
+  // Host validation is done at subscription time; here we only guard protocol
+  // in case sendPush is called with a subscription from DB migration/legacy data.
+  if (!subscription.endpoint.startsWith("https://")) {
     return { ok: false, reason: "config" };
   }
   try {

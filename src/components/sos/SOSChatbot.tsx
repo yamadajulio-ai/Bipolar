@@ -97,6 +97,7 @@ export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
   const abortRef = useRef<AbortController | null>(null);
   const sessionStartRef = useRef(Date.now());
   const lastSpokenIndexRef = useRef(-1);
+  const [elapsedMin, setElapsedMin] = useState(0);
 
   // Auto-scroll
   useEffect(() => {
@@ -120,14 +121,22 @@ export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
     };
   }, []);
 
+  // Elapsed session timer (updates every 60s)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setElapsedMin(Math.floor((Date.now() - sessionStartRef.current) / 60000));
+    }, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
   // Load voices (needed for some browsers)
   useEffect(() => {
     if (hasTTS()) {
       window.speechSynthesis.getVoices();
       const handler = () => window.speechSynthesis.getVoices();
-      window.speechSynthesis.onvoiceschanged = handler;
+      window.speechSynthesis.addEventListener("voiceschanged", handler);
       return () => {
-        window.speechSynthesis.onvoiceschanged = null;
+        window.speechSynthesis.removeEventListener("voiceschanged", handler);
       };
     }
   }, []);
@@ -259,6 +268,7 @@ export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
       const decoder = new TextDecoder();
       let assistantText = "";
       let buffer = "";
+      let streamDone = false;
 
       setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
 
@@ -275,7 +285,7 @@ export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
         for (const line of lines) {
           if (!line.startsWith("data: ")) continue;
           const data = line.slice(6).trim();
-          if (data === "[DONE]") break;
+          if (data === "[DONE]") { streamDone = true; break; }
 
           try {
             const parsed = JSON.parse(data);
@@ -292,6 +302,7 @@ export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
             // Incomplete JSON chunk — will be completed when next chunk arrives
           }
         }
+        if (streamDone) break;
       }
 
       // Process any remaining data in the buffer after stream ends
@@ -533,8 +544,6 @@ export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
     setTtsEnabled(!ttsEnabled);
   }
 
-  const elapsedMin = Math.floor((Date.now() - sessionStartRef.current) / 60000);
-
   return (
     <div
       className="mx-auto flex max-w-lg flex-col rounded-2xl bg-gray-900 text-white"
@@ -608,7 +617,7 @@ export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
       {/* Hands-free mode indicator */}
       {handsFree && (
         <div className="bg-green-900/40 px-4 py-2 text-center text-xs text-green-300">
-          Modo voz ativo — fale naturalmente, o app ouve e responde em voz alta
+          Modo voz (experimental) — fale naturalmente, o app ouve e responde em voz alta
           {listening && <span className="ml-2 animate-pulse text-green-200">Ouvindo...</span>}
           {speaking && <span className="ml-2 text-blue-300">Falando...</span>}
         </div>
@@ -635,7 +644,7 @@ export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
             </div>
 
             <p className="text-gray-400 text-xs">
-              Pode digitar, usar o microfone, ou ativar o <strong>modo voz</strong> para conversar sem as mãos.
+              Pode digitar, usar o microfone, ou ativar o <strong>modo voz</strong> (experimental) para conversar sem as mãos.
             </p>
             <div className="flex flex-wrap justify-center gap-2 mt-2">
               {[

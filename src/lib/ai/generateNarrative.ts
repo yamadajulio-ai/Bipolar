@@ -63,18 +63,18 @@ const NARRATIVE_JSON_SCHEMA = {
  */
 const FORBIDDEN_PATTERNS = [
   /\bdiagn[oó]stic/i,
-  /\bajust(?:e|ar|ando)\s+(?:a\s+)?medica[çc][ãa]o/i,
+  /\bajust(?:e|ar|ando)\s+(?:(?:a|de)\s+)?medica[çc][ãa]o/i,
   /\bvoc[êe]\s+(?:tem|possui|sofre\s+de)\s+/i,
   /\bcausa(?:do|da|r)\s+(?:por|pelo|pela)\b/i,
   /\brecomend(?:o|amos)\s+(?:que\s+)?(?:par|tom|aument|diminu)/i,
   // Indirect diagnostic phrasing
-  /\bsinais?\s+compat[ií]ve(?:l|is)\s+com\b/i,
+  /\bsina(?:l|is)\s+compat[ií]ve(?:l|is)\s+com\b/i,
   /\bpadr[ãa]o\s+sugestivo\s+de\b/i,
   /\bquadro\s+(?:cl[ií]nico\s+)?(?:compat[ií]vel|indicativo|sugestivo)\b/i,
   /\bcaracter[ií]stic(?:o|a)s?\s+de\s+(?:um|uma)?\s*(?:epis[oó]dio|transtorno|fase)\b/i,
   /\bperfil\s+(?:cl[ií]nico|compat[ií]vel)\b/i,
   /\bconfirma(?:r|ndo|[çc][ãa]o)\s+(?:de\s+)?(?:diagn[oó]stic|transtorno|epis[oó]dio)\b/i,
-  /\b(?:interromp|suspend|retir)(?:a|e|ir|er)\s+(?:a\s+)?medica[çc][ãa]o\b/i,
+  /\b(?:interromp|suspend|retir)(?:a|e|ar|ir|er)\s+(?:a\s+)?medica[çc][ãa]o\b/i,
   // Prescriptive language disguised as observation
   /\bvoc[êe]\s+(?:deve|precisa|deveria)\s+(?:procurar|buscar|ir)\s+(?:um|ao)\s+(?:m[ée]dic|psiqui)/i,
   /\b(?:claramente|evidentemente|obviamente)\s+(?:um|uma)\s+(?:epis[oó]dio|crise|fase)\b/i,

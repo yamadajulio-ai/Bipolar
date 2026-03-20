@@ -232,6 +232,28 @@ export interface InsightsResult {
   seasonality: SeasonalityAnalysis | null;
   /** P2: Calendar heatmap data (last 90 days) */
   heatmap: HeatmapDay[];
+  /** Personal stability score (0-100) — composite of sleep, rhythm, mood, medication */
+  stability: StabilityScore | null;
+}
+
+export interface StabilityScore {
+  /** Composite score 0-100 (higher = more stable) */
+  score: number;
+  /** Qualitative level */
+  level: "instavel" | "variavel" | "moderado" | "estavel" | "muito_estavel";
+  /** Human-readable label */
+  label: string;
+  /** Component scores for breakdown display */
+  components: {
+    sleepRegularity: number | null;    // 0-100
+    rhythmRegularity: number | null;   // 0-100
+    medicationAdherence: number | null; // 0-100
+    moodStability: number | null;      // 0-100
+    riskInverse: number | null;        // 0-100
+  };
+  /** Minimum days of data needed vs available */
+  dataAvailable: number;
+  dataMinimum: number;
 }
 
 // ── Helpers ─────────────────────────────────────────────────
@@ -1813,6 +1835,95 @@ function computeHeatmapData(
   return days;
 }
 
+// ── Stability Score ─────────────────────────────────────────
+
+const STABILITY_WEIGHTS = {
+  sleepRegularity: 0.25,
+  rhythmRegularity: 0.20,
+  medicationAdherence: 0.20,
+  moodStability: 0.20,
+  riskInverse: 0.15,
+};
+
+const STABILITY_MIN_DAYS = 5;
+
+function computeStabilityScore(
+  sleep: SleepInsights,
+  mood: MoodInsights,
+  rhythm: RhythmInsights,
+  risk: RiskScore | null,
+  entries: DiaryEntryInput[],
+): StabilityScore | null {
+  const dataAvailable = Math.max(sleep.recordCount, entries.length);
+  if (dataAvailable < STABILITY_MIN_DAYS) return null;
+
+  // 1. Sleep regularity: bedtimeVariance ≤ 30min = 100, ≥ 120min = 0
+  let sleepReg: number | null = null;
+  if (sleep.bedtimeVariance != null) {
+    sleepReg = Math.max(0, Math.min(100, 100 - ((sleep.bedtimeVariance - 30) / 90) * 100));
+  }
+
+  // 2. Rhythm regularity: already 0-100
+  const rhythmReg = rhythm.overallRegularity;
+
+  // 3. Medication adherence: already 0-100
+  const medAdherence = mood.medicationAdherence;
+
+  // 4. Mood stability: inverse of amplitude (0-4 range → 0-100)
+  let moodStab: number | null = null;
+  if (mood.moodAmplitude != null) {
+    moodStab = Math.max(0, Math.min(100, (1 - mood.moodAmplitude / 4) * 100));
+  }
+
+  // 5. Risk inverse: risk score 0-100 → inverse
+  let riskInv: number | null = null;
+  if (risk) {
+    riskInv = Math.max(0, 100 - risk.score);
+  }
+
+  // Compute weighted average (skip null components, redistribute weights)
+  const components = [
+    { value: sleepReg, weight: STABILITY_WEIGHTS.sleepRegularity },
+    { value: rhythmReg, weight: STABILITY_WEIGHTS.rhythmRegularity },
+    { value: medAdherence, weight: STABILITY_WEIGHTS.medicationAdherence },
+    { value: moodStab, weight: STABILITY_WEIGHTS.moodStability },
+    { value: riskInv, weight: STABILITY_WEIGHTS.riskInverse },
+  ];
+
+  const available = components.filter((c) => c.value != null);
+  if (available.length === 0) return null;
+
+  const totalWeight = available.reduce((sum, c) => sum + c.weight, 0);
+  const score = Math.round(
+    available.reduce((sum, c) => sum + (c.value! * c.weight) / totalWeight, 0),
+  );
+
+  const clampedScore = Math.max(0, Math.min(100, score));
+
+  let level: StabilityScore["level"];
+  let label: string;
+  if (clampedScore >= 85) { level = "muito_estavel"; label = "Muito estável"; }
+  else if (clampedScore >= 70) { level = "estavel"; label = "Estável"; }
+  else if (clampedScore >= 50) { level = "moderado"; label = "Moderado"; }
+  else if (clampedScore >= 30) { level = "variavel"; label = "Variável"; }
+  else { level = "instavel"; label = "Instável"; }
+
+  return {
+    score: clampedScore,
+    level,
+    label,
+    components: {
+      sleepRegularity: sleepReg != null ? Math.round(sleepReg) : null,
+      rhythmRegularity: rhythmReg != null ? Math.round(rhythmReg) : null,
+      medicationAdherence: medAdherence != null ? Math.round(medAdherence) : null,
+      moodStability: moodStab != null ? Math.round(moodStab) : null,
+      riskInverse: riskInv != null ? Math.round(riskInv) : null,
+    },
+    dataAvailable,
+    dataMinimum: STABILITY_MIN_DAYS,
+  };
+}
+
 // ── Main Export ─────────────────────────────────────────────
 
 export function computeInsights(
@@ -1845,8 +1956,10 @@ export function computeInsights(
   const seasonality = computeSeasonalityAnalysis(extEntries);
   const heatmap = computeHeatmapData(extEntries, extSleep, today, tz);
 
+  const stability = computeStabilityScore(sleep, mood, rhythm, risk, entries);
+
   return {
     sleep, mood, rhythm, chart, combinedPatterns, risk, thermometer,
-    prediction, cycling, seasonality, heatmap,
+    prediction, cycling, seasonality, heatmap, stability,
   };
 }

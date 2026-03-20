@@ -11,6 +11,7 @@ import { AchievementGrid } from "@/components/AchievementGrid";
 import { computeInsights } from "@/lib/insights/computeInsights";
 import type { PlannerBlockInput } from "@/lib/insights/computeInsights";
 import { SafetyNudge } from "@/components/insights/SafetyNudge";
+import { StabilityScoreWidget } from "@/components/dashboard/StabilityScoreWidget";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -556,6 +557,20 @@ export default async function HojePage() {
           )}
           <p className="mt-1.5 text-[10px] text-muted italic">
             Sinal complementar · Não é diagnóstico e pode ter várias explicações
+          </p>
+        </Card>
+      )}
+
+      {/* === 1.5 SCORE DE ESTABILIDADE === */}
+      {insights.stability && (
+        <Card>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-foreground">Score de Estabilidade</h2>
+            <Link href="/insights" className="text-xs text-primary hover:underline">Detalhes</Link>
+          </div>
+          <StabilityScoreWidget stability={insights.stability} />
+          <p className="mt-2 text-[10px] text-muted italic">
+            Baseado nos seus últimos 30 dias · Não é diagnóstico
           </p>
         </Card>
       )}

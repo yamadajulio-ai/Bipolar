@@ -4,10 +4,18 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import type { NarrativeResultV2, NarrativeSectionKey } from "@/lib/ai/narrative-types";
 import { NARRATIVE_SECTION_KEYS, SECTION_LABELS, SECTION_ICONS } from "@/lib/ai/narrative-types";
 
+interface EvidenceChip {
+  text: string;
+  domain: string;
+  kind: string;
+  confidence: string;
+}
+
 interface NarrativeResponse {
   cached: boolean;
   narrativeId?: string;
   narrative?: NarrativeResultV2;
+  evidenceMap?: Record<string, EvidenceChip>;
   shareWithProfessional?: boolean;
   createdAt?: string;
 }
@@ -262,6 +270,33 @@ export function NarrativeSection() {
                             {section.metrics.map((m, i) => (
                               <span key={i} className="rounded-md bg-primary/5 px-2 py-1 text-xs text-foreground/80">{m}</span>
                             ))}
+                          </div>
+                        )}
+
+                        {/* Evidence chips — data points that informed this section */}
+                        {data?.evidenceMap && section.evidenceIds && section.evidenceIds.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {section.evidenceIds
+                              .map((eid) => data.evidenceMap?.[eid])
+                              .filter((ev): ev is EvidenceChip => !!ev)
+                              .map((ev, i) => (
+                                <span
+                                  key={i}
+                                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] border ${
+                                    ev.kind === "alert"
+                                      ? "bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-950 dark:border-amber-800 dark:text-amber-300"
+                                      : ev.kind === "comparison"
+                                      ? "bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-950 dark:border-blue-800 dark:text-blue-300"
+                                      : "bg-surface-alt border-border/50 text-foreground/60"
+                                  }`}
+                                  title={`Confiança: ${ev.confidence === "high" ? "alta" : ev.confidence === "medium" ? "média" : "baixa"}`}
+                                >
+                                  <span className={`inline-block h-1 w-1 rounded-full ${
+                                    ev.confidence === "high" ? "bg-emerald-400" : ev.confidence === "medium" ? "bg-amber-400" : "bg-gray-300"
+                                  }`} />
+                                  {ev.text}
+                                </span>
+                              ))}
                           </div>
                         )}
 

@@ -32,10 +32,15 @@ export async function GET(_request: NextRequest) {
     return NextResponse.json({ cached: false }, { headers: { "Cache-Control": "no-store" } });
   }
 
+  // Extract evidence map from stored output (embedded at save time)
+  const outputJson = latest.outputJson as Record<string, unknown>;
+  const storedEvidenceMap = outputJson?._evidenceMap ?? {};
+
   return NextResponse.json({
     cached: true,
     narrativeId: latest.id,
     narrative: latest.outputJson,
+    evidenceMap: storedEvidenceMap,
     sourceFingerprint: latest.sourceFingerprint,
     shareWithProfessional: latest.shareWithProfessional,
     createdAt: latest.createdAt.toISOString(),
@@ -151,11 +156,20 @@ export async function POST(_request: NextRequest) {
       select: { id: true, outputJson: true, createdAt: true, shareWithProfessional: true },
     });
 
+    // Build evidence map for explainability chips
+    const evidenceMap: Record<string, { text: string; domain: string; kind: string; confidence: string }> = {};
+    for (const packet of Object.values(input.sections)) {
+      for (const ev of packet.evidence) {
+        evidenceMap[ev.id] = { text: ev.text, domain: ev.domain, kind: ev.kind, confidence: ev.confidence };
+      }
+    }
+
     if (cachedNarrative) {
       return NextResponse.json({
         cached: true,
         narrativeId: cachedNarrative.id,
         narrative: cachedNarrative.outputJson,
+        evidenceMap,
         shareWithProfessional: cachedNarrative.shareWithProfessional,
         createdAt: cachedNarrative.createdAt.toISOString(),
       }, { headers: { "Cache-Control": "no-store" } });
@@ -205,7 +219,7 @@ export async function POST(_request: NextRequest) {
         analyticsVersion: persistence.analyticsVersion,
         guardrailVersion: persistence.guardrailVersion,
         sourceFingerprint: persistence.sourceFingerprint,
-        outputJson: JSON.parse(JSON.stringify(narrative)),
+        outputJson: JSON.parse(JSON.stringify({ ...narrative, _evidenceMap: evidenceMap })),
         shareWithProfessional: narrative.actions.shareWithProfessional,
         bypassLlm: persistence.bypassLlm,
         bypassReason: persistence.bypassReason,
@@ -226,6 +240,7 @@ export async function POST(_request: NextRequest) {
       cached: false,
       narrativeId: saved.id,
       narrative,
+      evidenceMap,
       shareWithProfessional: narrative.actions.shareWithProfessional,
       createdAt: new Date().toISOString(),
     }, { headers: { "Cache-Control": "no-store" } });

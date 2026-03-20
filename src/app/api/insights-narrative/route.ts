@@ -308,11 +308,14 @@ export async function POST(request: NextRequest) {
     }, { headers: { "Cache-Control": "no-store" } });
   } catch (err) {
     Sentry.captureException(err, { tags: { endpoint: "insights-narrative-v2" } });
+    const errMsg = err instanceof Error ? err.message : "Unknown error";
+    const errStack = err instanceof Error ? err.stack?.slice(0, 500) : undefined;
     console.error(JSON.stringify({
       event: "insights_narrative_v2_error",
       errorType: err instanceof Error ? err.constructor.name : "Unknown",
-      message: err instanceof Error ? err.message.slice(0, 100) : "Unknown error",
+      message: errMsg.slice(0, 200),
+      stack: errStack,
     }));
-    return NextResponse.json({ error: "Erro ao gerar resumo" }, { status: 500 });
+    return NextResponse.json({ error: `Erro ao gerar resumo: ${errMsg.slice(0, 100)}` }, { status: 500 });
   }
 }

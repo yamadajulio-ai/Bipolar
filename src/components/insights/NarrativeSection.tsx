@@ -89,8 +89,16 @@ export function NarrativeSection() {
         signal: abortRef.current.signal,
       });
       if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || "Erro ao gerar narrativa");
+        const text = await res.text().catch(() => "");
+        let errorMsg = "Erro ao gerar narrativa";
+        try {
+          const body = JSON.parse(text);
+          if (body.error) errorMsg = body.error;
+        } catch {
+          // Response is not JSON (possibly Cloudflare WAF page)
+          errorMsg = `Erro ${res.status}: ${res.statusText || "resposta inesperada"}`;
+        }
+        throw new Error(errorMsg);
       }
       const json: NarrativeResponse = await res.json();
       setData(json);

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod/v4";
 import { prisma } from "@/lib/db";
 import { getSession, verifyPassword } from "@/lib/auth";
-import { checkRateLimit } from "@/lib/security";
+import { checkRateLimit, getClientIp } from "@/lib/security";
 import * as Sentry from "@sentry/nextjs";
 
 const loginSchema = z.object({
@@ -12,7 +12,7 @@ const loginSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const ip = request.headers.get("x-forwarded-for") || "unknown";
+    const ip = getClientIp(request);
 
     // IP-based rate limit: 10 attempts per 15 min (broader, catches spray attacks)
     if (!(await checkRateLimit(`login:${ip}`, 10, 15 * 60 * 1000))) {

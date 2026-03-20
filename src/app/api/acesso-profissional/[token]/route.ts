@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { maskIp } from "@/lib/security";
+import { maskIp, getClientIp } from "@/lib/security";
 import { verifyPin } from "@/lib/auth";
 import * as Sentry from "@sentry/nextjs";
 import { computeInsights } from "@/lib/insights/computeInsights";
@@ -23,11 +23,10 @@ function privateJson(body: unknown, init?: ResponseInit) {
   });
 }
 
-/** Sanitize x-forwarded-for: take only the first (client) IP, masked to /24. */
+/** Get real client IP (supports Cloudflare proxy), masked to /24. */
 function sanitizeIp(request: NextRequest): string | null {
-  const xff = request.headers.get("x-forwarded-for");
-  const raw = xff ? xff.split(",")[0].trim() : request.headers.get("x-real-ip");
-  return maskIp(raw ?? null);
+  const raw = getClientIp(request);
+  return maskIp(raw === "unknown" ? null : raw);
 }
 
 // POST: Validate PIN and return patient data

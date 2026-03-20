@@ -69,6 +69,20 @@ export function maskIp(ip: string | null): string | null {
   return "[masked]";
 }
 
+/**
+ * Extract real client IP from request headers.
+ * Supports Cloudflare proxy (CF-Connecting-IP) with fallback to x-forwarded-for.
+ * Always takes the first IP in a comma-separated list to avoid spoofing.
+ */
+export function getClientIp(request: Request): string {
+  return (
+    request.headers.get("cf-connecting-ip") ||
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    request.headers.get("x-real-ip") ||
+    "unknown"
+  );
+}
+
 export function sanitizeInput(input: string): string {
   return input
     .replace(/</g, "&lt;")

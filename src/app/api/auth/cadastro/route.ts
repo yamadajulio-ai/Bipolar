@@ -3,7 +3,7 @@ import * as Sentry from "@sentry/nextjs";
 import { z } from "zod/v4";
 import { prisma } from "@/lib/db";
 import { getSession, hashPassword } from "@/lib/auth";
-import { maskIp, checkRateLimit } from "@/lib/security";
+import { maskIp, checkRateLimit, getClientIp } from "@/lib/security";
 
 const cadastroSchema = z.object({
   email: z.email("E-mail inválido"),
@@ -26,8 +26,7 @@ const cadastroSchema = z.object({
 
 export async function POST(request: NextRequest) {
   // Rate limit: 5 signups per 15 minutes per IP
-  const xff = request.headers.get("x-forwarded-for");
-  const rawIp = xff ? xff.split(",")[0].trim() : request.headers.get("x-real-ip") || "unknown";
+  const rawIp = getClientIp(request);
   const allowed = await checkRateLimit(`cadastro:${rawIp}`, 5, 15 * 60 * 1000);
   if (!allowed) {
     return NextResponse.json(

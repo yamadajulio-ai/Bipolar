@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { checkRateLimit, maskIp } from "@/lib/security";
+import { checkRateLimit, maskIp, getClientIp } from "@/lib/security";
 
 // POST — Grant journal data consent
 export async function POST(request: NextRequest) {
@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Muitas requisições." }, { status: 429 });
   }
 
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+  const ip = getClientIp(request);
 
   // Check if already consented
   const existing = await prisma.consent.findFirst({

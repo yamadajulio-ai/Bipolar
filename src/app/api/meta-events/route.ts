@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sendMetaEvent } from "@/lib/meta-capi";
+import { getClientIp } from "@/lib/security";
 
 /** Whitelist de eventos padrão da Meta — nunca aceitar nomes arbitrários */
 const ALLOWED_EVENTS = new Set([
@@ -82,10 +83,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Extrair dados do request para user_data
-    const ipAddress =
-      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-      request.headers.get("x-real-ip") ||
-      undefined;
+    const rawIp = getClientIp(request);
+    const ipAddress = rawIp === "unknown" ? undefined : rawIp;
     const userAgent = request.headers.get("user-agent") || undefined;
 
     // Cookies do Meta Pixel (_fbc, _fbp)

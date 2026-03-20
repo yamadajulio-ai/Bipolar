@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { maskIp, checkRateLimit } from "@/lib/security";
+import { maskIp, checkRateLimit, getClientIp } from "@/lib/security";
 import * as Sentry from "@sentry/nextjs";
 
 const HEADERS = { "Cache-Control": "no-store" };
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Ação inválida" }, { status: 400, headers: HEADERS });
   }
 
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+  const ip = getClientIp(request);
 
   try {
     // Redact metadata: only allow IDs and types, never raw text/tokens/PII

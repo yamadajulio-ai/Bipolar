@@ -1,6 +1,6 @@
 # Suporte Bipolar — Relatório Completo para Auditoria GPT PRO
 
-> Atualizado em: 20/03/2026 (R5 GPT Pro audit fixes applied)
+> Atualizado em: 20/03/2026 (R5 P1 fixes + WhatsApp Business LGPD infrastructure)
 > Domínio: https://suportebipolar.com (produção) | https://redebipolar.com (legacy)
 
 ---
@@ -32,7 +32,7 @@
 | Zod | ^4.3.6 |
 | OpenAI SDK | ^5 (Responses API, Structured Outputs) |
 | web-push | ^3 (VAPID, Web Push API) |
-| Vitest | ^4.0.18 (1101 testes, 14 suites) |
+| Vitest | ^4.0.18 (**1101 testes**, 14 suites, 0 falhas) |
 | Deploy | Vercel (auto-deploy on push to main) |
 | DNS/CDN | Cloudflare (proxy OFF, DNS only) |
 | Package Manager | pnpm |
@@ -145,7 +145,7 @@
 | Rota | Descrição |
 |------|-----------|
 | `/conta` | Conta (LGPD: export JSON, deletar conta) |
-| `/conta/lembretes` | Lembretes configuráveis (acordar, sono, diário, respiração) |
+| `/conta/lembretes` | Lembretes configuráveis (acordar, sono, diário, respiração) + WhatsApp opt-in (LGPD art. 11 highlighted consent) |
 | `/perfil` | Perfil socioeconômico (5 perguntas → recomendações CAPS/SUS/CRAS) |
 | `/integracoes` | Google Calendar + Apple Health (HAE) + Mobills |
 | `/acesso-profissional` | Gerar/revogar token+PIN para profissional |
@@ -245,7 +245,7 @@
 
 | Modelo | Propósito |
 |--------|-----------|
-| User | Usuários (email, senha, Google OAuth, googleSub) |
+| User | Usuários (email, senha, Google OAuth, googleSub, whatsappPhone E.164) |
 | DiaryEntry | Diário de humor (mood 1-5, energia 1-5, ansiedade 1-5, irritability 1-5, medicação, sinais de alerta JSON, note) |
 | SleepLog | Registros de sono (date, bedtime/wakeTime HH:MM, totalHours, quality 0-100, awakenings, hrv ms, heartRate bpm, **excluded bool**, preRoutine JSON, notes) |
 | DailyRhythm | Âncoras IPSRT (5 âncoras diárias: wakeTime, firstContact, mainActivityStart, dinnerTime, bedtime) |
@@ -266,11 +266,11 @@
 | SOSEvent | Eventos SOS (action: opened/called_188/called_192/called_contact/breathing/grounding) |
 | FinancialTransaction | Transações (amount, category, account, occurredAt DateTime, source manual/mobills_csv) |
 | AlertFeedback | Feedback alertas financeiros (@@unique userId+alertType+alertDate) |
-| Consent | LGPD (scope: health_data/terms_of_use, ipAddress masked) |
+| Consent | LGPD (7 scopes: health_data, terms_of_use, ai_narrative, push_notifications, email_notifications, whatsapp, professional_sharing. ipAddress masked) |
 | WeeklyAssessment | ASRM (5 items, total 0-20) + PHQ-9 (9 items, total 0-27, item9 separado) + FAST short (6 domains, avg) |
 | LifeChartEvent | NIMH Life Chart (7 tipos: med_change, stressor, travel, hospitalization, therapy, menstrual, other) |
 | FunctioningAssessment | FAST short (work, social, selfcare, finances, cognition, leisure, 1-5 each) |
-| ReminderSettings | Lembretes (wakeReminder, sleepReminder, diaryReminder, breathingReminder HH:MM, enabled) |
+| ReminderSettings | Lembretes (wakeReminder, sleepReminder, diaryReminder, breathingReminder HH:MM, enabled, privacyMode) |
 | ContentView | Views de conteúdo (slug, viewedAt) |
 | CourseProgress | Progresso de cursos (courseSlug, lessonSlug, completedAt) |
 | PushSubscription | Web Push (endpoint, p256dh, auth, userId. @@unique userId_endpoint) |
@@ -333,7 +333,7 @@ Features calculadas server-side:
 - AI Safety: 17 forbidden clinical pattern regexes, high-risk template bypass, Zod + size guards
 
 ### LGPD Compliance
-- **Consentimento:** Modelo Consent (health_data, terms_of_use), age gate 18+, health consent checkbox no cadastro
+- **Consentimento:** Modelo Consent (7 scopes: health_data, terms_of_use, ai_narrative, push_notifications, email_notifications, whatsapp, professional_sharing), age gate 18+, health consent checkbox no cadastro, WhatsApp-specific LGPD art. 11 highlighted consent with international transfer disclosure
 - **Export:** GET /api/auth/export (JSON completo de todos os dados)
 - **Exclusão:** DELETE cascade + session destroy, DeleteAccountButton com confirmação + cache purge
 - **IP Masking:** IPv4 /24 + IPv6 /64 + fallback [masked] via maskIp()
@@ -347,7 +347,7 @@ Features calculadas server-side:
 
 ## 10. PWA
 
-- Service Worker v3: 3 caches (static cache-first, API network-first for PHI safety, offline pre-cache)
+- Service Worker v4: NO API cache (PHI safety), static cache-first only, legacy cache cleanup
 - APIs network-first: /api/diario, /api/sono, /api/rotina, /api/insights-summary, /api/lembretes, /api/avaliacao-semanal, /api/planner/blocks, /api/financeiro/historico
 - Admin pages: never cached, never served offline (LGPD/PHI)
 - SW auto-purge on 401/403 (session expiry → purge all cached PHI)
@@ -364,7 +364,7 @@ Features calculadas server-side:
 | Health Connect (Android) | ✅ Funcional | HC Webhook → API. Sleep, steps, HR data from Android wearables. |
 | Google Calendar | ✅ Funcional | OAuth, incremental sync (syncToken), full sync (?full=1), color mapping 1-24, auto-sync ao abrir + cada 5min |
 | Mobills (Financeiro) | ✅ Funcional | Import CSV/XLSX, batch 50, maxDuration=30 |
-| WhatsApp Cloud API | 🟡 Ready | Webhook (HMAC-SHA256, masked phone, all entries/changes). Full check-in flow pending Meta Business setup. |
+| WhatsApp Cloud API | 🟡 Ready | Webhook (HMAC-SHA256, masked phone, message-level idempotency). **WhatsApp Business reminders**: 3-layer LGPD consent (specific opt-in + international transfer disclosure + Meta processor), generic templates (no health data in messages), phone validation (E.164 via libphonenumber-js), cron integration with consent check + dedup + MessageLog audit. Pending: Meta Business env vars. |
 | OpenAI Responses API | ✅ Funcional | AI narrative in /insights. GPT-4.1 default (configurable via env). Structured Outputs (strict: true), store: false (LGPD), 17 forbidden clinical patterns, high-risk template bypass. |
 | Web Push (VAPID) | ✅ Funcional | Cron every-minute reminders, SSRF allowlist (7 hosts), batch 10 concurrent, expired/invalid cleanup. |
 
@@ -390,21 +390,21 @@ Features calculadas server-side:
 ## 13. Testes
 
 - Framework: Vitest 4.0.18
-- **1030 testes em 14 suites** (0 falhas)
+- **1101 testes em 14 suites** (0 falhas)
 - `detectCrisis.test.ts`: 423 testes — SOS crisis detection (17 rounds of GPT Pro audit)
-- `webhook.test.ts`: 201 testes — WhatsApp HMAC-SHA256 verification, payload parsing, size limits
-- `generateNarrative.test.ts`: 127 testes — 17 forbidden clinical patterns, medication names, edge cases
-- `generateNarrative-deterministic.test.ts`: 30 testes — high-risk template, insufficient data bypass, OpenAI Responses API, forbidden content in response, data preparation
-- `streaks.test.ts`: 53 testes — current/longest streak, 9 achievements, dual_streak_7 concurrency
+- `guardrails.test.ts`: 339 testes — AI narrative guardrails, forbidden clinical patterns
+- `generateNarrative-deterministic.test.ts`: 44 testes — high-risk template, insufficient data bypass, OpenAI Responses API, data preparation
+- `streaks.test.ts`: 61 testes — current/longest streak, 9 achievements, dual_streak_7 concurrency
 - `computeInsights.test.ts`: 40 testes — sleep, mood, thermometer, risk, prediction, cycling, heatmap
-- `push-subscriptions.test.ts`: 30 testes — auth, validation, SSRF allowlist, atomic cap, shared device safety, DELETE
-- `send-reminders.test.ts`: 19 testes — auth, idempotency, Sentry check-in, batch sending, cleanup, error handling
-- `push-constants.test.ts`: 26 testes — SSRF allowlist, protocol enforcement, subdomain matching, edge cases
-- `expandRecurrence.test.ts`: 23 testes — planner recurrence expansion
+- `push-constants.test.ts`: 34 testes — SSRF allowlist, protocol enforcement, subdomain matching, port rejection
+- `push-subscriptions.test.ts`: 31 testes — auth, validation, SSRF allowlist, atomic cap, shared device safety, DELETE
+- `whatsapp.test.ts`: 24 testes — WhatsApp HMAC-SHA256 verification, payload parsing, size limits
+- `send-reminders.test.ts`: 23 testes — auth, idempotency, Sentry check-in, batch sending, cleanup, WhatsApp channel
 - `web-push.test.ts`: 20 testes — VAPID config, endpoint allowlist send-time, HTTP status mapping, payload/TTL
-- `healthExport.test.ts`: 19 testes — HAE Apple Health parser
-- `parseMobillsCsv.test.ts`: 11 testes — Mobills CSV/XLSX parser
-- `dateUtils.test.ts`: 8 testes — date utilities
+- `dateUtils.test.ts`: 9 testes — date utilities
+- `expandRecurrence.test.ts`: 23 testes — planner recurrence expansion (estimated)
+- `healthExport.test.ts`: 19 testes — HAE Apple Health parser (estimated)
+- `parseMobillsCsv.test.ts`: 11 testes — Mobills CSV/XLSX parser (estimated)
 
 ## 14. Navegação
 

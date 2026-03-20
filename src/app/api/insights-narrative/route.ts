@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
     const d90str = spDate(d90);
 
     // Minimal select per model — LGPD data minimization
-    const sleepSelect = { date: true, bedtime: true, wakeTime: true, totalHours: true, quality: true, awakenings: true } as const;
+    const sleepSelect = { date: true, bedtime: true, wakeTime: true, totalHours: true, quality: true, awakenings: true, excluded: true } as const;
     const diarySelect = { date: true, mood: true, sleepHours: true, energyLevel: true, anxietyLevel: true, irritability: true, tookMedication: true, warningSigns: true } as const;
     const rhythmSelect = { date: true, wakeTime: true, firstContact: true, mainActivityStart: true, dinnerTime: true, bedtime: true } as const;
     const financialSelect = { date: true, amount: true } as const;
@@ -166,6 +166,12 @@ export async function POST(request: NextRequest) {
       }),
     ]);
 
+    // Filter excluded + naps (<1h) from sleep logs — match /hoje behavior
+    const filterSleep = <T extends { totalHours: number; excluded?: boolean }>(logs: T[]) =>
+      logs.filter(l => !l.excluded && l.totalHours >= 1);
+    const filteredSleep30 = filterSleep(sleepLogs30);
+    const filteredSleep90 = filterSleep(sleepLogs90);
+
     // Transform planner blocks
     const plannerBlockInputs: PlannerBlockInput[] = plannerBlocks.map((b) => {
       const d = new Date(b.startAt);
@@ -176,10 +182,10 @@ export async function POST(request: NextRequest) {
       };
     });
 
-    // Compute insights (deterministic)
+    // Compute insights (deterministic) — use filtered sleep logs
     const insights = computeInsights(
-      sleepLogs30, entries30, rhythms30, plannerBlockInputs,
-      now, TZ, entries90, sleepLogs90, financialTxs,
+      filteredSleep30, entries30, rhythms30, plannerBlockInputs,
+      now, TZ, entries90, filteredSleep90, financialTxs,
     );
 
     // Prepare extra data for narrative V2

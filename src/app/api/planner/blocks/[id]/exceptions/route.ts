@@ -32,7 +32,7 @@ export async function POST(
   const { id } = await params;
   const block = await prisma.plannerBlock.findUnique({
     where: { id },
-    include: { recurrence: true },
+    select: { id: true, userId: true, startAt: true, endAt: true, recurrence: true },
   });
   if (!block || block.userId !== session.userId) {
     return NextResponse.json({ error: "Bloco não encontrado" }, { status: 404 });

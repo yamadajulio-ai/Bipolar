@@ -22,7 +22,13 @@ export async function GET(
   try {
     const block = await prisma.plannerBlock.findUnique({
       where: { id },
-      include: { recurrence: true, exceptions: true },
+      select: {
+        id: true, userId: true, title: true, category: true, kind: true,
+        isRoutine: true, startAt: true, endAt: true, notes: true,
+        energyCost: true, stimulation: true, sourceType: true, googleEventId: true,
+        googleColor: true, createdAt: true, updatedAt: true,
+        recurrence: true, exceptions: true,
+      },
     });
 
     if (!block || block.userId !== session.userId) {

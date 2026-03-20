@@ -17,6 +17,7 @@ export async function GET(request: Request) {
 
   const account = await prisma.googleAccount.findUnique({
     where: { userId: session.userId },
+    select: { calendarId: true, syncToken: true, lastSyncAt: true },
   });
 
   const url = new URL(request.url);
@@ -143,6 +144,7 @@ export async function POST(request: Request) {
 
   const account = await prisma.googleAccount.findUnique({
     where: { userId: session.userId },
+    select: { id: true, calendarId: true, syncToken: true },
   });
   if (!account) {
     return NextResponse.json(

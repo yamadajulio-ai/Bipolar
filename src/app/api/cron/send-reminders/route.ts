@@ -125,6 +125,7 @@ export async function GET(request: NextRequest) {
     // Fetch all push subscriptions for these users in one query
     const subscriptions = await prisma.pushSubscription.findMany({
       where: { userId: { in: userIds } },
+      select: { id: true, userId: true, endpoint: true, p256dh: true, auth: true },
     });
 
     if (subscriptions.length === 0) {

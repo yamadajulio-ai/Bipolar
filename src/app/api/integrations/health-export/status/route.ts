@@ -22,6 +22,7 @@ export async function GET() {
   try {
   const integration = await prisma.integrationKey.findFirst({
     where: { userId: session.userId, service: "health_auto_export" },
+    select: { id: true, enabled: true, lastPayloadDebug: true },
   });
 
   if (!integration) {
@@ -30,12 +31,14 @@ export async function GET() {
 
   const sleepLogs = await prisma.sleepLog.findMany({
     where: { userId: session.userId },
+    select: { date: true, bedtime: true, wakeTime: true, totalHours: true, quality: true, awakenings: true, hrv: true, heartRate: true },
     orderBy: { date: "desc" },
     take: 10,
   });
 
   const healthMetrics = await prisma.healthMetric.findMany({
     where: { userId: session.userId },
+    select: { date: true, metric: true, value: true, unit: true },
     orderBy: { date: "desc" },
     take: 30,
   });

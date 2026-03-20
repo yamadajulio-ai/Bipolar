@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
 
   const integration = await prisma.integrationKey.findUnique({
     where: { apiKey },
+    select: { id: true, userId: true, enabled: true, service: true },
   });
 
   if (!integration || !integration.enabled || integration.service !== "health_connect") {
@@ -36,6 +37,7 @@ export async function GET(request: NextRequest) {
 
   const recentLogs = await prisma.sleepLog.findMany({
     where: { userId: integration.userId },
+    select: { date: true, bedtime: true, wakeTime: true, totalHours: true, quality: true },
     orderBy: { date: "desc" },
     take: 10,
   });
@@ -70,6 +72,7 @@ export async function POST(request: NextRequest) {
 
   const integration = await prisma.integrationKey.findUnique({
     where: { apiKey },
+    select: { id: true, userId: true, enabled: true, service: true },
   });
   if (!integration || !integration.enabled || integration.service !== "health_connect") {
     return NextResponse.json(

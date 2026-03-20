@@ -25,8 +25,15 @@ export async function GET() {
   }
 
   try {
+    const reminderSelect = {
+      id: true, wakeReminder: true, sleepReminder: true,
+      diaryReminder: true, breathingReminder: true,
+      enabled: true, privacyMode: true,
+    } as const;
+
     let settings = await prisma.reminderSettings.findUnique({
       where: { userId: session.userId },
+      select: reminderSelect,
     });
 
     if (!settings) {
@@ -35,6 +42,7 @@ export async function GET() {
           userId: session.userId,
           enabled: true,
         },
+        select: reminderSelect,
       });
     }
 
@@ -90,6 +98,11 @@ export async function PUT(request: NextRequest) {
         breathingReminder: parsed.data.breathingReminder ?? null,
         enabled: parsed.data.enabled ?? true,
         privacyMode: parsed.data.privacyMode ?? false,
+      },
+      select: {
+        id: true, wakeReminder: true, sleepReminder: true,
+        diaryReminder: true, breathingReminder: true,
+        enabled: true, privacyMode: true,
       },
     });
 

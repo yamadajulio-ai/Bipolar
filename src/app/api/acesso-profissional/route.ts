@@ -104,6 +104,7 @@ export async function POST(request: NextRequest) {
         expiresAt,
         shareSosEvents: parsed.data.shareSosEvents ?? false,
       },
+      select: { id: true, label: true, expiresAt: true },
     });
 
     // Return token and PIN (PIN is only shown once!)

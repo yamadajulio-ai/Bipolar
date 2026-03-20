@@ -1,6 +1,6 @@
 # Suporte Bipolar — Relatório Completo para Auditoria GPT PRO
 
-> Atualizado em: 19/03/2026 (R4 fixes applied)
+> Atualizado em: 20/03/2026 (R5 GPT Pro audit fixes applied)
 > Domínio: https://suportebipolar.com (produção) | https://redebipolar.com (legacy)
 
 ---
@@ -32,7 +32,7 @@
 | Zod | ^4.3.6 |
 | OpenAI SDK | ^5 (Responses API, Structured Outputs) |
 | web-push | ^3 (VAPID, Web Push API) |
-| Vitest | ^4.0.18 (1030 testes, 14 suites) |
+| Vitest | ^4.0.18 (1101 testes, 14 suites) |
 | Deploy | Vercel (auto-deploy on push to main) |
 | DNS/CDN | Cloudflare (proxy OFF, DNS only) |
 | Package Manager | pnpm |

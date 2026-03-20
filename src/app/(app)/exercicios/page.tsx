@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Card } from "@/components/Card";
+import { AudioLibrary } from "@/components/AudioPlayer";
 import { BREATHING_EXERCISES, GROUNDING_EXERCISES } from "@/lib/constants";
 
 function estimateDuration(config: { inhale: number; hold: number; exhale: number; holdAfter: number; cycles: number }): string {
@@ -53,6 +54,8 @@ export default function ExerciciosPage() {
           ))}
         </div>
       </section>
+
+      <AudioLibrary />
 
       <section>
         <h2 className="mb-4 text-lg font-semibold text-foreground">Aterramento</h2>

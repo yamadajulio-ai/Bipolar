@@ -659,9 +659,9 @@ function computeMoodInsights(entries: DiaryEntryInput[], today: Date, tz: string
     : null;
   const medicationResponseRate = entries.length > 0 ? `${withMed.length}/30 dias` : null;
 
-  // 4. Top warning signs
+  // 4. Top warning signs (last 7 days only — matches UI label)
   const signCounts: Record<string, number> = {};
-  for (const entry of entries) {
+  for (const entry of last7) {
     const signs = parseStringArray(entry.warningSigns);
     for (const sign of signs) {
       signCounts[sign] = (signCounts[sign] || 0) + 1;

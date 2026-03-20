@@ -72,3 +72,19 @@
 - Seletor de período: `src/components/insights/NightHistorySelector.tsx` (Client Component)
 - Dados buscados: 90 dias de sono (histórico), 30 dias de humor/ritmos/planner (insights)
 - Timezone: America/Sao_Paulo
+- Mixed state risk boost: forte +3, provável +2 no risk score (ISBD: maior risco suicida)
+
+## Security — Arquitetura
+- **CSRF**: 2 camadas — Sec-Fetch-Site/Origin (middleware) + double-submit cookie (`__Host-csrf` + `X-CSRF-Token` header via `CsrfProvider` global interceptor)
+- **CSP**: enforced (não report-only) — `Content-Security-Policy` no `next.config.ts`
+- **Step-up auth**: ações sensíveis (delete account, export) exigem re-confirmação de senha (email users) ou sessão recente <5min (Google OAuth)
+- **Session**: idle 7d + absolute 30d + sliding refresh 1h, iron-session encrypted, `Clear-Site-Data` no logout
+- **Rate limiting**: DB-backed atômico (`$transaction`), per-endpoint
+- **Sentry PII**: replays OFF, request data filtered, URL redaction, breadcrumb whitelist
+
+## SafetyNudge — Arquitetura
+- Componente: `src/components/insights/SafetyNudge.tsx`
+- Triggers: PHQ-9 item 9 ≥ 1, riskLevel `atencao_alta`, mixed state (forte/provável), ≥3 noites curtas, ≥2 mania signs
+- 3 níveis: `emergencia` (SAMU 192), `atencao` (CVV 188), `cuidado` (CAPS/UBS)
+- Rota sem profissional: orientação CAPS/UBS/UPA em todos os níveis
+- Crisis mode no /hoje: UI simplificada para emergencia + mixed forte

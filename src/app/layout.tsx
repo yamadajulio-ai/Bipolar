@@ -5,9 +5,9 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { InAppBrowserBanner } from "@/components/InAppBrowserBanner";
 import { NativeAppShell } from "@/components/capacitor/NativeAppShell";
-import { MetaPixel } from "@/components/MetaPixel";
-import { MicrosoftClarity } from "@/components/MicrosoftClarity";
-import { GoogleAnalytics } from "@/components/GoogleAnalytics";
+// Marketing analytics (MetaPixel, MicrosoftClarity, GoogleAnalytics) are loaded
+// only in (public) and (auth) layouts — excluded from authenticated (app) area
+// to protect clinical data privacy (LGPD + audit recommendation).
 import "./globals.css";
 
 const geistSans = Geist({
@@ -122,9 +122,6 @@ export default function RootLayout({
         <Analytics />
         <SpeedInsights />
         <ServiceWorkerRegister />
-        <MetaPixel />
-        <MicrosoftClarity />
-        <GoogleAnalytics />
         {children}
       </body>
     </html>

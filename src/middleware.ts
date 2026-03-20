@@ -113,10 +113,21 @@ export function middleware(request: NextRequest) {
     return response;
   }
 
-  // CSRF check for API routes
+  // API routes: CSRF check + no-store for authenticated endpoints
   if (pathname.startsWith("/api/")) {
     const csrfResponse = checkCsrf(request);
     if (csrfResponse) return csrfResponse;
+
+    // Public API endpoints that may be cached (health check, webhooks)
+    const publicApiPaths = ["/api/health", "/api/whatsapp/webhook", "/api/meta-events"];
+    const isPublicApi = publicApiPaths.some((p) => pathname === p || pathname.startsWith(p + "/"));
+
+    if (!isPublicApi) {
+      const response = NextResponse.next();
+      response.headers.set("Cache-Control", "no-store, private, max-age=0");
+      return response;
+    }
+
     return NextResponse.next();
   }
 

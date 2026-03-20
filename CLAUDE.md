@@ -59,6 +59,22 @@
 - Todos os registros aparecem no histórico para revisão clínica
 - Histórico configurável pelo usuário: 7, 15, 30 noites ou 3 meses (via `?noites=N`)
 
+## iOS App Store — Estratégia B+
+- **Abordagem**: Capacitor com WebView + Vercel backend + pilares nativos reais (GPT Pro audit: 7.7/10)
+- **Pilares nativos**: Face ID/Keychain, APNs + Local Notifications, offline de crise, deep links + share
+- **NÃO usar**: `server.url` em produção (Capacitor docs: só para dev), static export (refactor 40-60% inviável)
+- **Apple Developer**: conta individual (Julio Cesar de Sousa Yamada), Enrollment ID 5J4DNRWRS2, compra 2026-03-19
+- **Mac Mini M4**: comprado, a caminho — necessário para Xcode build + TestFlight
+- **Review risks**: Guideline 4.2 (mitigado por native value), 1.4.1 (copy de suporte, não diagnóstico), demo account
+- **Review Notes**: `docs/app-store-review-notes.md`
+
+## AI Narrative — Modelo
+- **Modelo atual**: GPT-5.4 via OpenAI Responses API (migrado de Claude Sonnet 4)
+- **Structured Outputs**: JSON Schema nativo + Zod pós-parse + forbidden patterns (17 regras)
+- **High-risk bypass**: riskLevel "atencao_alta" → template fixo, sem LLM
+- **store: false** (LGPD: sem persistência na OpenAI)
+- **Env var**: `OPENAI_NARRATIVE_MODEL` (default: gpt-5.4, permite canário com gpt-5.2)
+
 ## Domínios
 - **Produção**: suportebipolar.com (Vercel Pro + Cloudflare Pro, proxy ON, SSL Full strict)
 - **Legacy**: redebipolar.com (ainda ativo)

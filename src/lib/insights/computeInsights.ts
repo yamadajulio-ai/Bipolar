@@ -86,6 +86,7 @@ export interface MoodInsights {
   medicationResponseRate: string | null;  // "X/Y dias"
   topWarningSigns: { key: string; label: string; count: number }[];
   moodHeadline: string | null;
+  recordCount: number;                    // Total diary entries in period
   alerts: ClinicalAlert[];
 }
 
@@ -741,7 +742,7 @@ function computeMoodInsights(entries: DiaryEntryInput[], today: Date, tz: string
   return {
     moodTrend, moodAmplitude, moodAmplitudeLabel,
     medicationAdherence, medicationResponseRate,
-    topWarningSigns, moodHeadline, alerts,
+    topWarningSigns, moodHeadline, recordCount: entries.length, alerts,
   };
 }
 
@@ -1993,6 +1994,20 @@ export function computeInsights(
   const combinedPatterns = computeCombinedPatterns(sleepLogs, entries);
   const risk = computeRiskScore(sleep, mood, entries, sleepLogs, today, tz, financialTxs);
   const thermometer = computeMoodThermometer(entries, sleepLogs, today, tz);
+
+  // Mixed state risk boost — per ISBD, mixed states carry the highest suicide
+  // risk in bipolar disorder. Apply after thermometer computation.
+  if (risk && thermometer?.mixedFeatures) {
+    if (thermometer.mixedStrength === "forte") {
+      risk.score += 3;
+      risk.factors.push("Estado misto forte (risco elevado)");
+    } else if (thermometer.mixedStrength === "provavel") {
+      risk.score += 2;
+      risk.factors.push("Sinais mistos provável");
+    }
+    // Recalculate level after boost
+    risk.level = risk.score <= 1 ? "ok" : risk.score <= 3 ? "atencao" : "atencao_alta";
+  }
 
   // P2 features — use extended data (90d) when available
   const extEntries = entries90 ?? entries;

@@ -1,30 +1,39 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
-const HIDE_KEYS = [
-  { key: "sb_hide_streaks", label: "Contagem de dias (streaks)" },
-  { key: "sb_hide_achievements", label: "Conquistas" },
-] as const;
+interface Prefs {
+  hideStreaks: boolean;
+  hideAchievements: boolean;
+}
+
+const PREF_LABELS: { key: keyof Prefs; label: string }[] = [
+  { key: "hideStreaks", label: "Contagem de dias (streaks)" },
+  { key: "hideAchievements", label: "Conquistas" },
+];
 
 export function DisplayPreferences() {
-  const [hiddenItems, setHiddenItems] = useState<string[]>([]);
-  const [loaded, setLoaded] = useState(false);
+  const [prefs, setPrefs] = useState<Prefs | null>(null);
 
   useEffect(() => {
-    const hidden = HIDE_KEYS
-      .filter(({ key }) => localStorage.getItem(key) === "1")
-      .map(({ key }) => key);
-    setHiddenItems(hidden);
-    setLoaded(true);
+    fetch("/api/display-preferences")
+      .then((r) => r.json())
+      .then((data: Prefs) => setPrefs(data))
+      .catch(() => setPrefs({ hideStreaks: false, hideAchievements: false }));
   }, []);
 
-  function handleRestore(key: string) {
-    localStorage.removeItem(key);
-    setHiddenItems((prev) => prev.filter((k) => k !== key));
-  }
+  const handleRestore = useCallback(async (key: keyof Prefs) => {
+    setPrefs((prev) => prev ? { ...prev, [key]: false } : prev);
+    await fetch("/api/display-preferences", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ [key]: false }),
+    });
+  }, []);
 
-  if (!loaded) return null;
+  if (!prefs) return null;
+
+  const hiddenItems = PREF_LABELS.filter(({ key }) => prefs[key]);
   if (hiddenItems.length === 0) return null;
 
   return (
@@ -34,7 +43,7 @@ export function DisplayPreferences() {
         Você ocultou alguns elementos do dashboard. Restaure-os aqui:
       </p>
       <div className="space-y-2">
-        {HIDE_KEYS.filter(({ key }) => hiddenItems.includes(key)).map(({ key, label }) => (
+        {hiddenItems.map(({ key, label }) => (
           <div key={key} className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
             <span className="text-sm text-muted">{label}</span>
             <button

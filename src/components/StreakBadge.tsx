@@ -1,31 +1,22 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback } from "react";
 
 interface StreakBadgeProps {
   checkinStreak: number;
   sleepStreak: number;
   bestCheckinStreak: number;
+  hidden?: boolean;
+  onToggleHide?: (hide: boolean) => void;
 }
 
-const HIDE_KEY = "sb_hide_streaks";
-
-export function StreakBadge({ checkinStreak, sleepStreak, bestCheckinStreak }: StreakBadgeProps) {
-  const [hidden, setHidden] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== "undefined" && localStorage.getItem(HIDE_KEY) === "1") {
-      setHidden(true);
-    }
-  }, []);
+export function StreakBadge({ checkinStreak, sleepStreak, bestCheckinStreak, hidden, onToggleHide }: StreakBadgeProps) {
+  const handleHide = useCallback(() => {
+    onToggleHide?.(true);
+  }, [onToggleHide]);
 
   if (hidden) return null;
   if (checkinStreak === 0 && sleepStreak === 0) return null;
-
-  function handleHide() {
-    localStorage.setItem(HIDE_KEY, "1");
-    setHidden(true);
-  }
 
   return (
     <div className="flex items-center gap-4">

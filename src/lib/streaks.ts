@@ -126,8 +126,9 @@ export function computeLongestStreak(dates: string[]): number {
   return longest;
 }
 
+/** Format Date to YYYY-MM-DD in São Paulo timezone. */
 function formatDate(d: Date): string {
-  return d.toISOString().slice(0, 10);
+  return d.toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
 }
 
 const ACHIEVEMENT_DEFS: Array<{

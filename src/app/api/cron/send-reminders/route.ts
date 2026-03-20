@@ -212,6 +212,7 @@ export async function GET(request: NextRequest) {
     let configErrorLogged = false;
     const expiredIds: string[] = [];
     let badRequestCount = 0;
+    const badRequestSubIds: string[] = []; // subs that got 400 — checked for strike-out
 
     // Track which base keys had at least one successful delivery
     const deliveredKeys = new Set<string>();
@@ -244,8 +245,9 @@ export async function GET(request: NextRequest) {
           expiredIds.push(task.subId);
         } else if (result.reason === "bad-request") {
           // 400 = subscription may be permanently invalid.
-          // Don't delete yet (could be serialization issue), but track for visibility.
+          // Track strikes: delete after 3 consecutive 400s (rules out transient issues).
           badRequestCount++;
+          badRequestSubIds.push(task.subId);
         } else if (result.reason === "config" && !configErrorLogged) {
           Sentry.captureMessage("Web Push VAPID not configured — reminders cannot be sent", { level: "warning" });
           configErrorLogged = true;
@@ -263,6 +265,19 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Strike-based cleanup for persistent 400s.
+    // After 3 consecutive 400 responses (across cron runs), the subscription is dead.
+    // Uses rate limiter as strike counter: 3 strikes within 24h → delete.
+    const BAD_REQUEST_STRIKE_TTL_MS = 24 * 60 * 60_000;
+    const BAD_REQUEST_MAX_STRIKES = 3;
+    for (const subId of badRequestSubIds) {
+      const withinLimit = await checkRateLimit(`push:400:${subId}`, BAD_REQUEST_MAX_STRIKES, BAD_REQUEST_STRIKE_TTL_MS);
+      if (!withinLimit) {
+        // 3rd strike — subscription is permanently broken
+        expiredIds.push(subId);
+      }
+    }
+
     // Log bad-request count if any (for operational visibility without leaking PHI)
     if (badRequestCount > 0) {
       Sentry.captureMessage("Web Push: subscriptions returning 400", {
@@ -272,7 +287,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Clean up only confirmed-dead subscriptions (expired + invalid-endpoint)
+    // Clean up confirmed-dead subscriptions (expired + invalid-endpoint + 3x 400 strikeout)
     if (expiredIds.length > 0) {
       await prisma.pushSubscription.deleteMany({
         where: { id: { in: expiredIds } },

@@ -1,32 +1,27 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback } from "react";
 import type { Achievement } from "@/lib/streaks";
 
 interface AchievementGridProps {
   achievements: Achievement[];
+  hidden?: boolean;
+  onToggleHide?: (hide: boolean) => void;
 }
 
-const HIDE_KEY = "sb_hide_achievements";
-
-export function AchievementGrid({ achievements }: AchievementGridProps) {
-  const [hidden, setHidden] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== "undefined" && localStorage.getItem(HIDE_KEY) === "1") {
-      setHidden(true);
-    }
-  }, []);
-
+export function AchievementGrid({ achievements, hidden, onToggleHide }: AchievementGridProps) {
   const unlocked = achievements.filter((a) => a.unlocked);
   const locked = achievements.filter((a) => !a.unlocked);
+
+  const handleHide = useCallback(() => onToggleHide?.(true), [onToggleHide]);
+  const handleShow = useCallback(() => onToggleHide?.(false), [onToggleHide]);
 
   if (unlocked.length === 0 && locked.length === 0) return null;
 
   if (hidden) {
     return (
       <button
-        onClick={() => { localStorage.removeItem(HIDE_KEY); setHidden(false); }}
+        onClick={handleShow}
         className="w-full text-center text-[10px] text-muted hover:text-foreground min-h-10 py-2"
         aria-label="Mostrar conquistas"
       >
@@ -40,7 +35,7 @@ export function AchievementGrid({ achievements }: AchievementGridProps) {
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-sm font-semibold text-foreground">Conquistas</h3>
         <button
-          onClick={() => { localStorage.setItem(HIDE_KEY, "1"); setHidden(true); }}
+          onClick={handleHide}
           className="text-[10px] text-muted hover:text-foreground min-h-10 px-2 py-2"
           aria-label="Esconder conquistas"
         >

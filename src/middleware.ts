@@ -1,4 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import {
+  CSRF_COOKIE_NAME,
+  CSRF_HEADER_NAME,
+  generateCsrfToken,
+  validateCsrfToken,
+} from "@/lib/security";
 
 const protectedPaths = [
   "/app",
@@ -89,6 +95,14 @@ function checkCsrf(request: NextRequest): NextResponse | null {
     }
   }
 
+  // Layer 2: Double-submit cookie validation (defense-in-depth)
+  // Cookie is set on every response; client must echo it in X-CSRF-Token header.
+  const csrfCookie = request.cookies.get(CSRF_COOKIE_NAME)?.value;
+  const csrfHeader = headers.get(CSRF_HEADER_NAME);
+  if (!validateCsrfToken(csrfCookie, csrfHeader)) {
+    return NextResponse.json({ error: "Token CSRF inválido" }, { status: 403 });
+  }
+
   return null;
 }
 
@@ -110,7 +124,7 @@ export function middleware(request: NextRequest) {
     const response = NextResponse.next();
     response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
     response.headers.set("Pragma", "no-cache");
-    return response;
+    return ensureCsrfCookie(request, response);
   }
 
   // API routes: CSRF check + no-store for authenticated endpoints
@@ -157,7 +171,27 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/hoje", request.url));
   }
 
-  return NextResponse.next();
+  return ensureCsrfCookie(request, NextResponse.next());
+}
+
+/**
+ * Ensure CSRF cookie is present on every response.
+ * Uses __Host- prefix (Secure, no Domain, Path=/).
+ * Cookie is SameSite=Lax and NOT httpOnly so client JS can read it
+ * and echo it in X-CSRF-Token header on mutating requests.
+ */
+function ensureCsrfCookie(request: NextRequest, response: NextResponse): NextResponse {
+  const existingToken = request.cookies.get(CSRF_COOKIE_NAME)?.value;
+  if (!existingToken) {
+    const token = generateCsrfToken();
+    response.cookies.set(CSRF_COOKIE_NAME, token, {
+      path: "/",
+      secure: true,
+      sameSite: "lax",
+      httpOnly: false, // Client JS must read this to send in header
+    });
+  }
+  return response;
 }
 
 export const config = {

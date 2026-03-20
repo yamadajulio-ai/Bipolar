@@ -107,3 +107,34 @@ export function sanitizeInput(input: string): string {
     .replace(/'/g, "&#x27;")
     .trim();
 }
+
+// ── CSRF Double-Submit Cookie ────────────────────────────────
+
+/** Cookie name: __Host- prefix enforces Secure + no Domain + Path=/ */
+export const CSRF_COOKIE_NAME = "__Host-csrf";
+export const CSRF_HEADER_NAME = "x-csrf-token";
+
+/**
+ * Generate a cryptographically random CSRF token (32 bytes → 64 hex chars).
+ * Works in Edge Runtime (uses Web Crypto API).
+ */
+export function generateCsrfToken(): string {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/**
+ * Validate CSRF: cookie value must match X-CSRF-Token header.
+ * Returns true if valid, false if mismatch or missing.
+ */
+export function validateCsrfToken(cookieValue: string | undefined, headerValue: string | null): boolean {
+  if (!cookieValue || !headerValue) return false;
+  if (cookieValue.length !== headerValue.length) return false;
+  // Constant-time comparison to prevent timing attacks
+  let mismatch = 0;
+  for (let i = 0; i < cookieValue.length; i++) {
+    mismatch |= cookieValue.charCodeAt(i) ^ headerValue.charCodeAt(i);
+  }
+  return mismatch === 0;
+}

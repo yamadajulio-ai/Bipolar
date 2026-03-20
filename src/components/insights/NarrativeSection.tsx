@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import type { NarrativeResultV2, NarrativeSectionKey } from "@/lib/ai/narrative-types";
+import type { NarrativeResultV2 } from "@/lib/ai/narrative-types";
 import { NARRATIVE_SECTION_KEYS, SECTION_LABELS, SECTION_ICONS } from "@/lib/ai/narrative-types";
-import { toPublicEvidence, type PublicEvidence } from "@/lib/ai/public-evidence";
+import { toPublicEvidence } from "@/lib/ai/public-evidence";
 
 interface RawEvidenceChip {
   text: string;
@@ -19,6 +19,7 @@ interface NarrativeResponse {
   evidenceMap?: Record<string, RawEvidenceChip>;
   shareWithProfessional?: boolean;
   createdAt?: string;
+  latestAttemptFailed?: boolean;
 }
 
 // ── Externalized deterministic phrases (per GPT Pro audit) ─────
@@ -37,6 +38,7 @@ export function NarrativeSection() {
   const [retryCount, setRetryCount] = useState(0);
   const [retryCooldown, setRetryCooldown] = useState(false);
   const [feedbackSent, setFeedbackSent] = useState<"useful" | "not_useful" | null>(null);
+  const [consentChecked, setConsentChecked] = useState(false);
   const cooldownTimer = useRef<ReturnType<typeof setTimeout>>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -48,8 +50,13 @@ export function NarrativeSection() {
         const res = await fetch("/api/insights-narrative");
         if (res.ok) {
           const json: NarrativeResponse = await res.json();
-          if (!cancelled && json.cached && json.narrative) {
-            setData(json);
+          if (!cancelled) {
+            if (json.cached && json.narrative) {
+              setData(json);
+            } else if (json.latestAttemptFailed) {
+              // Latest attempt failed guardrails — inform user
+              setData(json);
+            }
           }
         }
       } catch { /* ignore cache load errors */ }
@@ -77,6 +84,8 @@ export function NarrativeSection() {
     try {
       const res = await fetch("/api/insights-narrative", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ consent: true }),
         signal: abortRef.current.signal,
       });
       if (!res.ok) {
@@ -132,12 +141,23 @@ export function NarrativeSection() {
     );
   }
 
-  // Not generated yet — show CTA
+  // Not generated yet — show CTA with explicit consent
   if (!narrative && !loading && !error) {
     return (
       <div className="rounded-lg border-2 border-dashed border-primary/30 bg-primary/5 p-5 text-center">
         <p className="mb-1 text-sm font-semibold text-foreground">Resumo inteligente</p>
-        <p className="mb-4 text-xs text-muted">
+
+        {/* Guardrail failure warning */}
+        {data?.latestAttemptFailed && (
+          <div className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-left dark:border-amber-800 dark:bg-amber-950">
+            <p className="text-xs text-amber-700 dark:text-amber-300">
+              Sua narrativa mais recente não pôde ser exibida por não atender aos critérios de segurança.
+              Você pode tentar gerar uma nova abaixo.
+            </p>
+          </div>
+        )}
+
+        <p className="mb-3 text-xs text-muted text-left">
           A IA analisa seus dados de sono, humor, ritmos, avaliações, eventos de vida e registros financeiros
           dos últimos 30 dias para gerar uma interpretação personalizada por área. Ao clicar, seus dados são
           enviados à OpenAI (processador terceiro) exclusivamente para gerar este resumo. Seus dados não são
@@ -146,7 +166,26 @@ export function NarrativeSection() {
             política da OpenAI
           </a>.
         </p>
-        <button onClick={generate} className="rounded-lg bg-primary px-5 py-2 text-sm font-medium text-white hover:bg-primary-dark">
+
+        {/* Explicit consent checkbox (LGPD: manifestação inequívoca para dados sensíveis) */}
+        <label className="mb-4 flex items-start gap-2 cursor-pointer text-left">
+          <input
+            type="checkbox"
+            checked={consentChecked}
+            onChange={(e) => setConsentChecked(e.target.checked)}
+            className="mt-0.5 h-4 w-4 shrink-0 rounded border-border accent-primary"
+          />
+          <span className="text-xs text-foreground/80">
+            Li e entendo que meus dados de saúde serão enviados à OpenAI para gerar este resumo.
+            Posso revogar este consentimento a qualquer momento nas configurações da conta.
+          </span>
+        </label>
+
+        <button
+          onClick={generate}
+          disabled={!consentChecked}
+          className="rounded-lg bg-primary px-5 py-2 text-sm font-medium text-white hover:bg-primary-dark disabled:opacity-40 disabled:cursor-not-allowed"
+        >
           Gerar resumo com IA
         </button>
         <p className="mt-2 text-[10px] text-muted italic">Powered by GPT — {APP_DISCLAIMER}</p>
@@ -198,6 +237,9 @@ export function NarrativeSection() {
           {data?.cached && (
             <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] text-primary">em cache</span>
           )}
+          {data?.latestAttemptFailed && (
+            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] text-amber-700 dark:bg-amber-900 dark:text-amber-300">versão anterior</span>
+          )}
         </div>
         <svg className={`h-4 w-4 text-muted transition-transform ${expanded ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -206,6 +248,16 @@ export function NarrativeSection() {
 
       {expanded && (
         <div className="space-y-4 px-5 pb-5">
+          {/* Guardrail failure notice (when showing older safe narrative) */}
+          {data?.latestAttemptFailed && (
+            <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-800 dark:bg-amber-950">
+              <p className="text-xs text-amber-700 dark:text-amber-300">
+                A narrativa mais recente não pôde ser exibida por não atender aos critérios de segurança.
+                Exibindo a versão anterior validada. Você pode tentar gerar uma nova abaixo.
+              </p>
+            </div>
+          )}
+
           {/* Overview */}
           <div>
             <p className="text-base font-semibold text-foreground">{narrative.overview.headline}</p>

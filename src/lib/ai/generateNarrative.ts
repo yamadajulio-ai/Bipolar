@@ -584,7 +584,7 @@ export async function generateNarrative(
     return { narrative: tmpl, persistence: { ...basePersistence, bypassLlm: true, bypassReason: "high_risk" } };
   }
 
-  if (insights.sleep.recordCount < 7) {
+  if (insights.sleep.recordCount < 7 || insights.mood.recordCount < 3) {
     return { narrative: getInsufficientDataTemplateV2(), persistence: { ...basePersistence, bypassLlm: true, bypassReason: "insufficient_data" } };
   }
 
@@ -649,6 +649,41 @@ export async function generateNarrative(
     if (containsForbiddenContent(allText)) {
       Sentry.captureMessage("AI narrative V2 forbidden content", { level: "warning", tags: { feature: "ai-narrative-v2", reason: "forbidden-content", model } });
       return { narrative: getSafeFallbackV2(), persistence: { ...basePersistence, guardrailPassed: false, guardrailViolations: ["forbidden_content"] } };
+    }
+
+    // Layer 4: Evidence grounding check — every evidenceId referenced in the output
+    // must exist in the input evidence set. Prevents hallucinated evidence references.
+    const validEvidenceIds = new Set<string>();
+    for (const section of Object.values(input.sections)) {
+      for (const ev of section.evidence) validEvidenceIds.add(ev.id);
+    }
+    const outputSections = parsed.data.sections;
+    const phantomIds: string[] = [];
+    for (const sec of Object.values(outputSections)) {
+      const section = sec as { evidenceIds?: string[] };
+      for (const eid of section.evidenceIds ?? []) {
+        if (!validEvidenceIds.has(eid)) phantomIds.push(eid);
+      }
+    }
+    for (const eid of parsed.data.overview?.evidenceIds ?? []) {
+      if (!validEvidenceIds.has(eid)) phantomIds.push(eid);
+    }
+    if (phantomIds.length > 0) {
+      Sentry.captureMessage("AI narrative V2 phantom evidence IDs", {
+        level: "warning",
+        tags: { feature: "ai-narrative-v2", reason: "phantom-evidence", model },
+        extra: { phantomIds: phantomIds.slice(0, 10), count: phantomIds.length },
+      });
+      // Strip phantom IDs instead of failing — the narrative text is still valid,
+      // but the evidence chips would be broken. Remove them for safety.
+      for (const sec of Object.values(outputSections)) {
+        const section = sec as { evidenceIds: string[] };
+        section.evidenceIds = section.evidenceIds.filter((id: string) => validEvidenceIds.has(id));
+      }
+      if (parsed.data.overview?.evidenceIds) {
+        parsed.data.overview.evidenceIds = parsed.data.overview.evidenceIds.filter((id: string) => validEvidenceIds.has(id));
+      }
+      basePersistence.guardrailViolations = [...basePersistence.guardrailViolations, `phantom_evidence:${phantomIds.length}`];
     }
 
     return { narrative: { ...parsed.data, source: "llm" as const, generatedAt: new Date().toISOString() }, persistence: basePersistence };

@@ -19,6 +19,14 @@
 - Uso principal via iPhone (mobile-first)
 - Idioma: pt-BR
 
+## Timezone — Contrato formal
+- **Timezone canônico: `America/Sao_Paulo`** — decisão de produto, não implementação.
+- Todo cálculo de data (streaks, cutoffs, cron matching, insights, narrative) usa este fuso explicitamente.
+- `localDateStr()` e `localToday()` (em `src/lib/dateUtils.ts`) usam `toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" })`.
+- `streaks.ts` usa `toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" })` no `formatDate()`.
+- O servidor roda em UTC (Vercel), então **nunca** usar `getFullYear()/getMonth()/getDate()` para datas user-facing.
+- Se o produto expandir para fora do Brasil, este contrato deverá ser revisado para timezone per-user.
+
 ## Padrão de Qualidade
 - **Meta de auditoria GPT Pro: média 9,5/10 no projeto inteiro.** Toda feature, rota, componente e teste deve atingir esse nível. Se uma auditoria retornar abaixo de 9,5, corrigir os achados até alcançar.
 - **Usar TODAS as ferramentas disponíveis no mercado** para atingir 9,5. Se não existir a ferramenta certa, inventar.

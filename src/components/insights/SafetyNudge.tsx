@@ -214,12 +214,26 @@ export function SafetyNudge({ phq9Item9, riskLevel, compact, bipolarContext }: P
           </a>
         </div>
 
-        {/* Tier 3: Continued care — CAPS/UBS (shown for non-emergency attention) */}
-        {urgency !== "emergencia" && (
-          <p className={`text-xs ${isUrgent ? "text-red-300/70" : "text-amber-300/70"}`}>
-            Para acompanhamento continuado, procure o CAPS ou UBS mais próximo.
-          </p>
-        )}
+        {/* Tier 3: Continued care — CAPS/UBS + alternative for users without professional */}
+        <div className={`mt-1 rounded-lg p-2 text-xs ${
+          isUrgent ? "bg-red-950/30 text-red-300/80" : "bg-amber-950/30 text-amber-300/80"
+        }`}>
+          {urgency === "emergencia" ? (
+            <p>
+              Se não tem profissional de referência: vá ao pronto-socorro ou UPA mais próximo,
+              ou ligue 192 (SAMU) para atendimento psiquiátrico de urgência.
+            </p>
+          ) : (
+            <>
+              <p className="font-medium mb-0.5">Não tem profissional de referência?</p>
+              <p>
+                O CAPS (Centro de Atenção Psicossocial) oferece atendimento gratuito pelo SUS,
+                inclusive para transtorno bipolar. Procure o CAPS mais próximo ou peça
+                encaminhamento na UBS do seu bairro.
+              </p>
+            </>
+          )}
+        </div>
       </div>
 
       <p className="mt-3 text-[10px] text-muted">

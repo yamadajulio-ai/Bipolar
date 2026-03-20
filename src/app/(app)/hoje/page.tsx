@@ -5,9 +5,8 @@ import { getNews } from "@/lib/news";
 import { Card } from "@/components/Card";
 import { Greeting } from "@/components/Greeting";
 import { DashboardChartWrapper } from "@/components/dashboard/DashboardChartWrapper";
-import { StreakBadge } from "@/components/StreakBadge";
 import { computeDisplayStreak, computeLongestStreak, computeAchievements } from "@/lib/streaks";
-import { AchievementGrid } from "@/components/AchievementGrid";
+import { GamificationWrapper } from "@/components/GamificationWrapper";
 import { computeInsights } from "@/lib/insights/computeInsights";
 import type { PlannerBlockInput } from "@/lib/insights/computeInsights";
 import { SafetyNudge } from "@/components/insights/SafetyNudge";
@@ -117,6 +116,7 @@ export default async function HojePage() {
     latestMetrics, recentSleepLogs7,
     googleCal, haeKey, financialTx,
     lastWeeklyAssessment,
+    displayPrefs,
   ] = await Promise.all([
     // Today's data
     prisma.diaryEntry.findFirst({
@@ -181,6 +181,8 @@ export default async function HojePage() {
     prisma.financialTransaction.findFirst({ where: { userId: session.userId }, select: { id: true } }),
     // Last weekly assessment (for "para fazer" section)
     prisma.weeklyAssessment.findFirst({ where: { userId: session.userId }, orderBy: { createdAt: "desc" }, select: { createdAt: true } }),
+    // Display preferences (server-side gamification visibility)
+    prisma.displayPreferences.findUnique({ where: { userId: session.userId }, select: { hideStreaks: true, hideAchievements: true } }),
   ]);
 
   // === Compute Insights (Risk Radar data) ===
@@ -352,17 +354,11 @@ export default async function HojePage() {
   const formatBlockTime = (d: Date) =>
     d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: TZ });
 
-  // High risk safety check (for SafetyNudge)
-  const warningSigns = todayEntry?.warningSigns as string[] | null | undefined;
-  const showSafetyNudge = riskLevel === "atencao_alta" ||
-    (Array.isArray(warningSigns) && warningSigns.includes("pensamentos_suicidas"));
-
   // Build bipolar context from computed insights for SafetyNudge
   const bipolarContext = {
     mixedFeatures: thermometer?.mixedFeatures ?? false,
     mixedStrength: thermometer?.mixedStrength ?? null,
     consecutiveShortSleep: (() => {
-      // Extract from risk factors (e.g. "3 noites curtas seguidas")
       const match = risk?.factors.find(f => f.includes("noites curtas seguidas"));
       if (match) {
         const num = parseInt(match, 10);
@@ -376,8 +372,20 @@ export default async function HojePage() {
     riskFactors: risk?.factors ?? [],
   };
 
-  // Crisis/simplified mode: auto-trigger when high risk
-  const crisisMode = showSafetyNudge;
+  // High risk safety check (for SafetyNudge)
+  // Triggers: atencao_alta, suicidal thoughts, OR bipolar-specific signals
+  const warningSigns = todayEntry?.warningSigns as string[] | null | undefined;
+  const hasBipolarTrigger = bipolarContext.mixedFeatures ||
+    bipolarContext.consecutiveShortSleep >= 3 ||
+    bipolarContext.maniaSignsActive.length >= 2;
+  const showSafetyNudge = riskLevel === "atencao_alta" ||
+    (Array.isArray(warningSigns) && warningSigns.includes("pensamentos_suicidas")) ||
+    hasBipolarTrigger;
+
+  // Crisis/simplified mode: only for truly high risk (not all bipolar triggers)
+  const crisisMode = riskLevel === "atencao_alta" ||
+    (Array.isArray(warningSigns) && warningSigns.includes("pensamentos_suicidas")) ||
+    (bipolarContext.mixedFeatures && bipolarContext.mixedStrength === "forte");
 
   // === CRISIS MODE: show simplified UI ===
   if (crisisMode) {
@@ -658,18 +666,15 @@ export default async function HojePage() {
               </p>
             </div>
           </div>
-          {/* Streak (subtle) */}
-          {(checkinStreak > 0 || sleepStreak > 0) && (
-            <div className="mt-3 pt-3 border-t border-border">
-              <StreakBadge checkinStreak={checkinStreak} sleepStreak={sleepStreak} bestCheckinStreak={bestCheckinStreak} />
-            </div>
-          )}
-          {/* Achievements */}
-          {achievements.some(a => a.unlocked) && (
-            <div className="mt-3 pt-3 border-t border-border">
-              <AchievementGrid achievements={achievements} />
-            </div>
-          )}
+          {/* Streaks + Achievements (server-side preferences) */}
+          <GamificationWrapper
+            checkinStreak={checkinStreak}
+            sleepStreak={sleepStreak}
+            bestCheckinStreak={bestCheckinStreak}
+            achievements={achievements}
+            initialHideStreaks={displayPrefs?.hideStreaks ?? false}
+            initialHideAchievements={displayPrefs?.hideAchievements ?? false}
+          />
         </Card>
       )}
 

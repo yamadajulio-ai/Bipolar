@@ -1,20 +1,21 @@
 /**
  * Centralized date utilities.
- * All functions produce YYYY-MM-DD strings in the local timezone.
+ * All functions produce YYYY-MM-DD strings in America/Sao_Paulo timezone.
  *
- * Because this is a local-first SQLite app, the server runs on the
- * same machine as the user, so using the JS engine's local timezone
- * is correct for both client and server code.
+ * The app runs on Vercel (UTC server) but serves Brazilian users.
+ * Using explicit timezone ensures correct dates regardless of server TZ.
  */
 
-/** Returns today's date as YYYY-MM-DD in the local timezone. */
+const TZ = "America/Sao_Paulo";
+
+/** Returns today's date as YYYY-MM-DD in São Paulo timezone. */
 export function localToday(): string {
   return localDateStr(new Date());
 }
 
-/** Converts any Date object to YYYY-MM-DD in the local timezone. */
+/** Converts any Date object to YYYY-MM-DD in São Paulo timezone. */
 export function localDateStr(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return d.toLocaleDateString("sv-SE", { timeZone: TZ });
 }
 
 /**

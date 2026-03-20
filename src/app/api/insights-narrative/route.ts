@@ -11,6 +11,37 @@ const TZ = "America/Sao_Paulo";
 
 export const maxDuration = 30;
 
+// DELETE — Revoke/delete a specific narrative (LGPD right of erasure).
+// Deletes the narrative and its feedback. Cascading via Prisma relation.
+export async function DELETE(request: NextRequest) {
+  const session = await getSession();
+  if (!session.isLoggedIn) {
+    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  }
+
+  const url = new URL(request.url);
+  const narrativeId = url.searchParams.get("id");
+
+  if (!narrativeId) {
+    return NextResponse.json({ error: "ID da narrativa é obrigatório" }, { status: 400 });
+  }
+
+  // Verify ownership before deletion
+  const narrative = await prisma.narrative.findFirst({
+    where: { id: narrativeId, userId: session.userId },
+    select: { id: true },
+  });
+
+  if (!narrative) {
+    return NextResponse.json({ error: "Narrativa não encontrada" }, { status: 404 });
+  }
+
+  // Delete narrative (feedbacks cascade via onDelete: Cascade in schema)
+  await prisma.narrative.delete({ where: { id: narrativeId } });
+
+  return NextResponse.json({ success: true });
+}
+
 function spDate(d: Date): string {
   return d.toLocaleDateString("sv-SE", { timeZone: TZ });
 }
@@ -68,7 +99,7 @@ export async function GET(_request: NextRequest) {
 }
 
 // POST — Generate AI narrative V2
-export async function POST(_request: NextRequest) {
+export async function POST(request: NextRequest) {
   // Kill switch: disable AI narrative generation entirely
   if (process.env.KILL_AI_NARRATIVE === "true") {
     return NextResponse.json({ error: "Funcionalidade temporariamente desabilitada" }, { status: 503 });
@@ -196,12 +227,13 @@ export async function POST(_request: NextRequest) {
     }
 
     // Check OPENAI_API_KEY only when LLM path is needed
-    const willCallLlm = insights.risk?.level !== "atencao_alta" && sleepLogs30.length >= 7;
+    const hasEnoughData = sleepLogs30.length >= 7 && entries30.length >= 3;
+    const willCallLlm = insights.risk?.level !== "atencao_alta" && hasEnoughData;
     if (!process.env.OPENAI_API_KEY && willCallLlm) {
       return NextResponse.json({ error: "AI não configurada" }, { status: 503 });
     }
 
-    // Enforce consent BEFORE sending data to OpenAI (not after).
+    // Consent gate: block LLM path entirely without valid consent.
     // For deterministic templates (high-risk, insufficient data), no consent needed.
     if (willCallLlm) {
       const existingConsent = await prisma.consent.findFirst({
@@ -209,6 +241,16 @@ export async function POST(_request: NextRequest) {
         select: { id: true },
       });
       if (!existingConsent) {
+        // Require explicit consent flag from frontend (checkbox + disclosure)
+        let body: { consent?: boolean } = {};
+        try { body = await request.json(); } catch { /* no body */ }
+        if (!body.consent) {
+          return NextResponse.json(
+            { error: "Consentimento necessário para gerar resumo com IA." },
+            { status: 403 },
+          );
+        }
+        // First-time grant: record consent with audit trail
         await prisma.consent.create({ data: { userId, scope: "ai_narrative" } });
       }
     }
@@ -231,7 +273,7 @@ export async function POST(_request: NextRequest) {
         periodStart, periodEnd,
         status: persistence.guardrailPassed ? "completed" : "fallback",
         riskLevel: persistence.sourceFingerprint ? input.riskLevel : "low",
-        dataQuality: insights.sleep.recordCount < 7 ? "insufficient" : "ok",
+        dataQuality: (insights.sleep.recordCount < 7 || insights.mood.recordCount < 3) ? "insufficient" : "ok",
         model: persistence.model,
         reasoningEffort: persistence.reasoningEffort,
         promptVersion: persistence.promptVersion,
@@ -266,7 +308,11 @@ export async function POST(_request: NextRequest) {
     }, { headers: { "Cache-Control": "no-store" } });
   } catch (err) {
     Sentry.captureException(err, { tags: { endpoint: "insights-narrative-v2" } });
-    console.error("Insights narrative V2 error:", err);
+    console.error(JSON.stringify({
+      event: "insights_narrative_v2_error",
+      errorType: err instanceof Error ? err.constructor.name : "Unknown",
+      message: err instanceof Error ? err.message.slice(0, 100) : "Unknown error",
+    }));
     return NextResponse.json({ error: "Erro ao gerar resumo" }, { status: 500 });
   }
 }

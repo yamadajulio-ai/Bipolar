@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import * as Sentry from "@sentry/nextjs";
-import { checkRateLimit } from "@/lib/security";
+import { prisma } from "@/lib/db";
 
 /**
  * WhatsApp Cloud API webhook.
@@ -79,7 +79,13 @@ export async function POST(request: NextRequest) {
   try {
     body = JSON.parse(rawBody);
   } catch {
-    // Malformed JSON — ack to prevent retries (not our fault, not retryable)
+    // Malformed JSON — ack to prevent Meta retries, but log as dead-letter
+    // so we don't silently lose messages. No PHI in the log — just the event.
+    Sentry.captureMessage("WhatsApp webhook: malformed JSON (dead-letter)", {
+      level: "warning",
+      tags: { endpoint: "whatsapp-webhook", event: "dead_letter" },
+      extra: { bodyLength: rawBody.length },
+    });
     return NextResponse.json({ ok: true });
   }
 
@@ -100,11 +106,20 @@ export async function POST(request: NextRequest) {
 
           if (!text || !from) continue;
 
-          // Idempotency: dedupe by message.id to handle Meta retries.
-          // Window of 10 minutes covers Meta's retry policy with exponential backoff.
+          // Durable idempotency: dedupe by message.id via persistent ledger.
+          // Survives restarts, replays, and late retries from Meta.
           if (messageId) {
-            const isFirst = await checkRateLimit(`wa:msg:${messageId}`, 1, 10 * 60_000);
-            if (!isFirst) continue; // Already processed this message
+            try {
+              await prisma.processedWhatsAppMessage.create({
+                data: { messageId },
+              });
+            } catch (err) {
+              // Unique constraint violation = already processed → skip
+              if (err && typeof err === "object" && "code" in err && (err as { code: string }).code === "P2002") {
+                continue;
+              }
+              throw err; // Unexpected error — let outer catch handle it
+            }
           }
 
           // Breadcrumb only — no phone data in logs (even masked, PHI risk)
@@ -129,7 +144,11 @@ export async function POST(request: NextRequest) {
       level: "error",
       tags: { endpoint: "whatsapp-webhook" },
     });
-    console.error("WhatsApp webhook error:", err instanceof Error ? err.message : "Unknown error");
+    console.error(JSON.stringify({
+      event: "whatsapp_webhook_error",
+      errorType: err instanceof Error ? err.constructor.name : "Unknown",
+      message: err instanceof Error ? err.message.slice(0, 100) : "Unknown error",
+    }));
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
 }

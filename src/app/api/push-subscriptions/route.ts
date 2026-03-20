@@ -110,7 +110,11 @@ export async function POST(request: NextRequest) {
       );
     }
     Sentry.captureException(err, { tags: { endpoint: "push-subscribe" } });
-    console.error("Push subscription error:", err);
+    console.error(JSON.stringify({
+      event: "push_subscribe_error",
+      errorType: err instanceof Error ? err.constructor.name : "Unknown",
+      message: err instanceof Error ? err.message.slice(0, 100) : "Unknown error",
+    }));
     return NextResponse.json({ error: "Erro ao salvar inscrição" }, { status: 500 });
   }
 }
@@ -159,7 +163,11 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (err) {
     Sentry.captureException(err, { tags: { endpoint: "push-unsubscribe" } });
-    console.error("Push unsubscribe error:", err);
+    console.error(JSON.stringify({
+      event: "push_unsubscribe_error",
+      errorType: err instanceof Error ? err.constructor.name : "Unknown",
+      message: err instanceof Error ? err.message.slice(0, 100) : "Unknown error",
+    }));
     return NextResponse.json({ error: "Erro ao remover inscrição" }, { status: 500 });
   }
 }

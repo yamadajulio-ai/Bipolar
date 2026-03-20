@@ -74,6 +74,56 @@ export function generateReportShareText(month: string): string {
   return `Meu relatório mensal de acompanhamento — ${monthName}. Gerado pelo Suporte Bipolar.`;
 }
 
+// ── Generic reminder templates (LGPD: no health content) ───────
+// Per legal analysis: WhatsApp messages must NEVER contain health data,
+// clinical scores, mood values, or AI narrative content.
+// Only generic text that doesn't reveal the nature of the app.
+
+export const WHATSAPP_REMINDER_TEMPLATES = {
+  wakeReminder: {
+    templateName: "lembrete_generico",
+    fallbackText: "Bom dia! Você tem um lembrete pendente no Suporte Bipolar.",
+    url: "/sono",
+  },
+  sleepReminder: {
+    templateName: "lembrete_generico",
+    fallbackText: "Boa noite! Você tem um lembrete pendente no Suporte Bipolar.",
+    url: "/checkin",
+  },
+  diaryReminder: {
+    templateName: "lembrete_generico",
+    fallbackText: "Olá! Você tem um lembrete pendente no Suporte Bipolar.",
+    url: "/checkin",
+  },
+  breathingReminder: {
+    templateName: "lembrete_generico",
+    fallbackText: "Olá! Você tem um lembrete pendente no Suporte Bipolar.",
+    url: "/exercicios",
+  },
+} as const;
+
+/**
+ * Send a generic reminder via WhatsApp.
+ * Uses template if approved by Meta, falls back to text within 24h window.
+ * NEVER includes health data in the message body (LGPD Art. 11 compliance).
+ */
+export async function sendWhatsAppReminder(
+  phone: string,
+  reminderKey: keyof typeof WHATSAPP_REMINDER_TEMPLATES,
+): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  const template = WHATSAPP_REMINDER_TEMPLATES[reminderKey];
+
+  // Try template first (works outside 24h window)
+  const result = await sendWhatsAppTemplate(phone, template.templateName);
+  if (result.success) return result;
+
+  // Template not approved yet? Try free-form text (only within 24h window)
+  return sendWhatsAppText({
+    to: phone,
+    text: `${template.fallbackText}\n\n${APP_URL}${template.url}`,
+  });
+}
+
 // ── WhatsApp Cloud API (requires Meta Business setup) ──────────
 
 interface WhatsAppMessage {

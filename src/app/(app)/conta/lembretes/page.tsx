@@ -12,6 +12,8 @@ interface Settings {
   breathingReminder: string | null;
   enabled: boolean;
   privacyMode: boolean;
+  whatsappEnabled: boolean;
+  whatsappPhone: string;
 }
 
 const reminderFields = [
@@ -54,6 +56,8 @@ export default function LembretesPage() {
     const data: Record<string, string | boolean | null> = {
       enabled: formData.get("enabled") === "on",
       privacyMode: formData.get("privacyMode") === "on",
+      whatsappEnabled: formData.get("whatsappEnabled") === "on",
+      whatsappPhone: (formData.get("whatsappPhone") as string) || null,
     };
 
     for (const field of reminderFields) {
@@ -134,6 +138,42 @@ export default function LembretesPage() {
             <p className="ml-6 text-xs text-muted">
               Exibe notificações genéricas sem mencionar saúde mental, para proteger sua privacidade na tela de bloqueio.
             </p>
+          </div>
+
+          {/* WhatsApp opt-in section — LGPD Art. 11: specific, highlighted consent */}
+          <div className="mb-4 rounded-lg border border-border/50 bg-surface-alt p-3">
+            <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+              <input
+                type="checkbox"
+                name="whatsappEnabled"
+                defaultChecked={settings?.whatsappEnabled ?? false}
+                className="h-4 w-4 rounded border-border"
+              />
+              Receber lembretes também por WhatsApp
+            </label>
+            <p className="ml-6 mt-1 text-xs text-muted">
+              Mensagens genéricas enviadas via WhatsApp Business (Meta Platforms, Inc.).
+              O conteúdo não menciona saúde mental — apenas &quot;Você tem um lembrete pendente&quot;.
+            </p>
+            <p className="ml-6 mt-1 text-[10px] text-muted/70">
+              Ao ativar, você consente com a transferência do seu número de telefone para servidores
+              da Meta nos EUA/EU (LGPD art. 33), com retenção de até 30 dias.
+              Você pode revogar este consentimento a qualquer momento aqui ou em Privacidade → Consentimentos.
+            </p>
+            <div className="ml-6 mt-2">
+              <label className="text-xs font-medium text-foreground" htmlFor="whatsappPhone">
+                Número do WhatsApp (com DDD)
+              </label>
+              <input
+                type="tel"
+                id="whatsappPhone"
+                name="whatsappPhone"
+                placeholder="(11) 99999-9999"
+                defaultValue={settings?.whatsappPhone ?? ""}
+                className="mt-1 block w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted/50 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                maxLength={20}
+              />
+            </div>
           </div>
 
           {reminderFields.map((field) => (

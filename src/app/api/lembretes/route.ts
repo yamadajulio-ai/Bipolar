@@ -3,6 +3,7 @@ import { z } from "zod/v4";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/security";
+import { normalizePhone } from "@/lib/whatsapp";
 import * as Sentry from "@sentry/nextjs";
 
 const lembreteSchema = z.object({
@@ -12,6 +13,8 @@ const lembreteSchema = z.object({
   breathingReminder: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
   enabled: z.boolean().optional(),
   privacyMode: z.boolean().optional(),
+  whatsappEnabled: z.boolean().optional(),
+  whatsappPhone: z.string().max(20).optional().nullable(),
 });
 
 export async function GET() {
@@ -46,7 +49,23 @@ export async function GET() {
       });
     }
 
-    return NextResponse.json(settings);
+    // Fetch WhatsApp state from CommunicationPreference + User.whatsappPhone
+    const [commPref, user] = await Promise.all([
+      prisma.communicationPreference.findUnique({
+        where: { userId: session.userId },
+        select: { whatsapp: true },
+      }),
+      prisma.user.findUnique({
+        where: { id: session.userId },
+        select: { whatsappPhone: true },
+      }),
+    ]);
+
+    return NextResponse.json({
+      ...settings,
+      whatsappEnabled: commPref?.whatsapp ?? false,
+      whatsappPhone: user?.whatsappPhone ?? "",
+    });
   } catch (err) {
     Sentry.captureException(err, { tags: { endpoint: "lembretes" } });
     return NextResponse.json(
@@ -80,33 +99,87 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ errors: fieldErrors }, { status: 400 });
     }
 
-    const settings = await prisma.reminderSettings.upsert({
-      where: { userId: session.userId },
-      update: {
-        wakeReminder: parsed.data.wakeReminder ?? null,
-        sleepReminder: parsed.data.sleepReminder ?? null,
-        diaryReminder: parsed.data.diaryReminder ?? null,
-        breathingReminder: parsed.data.breathingReminder ?? null,
-        enabled: parsed.data.enabled ?? true,
-        privacyMode: parsed.data.privacyMode ?? false,
-      },
-      create: {
-        userId: session.userId,
-        wakeReminder: parsed.data.wakeReminder ?? null,
-        sleepReminder: parsed.data.sleepReminder ?? null,
-        diaryReminder: parsed.data.diaryReminder ?? null,
-        breathingReminder: parsed.data.breathingReminder ?? null,
-        enabled: parsed.data.enabled ?? true,
-        privacyMode: parsed.data.privacyMode ?? false,
-      },
-      select: {
-        id: true, wakeReminder: true, sleepReminder: true,
-        diaryReminder: true, breathingReminder: true,
-        enabled: true, privacyMode: true,
-      },
-    });
+    // Normalize WhatsApp phone if provided
+    let normalizedPhone: string | null = null;
+    if (parsed.data.whatsappPhone) {
+      normalizedPhone = normalizePhone(parsed.data.whatsappPhone);
+      if (!normalizedPhone) {
+        return NextResponse.json(
+          { errors: { whatsappPhone: ["Número de telefone inválido."] } },
+          { status: 400 },
+        );
+      }
+    }
 
-    return NextResponse.json(settings);
+    const whatsappEnabled = parsed.data.whatsappEnabled ?? false;
+
+    // Persist reminder settings + WhatsApp state atomically
+    const [settings] = await prisma.$transaction([
+      prisma.reminderSettings.upsert({
+        where: { userId: session.userId },
+        update: {
+          wakeReminder: parsed.data.wakeReminder ?? null,
+          sleepReminder: parsed.data.sleepReminder ?? null,
+          diaryReminder: parsed.data.diaryReminder ?? null,
+          breathingReminder: parsed.data.breathingReminder ?? null,
+          enabled: parsed.data.enabled ?? true,
+          privacyMode: parsed.data.privacyMode ?? false,
+        },
+        create: {
+          userId: session.userId,
+          wakeReminder: parsed.data.wakeReminder ?? null,
+          sleepReminder: parsed.data.sleepReminder ?? null,
+          diaryReminder: parsed.data.diaryReminder ?? null,
+          breathingReminder: parsed.data.breathingReminder ?? null,
+          enabled: parsed.data.enabled ?? true,
+          privacyMode: parsed.data.privacyMode ?? false,
+        },
+        select: {
+          id: true, wakeReminder: true, sleepReminder: true,
+          diaryReminder: true, breathingReminder: true,
+          enabled: true, privacyMode: true,
+        },
+      }),
+      // Persist WhatsApp phone on User
+      prisma.user.update({
+        where: { id: session.userId },
+        data: { whatsappPhone: normalizedPhone },
+        select: { id: true },
+      }),
+      // Persist WhatsApp communication preference
+      prisma.communicationPreference.upsert({
+        where: { userId: session.userId },
+        update: { whatsapp: whatsappEnabled },
+        create: { userId: session.userId, whatsapp: whatsappEnabled },
+        select: { id: true },
+      }),
+      // Auto-manage consent: revoke on disable (grant handled below outside transaction)
+      ...(!whatsappEnabled
+        ? [prisma.consent.updateMany({
+            where: { userId: session.userId, scope: "whatsapp", revokedAt: null },
+            data: { revokedAt: new Date() },
+          })]
+        : []),
+    ]);
+
+    // Grant consent if enabling WhatsApp (idempotent: skip if already active)
+    if (whatsappEnabled) {
+      const existing = await prisma.consent.findFirst({
+        where: { userId: session.userId, scope: "whatsapp", revokedAt: null },
+        select: { id: true },
+      });
+      if (!existing) {
+        await prisma.consent.create({
+          data: { userId: session.userId, scope: "whatsapp" },
+        });
+      }
+    }
+
+    return NextResponse.json({
+      ...settings,
+      whatsappEnabled,
+      whatsappPhone: normalizedPhone ?? "",
+    });
   } catch (err) {
     Sentry.captureException(err, { tags: { endpoint: "lembretes" } });
     return NextResponse.json(

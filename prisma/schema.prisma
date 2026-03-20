@@ -14,6 +14,7 @@ model User {
   authProvider     String             @default("email")
   googleSub        String?            @unique
   name             String?
+  whatsappPhone    String?            // E.164 format, e.g. "+5511999999999"
   role             String             @default("user") // "user" | "admin"
   onboarded        Boolean            @default(false)
   onboardingGoal   String?

@@ -43,7 +43,12 @@ const CONSENT_SCOPES = [
   {
     scope: "whatsapp",
     label: "WhatsApp",
-    description: "Lembretes e resumos via WhatsApp.",
+    description:
+      "Lembretes via WhatsApp Business (mensagens genéricas, sem conteúdo de saúde). " +
+      "Ao ativar, seus dados de contato (número de telefone) serão processados pela Meta Platforms, Inc. (EUA/EU) " +
+      "como operadora, com retenção de até 30 dias nos servidores da Meta. " +
+      "Constitui transferência internacional de dados (LGPD art. 33). " +
+      "Você pode revogar este consentimento a qualquer momento.",
     essential: false,
   },
   {

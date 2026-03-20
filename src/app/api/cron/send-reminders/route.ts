@@ -3,6 +3,7 @@ import * as Sentry from "@sentry/nextjs";
 import { prisma } from "@/lib/db";
 import { sendPush, type PushPayload, type PushResult } from "@/lib/web-push";
 import { checkRateLimit, isRateLimited } from "@/lib/security";
+import { isWhatsAppConfigured, sendWhatsAppReminder, WHATSAPP_REMINDER_TEMPLATES } from "@/lib/whatsapp";
 
 /**
  * Cron: Send Web Push reminders to users whose reminder time matches NOW.
@@ -294,8 +295,79 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // ── WhatsApp channel (parallel to push, same time matching) ──
+    let whatsappSent = 0;
+    if (isWhatsAppConfigured()) {
+      // Find users with WhatsApp enabled + valid phone + active consent
+      const waUsers = await prisma.communicationPreference.findMany({
+        where: {
+          whatsapp: true,
+          userId: { in: userIds },
+        },
+        select: { userId: true },
+      });
+
+      if (waUsers.length > 0) {
+        const waUserIds = waUsers.map((u) => u.userId);
+
+        // Fetch phones for WhatsApp users
+        const waPhones = await prisma.user.findMany({
+          where: { id: { in: waUserIds }, whatsappPhone: { not: null } },
+          select: { id: true, whatsappPhone: true },
+        });
+        const phoneByUser = new Map(waPhones.map((u) => [u.id, u.whatsappPhone!]));
+
+        // Verify active consent for each user
+        const waConsents = await prisma.consent.findMany({
+          where: { userId: { in: waUserIds }, scope: "whatsapp", revokedAt: null },
+          select: { userId: true },
+        });
+        const consentedUsers = new Set(waConsents.map((c) => c.userId));
+
+        for (const s of matchingSettings) {
+          const phone = phoneByUser.get(s.userId);
+          if (!phone || !consentedUsers.has(s.userId)) continue;
+
+          for (const key of reminderKeys) {
+            const settingValue = s[key as keyof typeof s];
+            if (typeof settingValue !== "string" || !lookbackTimes.has(settingValue)) continue;
+            if (!(key in WHATSAPP_REMINDER_TEMPLATES)) continue;
+
+            const waKey = `wa:reminder:${s.userId}:${key}:${spDate}T${settingValue}`;
+
+            // Dedupe: skip if already sent
+            const alreadySentWa = await isRateLimited(`sent:${waKey}`, 1);
+            if (alreadySentWa) continue;
+
+            const acquired = await checkRateLimit(`inflight:${waKey}`, 1, INFLIGHT_TTL_MS);
+            if (!acquired) continue;
+
+            const result = await sendWhatsAppReminder(
+              phone,
+              key as keyof typeof WHATSAPP_REMINDER_TEMPLATES,
+            );
+
+            if (result.success) {
+              whatsappSent++;
+              await checkRateLimit(`sent:${waKey}`, 1, SENT_TTL_MS);
+
+              // Log for audit trail
+              await prisma.messageLog.create({
+                data: {
+                  userId: s.userId,
+                  channel: "whatsapp",
+                  category: "reminder",
+                  delivered: true,
+                },
+              });
+            }
+          }
+        }
+      }
+    }
+
     Sentry.captureCheckIn({ checkInId, monitorSlug: "send-reminders", status: "ok" });
-    return NextResponse.json({ ok: true, sent, cleaned: expiredIds.length });
+    return NextResponse.json({ ok: true, sent, whatsappSent, cleaned: expiredIds.length });
   } catch (err) {
     Sentry.captureCheckIn({ checkInId, monitorSlug: "send-reminders", status: "error" });
     Sentry.captureException(err, { tags: { endpoint: "cron-send-reminders" } });

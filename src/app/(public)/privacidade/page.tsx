@@ -112,7 +112,7 @@ export default function PrivacidadePage() {
         <section className="mb-6">
           <h2 className="mb-2 text-lg font-semibold">4. Base legal (LGPD)</h2>
           <ul className="list-inside list-disc space-y-1 text-sm text-muted">
-            <li><strong>Consentimento (art. 7º, I e art. 11, I):</strong> para dados sensíveis de saúde, diário pessoal (consentimento específico <code>journal_data</code>), integrações externas, Resumo com IA sob demanda, chatbot de apoio do SOS quando habilitado, reconhecimento de voz e acesso profissional.</li>
+            <li><strong>Consentimento (art. 7º, I e art. 11, I):</strong> para dados sensíveis de saúde, diário pessoal (consentimento específico <code>journal_data</code>), integrações externas, Resumo com IA sob demanda, chatbot de apoio do SOS quando habilitado, reconhecimento de voz, lembretes via WhatsApp Business (consentimento específico <code>whatsapp</code>, com transferência internacional) e acesso profissional.</li>
             <li><strong>Execução de contrato (art. 7º, V):</strong> para dados necessários ao funcionamento da conta.</li>
             <li><strong>Legítimo interesse (art. 7º, IX):</strong> para logs de segurança e melhorias de produto.</li>
           </ul>
@@ -146,6 +146,7 @@ export default function PrivacidadePage() {
             <li><strong>Infraestrutura:</strong> dados são armazenados nos servidores da Vercel e Neon, sujeitos às suas respectivas políticas de segurança.</li>
             <li><strong>Monitoramento:</strong> dados técnicos (sem PII) são enviados ao Sentry para diagnóstico de erros.</li>
             <li><strong>Cloudflare:</strong> proxy para integração Apple Health (apenas repasse de dados, sem armazenamento).</li>
+            <li><strong>WhatsApp Business (Meta):</strong> quando você ativa lembretes via WhatsApp, seu número de telefone é enviado à Meta Platforms, Inc. para entrega de mensagens genéricas (sem conteúdo de saúde). A Meta atua como operadora (processadora) dos dados e retém o conteúdo das mensagens por até 30 dias em seus servidores. O consentimento para este compartilhamento é específico e separado (<code>whatsapp</code>), podendo ser revogado a qualquer momento em Privacidade → Consentimentos ou na página de Lembretes.</li>
           </ul>
         </section>
 
@@ -164,6 +165,7 @@ export default function PrivacidadePage() {
             <li><strong>Google</strong> (Analytics): EUA — dados de navegação agregados para melhoria do produto.</li>
             <li><strong>Microsoft</strong> (Clarity): EUA — análise de comportamento de navegação, sem dados de saúde.</li>
             <li><strong>Meta</strong> (Pixel/CAPI): EUA — medição de eficácia de campanhas de divulgação, sem dados de saúde.</li>
+            <li><strong>Meta</strong> (WhatsApp Business API): EUA e Europa — quando ativado por você, entrega de lembretes genéricos via WhatsApp. Conteúdo retido por até 30 dias nos servidores da Meta. Consentimento específico e separado.</li>
             <li><strong>Sentry</strong> (monitoramento de erros): EUA — recebe apenas dados técnicos sem informações pessoais identificáveis.</li>
             <li><strong>Cloudflare</strong> (proxy para Apple Health): rede global — apenas repasse de dados em trânsito, sem armazenamento persistente.</li>
           </ul>
@@ -173,7 +175,8 @@ export default function PrivacidadePage() {
             internacional, os mecanismos do art. 33 da LGPD e da regulamentação vigente da
             ANPD, incluindo cláusulas-padrão contratuais quando aplicáveis. Operadores
             essenciais (Vercel e Neon) processam dados continuamente; os demais são acionados
-            sob demanda ou recebem apenas dados técnicos.
+            sob demanda ou recebem apenas dados técnicos. O WhatsApp Business (Meta) é
+            acionado apenas quando ativado por você com consentimento específico e separado.
           </p>
         </section>
 

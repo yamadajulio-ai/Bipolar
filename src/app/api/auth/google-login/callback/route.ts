@@ -44,8 +44,6 @@ export async function GET(request: NextRequest) {
       select: googleSelectFields,
     });
 
-    let isNewUser = false;
-
     if (!user) {
       // 2. Find by email (link existing account)
       user = await prisma.user.findUnique({
@@ -74,7 +72,6 @@ export async function GET(request: NextRequest) {
         ]);
       } else {
         // 3. Create new user (no password) + essential consents atomically
-        isNewUser = true;
         user = await prisma.$transaction(async (tx) => {
           const newUser = await tx.user.create({
             data: {

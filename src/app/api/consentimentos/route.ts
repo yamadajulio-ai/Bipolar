@@ -57,11 +57,26 @@ export async function POST(request: NextRequest) {
   const maskedIp = maskIp(rawIp);
 
   if (action === "grant") {
-    // Create new consent (skipDuplicates if already active)
-    await prisma.consent.createMany({
-      data: [{ userId: session.userId, scope, version: CONSENT_VERSION, ipAddress: maskedIp }],
-      skipDuplicates: true,
+    // Check if there's a revoked consent for this scope — re-activate it
+    const existing = await prisma.consent.findFirst({
+      where: { userId: session.userId, scope },
+      select: { id: true, revokedAt: true },
+      orderBy: { grantedAt: "desc" },
     });
+
+    if (existing?.revokedAt) {
+      // Re-grant: update existing record
+      await prisma.consent.update({
+        where: { id: existing.id },
+        data: { revokedAt: null, grantedAt: new Date(), version: CONSENT_VERSION, ipAddress: maskedIp },
+      });
+    } else if (!existing) {
+      // First time granting this scope
+      await prisma.consent.create({
+        data: { userId: session.userId, scope, version: CONSENT_VERSION, ipAddress: maskedIp },
+      });
+    }
+    // else: already active, no-op
   } else {
     // Revoke: set revokedAt on active consent
     await prisma.consent.updateMany({

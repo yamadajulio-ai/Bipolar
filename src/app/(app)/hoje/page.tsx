@@ -92,7 +92,9 @@ const RISK_CONFIG = {
   },
 } as const;
 
-export default async function HojePage() {
+export default async function HojePage({ searchParams }: { searchParams: Promise<{ full?: string }> }) {
+  const params = await searchParams;
+  const dismissCrisis = params.full === "1";
   const session = await getSession();
   const now = new Date();
   const today = localToday();
@@ -387,8 +389,8 @@ export default async function HojePage() {
     (Array.isArray(warningSigns) && warningSigns.includes("pensamentos_suicidas")) ||
     (bipolarContext.mixedFeatures && bipolarContext.mixedStrength === "forte");
 
-  // === CRISIS MODE: show simplified UI ===
-  if (crisisMode) {
+  // === CRISIS MODE: show simplified UI (unless user dismissed with ?full=1) ===
+  if (crisisMode && !dismissCrisis) {
     return (
       <div className="space-y-4">
         <Greeting />
@@ -471,6 +473,13 @@ export default async function HojePage() {
             </Card>
           </a>
         </div>
+
+        <Link
+          href="/hoje?full=1"
+          className="block text-center text-xs text-muted hover:text-foreground transition-colors py-2 no-underline"
+        >
+          Ver painel completo
+        </Link>
 
         <p className="text-[10px] text-center text-muted italic px-4">
           Este modo é ativado automaticamente quando detectamos sinais que merecem atenção.

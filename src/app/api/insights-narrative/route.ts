@@ -15,35 +15,55 @@ function spDate(d: Date): string {
   return d.toLocaleDateString("sv-SE", { timeZone: TZ });
 }
 
-// GET — Return latest cached narrative (if available)
+// GET — Return latest cached narrative (if available).
+// Contract: returns the latest SAFE narrative (guardrailPassed=true).
+// If the most recent attempt failed guardrails, signals this via latestAttemptFailed
+// so the frontend can inform the user without exposing unsafe content.
 export async function GET(_request: NextRequest) {
   const session = await getSession();
   if (!session.isLoggedIn) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
-  const latest = await prisma.narrative.findFirst({
-    where: { userId: session.userId, status: "completed" },
-    orderBy: { createdAt: "desc" },
-    select: { id: true, outputJson: true, createdAt: true, sourceFingerprint: true, shareWithProfessional: true },
-  });
+  // Fetch latest attempt (any status) to detect if the most recent one failed
+  const [latestAttempt, latestSafe] = await Promise.all([
+    prisma.narrative.findFirst({
+      where: { userId: session.userId },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, guardrailPassed: true, status: true, createdAt: true },
+    }),
+    prisma.narrative.findFirst({
+      where: { userId: session.userId, status: "completed", guardrailPassed: true },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, outputJson: true, createdAt: true, sourceFingerprint: true, shareWithProfessional: true },
+    }),
+  ]);
 
-  if (!latest) {
-    return NextResponse.json({ cached: false }, { headers: { "Cache-Control": "no-store" } });
+  // No narrative at all
+  if (!latestSafe) {
+    return NextResponse.json({
+      cached: false,
+      // If there was an attempt but it failed, let the frontend know
+      latestAttemptFailed: latestAttempt ? !latestAttempt.guardrailPassed : false,
+    }, { headers: { "Cache-Control": "no-store" } });
   }
 
   // Extract evidence map from stored output (embedded at save time)
-  const outputJson = latest.outputJson as Record<string, unknown>;
+  const outputJson = latestSafe.outputJson as Record<string, unknown>;
   const storedEvidenceMap = outputJson?._evidenceMap ?? {};
+
+  // Signal if the most recent attempt is NOT the one being returned (guardrail failure)
+  const latestAttemptFailed = latestAttempt?.id !== latestSafe.id && !latestAttempt?.guardrailPassed;
 
   return NextResponse.json({
     cached: true,
-    narrativeId: latest.id,
-    narrative: latest.outputJson,
+    narrativeId: latestSafe.id,
+    narrative: latestSafe.outputJson,
     evidenceMap: storedEvidenceMap,
-    sourceFingerprint: latest.sourceFingerprint,
-    shareWithProfessional: latest.shareWithProfessional,
-    createdAt: latest.createdAt.toISOString(),
+    sourceFingerprint: latestSafe.sourceFingerprint,
+    shareWithProfessional: latestSafe.shareWithProfessional,
+    createdAt: latestSafe.createdAt.toISOString(),
+    latestAttemptFailed,
   }, { headers: { "Cache-Control": "no-store" } });
 }
 

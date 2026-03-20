@@ -28,7 +28,7 @@ export interface PushPayload {
 
 export type PushResult =
   | { ok: true }
-  | { ok: false; reason: "expired" | "transient" | "config" | "invalid-endpoint" };
+  | { ok: false; reason: "expired" | "transient" | "bad-request" | "config" | "invalid-endpoint" };
 
 export async function sendPush(
   subscription: { endpoint: string; p256dh: string; auth: string },
@@ -62,16 +62,29 @@ export async function sendPush(
     if (statusCode === 404 || statusCode === 410) {
       return { ok: false, reason: "expired" };
     }
-    // 400/403 = possibly VAPID config issue, not necessarily dead subscription.
-    // Treat as transient to avoid deleting valid subscriptions on our config errors.
-    if (statusCode === 400 || statusCode === 403) {
-      Sentry.captureMessage(`Web Push ${statusCode} error — possible VAPID/config issue`, {
+    // 400 = bad request. Subscription data is malformed or permanently invalid.
+    // Don't delete immediately (might be our serialization issue), but track separately.
+    if (statusCode === 400) {
+      Sentry.captureMessage("Web Push 400 — subscription may be permanently invalid", {
         level: "warning",
-        tags: { feature: "web-push", statusCode: String(statusCode) },
+        tags: { feature: "web-push", statusCode: "400" },
+      });
+      return { ok: false, reason: "bad-request" };
+    }
+    // 403 = possible VAPID config issue, not necessarily dead subscription.
+    // Treat as transient to avoid deleting valid subscriptions on our config errors.
+    if (statusCode === 403) {
+      Sentry.captureMessage("Web Push 403 — possible VAPID/config issue", {
+        level: "warning",
+        tags: { feature: "web-push", statusCode: "403" },
       });
       return { ok: false, reason: "transient" };
     }
-    console.error("Web Push error:", err);
+    // 429/5xx/network errors — transient, retry later
+    Sentry.captureException(err, {
+      level: "warning",
+      tags: { feature: "web-push", statusCode: statusCode ? String(statusCode) : "network" },
+    });
     return { ok: false, reason: "transient" };
   }
 }

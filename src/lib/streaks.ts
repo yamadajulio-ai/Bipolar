@@ -1,11 +1,17 @@
 /**
  * Streak and achievement computation for gamification.
  * All dates should be YYYY-MM-DD strings.
+ *
+ * Domain rule: "display streaks" use grace (streak survives until tomorrow
+ * if the user hasn't registered today yet). "strict streaks" require today
+ * to be in the set. Use the explicit function names to clarify intent:
+ *   - computeDisplayStreak() → UI/dashboard, includes grace
+ *   - computeCurrentStreak() → strict, no grace (internal/computation)
  */
 
 export interface StreakData {
-  checkinStreak: number;       // Consecutive days with diary entry
-  sleepStreak: number;         // Consecutive days with sleep log
+  checkinStreak: number;       // Display streak (with grace) for check-ins
+  sleepStreak: number;         // Display streak (with grace) for sleep logs
   bestCheckinStreak: number;   // All-time longest checkin streak
   bestSleepStreak: number;     // All-time longest sleep streak
   totalCheckins: number;       // Total diary entries ever
@@ -39,7 +45,10 @@ function sanitizeDates(dates: string[]): string[] {
   return dates.filter(isRealDate);
 }
 
-/** Compute current streak from a sorted (desc) list of date strings. */
+/**
+ * Strict current streak: counts consecutive days ending with `today`.
+ * Returns 0 if today is not in the date set.
+ */
 export function computeCurrentStreak(dates: string[], today: string): number {
   const valid = sanitizeDates(dates);
   if (valid.length === 0 || !isRealDate(today)) return 0;
@@ -47,6 +56,42 @@ export function computeCurrentStreak(dates: string[], today: string): number {
   const dateSet = new Set(valid);
   let streak = 0;
   const d = new Date(today + "T12:00:00");
+
+  while (dateSet.has(formatDate(d))) {
+    streak++;
+    d.setDate(d.getDate() - 1);
+  }
+
+  return streak;
+}
+
+/**
+ * Display streak: counts consecutive days with a grace window.
+ *
+ * If `today` has no record yet, the streak is counted from yesterday instead.
+ * This avoids punishing the user for not having registered yet today —
+ * critical in a mental health context where rigid streak loss can increase
+ * guilt and abandonment during symptomatic periods.
+ *
+ * This is the domain rule for all user-facing streak displays.
+ */
+export function computeDisplayStreak(dates: string[], today: string): number {
+  const valid = sanitizeDates(dates);
+  if (valid.length === 0 || !isRealDate(today)) return 0;
+
+  const dateSet = new Set(valid);
+
+  // If today is already recorded, count from today.
+  // Otherwise, start from yesterday — the streak survives until tomorrow.
+  let startDate = today;
+  if (!dateSet.has(today)) {
+    const yesterday = new Date(today + "T12:00:00");
+    yesterday.setDate(yesterday.getDate() - 1);
+    startDate = formatDate(yesterday);
+  }
+
+  let streak = 0;
+  const d = new Date(startDate + "T12:00:00");
 
   while (dateSet.has(formatDate(d))) {
     streak++;
@@ -155,7 +200,8 @@ const ACHIEVEMENT_DEFS: Array<{
     icon: "🎯",
     check: (d) => {
       // Must be concurrent: both current streaks >= 7 at the same time.
-      // Using current streaks (not best) ensures overlap, not disjoint periods.
+      // Using display streaks (with grace) ensures the badge doesn't
+      // flicker off each morning before the user registers today.
       const unlocked = d.checkinStreak >= 7 && d.sleepStreak >= 7;
       return {
         unlocked,

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   computeCurrentStreak,
+  computeDisplayStreak,
   computeLongestStreak,
   computeAchievements,
 } from "./streaks";
@@ -120,6 +121,52 @@ describe("computeCurrentStreak", () => {
       dates.push(d.toISOString().slice(0, 10));
     }
     expect(computeCurrentStreak(dates, TODAY)).toBe(30);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// computeDisplayStreak (grace window — domain rule for UI)
+// ---------------------------------------------------------------------------
+
+describe("computeDisplayStreak", () => {
+  const TODAY = "2026-03-18";
+  const YESTERDAY = "2026-03-17";
+
+  it("returns 0 for empty dates", () => {
+    expect(computeDisplayStreak([], TODAY)).toBe(0);
+  });
+
+  it("returns streak from today when today is in the set", () => {
+    expect(computeDisplayStreak([TODAY, YESTERDAY, "2026-03-16"], TODAY)).toBe(3);
+  });
+
+  it("returns streak from yesterday when today is NOT yet recorded (grace)", () => {
+    // User hasn't registered today yet — grace keeps the streak alive
+    expect(computeDisplayStreak([YESTERDAY, "2026-03-16", "2026-03-15"], TODAY)).toBe(3);
+  });
+
+  it("returns 0 when neither today nor yesterday are in the set", () => {
+    // Streak is genuinely broken — more than 1 day gap
+    expect(computeDisplayStreak(["2026-03-15", "2026-03-14"], TODAY)).toBe(0);
+  });
+
+  it("returns 1 when only yesterday is in the set (grace preserves 1-day streak)", () => {
+    expect(computeDisplayStreak([YESTERDAY], TODAY)).toBe(1);
+  });
+
+  it("returns 1 when only today is in the set", () => {
+    expect(computeDisplayStreak([TODAY], TODAY)).toBe(1);
+  });
+
+  it("matches computeCurrentStreak when today IS in the set", () => {
+    const dates = [TODAY, YESTERDAY, "2026-03-16"];
+    expect(computeDisplayStreak(dates, TODAY)).toBe(computeCurrentStreak(dates, TODAY));
+  });
+
+  it("exceeds computeCurrentStreak when today is NOT in the set (grace)", () => {
+    const dates = [YESTERDAY, "2026-03-16"];
+    expect(computeDisplayStreak(dates, TODAY)).toBe(2);
+    expect(computeCurrentStreak(dates, TODAY)).toBe(0);
   });
 });
 

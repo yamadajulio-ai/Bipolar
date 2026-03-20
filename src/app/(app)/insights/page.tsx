@@ -302,10 +302,25 @@ export default async function InsightsPage({
         </Card>
       )}
 
-      {/* ── Safety Nudge (always on top when risk is high) ──────── */}
-      {insights.risk && insights.risk.level === "atencao_alta" && (
+      {/* ── Safety Nudge (always on top when risk is high or bipolar triggers active) ──────── */}
+      {(insights.risk?.level === "atencao_alta" || insights.thermometer?.mixedFeatures) && (
         <div className="mb-6">
-          <SafetyNudge riskLevel={insights.risk.level} />
+          <SafetyNudge
+            riskLevel={insights.risk?.level}
+            bipolarContext={{
+              mixedFeatures: insights.thermometer?.mixedFeatures ?? false,
+              mixedStrength: insights.thermometer?.mixedStrength ?? null,
+              consecutiveShortSleep: (() => {
+                const match = insights.risk?.factors.find(f => f.includes("noites curtas seguidas"));
+                if (match) { const num = parseInt(match, 10); return isNaN(num) ? 0 : num; }
+                return 0;
+              })(),
+              maniaSignsActive: insights.thermometer?.factors.filter(f =>
+                ["pensamentos acelerados", "gastos impulsivos", "energia excessiva", "planos grandiosos", "agitação", "sono reduzido"].some(s => f.toLowerCase().includes(s))
+              ) ?? [],
+              riskFactors: insights.risk?.factors ?? [],
+            }}
+          />
         </div>
       )}
 

@@ -38,7 +38,12 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = await request.json();
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
+    }
     const parsed = subscribeSchema.safeParse(body);
 
     if (!parsed.success) {
@@ -127,7 +132,12 @@ export async function DELETE(request: NextRequest) {
   }
 
   try {
-    const body = await request.json();
+    let body: Record<string, unknown>;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
+    }
     const endpoint = body.endpoint;
 
     if (!endpoint || typeof endpoint !== "string" || endpoint.length > 2048) {

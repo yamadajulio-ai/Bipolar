@@ -14,10 +14,10 @@ import { sendPush, type PushPayload, type PushResult } from "@/lib/web-push";
  *
  * Safety:
  * - Never notify users who deleted account (cascade handles that)
- * - Never notify users who disabled reminders
+ * - Never notify users who disabled reminders or push consent
  * - Never notify users who had check-in within the lookback
- * - Max 1 reactivation push per user per day (dedupe via lastReactivationAt)
- * - Respects privacyMode
+ * - Max 1 reactivation push per user per day (dedupe via MessageLog)
+ * - Respects privacyMode and CommunicationPreference
  */
 
 const TIERS = [
@@ -27,7 +27,7 @@ const TIERS = [
     maxHours: 72,
     payload: {
       title: "Como você está hoje?",
-      body: "Um check-in rápido ajuda a acompanhar seus padrões.",
+      body: "15 segundos para registrar — cada dia conta para entender seus padrões.",
       tag: "reactivation",
       url: "/checkin",
     } satisfies PushPayload,
@@ -37,8 +37,8 @@ const TIERS = [
     minHours: 72,
     maxHours: 168,
     payload: {
-      title: "Sentimos sua falta",
-      body: "Seus registros ficam mais úteis com continuidade. Volte quando puder.",
+      title: "Seus dados continuam aqui",
+      body: "Sem julgamento, sem pressa. Quando quiser voltar, estaremos prontos.",
       tag: "reactivation",
       url: "/hoje",
     } satisfies PushPayload,
@@ -48,8 +48,8 @@ const TIERS = [
     minHours: 168,
     maxHours: 720, // 30 days max — after that, stop nudging
     payload: {
-      title: "Tudo bem por aí?",
-      body: "O Suporte Bipolar está aqui quando você precisar. Sem pressa.",
+      title: "Estamos por aqui",
+      body: "Se precisar de apoio, o SOS e o CVV (188) estão disponíveis 24h.",
       tag: "reactivation",
       url: "/hoje",
     } satisfies PushPayload,
@@ -63,6 +63,9 @@ const PRIVACY_PAYLOAD: PushPayload = {
   url: "/",
 };
 
+/** Minimum hours between reactivation messages to the same user */
+const DEDUP_HOURS = 24;
+
 export const maxDuration = 30;
 
 export async function GET(request: NextRequest) {
@@ -75,6 +78,7 @@ export async function GET(request: NextRequest) {
     }
 
     const now = new Date();
+    const dedupCutoff = new Date(now.getTime() - DEDUP_HOURS * 3600_000);
     let totalSent = 0;
     let totalSkipped = 0;
     let totalFailed = 0;
@@ -86,8 +90,9 @@ export async function GET(request: NextRequest) {
       // Find users who:
       // 1. Have push subscriptions
       // 2. Have reminders enabled (not opted out)
-      // 3. Last diary entry is between cutoffMin and cutoffMax
-      // 4. Haven't received a reactivation push today
+      // 3. Have push consent via CommunicationPreference (or no preference = default on)
+      // 4. Last diary entry is between cutoffMin and cutoffMax
+      // 5. Haven't received a reactivation push in DEDUP_HOURS (via MessageLog)
       const candidates = await prisma.user.findMany({
         where: {
           onboarded: true,
@@ -97,6 +102,11 @@ export async function GET(request: NextRequest) {
           pushSubscriptions: {
             some: {},
           },
+          // Respect CommunicationPreference: either no pref (default on) or push=true
+          OR: [
+            { communicationPreference: null },
+            { communicationPreference: { push: true } },
+          ],
           // Last entry falls in the tier window
           entries: {
             none: {
@@ -104,6 +114,13 @@ export async function GET(request: NextRequest) {
             },
             some: {
               createdAt: { gte: cutoffMin },
+            },
+          },
+          // Dedupe: no reactivation message in the last DEDUP_HOURS
+          messageLogs: {
+            none: {
+              category: "reactivation",
+              sentAt: { gte: dedupCutoff },
             },
           },
         },
@@ -133,8 +150,21 @@ export async function GET(request: NextRequest) {
         }
 
         const sent = results.some((r) => r.ok);
-        if (sent) totalSent++;
-        else totalFailed++;
+        if (sent) {
+          totalSent++;
+          // Log the message for deduplication
+          await prisma.messageLog.create({
+            data: {
+              userId: user.id,
+              channel: "push",
+              category: "reactivation",
+              tier: tier.key,
+              delivered: true,
+            },
+          });
+        } else {
+          totalFailed++;
+        }
 
         // Remove expired subscriptions
         const toRemove = user.pushSubscriptions

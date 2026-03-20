@@ -24,6 +24,7 @@ vi.mock("web-push", () => ({
 
 vi.mock("@sentry/nextjs", () => ({
   captureMessage: vi.fn(),
+  captureException: vi.fn(),
 }));
 
 // ─── Dynamic import (after mocks) ────────────────────────────────────────────
@@ -210,12 +211,12 @@ describe("sendPush", () => {
       expect(result).toEqual({ ok: false, reason: "expired" });
     });
 
-    it("returns transient on 400 Bad Request (possible VAPID config issue)", async () => {
+    it("returns bad-request on 400 Bad Request (subscription may be permanently invalid)", async () => {
       const { sendPush } = await loadModule();
       mockSendNotification.mockRejectedValueOnce({ statusCode: 400 });
 
       const result = await sendPush(validSub, payload);
-      expect(result).toEqual({ ok: false, reason: "transient" });
+      expect(result).toEqual({ ok: false, reason: "bad-request" });
     });
 
     it("returns transient on 403 Forbidden (possible VAPID config issue)", async () => {

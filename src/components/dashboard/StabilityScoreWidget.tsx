@@ -15,7 +15,7 @@ const COMPONENT_LABELS: Record<string, string> = {
   rhythmRegularity: "Ritmo",
   medicationAdherence: "Medicação",
   moodStability: "Humor",
-  riskInverse: "Segurança",
+  instability: "Estabilidade",
 };
 
 function ScoreRing({ score, className }: { score: number; className: string }) {
@@ -90,24 +90,51 @@ export function StabilityScoreWidget({ stability }: { stability: StabilityScore 
   const config = LEVEL_CONFIG[stability.level];
 
   return (
-    <div className="flex items-start gap-4">
-      <ScoreRing score={stability.score} className={config.ring} />
-      <div className="flex-1 min-w-0 space-y-1.5">
-        <div className="flex items-center gap-2">
-          <span className={`text-sm font-semibold ${config.color}`}>
-            {stability.label}
-          </span>
-        </div>
-        <div className="space-y-1">
-          {Object.entries(stability.components).map(([key, value]) => (
-            <ComponentBar
-              key={key}
-              label={COMPONENT_LABELS[key] || key}
-              value={value}
-            />
-          ))}
+    <div className="space-y-3">
+      <div className="flex items-start gap-4">
+        <ScoreRing score={stability.score} className={config.ring} />
+        <div className="flex-1 min-w-0 space-y-1.5">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className={`text-sm font-semibold ${config.color}`}>
+              {stability.label}
+            </span>
+            {stability.provisional && (
+              <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] text-muted dark:bg-gray-800">
+                provisório
+              </span>
+            )}
+            {stability.riskCapped && (
+              <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] text-red-600 dark:bg-red-900 dark:text-red-300">
+                limitado por risco
+              </span>
+            )}
+          </div>
+
+          {stability.deltaVsBaseline != null && stability.deltaVsBaseline !== 0 && (
+            <p className={`text-[11px] ${stability.deltaVsBaseline > 0 ? "text-emerald-600" : "text-red-500"}`}>
+              {stability.deltaVsBaseline > 0 ? "+" : ""}{stability.deltaVsBaseline} vs. média anterior
+            </p>
+          )}
+
+          <div className="space-y-1">
+            {Object.entries(stability.components).map(([key, value]) => (
+              <ComponentBar
+                key={key}
+                label={COMPONENT_LABELS[key] || key}
+                value={value}
+              />
+            ))}
+          </div>
         </div>
       </div>
+
+      {stability.confidence !== "high" && (
+        <p className="text-[10px] text-muted italic">
+          {stability.confidence === "low"
+            ? "Poucos dias de dados — o score vai ficar mais preciso com o tempo."
+            : "Score baseado em dados parciais. Continue registrando para maior precisão."}
+        </p>
+      )}
     </div>
   );
 }

@@ -46,6 +46,8 @@ model User {
   contextualFeedbacks    ContextualFeedback[]
   journalEntries         JournalEntry[]
   narratives             Narrative[]
+  communicationPreference CommunicationPreference?
+  messageLogs            MessageLog[]
 }
 
 model DiaryEntry {
@@ -459,7 +461,8 @@ model ContextualFeedback {
 model Consent {
   id        String   @id @default(uuid())
   userId    String
-  scope     String   // "health_data" | "terms_of_use"
+  scope     String   // "health_data" | "terms_of_use" | "ai_narrative" | "push_notifications" | "email_notifications" | "whatsapp" | "professional_sharing"
+  version   Int      @default(1) // consent policy version — bump when terms change
   grantedAt DateTime @default(now())
   revokedAt DateTime?
   ipAddress String?  // masked /24
@@ -663,4 +666,37 @@ model JournalEntry {
   @@index([userId, createdAt])
   @@index([userId, entryDateLocal])
   @@index([userId, type])
+}
+
+// ── Communication Preferences (reactivation, email, WhatsApp) ───
+
+model CommunicationPreference {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  push      Boolean  @default(true)
+  email     Boolean  @default(false)
+  whatsapp  Boolean  @default(false)
+  quietStart String? // HH:MM — start of quiet hours (no push)
+  quietEnd   String? // HH:MM — end of quiet hours
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ── Message Log (idempotency for reactivation & comms) ──────────
+
+model MessageLog {
+  id        String   @id @default(uuid())
+  userId    String
+  channel   String   // "push" | "email" | "whatsapp"
+  category  String   // "reactivation" | "reminder" | "weekly_summary"
+  tier      String?  // "24h" | "72h" | "7d" (for reactivation)
+  sentAt    DateTime @default(now())
+  delivered Boolean  @default(false)
+
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, category, sentAt(sort: Desc)])
+  @@index([userId, channel, sentAt(sort: Desc)])
 }

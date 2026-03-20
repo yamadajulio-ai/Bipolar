@@ -2,12 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import * as Sentry from "@sentry/nextjs";
 import { prisma } from "@/lib/db";
 import { sendPush, type PushPayload, type PushResult } from "@/lib/web-push";
-import { checkRateLimit } from "@/lib/security";
+import { checkRateLimit, isRateLimited } from "@/lib/security";
 
 /**
  * Cron: Send Web Push reminders to users whose reminder time matches NOW.
  * Runs every minute via Vercel Cron.
- * Checks ReminderSettings for each user with push subscriptions.
+ *
+ * Dedupe strategy (split inflight/sent):
+ * 1. Check "sent:{key}" marker (read-only) → skip if already delivered.
+ * 2. Acquire "inflight:{key}" lock (short 90s TTL) → skip if another worker is processing.
+ * 3. Send pushes.
+ * 4. If ≥1 success → mark "sent:{key}" (5-min TTL, prevents re-delivery).
+ * 5. "inflight" lock auto-expires — no manual release needed, no race condition.
  */
 
 const reminderMessages: Record<string, PushPayload> = {
@@ -44,6 +50,14 @@ const PRIVACY_PAYLOAD: PushPayload = {
   tag: "reminder",
   url: "/",
 };
+
+// Short-lived lock to prevent concurrent cron workers from processing the same reminder.
+// 90s is enough for the batch + cleanup, and auto-expires without manual release.
+const INFLIGHT_TTL_MS = 90_000;
+
+// After successful delivery, block re-sends for 5 minutes.
+// Covers the ±2 min lookback window with margin.
+const SENT_TTL_MS = 5 * 60_000;
 
 export const maxDuration = 30;
 
@@ -117,6 +131,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (matchingSettings.length === 0) {
+      Sentry.captureCheckIn({ checkInId, monitorSlug: "send-reminders", status: "ok" });
       return NextResponse.json({ ok: true, sent: 0 });
     }
 
@@ -129,6 +144,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (subscriptions.length === 0) {
+      Sentry.captureCheckIn({ checkInId, monitorSlug: "send-reminders", status: "ok" });
       return NextResponse.json({ ok: true, sent: 0 });
     }
 
@@ -140,17 +156,19 @@ export async function GET(request: NextRequest) {
       subsByUser.set(sub.userId, existing);
     }
 
-    // Build all send tasks, then execute concurrently with Promise.allSettled
-    // to avoid sequential awaits that risk timeout at scale.
     interface SendTask {
       subId: string;
       endpoint: string;
       p256dh: string;
       auth: string;
       payload: PushPayload;
+      baseKey: string; // for marking sent after success
     }
 
     const tasks: SendTask[] = [];
+    // Track which base keys were acquired (inflight) so we can mark sent after success
+    const acquiredKeys = new Set<string>();
+
     for (const settings of matchingSettings) {
       const userSubs = subsByUser.get(settings.userId);
       if (!userSubs || userSubs.length === 0) continue;
@@ -165,12 +183,17 @@ export async function GET(request: NextRequest) {
       }
 
       for (const { key, payload, scheduledTime } of payloads) {
-        // Per-user per-reminder idempotency: dedupe by user + reminder type + scheduled time.
-        // Prevents re-sending when lookback window overlaps across cron invocations.
-        const dedupeKey = `reminder:${settings.userId}:${key}:${spDate}T${scheduledTime}`;
-        const isFirst = await checkRateLimit(dedupeKey, 1, 5 * 60_000);
-        if (!isFirst) continue;
+        const baseKey = `reminder:${settings.userId}:${key}:${spDate}T${scheduledTime}`;
 
+        // Phase 1: Already delivered? (read-only, no increment)
+        const alreadySent = await isRateLimited(`sent:${baseKey}`, 1);
+        if (alreadySent) continue;
+
+        // Phase 2: Acquire short-lived inflight lock (prevents concurrent workers)
+        const acquired = await checkRateLimit(`inflight:${baseKey}`, 1, INFLIGHT_TTL_MS);
+        if (!acquired) continue;
+
+        acquiredKeys.add(baseKey);
         const effectivePayload = settings.privacyMode ? { ...PRIVACY_PAYLOAD, url: payload.url } : payload;
         for (const sub of userSubs) {
           tasks.push({
@@ -179,6 +202,7 @@ export async function GET(request: NextRequest) {
             p256dh: sub.p256dh,
             auth: sub.auth,
             payload: effectivePayload,
+            baseKey,
           });
         }
       }
@@ -187,6 +211,10 @@ export async function GET(request: NextRequest) {
     let sent = 0;
     let configErrorLogged = false;
     const expiredIds: string[] = [];
+    let badRequestCount = 0;
+
+    // Track which base keys had at least one successful delivery
+    const deliveredKeys = new Set<string>();
 
     // Send in concurrent batches of 10 to balance speed vs resource usage
     const BATCH_SIZE = 10;
@@ -207,18 +235,41 @@ export async function GET(request: NextRequest) {
         const { task, result } = settled.value;
         if (result.ok) {
           sent++;
+          deliveredKeys.add(task.baseKey);
         } else if (result.reason === "expired") {
           // 404/410 = subscription genuinely gone — safe to delete
           expiredIds.push(task.subId);
         } else if (result.reason === "invalid-endpoint") {
           // Non-allowlisted legacy endpoint — safe to delete
           expiredIds.push(task.subId);
+        } else if (result.reason === "bad-request") {
+          // 400 = subscription may be permanently invalid.
+          // Don't delete yet (could be serialization issue), but track for visibility.
+          badRequestCount++;
         } else if (result.reason === "config" && !configErrorLogged) {
           Sentry.captureMessage("Web Push VAPID not configured — reminders cannot be sent", { level: "warning" });
           configErrorLogged = true;
         }
-        // "transient" (including 400/403) — do NOT delete, may be our config issue
+        // "transient" (403/429/5xx/network) — do NOT delete, retry later
       }
+    }
+
+    // Phase 4: Mark delivered keys with longer TTL to prevent re-sends.
+    // Only keys with ≥1 successful push get the "sent" marker.
+    // If ALL sends failed, no marker → inflight lock expires in 90s → next cron can retry.
+    if (deliveredKeys.size > 0) {
+      await Promise.allSettled(
+        [...deliveredKeys].map((key) => checkRateLimit(`sent:${key}`, 1, SENT_TTL_MS)),
+      );
+    }
+
+    // Log bad-request count if any (for operational visibility without leaking PHI)
+    if (badRequestCount > 0) {
+      Sentry.captureMessage("Web Push: subscriptions returning 400", {
+        level: "warning",
+        tags: { feature: "web-push", event: "bad_request_subscriptions" },
+        extra: { count: badRequestCount },
+      });
     }
 
     // Clean up only confirmed-dead subscriptions (expired + invalid-endpoint)
@@ -233,7 +284,12 @@ export async function GET(request: NextRequest) {
   } catch (err) {
     Sentry.captureCheckIn({ checkInId, monitorSlug: "send-reminders", status: "error" });
     Sentry.captureException(err, { tags: { endpoint: "cron-send-reminders" } });
-    console.error("Send reminders cron error:", err);
+    // Structured error log: no raw err object, only classification
+    console.error(JSON.stringify({
+      event: "cron_send_reminders_error",
+      errorType: err instanceof Error ? err.constructor.name : "Unknown",
+      message: err instanceof Error ? err.message.slice(0, 100) : "Unknown error",
+    }));
     return NextResponse.json({ error: "Failed" }, { status: 500 });
   }
 }

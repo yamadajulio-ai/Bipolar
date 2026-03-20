@@ -11,8 +11,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockCheckRateLimit: any = vi.fn().mockResolvedValue(true);
+const mockIsRateLimited = vi.fn().mockResolvedValue(false);
 vi.mock("@/lib/security", () => ({
   checkRateLimit: mockCheckRateLimit,
+  isRateLimited: mockIsRateLimited,
 }));
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -70,6 +72,7 @@ describe("GET /api/cron/send-reminders", () => {
     vi.clearAllMocks();
     process.env.CRON_SECRET = "test-cron-secret";
     mockCheckRateLimit.mockResolvedValue(true);
+    mockIsRateLimited.mockResolvedValue(false);
     mockSendPush.mockResolvedValue({ ok: true });
     mockFindManySettings.mockResolvedValue([]);
     mockFindManySubs.mockResolvedValue([]);
@@ -138,38 +141,48 @@ describe("GET /api/cron/send-reminders", () => {
     );
   });
 
-  // ── Idempotency ──────────────────────────────────────────────────────
-
-  it("deduplicates per user+reminder+scheduledTime", async () => {
-    const spTime = new Date().toLocaleTimeString("pt-BR", {
-      timeZone: "America/Sao_Paulo",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
-
-    mockFindManySettings.mockResolvedValue([
-      { userId: "u1", wakeReminder: spTime, sleepReminder: null, diaryReminder: null, breathingReminder: null },
-    ]);
-    mockFindManySubs.mockResolvedValue([
-      { id: "sub-1", userId: "u1", endpoint: "https://fcm.googleapis.com/push", p256dh: "k1", auth: "a1" },
-    ]);
-
-    // First call: rate limit returns true (first execution), then true for per-user dedupe
-    mockCheckRateLimit.mockResolvedValue(true);
-    const res1 = await GET(makeRequest("Bearer test-cron-secret"));
-    const body1 = await res1.json();
-    expect(body1.sent).toBe(1);
-
-    // Verify per-user dedupe key was used
-    expect(mockCheckRateLimit).toHaveBeenCalledWith(
-      expect.stringMatching(/^reminder:u1:wakeReminder:\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/),
-      1,
-      5 * 60_000,
+  it("marks check-in as ok on early return (no matching settings)", async () => {
+    mockFindManySettings.mockResolvedValue([]);
+    await GET(makeRequest("Bearer test-cron-secret"));
+    expect(mockCaptureCheckIn).toHaveBeenCalledWith(
+      expect.objectContaining({ status: "ok" }),
     );
   });
 
-  it("skips already-sent reminders via per-user dedupe", async () => {
+  // ── Idempotency (split inflight/sent) ──────────────────────────────
+
+  it("checks sent marker before acquiring inflight lock", async () => {
+    const spTime = new Date().toLocaleTimeString("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+
+    mockFindManySettings.mockResolvedValue([
+      { userId: "u1", wakeReminder: spTime, sleepReminder: null, diaryReminder: null, breathingReminder: null },
+    ]);
+    mockFindManySubs.mockResolvedValue([
+      { id: "sub-1", userId: "u1", endpoint: "https://fcm.googleapis.com/push", p256dh: "k1", auth: "a1" },
+    ]);
+    mockSendPush.mockResolvedValue({ ok: true });
+
+    await GET(makeRequest("Bearer test-cron-secret"));
+
+    // isRateLimited called with sent: prefix (read-only check)
+    expect(mockIsRateLimited).toHaveBeenCalledWith(
+      expect.stringMatching(/^sent:reminder:u1:wakeReminder:/),
+      1,
+    );
+    // checkRateLimit called with inflight: prefix (acquire lock)
+    expect(mockCheckRateLimit).toHaveBeenCalledWith(
+      expect.stringMatching(/^inflight:reminder:u1:wakeReminder:/),
+      1,
+      90_000,
+    );
+  });
+
+  it("skips already-sent reminders via sent marker", async () => {
     const spTime = new Date().toLocaleTimeString("pt-BR", {
       timeZone: "America/Sao_Paulo",
       hour: "2-digit",
@@ -184,13 +197,64 @@ describe("GET /api/cron/send-reminders", () => {
       { id: "sub-1", userId: "u1", endpoint: "https://fcm.googleapis.com/push", p256dh: "k1", auth: "a1" },
     ]);
 
-    // Per-user dedupe returns false (already sent)
+    // Sent marker exists → already delivered
+    mockIsRateLimited.mockResolvedValue(true);
+
+    const res = await GET(makeRequest("Bearer test-cron-secret"));
+    const body = await res.json();
+    expect(body.sent).toBe(0);
+    expect(mockSendPush).not.toHaveBeenCalled();
+  });
+
+  it("skips when inflight lock is already held by another worker", async () => {
+    const spTime = new Date().toLocaleTimeString("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+
+    mockFindManySettings.mockResolvedValue([
+      { userId: "u1", wakeReminder: spTime, sleepReminder: null, diaryReminder: null, breathingReminder: null },
+    ]);
+    mockFindManySubs.mockResolvedValue([
+      { id: "sub-1", userId: "u1", endpoint: "https://fcm.googleapis.com/push", p256dh: "k1", auth: "a1" },
+    ]);
+
+    // Not yet sent, but inflight lock held
+    mockIsRateLimited.mockResolvedValue(false);
     mockCheckRateLimit.mockResolvedValue(false);
 
     const res = await GET(makeRequest("Bearer test-cron-secret"));
     const body = await res.json();
     expect(body.sent).toBe(0);
     expect(mockSendPush).not.toHaveBeenCalled();
+  });
+
+  it("marks sent after successful delivery", async () => {
+    const spTime = new Date().toLocaleTimeString("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+
+    mockFindManySettings.mockResolvedValue([
+      { userId: "u1", wakeReminder: spTime, sleepReminder: null, diaryReminder: null, breathingReminder: null },
+    ]);
+    mockFindManySubs.mockResolvedValue([
+      { id: "sub-1", userId: "u1", endpoint: "https://fcm.googleapis.com/push", p256dh: "k1", auth: "a1" },
+    ]);
+    mockSendPush.mockResolvedValue({ ok: true });
+
+    await GET(makeRequest("Bearer test-cron-secret"));
+
+    // After successful send, checkRateLimit is called with sent: prefix (5 min TTL)
+    const sentCalls = mockCheckRateLimit.mock.calls.filter(
+      (call: unknown[]) => typeof call[0] === "string" && (call[0] as string).startsWith("sent:"),
+    );
+    expect(sentCalls.length).toBeGreaterThanOrEqual(1);
+    expect(sentCalls[0][2]).toBe(5 * 60_000);
   });
 
   // ── No matching settings ─────────────────────────────────────────────
@@ -220,9 +284,6 @@ describe("GET /api/cron/send-reminders", () => {
   // ── Successful sending ────────────────────────────────────────────────
 
   it("sends push to matching user subscription", async () => {
-    // Simulate: user has wakeReminder matching current SP time
-    // We can't control the time easily, so we'll match by setting the reminder
-    // to whatever spTime the code computes. Instead, we test the flow end-to-end.
     const spTime = new Date().toLocaleTimeString("pt-BR", {
       timeZone: "America/Sao_Paulo",
       hour: "2-digit",
@@ -385,6 +446,36 @@ describe("GET /api/cron/send-reminders", () => {
     expect(mockDeleteManySubs).not.toHaveBeenCalled();
   });
 
+  // ── Bad-request tracking ──────────────────────────────────────────────
+
+  it("tracks bad-request errors without deleting subscriptions", async () => {
+    const spTime = new Date().toLocaleTimeString("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+
+    mockFindManySettings.mockResolvedValue([
+      { userId: "u1", wakeReminder: spTime, sleepReminder: null, diaryReminder: null, breathingReminder: null },
+    ]);
+    mockFindManySubs.mockResolvedValue([
+      { id: "sub-1", userId: "u1", endpoint: "https://fcm.googleapis.com/push", p256dh: "k1", auth: "a1" },
+    ]);
+    mockSendPush.mockResolvedValue({ ok: false, reason: "bad-request" });
+
+    const res = await GET(makeRequest("Bearer test-cron-secret"));
+    const body = await res.json();
+    expect(body.cleaned).toBe(0);
+    expect(mockDeleteManySubs).not.toHaveBeenCalled();
+
+    // Should log bad-request count via Sentry
+    const badRequestCalls = mockCaptureMessage.mock.calls.filter(
+      (call) => typeof call[0] === "string" && call[0].includes("400"),
+    );
+    expect(badRequestCalls.length).toBe(1);
+  });
+
   // ── Multiple reminders same time ──────────────────────────────────────
 
   it("sends multiple reminder types when they match same time", async () => {
@@ -412,5 +503,32 @@ describe("GET /api/cron/send-reminders", () => {
     const body = await res.json();
     expect(body.sent).toBe(2); // 2 reminders × 1 subscription
     expect(mockSendPush).toHaveBeenCalledTimes(2);
+  });
+
+  // ── Retry resilience ──────────────────────────────────────────────────
+
+  it("does not mark sent when all sends fail (allows retry)", async () => {
+    const spTime = new Date().toLocaleTimeString("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+
+    mockFindManySettings.mockResolvedValue([
+      { userId: "u1", wakeReminder: spTime, sleepReminder: null, diaryReminder: null, breathingReminder: null },
+    ]);
+    mockFindManySubs.mockResolvedValue([
+      { id: "sub-1", userId: "u1", endpoint: "https://fcm.googleapis.com/push", p256dh: "k1", auth: "a1" },
+    ]);
+    mockSendPush.mockResolvedValue({ ok: false, reason: "transient" });
+
+    await GET(makeRequest("Bearer test-cron-secret"));
+
+    // No "sent:" marker should be created when all sends failed
+    const sentCalls = mockCheckRateLimit.mock.calls.filter(
+      (call: unknown[]) => typeof call[0] === "string" && (call[0] as string).startsWith("sent:"),
+    );
+    expect(sentCalls.length).toBe(0);
   });
 });

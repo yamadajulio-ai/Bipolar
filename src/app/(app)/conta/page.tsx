@@ -2,6 +2,7 @@ import { getSession } from "@/lib/auth";
 import { Card } from "@/components/Card";
 import { Alert } from "@/components/Alert";
 import { DeleteAccountButton } from "@/components/conta/DeleteAccountButton";
+import { ExportDataButton } from "@/components/conta/ExportDataButton";
 import { DisplayPreferences } from "@/components/conta/DisplayPreferences";
 
 export default async function ContaPage() {
@@ -23,13 +24,7 @@ export default async function ContaPage() {
         <p className="mb-3 text-sm text-muted">
           Conforme a LGPD (Art. 18), você pode exportar ou excluir todos os seus dados a qualquer momento.
         </p>
-        <a
-          href="/api/auth/export"
-          download
-          className="inline-block rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90"
-        >
-          Exportar meus dados (JSON)
-        </a>
+        <ExportDataButton />
       </Card>
 
       <Card className="mb-6">

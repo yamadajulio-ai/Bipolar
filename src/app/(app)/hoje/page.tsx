@@ -6,7 +6,7 @@ import { Card } from "@/components/Card";
 import { Greeting } from "@/components/Greeting";
 import { DashboardChartWrapper } from "@/components/dashboard/DashboardChartWrapper";
 import { StreakBadge } from "@/components/StreakBadge";
-import { computeCurrentStreak, computeLongestStreak, computeAchievements } from "@/lib/streaks";
+import { computeDisplayStreak, computeLongestStreak, computeAchievements } from "@/lib/streaks";
 import { AchievementGrid } from "@/components/AchievementGrid";
 import { computeInsights } from "@/lib/insights/computeInsights";
 import type { PlannerBlockInput } from "@/lib/insights/computeInsights";
@@ -212,8 +212,8 @@ export default async function HojePage() {
   // === Streaks ===
   const checkinDates = streakDates.map(d => d.date);
   const sleepDatesArr = sleepStreakDates.map(d => d.date);
-  const checkinStreak = computeCurrentStreak(checkinDates, today);
-  const sleepStreak = computeCurrentStreak(sleepDatesArr, today);
+  const checkinStreak = computeDisplayStreak(checkinDates, today);
+  const sleepStreak = computeDisplayStreak(sleepDatesArr, today);
   const bestCheckinStreak = computeLongestStreak([...checkinDates].reverse());
   const bestSleepStreak = computeLongestStreak([...sleepDatesArr].reverse());
   const achievements = computeAchievements({
@@ -357,6 +357,25 @@ export default async function HojePage() {
   const showSafetyNudge = riskLevel === "atencao_alta" ||
     (Array.isArray(warningSigns) && warningSigns.includes("pensamentos_suicidas"));
 
+  // Build bipolar context from computed insights for SafetyNudge
+  const bipolarContext = {
+    mixedFeatures: thermometer?.mixedFeatures ?? false,
+    mixedStrength: thermometer?.mixedStrength ?? null,
+    consecutiveShortSleep: (() => {
+      // Extract from risk factors (e.g. "3 noites curtas seguidas")
+      const match = risk?.factors.find(f => f.includes("noites curtas seguidas"));
+      if (match) {
+        const num = parseInt(match, 10);
+        return isNaN(num) ? 0 : num;
+      }
+      return 0;
+    })(),
+    maniaSignsActive: thermometer?.factors.filter(f =>
+      ["pensamentos acelerados", "gastos impulsivos", "energia excessiva", "planos grandiosos", "agitação", "sono reduzido"].some(s => f.toLowerCase().includes(s))
+    ) ?? [],
+    riskFactors: risk?.factors ?? [],
+  };
+
   // Crisis/simplified mode: auto-trigger when high risk
   const crisisMode = showSafetyNudge;
 
@@ -365,7 +384,7 @@ export default async function HojePage() {
     return (
       <div className="space-y-4">
         <Greeting />
-        <SafetyNudge />
+        <SafetyNudge riskLevel={riskLevel} bipolarContext={bipolarContext} />
 
         <Card className="border-red-300 bg-red-50/50">
           <p className="text-sm font-semibold text-red-800 mb-1">Modo simplificado ativado</p>
@@ -458,7 +477,7 @@ export default async function HojePage() {
       <Greeting />
 
       {/* === SAFETY NUDGE (highest priority) === */}
-      {showSafetyNudge && <SafetyNudge />}
+      {showSafetyNudge && <SafetyNudge riskLevel={riskLevel} bipolarContext={bipolarContext} />}
 
       {/* === 1. RISK RADAR (Hero) === */}
       {hasEnoughData ? (

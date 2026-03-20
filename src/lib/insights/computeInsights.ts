@@ -245,12 +245,20 @@ export interface StabilityScore {
   label: string;
   /** Component scores for breakdown display */
   components: {
-    sleepRegularity: number | null;    // 0-100
-    rhythmRegularity: number | null;   // 0-100
-    medicationAdherence: number | null; // 0-100
-    moodStability: number | null;      // 0-100
-    riskInverse: number | null;        // 0-100
+    sleepRegularity: number | null;    // 0-100 (weight: 30%)
+    rhythmRegularity: number | null;   // 0-100 (weight: 25%)
+    medicationAdherence: number | null; // 0-100 (weight: 20%)
+    moodStability: number | null;      // 0-100 (weight: 15%)
+    instability: number | null;        // 0-100 (weight: 10%, inverse of mood amplitude)
   };
+  /** true when dataAvailable < 10 (score may shift with more data) */
+  provisional: boolean;
+  /** Confidence based on data density */
+  confidence: "low" | "medium" | "high";
+  /** Delta vs 90-day baseline (positive = improving) */
+  deltaVsBaseline: number | null;
+  /** Risk guardrail applied — score capped at 40 */
+  riskCapped: boolean;
   /** Minimum days of data needed vs available */
   dataAvailable: number;
   dataMinimum: number;
@@ -1838,14 +1846,16 @@ function computeHeatmapData(
 // ── Stability Score ─────────────────────────────────────────
 
 const STABILITY_WEIGHTS = {
-  sleepRegularity: 0.25,
-  rhythmRegularity: 0.20,
+  sleepRegularity: 0.30,
+  rhythmRegularity: 0.25,
   medicationAdherence: 0.20,
-  moodStability: 0.20,
-  riskInverse: 0.15,
+  moodStability: 0.15,
+  instability: 0.10,
 };
 
 const STABILITY_MIN_DAYS = 5;
+const STABILITY_PROVISIONAL_THRESHOLD = 10;
+const STABILITY_RISK_CAP = 40;
 
 function computeStabilityScore(
   sleep: SleepInsights,
@@ -1853,52 +1863,84 @@ function computeStabilityScore(
   rhythm: RhythmInsights,
   risk: RiskScore | null,
   entries: DiaryEntryInput[],
+  baselineScore?: number | null,
 ): StabilityScore | null {
   const dataAvailable = Math.max(sleep.recordCount, entries.length);
   if (dataAvailable < STABILITY_MIN_DAYS) return null;
 
-  // 1. Sleep regularity: bedtimeVariance ≤ 30min = 100, ≥ 120min = 0
+  // 1. Sleep regularity (30%): bedtimeVariance ≤ 30min = 100, ≥ 120min = 0
   let sleepReg: number | null = null;
   if (sleep.bedtimeVariance != null) {
     sleepReg = Math.max(0, Math.min(100, 100 - ((sleep.bedtimeVariance - 30) / 90) * 100));
   }
 
-  // 2. Rhythm regularity: already 0-100
+  // 2. Rhythm regularity (25%): already 0-100
   const rhythmReg = rhythm.overallRegularity;
 
-  // 3. Medication adherence: already 0-100
+  // 3. Medication adherence (20%): already 0-100
+  // When user doesn't track medication, redistribute weight to sleep+rhythm
   const medAdherence = mood.medicationAdherence;
 
-  // 4. Mood stability: inverse of amplitude (0-4 range → 0-100)
+  // 4. Mood stability (15%): inverse of mood standard deviation (lower variance = more stable)
   let moodStab: number | null = null;
   if (mood.moodAmplitude != null) {
     moodStab = Math.max(0, Math.min(100, (1 - mood.moodAmplitude / 4) * 100));
   }
 
-  // 5. Risk inverse: risk score 0-100 → inverse
-  let riskInv: number | null = null;
-  if (risk) {
-    riskInv = Math.max(0, 100 - risk.score);
+  // 5. Instability (10%): inverse of mood amplitude oscillations
+  // Uses day-over-day mood change magnitude
+  let instabilityScore: number | null = null;
+  if (entries.length >= 3) {
+    const moodValues = entries
+      .map((e) => e.mood)
+      .filter((m): m is number => m != null);
+    if (moodValues.length >= 3) {
+      let totalChange = 0;
+      for (let i = 1; i < moodValues.length; i++) {
+        totalChange += Math.abs(moodValues[i] - moodValues[i - 1]);
+      }
+      const avgChange = totalChange / (moodValues.length - 1);
+      // avgChange 0 = perfectly stable (100), avgChange ≥ 3 = highly unstable (0)
+      instabilityScore = Math.max(0, Math.min(100, (1 - avgChange / 3) * 100));
+    }
   }
 
   // Compute weighted average (skip null components, redistribute weights)
-  const components = [
-    { value: sleepReg, weight: STABILITY_WEIGHTS.sleepRegularity },
-    { value: rhythmReg, weight: STABILITY_WEIGHTS.rhythmRegularity },
-    { value: medAdherence, weight: STABILITY_WEIGHTS.medicationAdherence },
-    { value: moodStab, weight: STABILITY_WEIGHTS.moodStability },
-    { value: riskInv, weight: STABILITY_WEIGHTS.riskInverse },
+  const weightedComponents = [
+    { key: "sleepRegularity", value: sleepReg, weight: STABILITY_WEIGHTS.sleepRegularity },
+    { key: "rhythmRegularity", value: rhythmReg, weight: STABILITY_WEIGHTS.rhythmRegularity },
+    { key: "medicationAdherence", value: medAdherence, weight: STABILITY_WEIGHTS.medicationAdherence },
+    { key: "moodStability", value: moodStab, weight: STABILITY_WEIGHTS.moodStability },
+    { key: "instability", value: instabilityScore, weight: STABILITY_WEIGHTS.instability },
   ];
 
-  const available = components.filter((c) => c.value != null);
+  const available = weightedComponents.filter((c) => c.value != null);
   if (available.length === 0) return null;
 
   const totalWeight = available.reduce((sum, c) => sum + c.weight, 0);
-  const score = Math.round(
+  let score = Math.round(
     available.reduce((sum, c) => sum + (c.value! * c.weight) / totalWeight, 0),
   );
 
+  // Risk guardrail: cap score at 40 when risk is high
+  const riskCapped = risk?.level === "atencao_alta" && score > STABILITY_RISK_CAP;
+  if (riskCapped) {
+    score = STABILITY_RISK_CAP;
+  }
+
   const clampedScore = Math.max(0, Math.min(100, score));
+
+  // Provisional flag: not enough data for reliable score
+  const provisional = dataAvailable < STABILITY_PROVISIONAL_THRESHOLD;
+
+  // Confidence based on data density
+  let confidence: StabilityScore["confidence"];
+  if (dataAvailable >= 21) confidence = "high";
+  else if (dataAvailable >= 10) confidence = "medium";
+  else confidence = "low";
+
+  // Delta vs baseline (positive = improving)
+  const deltaVsBaseline = baselineScore != null ? clampedScore - baselineScore : null;
 
   let level: StabilityScore["level"];
   let label: string;
@@ -1917,8 +1959,12 @@ function computeStabilityScore(
       rhythmRegularity: rhythmReg != null ? Math.round(rhythmReg) : null,
       medicationAdherence: medAdherence != null ? Math.round(medAdherence) : null,
       moodStability: moodStab != null ? Math.round(moodStab) : null,
-      riskInverse: riskInv != null ? Math.round(riskInv) : null,
+      instability: instabilityScore != null ? Math.round(instabilityScore) : null,
     },
+    provisional,
+    confidence,
+    deltaVsBaseline,
+    riskCapped,
     dataAvailable,
     dataMinimum: STABILITY_MIN_DAYS,
   };

@@ -3,8 +3,9 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import type { NarrativeResultV2, NarrativeSectionKey } from "@/lib/ai/narrative-types";
 import { NARRATIVE_SECTION_KEYS, SECTION_LABELS, SECTION_ICONS } from "@/lib/ai/narrative-types";
+import { toPublicEvidence, type PublicEvidence } from "@/lib/ai/public-evidence";
 
-interface EvidenceChip {
+interface RawEvidenceChip {
   text: string;
   domain: string;
   kind: string;
@@ -15,7 +16,7 @@ interface NarrativeResponse {
   cached: boolean;
   narrativeId?: string;
   narrative?: NarrativeResultV2;
-  evidenceMap?: Record<string, EvidenceChip>;
+  evidenceMap?: Record<string, RawEvidenceChip>;
   shareWithProfessional?: boolean;
   createdAt?: string;
 }
@@ -273,13 +274,13 @@ export function NarrativeSection() {
                           </div>
                         )}
 
-                        {/* Evidence chips — data points that informed this section */}
-                        {data?.evidenceMap && section.evidenceIds && section.evidenceIds.length > 0 && (
-                          <div className="flex flex-wrap gap-1.5">
-                            {section.evidenceIds
-                              .map((eid) => data.evidenceMap?.[eid])
-                              .filter((ev): ev is EvidenceChip => !!ev)
-                              .map((ev, i) => (
+                        {/* Evidence chips — allowlisted data points that informed this section */}
+                        {data?.evidenceMap && section.evidenceIds && section.evidenceIds.length > 0 && (() => {
+                          const chips = toPublicEvidence(data.evidenceMap, section.evidenceIds);
+                          if (chips.length === 0) return null;
+                          return (
+                            <div className="flex flex-wrap gap-1.5">
+                              {chips.map((ev, i) => (
                                 <span
                                   key={i}
                                   className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] border ${
@@ -289,16 +290,17 @@ export function NarrativeSection() {
                                       ? "bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-950 dark:border-blue-800 dark:text-blue-300"
                                       : "bg-surface-alt border-border/50 text-foreground/60"
                                   }`}
-                                  title={`Confiança: ${ev.confidence === "high" ? "alta" : ev.confidence === "medium" ? "média" : "baixa"}`}
+                                  title={ev.detailText}
                                 >
                                   <span className={`inline-block h-1 w-1 rounded-full ${
                                     ev.confidence === "high" ? "bg-emerald-400" : ev.confidence === "medium" ? "bg-amber-400" : "bg-gray-300"
                                   }`} />
-                                  {ev.text}
+                                  {ev.chipText}
                                 </span>
                               ))}
-                          </div>
-                        )}
+                            </div>
+                          );
+                        })()}
 
                         {section.keyPoints.length > 0 && (
                           <ul className="space-y-1">

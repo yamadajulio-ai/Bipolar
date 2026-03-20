@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import * as Sentry from "@sentry/nextjs";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { maskIp } from "@/lib/security";
 import { exchangeLoginCodeForTokens, getGoogleUserInfo } from "@/lib/google/login-auth";
+
+const CONSENT_VERSION = 1;
 
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
@@ -30,6 +33,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL("/login?error=email_not_verified", request.url));
     }
 
+    const rawIp = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    const maskedIp = maskIp(rawIp);
+
     const googleSelectFields = { id: true, email: true, name: true, onboarded: true } as const;
 
     // 1. Find by googleSub (returning user)
@@ -37,6 +43,8 @@ export async function GET(request: NextRequest) {
       where: { googleSub: googleUser.id },
       select: googleSelectFields,
     });
+
+    let isNewUser = false;
 
     if (!user) {
       // 2. Find by email (link existing account)
@@ -46,23 +54,44 @@ export async function GET(request: NextRequest) {
       });
 
       if (user) {
-        await prisma.user.update({
-          where: { id: user.id },
-          data: {
-            googleSub: googleUser.id,
-            name: user.name || googleUser.name,
-          },
-        });
+        // Link Google account to existing user + ensure consents exist
+        await prisma.$transaction([
+          prisma.user.update({
+            where: { id: user.id },
+            data: {
+              googleSub: googleUser.id,
+              name: user.name || googleUser.name,
+            },
+          }),
+          // Backfill essential consents if missing (user may have signed up before consent step)
+          prisma.consent.createMany({
+            data: [
+              { userId: user.id, scope: "health_data", version: CONSENT_VERSION, ipAddress: maskedIp },
+              { userId: user.id, scope: "terms_of_use", version: CONSENT_VERSION, ipAddress: maskedIp },
+            ],
+            skipDuplicates: true,
+          }),
+        ]);
       } else {
-        // 3. Create new user (no password)
-        user = await prisma.user.create({
-          data: {
-            email: googleUser.email,
-            authProvider: "google",
-            googleSub: googleUser.id,
-            name: googleUser.name,
-          },
-          select: googleSelectFields,
+        // 3. Create new user (no password) + essential consents atomically
+        isNewUser = true;
+        user = await prisma.$transaction(async (tx) => {
+          const newUser = await tx.user.create({
+            data: {
+              email: googleUser.email,
+              authProvider: "google",
+              googleSub: googleUser.id,
+              name: googleUser.name,
+            },
+            select: googleSelectFields,
+          });
+          await tx.consent.createMany({
+            data: [
+              { userId: newUser.id, scope: "health_data", version: CONSENT_VERSION, ipAddress: maskedIp },
+              { userId: newUser.id, scope: "terms_of_use", version: CONSENT_VERSION, ipAddress: maskedIp },
+            ],
+          });
+          return newUser;
         });
       }
     }

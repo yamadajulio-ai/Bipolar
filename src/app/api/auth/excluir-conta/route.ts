@@ -1,12 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as Sentry from "@sentry/nextjs";
 import { prisma } from "@/lib/db";
-import { getSession } from "@/lib/auth";
+import { getSession, verifyPassword } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/security";
+import { z } from "zod/v4";
+
+const bodySchema = z.object({
+  password: z.string().min(1, "Senha obrigatória").optional(),
+});
 
 /**
  * LGPD Art. 18, VI — Eliminação de dados pessoais.
  * Deletes the user and ALL associated data (Prisma cascade).
+ * Requires step-up auth: password re-confirmation (email users)
+ * or recent session check (Google OAuth users).
  * Rate-limited to prevent accidental/malicious repeated calls.
  */
 export async function POST(request: NextRequest) {
@@ -25,6 +32,47 @@ export async function POST(request: NextRequest) {
   }
 
   const userId = session.userId;
+
+  // Step-up auth: verify identity before destructive action
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { passwordHash: true, authProvider: true },
+  });
+  if (!user) {
+    return NextResponse.json({ error: "Usuário não encontrado" }, { status: 404 });
+  }
+
+  if (user.authProvider === "email") {
+    // Email users must re-confirm password
+    let body: z.infer<typeof bodySchema>;
+    try {
+      body = bodySchema.parse(await request.json());
+    } catch {
+      return NextResponse.json(
+        { error: "Confirme sua senha para excluir a conta.", requiresPassword: true },
+        { status: 422 },
+      );
+    }
+    if (!body.password || !user.passwordHash) {
+      return NextResponse.json(
+        { error: "Confirme sua senha para excluir a conta.", requiresPassword: true },
+        { status: 422 },
+      );
+    }
+    const valid = await verifyPassword(body.password, user.passwordHash);
+    if (!valid) {
+      return NextResponse.json({ error: "Senha incorreta." }, { status: 403 });
+    }
+  } else {
+    // Google OAuth users: require recent authentication (< 5 min)
+    const REAUTH_WINDOW = 5 * 60 * 1000;
+    if (!session.lastActive || Date.now() - session.lastActive > REAUTH_WINDOW) {
+      return NextResponse.json(
+        { error: "Faça login novamente antes de excluir a conta.", requiresReauth: true },
+        { status: 403 },
+      );
+    }
+  }
 
   try {
     // Revoke Google tokens before cascade delete (cleanup third-party state)

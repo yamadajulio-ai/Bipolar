@@ -18,6 +18,15 @@ const csp = [
 ].join("; ");
 
 const nextConfig: NextConfig = {
+  async redirects() {
+    return [
+      {
+        source: "/ferramentas/calculadora-jet-lag",
+        destination: "/ferramentas/regularidade-do-sono",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {

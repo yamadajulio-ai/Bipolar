@@ -200,13 +200,26 @@ const CONTEXTUAL_CRISIS: RegExp[] = [
   /\bvou\s*fazer\s*(uma\s*)?besteira\b/i,
   /\bsuicidar\b/i, // bare "suicidar" without "me" (third party context)
   /\bnao\s*quero\s*mais\s*nada\b/i, // ambiguous alone, crisis with harm context
+  // ── Bipolar-specific crisis signals ──
+  // These are dangerous in combination — mixed state, agitation, impulsivity,
+  // severe sleep deprivation — key prodromal/crisis indicators for bipolar disorder.
+  // Per ISBD/STEP-BD: mixed states carry the highest suicide risk in bipolar.
+  /\b(estado\s*misto|misto\s*e\s*(depress|agit))/i, // patient self-reports mixed state
+  /\b(nao\s*durmo|nao\s*consigo\s*dormir)\s*(ha|a|faz)\s*(dias|noites|[2-9]|uma\s*semana)/i, // multi-day insomnia
+  /\b(sem\s*dormir|acordad[oa])\s*(ha|a|faz)\s*(dias|noites|[2-9]|muito\s*tempo)/i, // severe sleep deprivation
+  /\b(agitad[oa]|agitacao|nao\s*(paro|consigo\s*parar))\b/i, // psychomotor agitation
+  /\b(perdi\s*o\s*controle|fora\s*de\s*controle|descontrolad[oa])\b/i, // loss of control (impulsivity)
+  /\b(gastei\s*tudo|gastei\s*muito\s*dinheiro|divida|endividad[oa])\b/i, // impulsive spending
+  /\b(vozes|ouvindo\s*vozes|ouco\s*vozes)\b/i, // psychotic features (bipolar I)
+  /\b(acelerado|pensamentos?\s*acelerados?|cabeca\s*nao\s*para)\b/i, // racing thoughts
+  /\b(irritad[oa]\s*demais|raiva\s*incontrolavel|explodi|explodindo)\b/i, // severe irritability
 ];
 
 // Context markers that elevate contextual hits to crisis.
 // IMPORTANT: Terms here must NOT overlap with CONTEXTUAL_CRISIS patterns
 // to avoid self-validation (e.g., "vou morrer" + morrer in HARM_CONTEXT = false positive).
 // Removed: morrer, suicid, minha vida (too broad — "mudou minha vida" is benign)
-const HARM_CONTEXT: RegExp = /\b(me\s*machucar|me\s*ferir|me\s*matar|nao\s*aguento|sofr(er|endo|imento)|desesperad[oa]|sem\s*esperanca|me\s*cortar|me\s*mato|acabar\s*com(igo|\s*minha\s*vida))\b/i;
+const HARM_CONTEXT: RegExp = /\b(me\s*machucar|me\s*ferir|me\s*matar|nao\s*aguento|sofr(er|endo|imento)|desesperad[oa]|sem\s*esperanca|me\s*cortar|me\s*mato|acabar\s*com(igo|\s*minha\s*vida)|surtando|surto|em\s*panico|panico|nao\s*sei\s*o\s*que\s*fazer|preciso\s*de\s*ajuda\s*urgente|perigo)\b/i;
 
 const CRISIS_RESPONSE =
   "Estou aqui com você. Isso é uma emergência — por favor ligue 192 (SAMU) agora. " +

@@ -39,6 +39,22 @@ export async function checkRateLimit(
   });
 }
 
+/**
+ * Read-only rate-limit check — does NOT increment the counter.
+ * Returns true if the key has reached or exceeded the limit (i.e., is blocked).
+ * Used to check delivery markers without consuming a slot.
+ */
+export async function isRateLimited(
+  key: string,
+  limit: number = 1,
+): Promise<boolean> {
+  const now = new Date();
+  const count = await prisma.rateLimit.count({
+    where: { key, expiresAt: { gte: now } },
+  });
+  return count >= limit;
+}
+
 /** Mask email: "user@example.com" → "u***@example.com" */
 export function maskEmail(email: string): string {
   const at = email.indexOf("@");

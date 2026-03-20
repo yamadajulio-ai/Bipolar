@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/Card";
 
-type Step = "welcome" | "profile" | "goal" | "anchor" | "week" | "ready";
+type Step = "welcome" | "profile" | "goal" | "anchor" | "week" | "consent" | "ready";
 type Profile = "recent" | "veteran" | "caregiver";
 
 const PROFILES = [
@@ -54,33 +54,30 @@ const ANCHOR_BY_GOAL: Record<string, { icon: string; title: string; desc: string
   learn: { icon: "📚", title: "Leitura semanal", desc: "Toda semana, leia um conteúdo curto sobre bipolaridade. O conhecimento te dá mais controle sobre o tratamento." },
 };
 
-const FIRST_WEEK: Record<Profile, { day: number; task: string; link: string; icon: string }[]> = {
+const FIRST_WEEK: Record<Profile, { milestone: string; task: string; link: string; icon: string }[]> = {
   recent: [
-    { day: 1, task: "Primeiro check-in de humor", link: "/checkin", icon: "📊" },
-    { day: 2, task: "Registrar o sono de ontem", link: "/sono", icon: "🌙" },
-    { day: 3, task: "Explorar a página de Insights", link: "/insights", icon: "💡" },
-    { day: 4, task: "Preencher o Plano de Crise", link: "/plano-de-crise", icon: "🆘" },
-    { day: 5, task: "Conhecer os exercícios de respiração", link: "/exercicios", icon: "🫁" },
-    { day: 6, task: "Fazer a avaliação semanal", link: "/checkin?tab=semanal", icon: "📋" },
-    { day: 7, task: "Ver seus primeiros padrões", link: "/insights", icon: "🎯" },
+    { milestone: "Começar", task: "Primeiro check-in de humor", link: "/checkin", icon: "📊" },
+    { milestone: "Começar", task: "Registrar o sono de ontem", link: "/sono", icon: "🌙" },
+    { milestone: "Explorar", task: "Conhecer a página de Insights", link: "/insights", icon: "💡" },
+    { milestone: "Explorar", task: "Preencher o Plano de Crise", link: "/plano-de-crise", icon: "🆘" },
+    { milestone: "Aprofundar", task: "Experimentar exercícios de respiração", link: "/exercicios", icon: "🫁" },
+    { milestone: "Aprofundar", task: "Fazer a avaliação semanal", link: "/checkin?tab=semanal", icon: "📋" },
   ],
   veteran: [
-    { day: 1, task: "Check-in + registro de sono", link: "/checkin", icon: "📊" },
-    { day: 2, task: "Conectar wearable (Apple Health ou Android)", link: "/integracoes", icon: "⌚" },
-    { day: 3, task: "Criar link de Acesso Profissional", link: "/conta", icon: "🔗" },
-    { day: 4, task: "Preencher avaliação semanal (ASRM + PHQ-9)", link: "/checkin?tab=semanal", icon: "📋" },
-    { day: 5, task: "Configurar horários-âncora", link: "/rotina", icon: "⏰" },
-    { day: 6, task: "Importar dados financeiros (opcional)", link: "/financeiro", icon: "💰" },
-    { day: 7, task: "Gerar resumo com IA nos Insights", link: "/insights", icon: "🤖" },
+    { milestone: "Começar", task: "Check-in + registro de sono", link: "/checkin", icon: "📊" },
+    { milestone: "Começar", task: "Conectar wearable (Apple Health ou Android)", link: "/integracoes", icon: "⌚" },
+    { milestone: "Configurar", task: "Criar link de Acesso Profissional", link: "/conta", icon: "🔗" },
+    { milestone: "Configurar", task: "Avaliação semanal (ASRM + PHQ-9)", link: "/checkin?tab=semanal", icon: "📋" },
+    { milestone: "Aprofundar", task: "Configurar horários-âncora", link: "/rotina", icon: "⏰" },
+    { milestone: "Aprofundar", task: "Gerar resumo com IA nos Insights", link: "/insights", icon: "🤖" },
   ],
   caregiver: [
-    { day: 1, task: "Fazer o check-in como cuidador", link: "/checkin", icon: "📊" },
-    { day: 2, task: "Conhecer o SOS e Plano de Crise", link: "/plano-de-crise", icon: "🆘" },
-    { day: 3, task: "Preencher perfil socioeconômico", link: "/conta", icon: "📝" },
-    { day: 4, task: "Entender os Insights e sinais de alerta", link: "/insights", icon: "💡" },
-    { day: 5, task: "Explorar os conteúdos educativos", link: "/conteudos", icon: "📚" },
-    { day: 6, task: "Pedir à pessoa para criar Acesso Profissional", link: "/conta", icon: "🔗" },
-    { day: 7, task: "Revisar o resumo da semana", link: "/insights", icon: "🎯" },
+    { milestone: "Começar", task: "Fazer o check-in como cuidador", link: "/checkin", icon: "📊" },
+    { milestone: "Começar", task: "Conhecer o SOS e Plano de Crise", link: "/plano-de-crise", icon: "🆘" },
+    { milestone: "Explorar", task: "Preencher perfil socioeconômico", link: "/conta", icon: "📝" },
+    { milestone: "Explorar", task: "Entender os Insights e sinais de alerta", link: "/insights", icon: "💡" },
+    { milestone: "Aprofundar", task: "Explorar os conteúdos educativos", link: "/conteudos", icon: "📚" },
+    { milestone: "Aprofundar", task: "Pedir à pessoa para criar Acesso Profissional", link: "/conta", icon: "🔗" },
   ],
 };
 
@@ -90,8 +87,13 @@ export default function OnboardingPage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [goal, setGoal] = useState<string | null>(null);
   const [finishing, setFinishing] = useState(false);
+  const [consents, setConsents] = useState({
+    health_data: false,
+    terms_of_use: false,
+    push_notifications: false,
+  });
 
-  const steps: Step[] = ["welcome", "profile", "goal", "anchor", "week", "ready"];
+  const steps: Step[] = ["welcome", "profile", "goal", "anchor", "week", "consent", "ready"];
   const currentIndex = steps.indexOf(step);
 
   async function completeOnboarding() {
@@ -100,7 +102,13 @@ export default function OnboardingPage() {
       await fetch("/api/auth/complete-onboarding", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ goal, profile }),
+        body: JSON.stringify({
+          goal,
+          profile,
+          consents: Object.entries(consents)
+            .filter(([, v]) => v)
+            .map(([scope]) => scope),
+        }),
       });
     } catch {
       // Continue anyway
@@ -108,6 +116,8 @@ export default function OnboardingPage() {
     router.push("/hoje");
     router.refresh();
   }
+
+  const essentialConsentsAccepted = consents.health_data && consents.terms_of_use;
 
   const goals = profile ? GOALS_BY_PROFILE[profile] : [];
   const anchor = goal ? ANCHOR_BY_GOAL[goal] : ANCHOR_BY_GOAL.detect;
@@ -133,8 +143,8 @@ export default function OnboardingPage() {
           <div className="text-5xl">🧠</div>
           <h1 className="text-2xl font-bold">Bem-vindo ao Suporte Bipolar</h1>
           <p className="text-sm text-muted leading-relaxed">
-            Seu painel de estabilidade pessoal. Vamos configurar em menos de 2 minutos
-            para que o app funcione da melhor forma para você.
+            Uma ferramenta de acompanhamento pessoal para pessoas com transtorno bipolar.
+            Vamos configurar em menos de 2 minutos para que o app funcione da melhor forma para você.
           </p>
           <button
             onClick={() => setStep("profile")}
@@ -268,34 +278,49 @@ export default function OnboardingPage() {
         </div>
       )}
 
-      {/* Step 5: First week plan */}
+      {/* Step 5: First week milestones */}
       {step === "week" && (
         <div className="w-full space-y-4">
-          <h2 className="text-lg font-bold text-center">Sua primeira semana</h2>
+          <h2 className="text-lg font-bold text-center">Seus primeiros passos</h2>
           <p className="text-sm text-muted text-center">
-            Um passo por dia — sem pressa, sem pressão.
+            Sem pressa — avance no seu ritmo. Cada marco desbloqueia o próximo.
           </p>
 
-          <div className="space-y-1.5">
-            {weekTasks.map((t) => (
-              <div
-                key={t.day}
-                className="flex items-center gap-3 rounded-lg border border-border/50 bg-surface p-3"
-              >
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-                  {t.day}
-                </span>
-                <span className="text-sm text-foreground">{t.icon} {t.task}</span>
-              </div>
-            ))}
+          <div className="space-y-4">
+            {(() => {
+              const milestones = [...new Set(weekTasks.map((t) => t.milestone))];
+              return milestones.map((milestone, mi) => (
+                <div key={milestone}>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white">
+                      {mi + 1}
+                    </span>
+                    <span className="text-xs font-semibold text-primary uppercase tracking-wide">{milestone}</span>
+                  </div>
+                  <div className="space-y-1 ml-7">
+                    {weekTasks
+                      .filter((t) => t.milestone === milestone)
+                      .map((t) => (
+                        <div
+                          key={t.task}
+                          className="flex items-center gap-2 rounded-lg border border-border/50 bg-surface p-2.5"
+                        >
+                          <span className="text-sm">{t.icon}</span>
+                          <span className="text-sm text-foreground">{t.task}</span>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              ));
+            })()}
           </div>
 
           <p className="text-[11px] text-muted text-center italic">
-            Estas sugestões vão aparecer nos seus lembretes diários.
+            O app vai sugerir o próximo passo nos lembretes diários.
           </p>
 
           <button
-            onClick={() => setStep("ready")}
+            onClick={() => setStep("consent")}
             className="w-full rounded-lg bg-primary px-6 py-3 font-medium text-white"
           >
             Continuar
@@ -303,7 +328,82 @@ export default function OnboardingPage() {
         </div>
       )}
 
-      {/* Step 6: Ready */}
+      {/* Step 6: Consent */}
+      {step === "consent" && (
+        <div className="w-full space-y-4">
+          <h2 className="text-lg font-bold text-center">Privacidade e dados</h2>
+          <p className="text-sm text-muted text-center leading-relaxed">
+            Seus dados são protegidos pela LGPD. Escolha o que autoriza:
+          </p>
+
+          <div className="space-y-3">
+            {/* Essential — health data */}
+            <label className="flex items-start gap-3 rounded-lg border border-border bg-surface p-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={consents.health_data}
+                onChange={(e) => setConsents((c) => ({ ...c, health_data: e.target.checked }))}
+                className="mt-0.5 h-4 w-4 accent-primary shrink-0"
+              />
+              <div>
+                <p className="text-sm font-medium text-foreground">Armazenamento de dados de saúde</p>
+                <p className="text-xs text-muted mt-0.5">
+                  Necessário para o app funcionar. Seus registros de humor, sono e ritmos ficam armazenados com criptografia.
+                </p>
+                <span className="text-[10px] text-primary font-medium">Obrigatório</span>
+              </div>
+            </label>
+
+            {/* Essential — terms */}
+            <label className="flex items-start gap-3 rounded-lg border border-border bg-surface p-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={consents.terms_of_use}
+                onChange={(e) => setConsents((c) => ({ ...c, terms_of_use: e.target.checked }))}
+                className="mt-0.5 h-4 w-4 accent-primary shrink-0"
+              />
+              <div>
+                <p className="text-sm font-medium text-foreground">Termos de uso</p>
+                <p className="text-xs text-muted mt-0.5">
+                  Este app é uma ferramenta de acompanhamento e não substitui avaliação profissional.
+                </p>
+                <span className="text-[10px] text-primary font-medium">Obrigatório</span>
+              </div>
+            </label>
+
+            {/* Optional — push notifications */}
+            <label className="flex items-start gap-3 rounded-lg border border-border bg-surface p-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={consents.push_notifications}
+                onChange={(e) => setConsents((c) => ({ ...c, push_notifications: e.target.checked }))}
+                className="mt-0.5 h-4 w-4 accent-primary shrink-0"
+              />
+              <div>
+                <p className="text-sm font-medium text-foreground">Notificações push</p>
+                <p className="text-xs text-muted mt-0.5">
+                  Lembretes para check-in, sono e atividades. Você pode desativar a qualquer momento.
+                </p>
+                <span className="text-[10px] text-muted">Opcional</span>
+              </div>
+            </label>
+          </div>
+
+          <p className="text-[10px] text-muted text-center">
+            Você pode alterar essas permissões a qualquer momento em Configurações.
+          </p>
+
+          <button
+            onClick={() => setStep("ready")}
+            disabled={!essentialConsentsAccepted}
+            className="w-full rounded-lg bg-primary px-6 py-3 font-medium text-white disabled:opacity-50"
+          >
+            Continuar
+          </button>
+        </div>
+      )}
+
+      {/* Step 7: Ready */}
       {step === "ready" && (
         <div className="w-full space-y-6 text-center">
           <div className="text-5xl">🎯</div>
@@ -313,15 +413,15 @@ export default function OnboardingPage() {
             <ul className="space-y-1 text-left">
               <li className="flex items-start gap-2">
                 <span className="text-green-500 mt-0.5">✓</span>
-                <span>O <strong>SOS</strong> (botão vermelho) está sempre acessível — até sem login</span>
+                <span>O <strong>SOS</strong> (botão vermelho) está sempre acessível — até sem login. CVV: 188</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-green-500 mt-0.5">✓</span>
-                <span>Este app <strong>não substitui</strong> acompanhamento profissional</span>
+                <span>Este app é uma ferramenta de acompanhamento e <strong>não substitui</strong> avaliação profissional</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-green-500 mt-0.5">✓</span>
-                <span>Seus dados são <strong>privados</strong> e protegidos pela LGPD</span>
+                <span>Seus dados são <strong>privados</strong>, protegidos pela LGPD e nunca compartilhados sem sua autorização</span>
               </li>
             </ul>
           </div>

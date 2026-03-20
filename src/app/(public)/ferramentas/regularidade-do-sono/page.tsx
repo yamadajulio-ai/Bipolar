@@ -4,14 +4,14 @@ import { Footer } from "@/components/Footer";
 import { JetLagCalculator } from "./JetLagCalculator";
 
 export const metadata: Metadata = {
-  title: "Calculadora de Social Jet Lag — Suporte Bipolar",
+  title: "Regularidade do Sono — Calculadora de Social Jet Lag — Suporte Bipolar",
   description:
     "Calcule seu social jet lag: a diferença entre seu relógio biológico nos dias úteis e fins de semana. Ferramenta gratuita para pessoas com transtorno bipolar.",
-  alternates: { canonical: "https://suportebipolar.com/ferramentas/calculadora-jet-lag" },
+  alternates: { canonical: "https://suportebipolar.com/ferramentas/regularidade-do-sono" },
   openGraph: {
-    title: "Calculadora de Social Jet Lag — Suporte Bipolar",
+    title: "Regularidade do Sono — Suporte Bipolar",
     description: "Descubra quanto o seu horário de sono muda entre dias úteis e fins de semana.",
-    url: "https://suportebipolar.com/ferramentas/calculadora-jet-lag",
+    url: "https://suportebipolar.com/ferramentas/regularidade-do-sono",
     type: "website",
   },
 };

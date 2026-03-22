@@ -157,9 +157,10 @@ export default function CheckinPage() {
 
         {/* Sleep */}
         <Card>
-          <label htmlFor="sleep-hours" className="block text-sm font-medium text-foreground mb-2">
-            Horas de sono
+          <label htmlFor="sleep-hours" className="block text-sm font-medium text-foreground mb-1">
+            Horas de sono na última noite
           </label>
+          <p className="text-xs text-muted mb-2">Quanto você dormiu na noite passada?</p>
 
           <label className="flex items-center gap-2 text-sm text-muted mb-3 cursor-pointer">
             <input

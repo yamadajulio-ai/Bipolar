@@ -52,6 +52,7 @@ const sections: { title: string; items: ModuleItem[] }[] = [
   {
     title: "Configurações",
     items: [
+      { href: "/medicamentos", label: "Meus Medicamentos", description: "Cadastre medicamentos e horários para adesão por dose" },
       { href: "/plano-de-crise", label: "Plano de Crise", description: "Contatos e estratégias pessoais" },
       { href: "/integracoes", label: "Integrações", description: "Apple Health, Health Connect, Google Agenda, Mobills" },
 

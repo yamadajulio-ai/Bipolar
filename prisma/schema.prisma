@@ -20,6 +20,8 @@ model User {
   onboardingGoal   String?
   createdAt        DateTime           @default(now())
   entries          DiaryEntry[]
+  medications      Medication[]
+  medicationLogs   MedicationLog[]
   views            ContentView[]
   sleepLogs        SleepLog[]
   exerciseSessions ExerciseSession[]
@@ -62,10 +64,11 @@ model DiaryEntry {
   energyLevel    Int?     // 1..5 (1=letargico, 5=agitado)
   anxietyLevel   Int?     // 1..5
   irritability   Int?     // 1..5
-  tookMedication String?  // "sim" | "nao" | "nao_sei"
+  tookMedication String?  // legacy: "sim" | "nao" | "nao_sei" — kept for backward compat
   warningSigns   String?  // JSON array of selected warning sign keys
   createdAt      DateTime @default(now())
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  medicationLogs MedicationLog[]
 
   @@index([userId])
   @@index([date])
@@ -724,4 +727,72 @@ model ProcessedWhatsAppMessage {
   processedAt DateTime @default(now())
 
   @@index([messageId])
+}
+
+// ── Medication Tracking (per-dose adherence) ────────────────────
+
+model Medication {
+  id           String               @id @default(uuid())
+  userId       String
+  name         String               // Free text: "Rivotril", "Depakote 500mg"
+  dosageText   String?              // Free text: "500mg", "2mg"
+  instructions String?              // Free text: "Tomar com alimento"
+  isActive     Boolean              @default(true)
+  isAsNeeded   Boolean              @default(false) // SOS/PRN — excluded from adherence denominator
+  startDate    String               // YYYY-MM-DD
+  endDate      String?              // YYYY-MM-DD — null = indefinite
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  schedules    MedicationSchedule[]
+  logs         MedicationLog[]
+
+  @@index([userId, isActive])
+}
+
+model MedicationSchedule {
+  id            String   @id @default(uuid())
+  medicationId  String
+  timeLocal     String   // HH:mm (America/Sao_Paulo)
+  effectiveFrom String   // YYYY-MM-DD — when this schedule starts
+  effectiveTo   String?  // YYYY-MM-DD — null = indefinite
+
+  medication    Medication      @relation(fields: [medicationId], references: [id], onDelete: Cascade)
+  logs          MedicationLog[]
+
+  @@index([medicationId])
+}
+
+enum MedicationLogStatus {
+  TAKEN
+  MISSED
+}
+
+enum MedicationLogSource {
+  QUICK_CHECKIN
+  FULL_DIARY
+  MEDICATION_PAGE
+  LEGACY_COMPAT
+}
+
+model MedicationLog {
+  id                 String              @id @default(uuid())
+  userId             String
+  diaryEntryId       String?
+  medicationId       String
+  scheduleId         String
+  date               String              // YYYY-MM-DD (America/Sao_Paulo)
+  status             MedicationLogStatus
+  scheduledTimeLocal String              // Snapshot HH:mm at time of logging
+  takenAt            DateTime?           // Actual UTC timestamp when taken
+  source             MedicationLogSource
+
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  diaryEntry         DiaryEntry?         @relation(fields: [diaryEntryId], references: [id], onDelete: SetNull)
+  medication         Medication          @relation(fields: [medicationId], references: [id], onDelete: Cascade)
+  schedule           MedicationSchedule  @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  @@unique([scheduleId, date])
+  @@index([userId, date])
 }

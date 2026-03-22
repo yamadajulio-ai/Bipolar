@@ -7,6 +7,7 @@ import { Card } from "@/components/Card";
 import { Alert } from "@/components/Alert";
 import { ScaleSelector } from "@/components/ScaleSelector";
 import { MOOD_LABELS, ENERGY_LABELS, ANXIETY_LABELS, IRRITABILITY_LABELS, MEDICATION_OPTIONS, WARNING_SIGNS } from "@/lib/constants";
+import { MedicationDoseCheckin } from "@/components/MedicationDoseCheckin";
 
 export default function CheckinPage() {
   const router = useRouter();
@@ -19,6 +20,7 @@ export default function CheckinPage() {
   const [autoSleepHours, setAutoSleepHours] = useState<number | null>(null);
   const [autoSleepLoading, setAutoSleepLoading] = useState(false);
   const [medication, setMedication] = useState("sim");
+  const [hasDoseTracking, setHasDoseTracking] = useState<boolean | null>(null); // null = loading
   const [showSigns, setShowSigns] = useState(false);
   const [selectedSigns, setSelectedSigns] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
@@ -216,30 +218,38 @@ export default function CheckinPage() {
           )}
         </Card>
 
-        {/* Medication */}
-        <Card>
-          <div role="group" aria-label="Medicação de hoje">
-            <label className="block text-sm font-medium text-foreground mb-1">Tomou a medicação hoje?</label>
-            <p className="text-xs text-muted mb-3">Refere-se ao dia de hoje ({new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "short" })}). Se ainda não tomou, marque &quot;Ainda não&quot;.</p>
-            <div className="flex gap-2">
-              {MEDICATION_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => setMedication(opt.value)}
-                  aria-pressed={medication === opt.value}
-                  className={`flex-1 rounded-lg border px-2 py-2 text-xs font-medium transition-colors ${
-                    medication === opt.value
-                      ? "border-primary bg-primary text-white"
-                      : "border-border bg-surface text-muted hover:border-primary/50"
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
+        {/* Medication — per-dose tracking if configured, legacy otherwise */}
+        <MedicationDoseCheckin
+          date={today}
+          onTrackingStatus={(has) => setHasDoseTracking(has)}
+          onComplete={(legacyValue) => setMedication(legacyValue)}
+        />
+
+        {!hasDoseTracking ? (
+          <Card>
+            <div role="group" aria-label="Medicação de hoje">
+              <label className="block text-sm font-medium text-foreground mb-1">Tomou a medicação hoje?</label>
+              <p className="text-xs text-muted mb-3">Refere-se ao dia de hoje ({new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "short" })}). Se ainda não tomou, marque &quot;Ainda não&quot;.</p>
+              <div className="flex gap-2">
+                {MEDICATION_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setMedication(opt.value)}
+                    aria-pressed={medication === opt.value}
+                    className={`flex-1 rounded-lg border px-2 py-2 text-xs font-medium transition-colors ${
+                      medication === opt.value
+                        ? "border-primary bg-primary text-white"
+                        : "border-border bg-surface text-muted hover:border-primary/50"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-        </Card>
+          </Card>
+        ) : null}
 
         {/* Warning signs (collapsible) */}
         <Card>

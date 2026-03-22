@@ -397,6 +397,19 @@ export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
     sttAcceptCallbackRef.current = null;
   }
 
+  // Ensure browser mic permission dialog is shown before using SpeechRecognition
+  async function ensureMicPermission(): Promise<boolean> {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Stop tracks immediately — we just needed the permission grant
+      stream.getTracks().forEach((t) => t.stop());
+      return true;
+    } catch {
+      setError("Microfone não permitido. Verifique as permissões do navegador.");
+      return false;
+    }
+  }
+
   // Single-shot voice input (appends to input field)
   function toggleVoice() {
     if (listening) {
@@ -406,11 +419,14 @@ export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
     }
 
     requireSttDisclosure(() => {
-      startSingleShotListening();
+      void startSingleShotListening();
     });
   }
 
-  function startSingleShotListening() {
+  async function startSingleShotListening() {
+    const granted = await ensureMicPermission();
+    if (!granted) return;
+
     const recognition = getSpeechRecognition(false);
     if (!recognition) return;
 
@@ -458,8 +474,11 @@ export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
   const handsFreeRef = useRef(handsFree);
   handsFreeRef.current = handsFree;
 
-  function startContinuousListening() {
+  async function startContinuousListening() {
     if (streaming || speaking) return;
+
+    const granted = await ensureMicPermission();
+    if (!granted) { setHandsFree(false); return; }
 
     const recognition = getSpeechRecognition(false);
     if (!recognition) return;

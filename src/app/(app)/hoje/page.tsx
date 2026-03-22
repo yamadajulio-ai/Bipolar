@@ -287,7 +287,7 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
   }
 
   // Check-in
-  tasks.push({ label: "Check-in diário", href: "/checkin", done: !!todayEntry, priority: 2 });
+  tasks.push({ label: "Check-ins diários", href: "/checkin", done: !!todayEntry, priority: 2 });
 
   // Sleep
   if (haeKey) {

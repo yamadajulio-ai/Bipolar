@@ -33,10 +33,16 @@ export default function CheckinPage() {
     fetch(`/api/sono?days=3`)
       .then((r) => r.ok ? r.json() : [])
       .then((logs: { date: string; totalHours: number; excluded: boolean }[]) => {
-        const todayLog = logs.find((l) => l.date === today && !l.excluded);
-        if (todayLog) {
-          setAutoSleepHours(todayLog.totalHours);
-          setSleepHours(String(todayLog.totalHours));
+        // Try today first, then yesterday (sleep date = wake date, may be yesterday)
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = yesterday.toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
+
+        const match = logs.find((l) => l.date === today && !l.excluded)
+          || logs.find((l) => l.date === yesterdayStr && !l.excluded);
+        if (match) {
+          setAutoSleepHours(match.totalHours);
+          setSleepHours(String(match.totalHours));
         } else {
           setAutoSleepHours(null);
         }
@@ -189,7 +195,7 @@ export default function CheckinPage() {
               </div>
             ) : (
               <p className="text-sm text-amber-600">
-                Nenhum registro de sono encontrado para hoje. Registre seu sono na{" "}
+                Nenhum registro de sono recente encontrado. Verifique se a integração com o Health Auto Export está ativa na{" "}
                 <a href="/sono" className="text-primary hover:underline">página de sono</a>{" "}
                 ou preencha manualmente abaixo.
               </p>

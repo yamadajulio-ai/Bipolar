@@ -247,6 +247,12 @@ export default function CheckinPage() {
                   </button>
                 ))}
               </div>
+              <a
+                href="/medicamentos"
+                className="block mt-3 rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-center text-primary hover:bg-primary/10 transition-colors"
+              >
+                Toma mais de um medicamento? Cadastre seus horários para controle por dose
+              </a>
             </div>
           </Card>
         ) : null}

@@ -49,6 +49,17 @@ export function MedicationDoseCheckin({ date, onComplete, onTrackingStatus }: Pr
 
   useEffect(() => { fetchSummary(); }, [fetchSummary]);
 
+  // Notify parent about tracking status (must be before any early return)
+  const hasTracking = summary ? summary.state !== "NOT_TRACKED" : null;
+  const onTrackingStatusRef = useRef(onTrackingStatus);
+  onTrackingStatusRef.current = onTrackingStatus;
+
+  useEffect(() => {
+    if (hasTracking !== null) {
+      onTrackingStatusRef.current?.(hasTracking);
+    }
+  }, [hasTracking]);
+
   async function logDose(scheduleId: string, status: "TAKEN" | "MISSED") {
     setSaving((prev) => new Set(prev).add(scheduleId));
     try {
@@ -121,16 +132,6 @@ export function MedicationDoseCheckin({ date, onComplete, onTrackingStatus }: Pr
       </Card>
     );
   }
-
-  const hasTracking = summary ? summary.state !== "NOT_TRACKED" : null;
-  const onTrackingStatusRef = useRef(onTrackingStatus);
-  onTrackingStatusRef.current = onTrackingStatus;
-
-  useEffect(() => {
-    if (hasTracking !== null) {
-      onTrackingStatusRef.current?.(hasTracking);
-    }
-  }, [hasTracking]);
 
   if (!summary || summary.state === "NOT_TRACKED") {
     return null; // No medications configured, caller shows legacy UI

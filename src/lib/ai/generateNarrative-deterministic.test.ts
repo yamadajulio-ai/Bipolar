@@ -372,13 +372,13 @@ describe("generateNarrative — deterministic paths", () => {
       await generateNarrative(makeInsights(), makeExtra());
 
       const call = mockResponsesCreate.mock.calls[0][0];
-      // 6 few-shot messages (3 user + 3 assistant) + 1 real user message = 7
-      expect(call.input.length).toBe(7);
+      // 8 few-shot messages (4 user + 4 assistant) + 1 real user message = 9
+      expect(call.input.length).toBe(9);
       expect(call.input[0].role).toBe("user");
       expect(call.input[1].role).toBe("assistant");
-      expect(call.input[6].role).toBe("user");
+      expect(call.input[8].role).toBe("user");
       // Last message is the real user prompt with actual evidence
-      expect(call.input[6].content).toContain("riskLevel");
+      expect(call.input[8].content).toContain("riskLevel");
     });
 
     it("excludes reasoning param for gpt-4.x models", async () => {

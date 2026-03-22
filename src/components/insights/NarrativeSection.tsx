@@ -3,10 +3,19 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import type { NarrativeResultV2 } from "@/lib/ai/narrative-types";
 import { NARRATIVE_SECTION_KEYS, SECTION_LABELS, SECTION_ICONS } from "@/lib/ai/narrative-types";
+import { toPublicEvidence } from "@/lib/ai/public-evidence";
+interface RawEvidenceChip {
+  text: string;
+  domain: string;
+  kind: string;
+  confidence: string;
+}
+
 interface NarrativeResponse {
   cached: boolean;
   narrativeId?: string;
   narrative?: NarrativeResultV2;
+  evidenceMap?: Record<string, RawEvidenceChip>;
   shareWithProfessional?: boolean;
   createdAt?: string;
   latestAttemptFailed?: boolean;
@@ -29,6 +38,7 @@ export function NarrativeSection() {
   const [retryCooldown, setRetryCooldown] = useState(false);
   const [feedbackSent, setFeedbackSent] = useState<"useful" | "not_useful" | null>(null);
   const [consentChecked, setConsentChecked] = useState(false);
+  const [evidenceOpen, setEvidenceOpen] = useState<Set<string>>(new Set());
   const cooldownTimer = useRef<ReturnType<typeof setTimeout>>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -125,6 +135,14 @@ export function NarrativeSection() {
     });
   }, []);
 
+  const toggleEvidence = useCallback((key: string) => {
+    setEvidenceOpen((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  }, []);
+
   const narrative = data?.narrative;
 
   // Still loading cache
@@ -143,7 +161,8 @@ export function NarrativeSection() {
   if (!narrative && !loading && !error) {
     return (
       <div className="rounded-lg border-2 border-dashed border-primary/30 bg-primary/5 p-5 text-center">
-        <p className="mb-1 text-sm font-semibold text-foreground">Resumo inteligente</p>
+        <p className="mb-1 text-sm font-semibold text-foreground">Seu resumo personalizado</p>
+        <p className="mb-3 text-xs text-muted">Uma visão geral do que mudou nos seus registros dos últimos 30 dias.</p>
 
         {/* Guardrail failure warning */}
         {data?.latestAttemptFailed && (
@@ -359,6 +378,40 @@ export function NarrativeSection() {
                             ))}
                           </div>
                         )}
+
+                        {/* Evidence details — disclosure */}
+                        {data?.evidenceMap && section.evidenceIds && section.evidenceIds.length > 0 && (() => {
+                          const chips = toPublicEvidence(data.evidenceMap, section.evidenceIds);
+                          if (chips.length === 0) return null;
+                          const isEvidenceOpen = evidenceOpen.has(key);
+                          return (
+                            <div className="border-t border-border/20 pt-2">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); toggleEvidence(key); }}
+                                className="text-[11px] text-muted hover:text-foreground/70 underline"
+                              >
+                                {isEvidenceOpen ? "Ocultar detalhes" : "De onde saiu isso?"}
+                              </button>
+                              {isEvidenceOpen && (
+                                <div className="mt-2 space-y-1.5">
+                                  {chips.map((ev, i) => (
+                                    <div key={i} className="flex items-start gap-2 text-[11px] text-foreground/60">
+                                      <span className={`mt-1 inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full ${
+                                        ev.kind === "alert" ? "bg-amber-400" : ev.kind === "comparison" ? "bg-blue-400" : "bg-gray-300"
+                                      }`} />
+                                      <div>
+                                        <span>{ev.chipText}</span>
+                                        {ev.detailText && ev.detailText !== ev.chipText && (
+                                          <span className="text-muted ml-1">— {ev.detailText}</span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </div>
                     )}
                   </div>
@@ -377,10 +430,15 @@ export function NarrativeSection() {
             <p className="text-[10px] text-muted italic">
               {narrative.source === "llm" ? "Gerado por IA"
                 : narrative.source === "fallback" ? "Dados enviados à IA (resumo indisponível)"
-                : "Resumo automático"}
+                : "Resumo automático local"}
               {narrative.generatedAt && ` em ${new Date(narrative.generatedAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}`}
               . {APP_DISCLAIMER}
             </p>
+
+            {narrative.overview.dataQualityNote &&
+             narrative.overview.dataQualityNote !== "Análise baseada nos registros disponíveis." && (
+              <p className="text-[10px] text-muted italic">{narrative.overview.dataQualityNote}</p>
+            )}
 
             {data?.narrativeId && (
               <div className="flex items-center gap-3">

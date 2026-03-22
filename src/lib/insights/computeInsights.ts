@@ -352,6 +352,20 @@ function spearmanCorrelation(x: number[], y: number[]): number | null {
   return pearsonCorrelation(assignRanks(x), assignRanks(y));
 }
 
+/**
+ * Identify "main sleep" vs afternoon nap for risk scoring.
+ * Afternoon/evening naps (< 4h, bedtime 12:00–19:59) are excluded because
+ * wearables record them as sleep sessions that skew risk calculations.
+ */
+function isMainSleep(log: SleepLogInput): boolean {
+  if (log.totalHours >= 4) return true;
+  const btMin = timeToMinutes(log.bedtime);
+  if (btMin === null) return true; // Can't determine, assume main sleep
+  // Bedtime between 12:00 (720) and 19:59 (1199) = likely afternoon nap
+  if (btMin >= 720 && btMin < 1200) return false;
+  return true;
+}
+
 /** Check if two YYYY-MM-DD dates are exactly 1 day apart. */
 function isNextDay(dateA: string, dateB: string): boolean {
   const a = new Date(dateA + "T12:00:00Z");
@@ -1033,16 +1047,17 @@ function computeRiskScore(
   let score = 0;
   const factors: string[] = [];
 
-  // Filter out records < 2h: likely wearable data issues (forgot watch, partial recording)
+  // Filter: exclude afternoon naps (< 4h, bedtime 12:00-19:59) and unreliable records (< 2h)
+  // Wearables record afternoon naps as sleep sessions that skew risk calculations
   const sortedSleep = [...sleepLogs].sort((a, b) => a.date.localeCompare(b.date));
-  const reliableSleep = sortedSleep.filter((s) => s.totalHours >= 2);
+  const mainSleep = sortedSleep.filter((s) => isMainSleep(s) && s.totalHours >= 2);
 
-  // Require minimum data density: if < 4 of last 7 days have reliable sleep data,
+  // Require minimum data density: if < 4 of last 7 days have main sleep data,
   // the data is too sparse to reliably detect sleep-based risk patterns
   const sevenAgoDt = new Date(today); sevenAgoDt.setDate(sevenAgoDt.getDate() - 6);
   const str7Sleep = dateStr(sevenAgoDt, tz);
-  const recentReliable = reliableSleep.filter((s) => s.date >= str7Sleep);
-  const hasSufficientSleepData = recentReliable.length >= 4;
+  const recentMain = mainSleep.filter((s) => s.date >= str7Sleep);
+  const hasSufficientSleepData = recentMain.length >= 4;
 
   if (hasSufficientSleepData) {
     // Sleep duration significantly below baseline
@@ -1058,7 +1073,7 @@ function computeRiskScore(
     }
 
     // Consecutive short nights — use currentStreak (active state)
-    const shortNow = currentStreak(reliableSleep, (s) => s.totalHours < 6);
+    const shortNow = currentStreak(mainSleep, (s) => s.totalHours < 6);
     if (shortNow >= 4) {
       score += 2;
       factors.push(`${shortNow} noites curtas seguidas`);
@@ -2001,13 +2016,18 @@ export function computeInsights(
   /** Optional financial transactions (30d) for risk score integration. */
   financialTxs?: FinancialTxInput[],
 ): InsightsResult {
-  const sleep = computeSleepInsights(sleepLogs, today, tz);
+  // Filter out afternoon naps for metrics that need "main sleep" only.
+  // Naps (< 4h, bedtime 12:00-19:59) skew averages and risk scoring.
+  // They remain in sleepLogs for heatmap, charts, and historical display.
+  const mainSleepLogs = sleepLogs.filter((s) => isMainSleep(s));
+
+  const sleep = computeSleepInsights(mainSleepLogs, today, tz);
   const mood = computeMoodInsights(entries, today, tz);
   const rhythm = computeRhythmInsights(rhythms, sleepLogs, plannerBlocks ?? []);
   const chart = computeChartInsights(entries, sleepLogs);
-  const combinedPatterns = computeCombinedPatterns(sleepLogs, entries);
-  const risk = computeRiskScore(sleep, mood, entries, sleepLogs, today, tz, financialTxs);
-  const thermometer = computeMoodThermometer(entries, sleepLogs, today, tz);
+  const combinedPatterns = computeCombinedPatterns(mainSleepLogs, entries);
+  const risk = computeRiskScore(sleep, mood, entries, mainSleepLogs, today, tz, financialTxs);
+  const thermometer = computeMoodThermometer(entries, mainSleepLogs, today, tz);
 
   // Mixed state risk boost — per ISBD, mixed states carry the highest suicide
   // risk in bipolar disorder. Apply after thermometer computation.
@@ -2026,7 +2046,7 @@ export function computeInsights(
   // P2 features — use extended data (90d) when available
   const extEntries = entries90 ?? entries;
   const extSleep = sleepLogs90 ?? sleepLogs;
-  const prediction = computeEpisodePrediction(entries, sleepLogs, sleep, thermometer, today, tz);
+  const prediction = computeEpisodePrediction(entries, mainSleepLogs, sleep, thermometer, today, tz);
   const cycling = computeCyclingAnalysis(extEntries, today, tz);
   const seasonality = computeSeasonalityAnalysis(extEntries);
   const heatmap = computeHeatmapData(extEntries, extSleep, today, tz);

@@ -389,23 +389,6 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
     (Array.isArray(warningSigns) && warningSigns.includes("pensamentos_suicidas")) ||
     (bipolarContext.mixedFeatures && bipolarContext.mixedStrength === "forte");
 
-  // DEBUG: temporary log to diagnose crisis mode triggers (remove after investigation)
-  if (crisisMode) {
-    console.log("[CRISIS_DEBUG]", JSON.stringify({
-      riskLevel,
-      riskScore: risk?.score,
-      riskFactors: risk?.factors,
-      warningSigns,
-      mixedFeatures: bipolarContext.mixedFeatures,
-      mixedStrength: bipolarContext.mixedStrength,
-      consecutiveShortSleep: bipolarContext.consecutiveShortSleep,
-      maniaSignsActive: bipolarContext.maniaSignsActive,
-      zone,
-      sleepLogCount: sleepLogsForInsights.length,
-      entryCount: entries30.length,
-    }));
-  }
-
   // === CRISIS MODE: show simplified UI (unless user dismissed with ?full=1) ===
   if (crisisMode && !dismissCrisis) {
     return (

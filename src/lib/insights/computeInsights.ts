@@ -9,6 +9,8 @@ interface SleepLogInput {
   totalHours: number;
   quality: number;
   awakenings: number;
+  hrv?: number | null;
+  heartRate?: number | null;
 }
 
 interface DiaryEntryInput {
@@ -2014,16 +2016,55 @@ function computeStabilityScore(
   mood: MoodInsights,
   risk: RiskScore | null,
   entries: DiaryEntryInput[],
+  sleepLogs: SleepLogInput[],
   baselineScore?: number | null,
 ): StabilityScore | null {
   const dataAvailable = Math.max(sleep.recordCount, entries.length);
   if (dataAvailable < STABILITY_MIN_DAYS) return null;
 
-  // 1. Sleep regularity (30%): uses same scale as rhythm anchors for consistency
-  //    bedtimeVariance ≤ 30min = 100, ≥ 180min = 0 (regularityScoreFromVariance)
+  // 1. Sleep composite (35%): weighted blend of regularity, duration, quality, HRV
+  //    Sub-weights: regularity 30%, duration 30%, quality 25%, HRV 15%
   let sleepReg: number | null = null;
-  if (sleep.bedtimeVariance != null) {
-    sleepReg = regularityScoreFromVariance(sleep.bedtimeVariance);
+  {
+    const subScores: { value: number; weight: number }[] = [];
+
+    // 1a. Bedtime regularity (30%)
+    if (sleep.bedtimeVariance != null) {
+      subScores.push({ value: regularityScoreFromVariance(sleep.bedtimeVariance), weight: 0.30 });
+    }
+
+    // 1b. Duration adequacy (30%): 7-9h = 100, <5h or >11h = 0, linear between
+    if (sleep.avgDuration != null) {
+      let durScore: number;
+      if (sleep.avgDuration >= 7 && sleep.avgDuration <= 9) {
+        durScore = 100;
+      } else if (sleep.avgDuration < 7) {
+        durScore = Math.max(0, Math.round(100 * (sleep.avgDuration - 4) / 3)); // 4h=0, 7h=100
+      } else {
+        durScore = Math.max(0, Math.round(100 * (12 - sleep.avgDuration) / 3)); // 9h=100, 12h=0
+      }
+      subScores.push({ value: durScore, weight: 0.30 });
+    }
+
+    // 1c. Sleep quality (25%): already 0-100
+    if (sleep.avgQuality != null) {
+      subScores.push({ value: sleep.avgQuality, weight: 0.25 });
+    }
+
+    // 1d. HRV health (15%): higher is better, 20ms=0, 60ms+=100
+    const hrvValues = sleepLogs
+      .filter((l) => l.hrv != null && l.hrv > 0)
+      .map((l) => l.hrv!);
+    if (hrvValues.length >= 3) {
+      const avgHrv = hrvValues.reduce((a, b) => a + b, 0) / hrvValues.length;
+      const hrvScore = Math.max(0, Math.min(100, Math.round((avgHrv - 20) / 40 * 100)));
+      subScores.push({ value: hrvScore, weight: 0.15 });
+    }
+
+    if (subScores.length > 0) {
+      const totalW = subScores.reduce((s, c) => s + c.weight, 0);
+      sleepReg = Math.round(subScores.reduce((s, c) => s + c.value * c.weight, 0) / totalW);
+    }
   }
 
   // 2. Medication adherence (30%): already 0-100
@@ -2167,7 +2208,7 @@ export function computeInsights(
   const seasonality = computeSeasonalityAnalysis(extEntries);
   const heatmap = computeHeatmapData(extEntries, extSleep, today, tz);
 
-  const stability = computeStabilityScore(sleep, mood, risk, entries);
+  const stability = computeStabilityScore(sleep, mood, risk, entries, mainSleepLogs);
 
   return {
     sleep, mood, rhythm, chart, combinedPatterns, risk, thermometer,

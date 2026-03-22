@@ -126,8 +126,9 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
       select: { mood: true, sleepHours: true, energyLevel: true, tookMedication: true, warningSigns: true, snapshotCount: true, moodRange: true, lastSnapshotAt: true },
     }),
     prisma.sleepLog.findFirst({
-      where: { userId: session.userId, date: today },
-      select: { totalHours: true, quality: true },
+      where: { userId: session.userId, date: { in: [today, localDateStr(new Date(now.getTime() - 86400000))] } },
+      select: { totalHours: true, quality: true, date: true },
+      orderBy: { date: "desc" },
     }),
     // 30d data for insights computation
     prisma.diaryEntry.findMany({

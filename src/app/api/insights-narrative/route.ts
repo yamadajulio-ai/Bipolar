@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
     const d90str = spDate(d90);
 
     // Minimal select per model — LGPD data minimization
-    const sleepSelect = { date: true, bedtime: true, wakeTime: true, totalHours: true, quality: true, awakenings: true, excluded: true } as const;
+    const sleepSelect = { date: true, bedtime: true, wakeTime: true, totalHours: true, quality: true, awakenings: true, excluded: true, hrv: true, heartRate: true } as const;
     const diarySelect = { date: true, mood: true, sleepHours: true, energyLevel: true, anxietyLevel: true, irritability: true, tookMedication: true, warningSigns: true } as const;
     const financialSelect = { date: true, amount: true } as const;
 

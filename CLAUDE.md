@@ -86,9 +86,12 @@
 - Motor de cálculo: `src/lib/insights/computeInsights.ts`
 - Gráfico: `src/components/planner/InsightsCharts.tsx` (Client Component)
 - Seletor de período: `src/components/insights/NightHistorySelector.tsx` (Client Component)
-- Dados buscados: 90 dias de sono (histórico), 30 dias de humor/ritmos/planner (insights)
+- Dados buscados: 90 dias de sono (histórico), 30 dias de humor/planner (insights)
 - Timezone: America/Sao_Paulo
 - Mixed state risk boost: forte +3, provável +2 no risk score (ISBD: maior risco suicida)
+- **Rotina/Ritmo removido** — feature descontinuada, DailyRhythm não é mais utilizado nos cálculos
+- **Stability Score**: pesos 35/30/20/15 (sono/medicação/humor/estabilidade)
+- **Sleep composite**: regularidade 30%, duração 30%, qualidade 25%, HRV 15% (sub-pesos redistribuídos se dado ausente)
 
 ## Security — Arquitetura
 - **CSRF**: 2 camadas — Sec-Fetch-Site/Origin (middleware) + double-submit cookie (`__Host-csrf` + `X-CSRF-Token` header via `CsrfProvider` global interceptor)

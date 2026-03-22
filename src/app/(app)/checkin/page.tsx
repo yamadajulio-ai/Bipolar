@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { localToday } from "@/lib/dateUtils";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/Card";
@@ -15,6 +15,9 @@ export default function CheckinPage() {
   const [anxiety, setAnxiety] = useState<number | null>(null);
   const [irritability, setIrritability] = useState<number | null>(null);
   const [sleepHours, setSleepHours] = useState("7");
+  const [autoSleep, setAutoSleep] = useState(false);
+  const [autoSleepHours, setAutoSleepHours] = useState<number | null>(null);
+  const [autoSleepLoading, setAutoSleepLoading] = useState(false);
   const [medication, setMedication] = useState("sim");
   const [showSigns, setShowSigns] = useState(false);
   const [selectedSigns, setSelectedSigns] = useState<string[]>([]);
@@ -23,6 +26,24 @@ export default function CheckinPage() {
   const [success, setSuccess] = useState(false);
 
   const today = localToday();
+
+  useEffect(() => {
+    if (!autoSleep) return;
+    setAutoSleepLoading(true);
+    fetch(`/api/sono?days=3`)
+      .then((r) => r.ok ? r.json() : [])
+      .then((logs: { date: string; totalHours: number; excluded: boolean }[]) => {
+        const todayLog = logs.find((l) => l.date === today && !l.excluded);
+        if (todayLog) {
+          setAutoSleepHours(todayLog.totalHours);
+          setSleepHours(String(todayLog.totalHours));
+        } else {
+          setAutoSleepHours(null);
+        }
+      })
+      .catch(() => setAutoSleepHours(null))
+      .finally(() => setAutoSleepLoading(false));
+  }, [autoSleep, today]);
 
   const toggleSign = useCallback((key: string) => {
     setSelectedSigns((prev) =>
@@ -139,16 +160,53 @@ export default function CheckinPage() {
           <label htmlFor="sleep-hours" className="block text-sm font-medium text-foreground mb-2">
             Horas de sono
           </label>
-          <input
-            id="sleep-hours"
-            type="number"
-            min={0}
-            max={24}
-            step={0.5}
-            value={sleepHours}
-            onChange={(e) => setSleepHours(e.target.value)}
-            className="block w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-          />
+
+          <label className="flex items-center gap-2 text-sm text-muted mb-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={autoSleep}
+              onChange={(e) => {
+                const checked = e.target.checked;
+                setAutoSleep(checked);
+                if (!checked) {
+                  setSleepHours("7");
+                  setAutoSleepHours(null);
+                }
+              }}
+              className="rounded border-border"
+            />
+            Usar registro de sono automático
+          </label>
+
+          {autoSleep ? (
+            autoSleepLoading ? (
+              <p className="text-sm text-muted">Buscando registro de sono...</p>
+            ) : autoSleepHours !== null ? (
+              <div className="rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-sm text-foreground">
+                <span className="font-medium">{autoSleepHours}h</span>
+                <span className="text-muted ml-1">(do registro de sono de hoje)</span>
+              </div>
+            ) : (
+              <p className="text-sm text-amber-600">
+                Nenhum registro de sono encontrado para hoje. Registre seu sono na{" "}
+                <a href="/sono" className="text-primary hover:underline">página de sono</a>{" "}
+                ou preencha manualmente abaixo.
+              </p>
+            )
+          ) : null}
+
+          {(!autoSleep || (autoSleep && autoSleepHours === null && !autoSleepLoading)) && (
+            <input
+              id="sleep-hours"
+              type="number"
+              min={0}
+              max={24}
+              step={0.5}
+              value={sleepHours}
+              onChange={(e) => setSleepHours(e.target.value)}
+              className="block w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          )}
         </Card>
 
         {/* Medication */}

@@ -9,6 +9,15 @@ import { ScaleSelector } from "@/components/ScaleSelector";
 import { MOOD_LABELS, ENERGY_LABELS, ANXIETY_LABELS, IRRITABILITY_LABELS, MEDICATION_OPTIONS, WARNING_SIGNS } from "@/lib/constants";
 import { MedicationDoseCheckin } from "@/components/MedicationDoseCheckin";
 
+interface SnapshotEntry {
+  id: string;
+  capturedAt: string;
+  mood: number;
+  energy: number;
+  anxiety: number;
+  irritability: number;
+}
+
 export default function CheckinPage() {
   const router = useRouter();
   const [mood, setMood] = useState(3);
@@ -20,14 +29,27 @@ export default function CheckinPage() {
   const [autoSleepHours, setAutoSleepHours] = useState<number | null>(null);
   const [autoSleepLoading, setAutoSleepLoading] = useState(false);
   const [medication, setMedication] = useState("sim");
-  const [hasDoseTracking, setHasDoseTracking] = useState<boolean | null>(null); // null = loading
+  const [hasDoseTracking, setHasDoseTracking] = useState<boolean | null>(null);
   const [showSigns, setShowSigns] = useState(false);
   const [selectedSigns, setSelectedSigns] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
 
+  // Snapshot timeline
+  const [todaySnapshots, setTodaySnapshots] = useState<SnapshotEntry[]>([]);
+  const [snapshotsLoading, setSnapshotsLoading] = useState(true);
+
   const today = localToday();
+
+  // Load today's existing snapshots
+  useEffect(() => {
+    fetch(`/api/diario/snapshots?date=${today}`)
+      .then((r) => r.ok ? r.json() : [])
+      .then((data: SnapshotEntry[]) => setTodaySnapshots(data))
+      .catch(() => {})
+      .finally(() => setSnapshotsLoading(false));
+  }, [today]);
 
   useEffect(() => {
     if (!autoSleep) return;
@@ -35,7 +57,6 @@ export default function CheckinPage() {
     fetch(`/api/sono?days=3`)
       .then((r) => r.ok ? r.json() : [])
       .then((logs: { date: string; totalHours: number; excluded: boolean }[]) => {
-        // Sum all non-excluded sleep logs from yesterday (night + naps)
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
         const yesterdayStr = yesterday.toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
@@ -70,18 +91,24 @@ export default function CheckinPage() {
     }
 
     try {
-      const res = await fetch("/api/diario", {
+      const clientRequestId = `${today}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const isFirstOfDay = todaySnapshots.length === 0;
+
+      const res = await fetch("/api/diario/snapshots", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          date: today,
           mood,
-          sleepHours: parseFloat(sleepHours) || 0,
-          energyLevel: energy,
-          anxietyLevel: anxiety,
+          energy,
+          anxiety,
           irritability,
-          tookMedication: medication,
-          warningSigns: selectedSigns.length > 0 ? JSON.stringify(selectedSigns) : undefined,
+          warningSignsNow: selectedSigns.length > 0 ? JSON.stringify(selectedSigns) : undefined,
+          clientRequestId,
+          // Daily fields only on first check-in
+          ...(isFirstOfDay ? {
+            sleepHours: parseFloat(sleepHours) || 0,
+            tookMedication: medication,
+          } : {}),
         }),
       });
 
@@ -111,12 +138,49 @@ export default function CheckinPage() {
     );
   }
 
+  const isFirstOfDay = todaySnapshots.length === 0;
+
   return (
     <div className="mx-auto max-w-lg">
       <h1 className="mb-2 text-2xl font-bold">Check-in Rápido</h1>
       <p className="mb-6 text-sm text-muted">
-        Como você está agora? Leva menos de 30 segundos.
+        Como você está <strong>agora</strong>? Leva menos de 30 segundos.
       </p>
+
+      {/* Timeline of today's previous check-ins */}
+      {!snapshotsLoading && todaySnapshots.length > 0 && (
+        <Card className="mb-5">
+          <p className="text-xs font-medium text-muted mb-2">
+            Registros de hoje ({todaySnapshots.length})
+          </p>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {todaySnapshots.map((snap) => {
+              const time = new Date(snap.capturedAt).toLocaleTimeString("pt-BR", {
+                timeZone: "America/Sao_Paulo",
+                hour: "2-digit",
+                minute: "2-digit",
+              });
+              return (
+                <div
+                  key={snap.id}
+                  className="shrink-0 rounded-md border border-border bg-surface px-3 py-2 text-center"
+                >
+                  <p className="text-xs font-medium text-foreground">{time}</p>
+                  <div className="flex gap-2 mt-1 text-[10px] text-muted">
+                    <span title="Humor">H:{snap.mood}</span>
+                    <span title="Energia">E:{snap.energy}</span>
+                    <span title="Ansiedade">A:{snap.anxiety}</span>
+                    <span title="Irritabilidade">I:{snap.irritability}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <p className="text-[10px] text-muted mt-2">
+            Registre novamente para captar mudanças ao longo do dia.
+          </p>
+        </Card>
+      )}
 
       {error && (
         <Alert variant="danger" className="mb-4">{error}</Alert>
@@ -163,99 +227,105 @@ export default function CheckinPage() {
           />
         </Card>
 
-        {/* Sleep */}
-        <Card>
-          <label htmlFor="sleep-hours" className="block text-sm font-medium text-foreground mb-1">
-            Horas de sono
-          </label>
-          <p className="text-xs text-muted mb-2">Quantas horas você dormiu ontem?</p>
+        {/* Sleep — only on first check-in of the day */}
+        {isFirstOfDay && (
+          <Card>
+            <label htmlFor="sleep-hours" className="block text-sm font-medium text-foreground mb-1">
+              Horas de sono
+            </label>
+            <p className="text-xs text-muted mb-2">Quantas horas você dormiu ontem?</p>
 
-          <label className="flex items-center gap-2 text-sm text-muted mb-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={autoSleep}
-              onChange={(e) => {
-                const checked = e.target.checked;
-                setAutoSleep(checked);
-                if (!checked) {
-                  setSleepHours("7");
-                  setAutoSleepHours(null);
-                }
-              }}
-              className="rounded border-border"
-            />
-            Usar registro de sono automático
-          </label>
+            <label className="flex items-center gap-2 text-sm text-muted mb-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={autoSleep}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  setAutoSleep(checked);
+                  if (!checked) {
+                    setSleepHours("7");
+                    setAutoSleepHours(null);
+                  }
+                }}
+                className="rounded border-border"
+              />
+              Usar registro de sono automático
+            </label>
 
-          {autoSleep ? (
-            autoSleepLoading ? (
-              <p className="text-sm text-muted">Buscando registro de sono...</p>
-            ) : autoSleepHours !== null ? (
-              <div className="rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-sm text-foreground">
-                <span className="font-medium">{autoSleepHours}h</span>
-                <span className="text-muted ml-1">(total de ontem)</span>
-              </div>
-            ) : (
-              <p className="text-sm text-amber-600">
-                Nenhum registro de sono recente encontrado. Verifique se a integração com o Health Auto Export está ativa na{" "}
-                <a href="/sono" className="text-primary hover:underline">página de sono</a>{" "}
-                ou preencha manualmente abaixo.
-              </p>
-            )
-          ) : null}
+            {autoSleep ? (
+              autoSleepLoading ? (
+                <p className="text-sm text-muted">Buscando registro de sono...</p>
+              ) : autoSleepHours !== null ? (
+                <div className="rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-sm text-foreground">
+                  <span className="font-medium">{autoSleepHours}h</span>
+                  <span className="text-muted ml-1">(total de ontem)</span>
+                </div>
+              ) : (
+                <p className="text-sm text-amber-600">
+                  Nenhum registro de sono recente encontrado. Verifique se a integração com o Health Auto Export está ativa na{" "}
+                  <a href="/sono" className="text-primary hover:underline">página de sono</a>{" "}
+                  ou preencha manualmente abaixo.
+                </p>
+              )
+            ) : null}
 
-          {(!autoSleep || (autoSleep && autoSleepHours === null && !autoSleepLoading)) && (
-            <input
-              id="sleep-hours"
-              type="number"
-              min={0}
-              max={24}
-              step={0.5}
-              value={sleepHours}
-              onChange={(e) => setSleepHours(e.target.value)}
-              className="block w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-            />
-          )}
-        </Card>
+            {(!autoSleep || (autoSleep && autoSleepHours === null && !autoSleepLoading)) && (
+              <input
+                id="sleep-hours"
+                type="number"
+                min={0}
+                max={24}
+                step={0.5}
+                value={sleepHours}
+                onChange={(e) => setSleepHours(e.target.value)}
+                className="block w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            )}
+          </Card>
+        )}
 
         {/* Medication — per-dose tracking if configured, legacy otherwise */}
-        <MedicationDoseCheckin
-          date={today}
-          onTrackingStatus={(has) => setHasDoseTracking(has)}
-          onComplete={(legacyValue) => setMedication(legacyValue)}
-        />
+        {isFirstOfDay && (
+          <>
+            <MedicationDoseCheckin
+              date={today}
+              onTrackingStatus={(has) => setHasDoseTracking(has)}
+              onComplete={(legacyValue) => setMedication(legacyValue)}
+            />
 
-        {!hasDoseTracking ? (
-          <Card>
-            <div role="group" aria-label="Medicação de hoje">
-              <label className="block text-sm font-medium text-foreground mb-1">Tomou a medicação hoje?</label>
-              <p className="text-xs text-muted mb-3">Refere-se ao dia de hoje ({new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "short" })}). Se ainda não tomou, marque &quot;Ainda não&quot;.</p>
-              <div className="flex gap-2">
-                {MEDICATION_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => setMedication(opt.value)}
-                    aria-pressed={medication === opt.value}
-                    className={`flex-1 rounded-lg border px-2 py-2 text-xs font-medium transition-colors ${
-                      medication === opt.value
-                        ? "border-primary bg-primary text-white"
-                        : "border-border bg-surface text-muted hover:border-primary/50"
-                    }`}
+            {!hasDoseTracking ? (
+              <Card>
+                <div role="group" aria-label="Medicação de hoje">
+                  <label className="block text-sm font-medium text-foreground mb-1">Tomou a medicação hoje?</label>
+                  <p className="text-xs text-muted mb-3">Refere-se ao dia de hoje ({new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "short" })}). Se ainda não tomou, marque &quot;Ainda não&quot;.</p>
+                  <div className="flex gap-2">
+                    {MEDICATION_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setMedication(opt.value)}
+                        aria-pressed={medication === opt.value}
+                        className={`flex-1 rounded-lg border px-2 py-2 text-xs font-medium transition-colors ${
+                          medication === opt.value
+                            ? "border-primary bg-primary text-white"
+                            : "border-border bg-surface text-muted hover:border-primary/50"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                  <a
+                    href="/medicamentos"
+                    className="block mt-3 rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-center text-primary hover:bg-primary/10 transition-colors"
                   >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-              <a
-                href="/medicamentos"
-                className="block mt-3 rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-center text-primary hover:bg-primary/10 transition-colors"
-              >
-                Toma mais de um medicamento? Cadastre seus horários para controle por dose
-              </a>
-            </div>
-          </Card>
-        ) : null}
+                    Toma mais de um medicamento? Cadastre seus horários para controle por dose
+                  </a>
+                </div>
+              </Card>
+            ) : null}
+          </>
+        )}
 
         {/* Warning signs (collapsible) */}
         <Card>
@@ -292,12 +362,17 @@ export default function CheckinPage() {
           disabled={saving}
           className="w-full rounded-lg bg-primary px-4 py-3 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
         >
-          {saving ? "Salvando..." : "Salvar check-in"}
+          {saving ? "Salvando..." : isFirstOfDay ? "Salvar check-in" : "Registrar momento"}
         </button>
 
         <p className="text-center text-xs text-muted">
-          Para registro detalhado, use o{" "}
-          <a href="/diario/novo" className="text-primary hover:underline">diário completo</a>.
+          {isFirstOfDay ? (
+            <>Para registro detalhado, use o{" "}
+              <a href="/diario/novo" className="text-primary hover:underline">diário completo</a>.
+            </>
+          ) : (
+            <>Este registro captura como você está agora. Sono e medicação ficam no primeiro check-in do dia.</>
+          )}
         </p>
       </div>
     </div>

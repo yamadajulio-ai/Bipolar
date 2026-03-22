@@ -20,6 +20,12 @@ interface DiaryEntryInput {
   irritability: number | null;
   tookMedication: string | null;
   warningSigns: string | null;
+  // Snapshot metadata (optional — absent for legacy entries)
+  snapshotCount?: number;
+  moodRange?: number | null;
+  moodInstability?: number | null;
+  anxietyPeak?: number | null;
+  irritabilityPeak?: number | null;
 }
 
 interface DailyRhythmInput {

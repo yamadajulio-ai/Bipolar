@@ -52,6 +52,12 @@ model User {
   communicationPreference CommunicationPreference?
   messageLogs            MessageLog[]
   displayPreferences     DisplayPreferences?
+  moodSnapshots          MoodSnapshot[]
+}
+
+enum DiaryEntryMode {
+  LEGACY_SINGLE
+  AUTO_FROM_SNAPSHOT
 }
 
 model DiaryEntry {
@@ -66,13 +72,51 @@ model DiaryEntry {
   irritability   Int?     // 1..5
   tookMedication String?  // legacy: "sim" | "nao" | "nao_sei" — kept for backward compat
   warningSigns   String?  // JSON array of selected warning sign keys
+
+  // Snapshot metadata
+  mode              DiaryEntryMode @default(LEGACY_SINGLE)
+  snapshotCount     Int            @default(0)
+  firstSnapshotAt   DateTime?
+  lastSnapshotAt    DateTime?
+  moodRange         Int?           // max - min mood across snapshots
+  moodInstability   Float?         // mean absolute successive difference
+  anxietyPeak       Int?           // max anxiety across snapshots
+  irritabilityPeak  Int?           // max irritability across snapshots
+
   createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now()) @updatedAt
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   medicationLogs MedicationLog[]
+  snapshots      MoodSnapshot[]
 
   @@index([userId])
   @@index([date])
   @@unique([userId, date])
+}
+
+model MoodSnapshot {
+  id              String   @id @default(cuid())
+  userId          String
+  diaryEntryId    String
+
+  capturedAt      DateTime // instante real do check-in (UTC)
+  localDate       String   // YYYY-MM-DD em America/Sao_Paulo
+  clientRequestId String   @unique // idempotência mobile
+
+  mood            Int      // 1..5
+  energy          Int      // 1..5
+  anxiety         Int      // 1..5
+  irritability    Int      // 1..5
+  warningSignsNow String?  // JSON array, sinais momentâneos
+  note            String?
+
+  createdAt       DateTime @default(now())
+
+  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  diaryEntry      DiaryEntry @relation(fields: [diaryEntryId], references: [id], onDelete: Cascade)
+
+  @@index([userId, localDate, capturedAt])
+  @@index([userId, capturedAt])
 }
 
 model ContentView {

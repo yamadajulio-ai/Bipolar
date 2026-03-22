@@ -52,6 +52,14 @@ export async function GET(request: NextRequest) {
       irritability: true,
       tookMedication: true,
       warningSigns: true,
+      mode: true,
+      snapshotCount: true,
+      firstSnapshotAt: true,
+      lastSnapshotAt: true,
+      moodRange: true,
+      moodInstability: true,
+      anxietyPeak: true,
+      irritabilityPeak: true,
       createdAt: true,
     },
   });
@@ -112,6 +120,7 @@ export async function POST(request: NextRequest) {
         irritability: parsed.data.irritability ?? null,
         tookMedication: parsed.data.tookMedication ?? null,
         warningSigns: parsed.data.warningSigns ?? null,
+        mode: "LEGACY_SINGLE",
       },
       select: {
         id: true,

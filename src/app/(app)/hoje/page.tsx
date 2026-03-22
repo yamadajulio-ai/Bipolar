@@ -123,7 +123,7 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
     // Today's data
     prisma.diaryEntry.findFirst({
       where: { userId: session.userId, date: today },
-      select: { mood: true, sleepHours: true, energyLevel: true, tookMedication: true, warningSigns: true },
+      select: { mood: true, sleepHours: true, energyLevel: true, tookMedication: true, warningSigns: true, snapshotCount: true, moodRange: true, lastSnapshotAt: true },
     }),
     prisma.sleepLog.findFirst({
       where: { userId: session.userId, date: today },
@@ -262,6 +262,8 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
     primaryCta = { href: "/plano-de-crise", label: "Revisar plano de crise", verb: "Revise seu plano de segurança" };
   } else if (!todayEntry) {
     primaryCta = { href: "/checkin", label: "Fazer check-in", verb: "Registrar humor e energia" };
+  } else if ((todayEntry.snapshotCount ?? 0) <= 1) {
+    primaryCta = { href: "/checkin", label: "Registrar momento", verb: "Como você está agora?" };
   } else if (!todaySleep && !haeKey) {
     primaryCta = { href: "/sono/novo", label: "Registrar sono", verb: "Como foi a noite passada?" };
   } else {
@@ -685,6 +687,19 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
                  todayEntry.tookMedication === "nao" ? "Não tomou" : "Ainda não"}
               </p>
             </div>
+          </div>
+          {/* Snapshot info + register again */}
+          <div className="flex items-center justify-between mt-3 pt-2 border-t border-border">
+            <p className="text-[10px] text-muted">
+              {(todayEntry.snapshotCount ?? 0) > 1
+                ? `${todayEntry.snapshotCount} registros hoje${todayEntry.moodRange ? ` (variação: ${todayEntry.moodRange})` : ""}`
+                : todayEntry.lastSnapshotAt
+                  ? `Registrado às ${new Date(todayEntry.lastSnapshotAt).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" })}`
+                  : "1 registro hoje"}
+            </p>
+            <a href="/checkin" className="text-[10px] text-primary hover:underline">
+              Registrar novamente
+            </a>
           </div>
           {/* Streaks + Achievements (server-side preferences) */}
           <GamificationWrapper

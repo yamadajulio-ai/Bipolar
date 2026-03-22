@@ -130,15 +130,20 @@ describe("isAllowedPushEndpoint", () => {
   describe("blocks private and reserved addresses", () => {
     const privateEndpoints = [
       ["localhost", "https://localhost/push"],
-      ["loopback IPv4", "https://127.0.0.1/push"],
+      ["loopback 127.0.0.1", "https://127.0.0.1/push"],
+      ["loopback 127.0.0.2", "https://127.0.0.2/push"],
+      ["loopback 127.255.255.255", "https://127.255.255.255/push"],
       ["loopback 0.0.0.0", "https://0.0.0.0/push"],
-      ["IPv6 loopback", "https://[::1]/push"],
+      ["IPv6 loopback bracketed", "https://[::1]/push"],
       ["10.x private", "https://10.0.0.1/push"],
       ["172.16.x private", "https://172.16.0.1/push"],
       ["172.31.x private", "https://172.31.255.255/push"],
       ["192.168.x private", "https://192.168.0.1/push"],
       ["link-local 169.254", "https://169.254.169.254/latest/meta-data/"],
       ["AWS metadata", "https://169.254.170.2/push"],
+      ["IPv4-mapped IPv6 loopback", "https://[::ffff:127.0.0.1]/push"],
+      ["IPv4-mapped IPv6 private", "https://[::ffff:10.0.0.1]/push"],
+      ["IPv4-mapped IPv6 192.168", "https://[::ffff:192.168.1.1]/push"],
     ] as const;
 
     it.each(privateEndpoints)("%s: %s", (_name, endpoint) => {

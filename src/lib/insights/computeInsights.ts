@@ -498,8 +498,10 @@ function computeSleepInsights(sleepLogs: SleepLogInput[], today: Date, tz: strin
   const alerts: ClinicalAlert[] = [];
 
   // Use currentStreak (active state) for alerts
-  const consecutiveShortNow = currentStreak(sorted, (log) => log.totalHours < 6);
-  if (consecutiveShortNow >= 2) {
+  // Filter out records < 2h (likely wearable data issues — forgot watch, partial recording)
+  const reliableSorted = sorted.filter((log) => log.totalHours >= 2);
+  const consecutiveShortNow = currentStreak(reliableSorted, (log) => log.totalHours < 6);
+  if (consecutiveShortNow >= 3) {
     alerts.push({
       variant: "warning",
       title: "Noites curtas consecutivas",
@@ -1031,24 +1033,36 @@ function computeRiskScore(
   let score = 0;
   const factors: string[] = [];
 
-  // Sleep duration significantly below baseline
-  if (sleep.avgDuration !== null && sleep.sleepTrendDelta !== null && sleep.sleepTrendDelta < -1) {
-    score += 2;
-    factors.push("Sono caiu >1h vs média");
-  }
-
-  // High bedtime variance
-  if (sleep.bedtimeVariance !== null && sleep.bedtimeVariance > 90) {
-    score += 1;
-    factors.push("Variação horário >90min");
-  }
-
-  // Consecutive short nights — use currentStreak (active state)
+  // Filter out records < 2h: likely wearable data issues (forgot watch, partial recording)
   const sortedSleep = [...sleepLogs].sort((a, b) => a.date.localeCompare(b.date));
-  const shortNow = currentStreak(sortedSleep, (s) => s.totalHours < 6);
-  if (shortNow >= 3) {
-    score += 2;
-    factors.push(`${shortNow} noites curtas seguidas`);
+  const reliableSleep = sortedSleep.filter((s) => s.totalHours >= 2);
+
+  // Require minimum data density: if < 4 of last 7 days have reliable sleep data,
+  // the data is too sparse to reliably detect sleep-based risk patterns
+  const sevenAgoDt = new Date(today); sevenAgoDt.setDate(sevenAgoDt.getDate() - 6);
+  const str7Sleep = dateStr(sevenAgoDt, tz);
+  const recentReliable = reliableSleep.filter((s) => s.date >= str7Sleep);
+  const hasSufficientSleepData = recentReliable.length >= 4;
+
+  if (hasSufficientSleepData) {
+    // Sleep duration significantly below baseline
+    if (sleep.avgDuration !== null && sleep.sleepTrendDelta !== null && sleep.sleepTrendDelta < -1) {
+      score += 2;
+      factors.push("Sono caiu >1h vs média");
+    }
+
+    // High bedtime variance
+    if (sleep.bedtimeVariance !== null && sleep.bedtimeVariance > 90) {
+      score += 1;
+      factors.push("Variação horário >90min");
+    }
+
+    // Consecutive short nights — use currentStreak (active state)
+    const shortNow = currentStreak(reliableSleep, (s) => s.totalHours < 6);
+    if (shortNow >= 4) {
+      score += 2;
+      factors.push(`${shortNow} noites curtas seguidas`);
+    }
   }
 
   // Mood streaks — use currentStreak (active state)

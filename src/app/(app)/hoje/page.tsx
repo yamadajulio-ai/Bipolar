@@ -378,7 +378,7 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
   // Triggers: atencao_alta, suicidal thoughts, OR bipolar-specific signals
   const warningSigns = todayEntry?.warningSigns as string[] | null | undefined;
   const hasBipolarTrigger = bipolarContext.mixedFeatures ||
-    bipolarContext.consecutiveShortSleep >= 3 ||
+    bipolarContext.consecutiveShortSleep >= 4 ||
     bipolarContext.maniaSignsActive.length >= 2;
   const showSafetyNudge = riskLevel === "atencao_alta" ||
     (Array.isArray(warningSigns) && warningSigns.includes("pensamentos_suicidas")) ||

@@ -59,6 +59,21 @@ interface PatientReport {
       irritability: number | null;
       medication: string | null;
       warningSigns: string | null;
+      provenance?: string;
+      snapshotCount?: number;
+      moodRange?: number | null;
+      morningEveningDelta?: number | null;
+      abruptShifts?: number | null;
+      anxietyPeak?: number | null;
+      irritabilityPeak?: number | null;
+    }[];
+    moodSnapshots?: {
+      date: string;
+      time: string;
+      mood: number;
+      energy: number;
+      anxiety: number;
+      irritability: number;
     }[];
     sleepLogs: {
       date: string;
@@ -508,6 +523,8 @@ export default function ProfessionalDashboard() {
                     <th className="px-2 py-1.5 text-center">Ansied.</th>
                     <th className="px-2 py-1.5 text-center">Irrit.</th>
                     <th className="px-2 py-1.5 text-center">Med.</th>
+                    <th className="px-2 py-1.5 text-center">Reg.</th>
+                    <th className="px-2 py-1.5 text-center">Faixa</th>
                     <th className="px-2 py-1.5 text-left">Sinais</th>
                   </tr>
                 </thead>
@@ -520,6 +537,8 @@ export default function ProfessionalDashboard() {
                       <td className="px-2 py-1 text-center">{e.anxiety ?? "—"}</td>
                       <td className="px-2 py-1 text-center">{e.irritability ?? "—"}</td>
                       <td className="px-2 py-1 text-center">{e.medication ?? "—"}</td>
+                      <td className="px-2 py-1 text-center">{(e.snapshotCount ?? 0) > 1 ? `${e.snapshotCount}x` : e.provenance === "snapshots" ? "1x" : "—"}</td>
+                      <td className="px-2 py-1 text-center">{e.moodRange != null ? `${e.moodRange}` : "—"}</td>
                       <td className="px-2 py-1 text-muted">
                         {(() => {
                           if (!e.warningSigns) return "—";
@@ -536,6 +555,41 @@ export default function ProfessionalDashboard() {
             </div>
           )}
         </div>
+
+        {/* Intraday Mood Snapshots */}
+        {rawData.moodSnapshots && rawData.moodSnapshots.length > 0 && (
+          <div className="mt-6">
+            <h2 className="mb-3 text-sm font-semibold">
+              Variação Intradiária do Humor ({rawData.moodSnapshots.length} registros momentâneos)
+            </h2>
+            <div className="overflow-x-auto rounded-lg border border-border">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="bg-gray-100 dark:bg-gray-800">
+                    <th className="px-2 py-1.5 text-left">Data</th>
+                    <th className="px-2 py-1.5 text-center">Hora</th>
+                    <th className="px-2 py-1.5 text-center">Humor</th>
+                    <th className="px-2 py-1.5 text-center">Energia</th>
+                    <th className="px-2 py-1.5 text-center">Ansied.</th>
+                    <th className="px-2 py-1.5 text-center">Irrit.</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rawData.moodSnapshots.map((s, i) => (
+                    <tr key={i} className="border-t border-border">
+                      <td className="px-2 py-1">{s.date}</td>
+                      <td className="px-2 py-1 text-center">{s.time}</td>
+                      <td className="px-2 py-1 text-center">{s.mood}</td>
+                      <td className="px-2 py-1 text-center">{s.energy}</td>
+                      <td className="px-2 py-1 text-center">{s.anxiety}</td>
+                      <td className="px-2 py-1 text-center">{s.irritability}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         <div className="mt-6">
           <h2 className="mb-3 text-sm font-semibold">

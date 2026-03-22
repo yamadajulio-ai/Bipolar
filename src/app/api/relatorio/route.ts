@@ -42,6 +42,10 @@ export async function GET(request: NextRequest) {
         id: true, date: true, mood: true, sleepHours: true, note: true,
         energyLevel: true, anxietyLevel: true, irritability: true,
         tookMedication: true, warningSigns: true, createdAt: true,
+        mode: true, snapshotCount: true, moodRange: true, moodInstability: true,
+        firstSnapshotAt: true, lastSnapshotAt: true,
+        morningEveningDelta: true, abruptShifts: true,
+        anxietyPeak: true, irritabilityPeak: true,
       },
     }),
     prisma.sleepLog.findMany({
@@ -140,8 +144,23 @@ export async function GET(request: NextRequest) {
       avgFunctioning: avg(fastScoresArr),
       totalLifeChartEvents: lifeChartEvents.length,
       eventTypeCounts,
+      // Snapshot / intraday stats
+      totalSnapshotDays: entries.filter((e) => e.mode === "AUTO_FROM_SNAPSHOT").length,
+      avgSnapshotsPerDay: (() => {
+        const snapDays = entries.filter((e) => e.mode === "AUTO_FROM_SNAPSHOT" && (e.snapshotCount ?? 0) > 0);
+        return snapDays.length > 0
+          ? Math.round((snapDays.reduce((s, e) => s + (e.snapshotCount ?? 0), 0) / snapDays.length) * 10) / 10
+          : null;
+      })(),
+      avgMoodRange: (() => {
+        const ranges = entries.filter((e) => e.moodRange != null).map((e) => e.moodRange!);
+        return ranges.length > 0 ? Math.round((ranges.reduce((a, b) => a + b, 0) / ranges.length) * 10) / 10 : null;
+      })(),
     },
-    entries,
+    entries: entries.map((e) => ({
+      ...e,
+      provenance: e.mode === "AUTO_FROM_SNAPSHOT" ? "snapshots" : "manual",
+    })),
     sleepLogs,
     weeklyAssessments: weeklyAssessments.map((w) => ({
       date: w.date,

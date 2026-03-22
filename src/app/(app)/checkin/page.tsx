@@ -35,6 +35,7 @@ export default function CheckinPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [editingSnapshotId, setEditingSnapshotId] = useState<string | null>(null);
 
   // Snapshot timeline
   const [todaySnapshots, setTodaySnapshots] = useState<SnapshotEntry[]>([]);
@@ -91,35 +92,60 @@ export default function CheckinPage() {
     }
 
     try {
-      const clientRequestId = `${today}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-      const isFirstOfDay = todaySnapshots.length === 0;
+      if (editingSnapshotId) {
+        // Edit existing snapshot via PATCH
+        const res = await fetch("/api/diario/snapshots", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            snapshotId: editingSnapshotId,
+            mood,
+            energy,
+            anxiety,
+            irritability,
+            warningSignsNow: selectedSigns.length > 0 ? JSON.stringify(selectedSigns) : undefined,
+          }),
+        });
 
-      const res = await fetch("/api/diario/snapshots", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          mood,
-          energy,
-          anxiety,
-          irritability,
-          warningSignsNow: selectedSigns.length > 0 ? JSON.stringify(selectedSigns) : undefined,
-          clientRequestId,
-          // Daily fields only on first check-in
-          ...(isFirstOfDay ? {
-            sleepHours: parseFloat(sleepHours) || 0,
-            tookMedication: medication,
-          } : {}),
-        }),
-      });
+        if (!res.ok) {
+          const body = await res.json();
+          setError(body.error || "Erro ao editar registro.");
+          return;
+        }
 
-      if (!res.ok) {
-        const body = await res.json();
-        setError(body.error || body.errors?.geral?.[0] || "Erro ao salvar check-in.");
-        return;
+        setSuccess(true);
+        setTimeout(() => router.push("/hoje"), 2500);
+      } else {
+        // Create new snapshot
+        const clientRequestId = `${today}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        const isFirst = todaySnapshots.length === 0;
+
+        const res = await fetch("/api/diario/snapshots", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            mood,
+            energy,
+            anxiety,
+            irritability,
+            warningSignsNow: selectedSigns.length > 0 ? JSON.stringify(selectedSigns) : undefined,
+            clientRequestId,
+            ...(isFirst ? {
+              sleepHours: parseFloat(sleepHours) || 0,
+              tookMedication: medication,
+            } : {}),
+          }),
+        });
+
+        if (!res.ok) {
+          const body = await res.json();
+          setError(body.error || body.errors?.geral?.[0] || "Erro ao salvar check-in.");
+          return;
+        }
+
+        setSuccess(true);
+        setTimeout(() => router.push("/hoje"), 2500);
       }
-
-      setSuccess(true);
-      setTimeout(() => router.push("/hoje"), 2500);
     } catch {
       setError("Erro de conexão. Tente novamente.");
     } finally {
@@ -154,16 +180,23 @@ export default function CheckinPage() {
             Registros de hoje ({todaySnapshots.length})
           </p>
           <div className="flex gap-2 overflow-x-auto pb-1">
-            {todaySnapshots.map((snap) => {
+            {todaySnapshots.map((snap, idx) => {
               const time = new Date(snap.capturedAt).toLocaleTimeString("pt-BR", {
                 timeZone: "America/Sao_Paulo",
                 hour: "2-digit",
                 minute: "2-digit",
               });
+              const isLast = idx === todaySnapshots.length - 1;
+              const elapsed = Date.now() - new Date(snap.capturedAt).getTime();
+              const canEdit = isLast && elapsed <= 15 * 60 * 1000;
+              const minsLeft = canEdit ? Math.ceil((15 * 60 * 1000 - elapsed) / 60_000) : 0;
+
               return (
                 <div
                   key={snap.id}
-                  className="shrink-0 rounded-md border border-border bg-surface px-3 py-2 text-center"
+                  className={`shrink-0 rounded-md border bg-surface px-3 py-2 text-center ${
+                    editingSnapshotId === snap.id ? "border-primary" : "border-border"
+                  }`}
                 >
                   <p className="text-xs font-medium text-foreground">{time}</p>
                   <div className="flex gap-2 mt-1 text-[10px] text-muted">
@@ -172,6 +205,20 @@ export default function CheckinPage() {
                     <span title="Ansiedade">A:{snap.anxiety}</span>
                     <span title="Irritabilidade">I:{snap.irritability}</span>
                   </div>
+                  {canEdit && (
+                    <button
+                      onClick={() => {
+                        setEditingSnapshotId(snap.id);
+                        setMood(snap.mood);
+                        setEnergy(snap.energy);
+                        setAnxiety(snap.anxiety);
+                        setIrritability(snap.irritability);
+                      }}
+                      className="mt-1 text-[10px] text-primary hover:underline"
+                    >
+                      Editar ({minsLeft}min)
+                    </button>
+                  )}
                 </div>
               );
             })}
@@ -362,7 +409,7 @@ export default function CheckinPage() {
           disabled={saving}
           className="w-full rounded-lg bg-primary px-4 py-3 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
         >
-          {saving ? "Salvando..." : isFirstOfDay ? "Salvar check-in" : "Registrar momento"}
+          {saving ? "Salvando..." : editingSnapshotId ? "Salvar edição" : isFirstOfDay ? "Salvar check-in" : "Registrar momento"}
         </button>
 
         <p className="text-center text-xs text-muted">

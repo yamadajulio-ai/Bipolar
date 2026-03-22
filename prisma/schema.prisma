@@ -74,14 +74,23 @@ model DiaryEntry {
   warningSigns   String?  // JSON array of selected warning sign keys
 
   // Snapshot metadata
-  mode              DiaryEntryMode @default(LEGACY_SINGLE)
-  snapshotCount     Int            @default(0)
-  firstSnapshotAt   DateTime?
-  lastSnapshotAt    DateTime?
-  moodRange         Int?           // max - min mood across snapshots
-  moodInstability   Float?         // mean absolute successive difference
-  anxietyPeak       Int?           // max anxiety across snapshots
-  irritabilityPeak  Int?           // max irritability across snapshots
+  mode                DiaryEntryMode @default(LEGACY_SINGLE)
+  snapshotCount       Int            @default(0)
+  firstSnapshotAt     DateTime?
+  lastSnapshotAt      DateTime?
+  moodRange           Int?           // max - min mood across snapshots
+  moodInstability     Float?         // mean absolute successive difference
+  anxietyPeak         Int?           // max anxiety across snapshots
+  irritabilityPeak    Int?           // max irritability across snapshots
+  morningEveningDelta Int?           // last mood - first mood
+  abruptShifts        Int?           // count of mood changes >= 2 points
+  aggregationVersion  Int            @default(1)
+  summaryConfirmedAt  DateTime?
+
+  // Risk scores (snapshot-derived)
+  riskScoreCurrent    Int?           // risk from latest snapshot
+  riskScoreDaily      Int?           // risk from daily aggregate
+  riskScorePeak       Int?           // max risk across all snapshots
 
   createdAt      DateTime @default(now())
   updatedAt      DateTime @default(now()) @updatedAt
@@ -100,7 +109,9 @@ model MoodSnapshot {
   diaryEntryId    String
 
   capturedAt      DateTime // instante real do check-in (UTC)
+  receivedAt      DateTime @default(now()) // quando o servidor recebeu
   localDate       String   // YYYY-MM-DD em America/Sao_Paulo
+  timezone        String   @default("America/Sao_Paulo")
   clientRequestId String   @unique // idempotência mobile
 
   mood            Int      // 1..5

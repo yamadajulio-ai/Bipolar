@@ -215,8 +215,30 @@ export async function POST(
           irritability: true,
           tookMedication: true,
           warningSigns: true,
+          mode: true,
+          snapshotCount: true,
+          moodRange: true,
+          moodInstability: true,
+          morningEveningDelta: true,
+          abruptShifts: true,
+          anxietyPeak: true,
+          irritabilityPeak: true,
+          firstSnapshotAt: true,
+          lastSnapshotAt: true,
         },
         orderBy: { date: "asc" },
+      }),
+      prisma.moodSnapshot.findMany({
+        where: { userId: validAccess.userId, localDate: { gte: cutoff30Str } },
+        orderBy: { capturedAt: "asc" },
+        select: {
+          localDate: true,
+          capturedAt: true,
+          mood: true,
+          energy: true,
+          anxiety: true,
+          irritability: true,
+        },
       }),
       prisma.dailyRhythm.findMany({
         where: { userId: validAccess.userId, date: { gte: cutoff30Str } },
@@ -297,8 +319,8 @@ export async function POST(
       }),
     ];
 
-    const [user, sleepLogs, entries, rhythms, rawPlannerBlocks, crisisPlan, sosEvents, weeklyAssessments, lifeChartEvents, functioningAssessments] =
-      await Promise.all(queries) as [any, any[], any[], any[], any[], any, any[], any[], any[], any[]];
+    const [user, sleepLogs, entries, moodSnapshots, rhythms, rawPlannerBlocks, crisisPlan, sosEvents, weeklyAssessments, lifeChartEvents, functioningAssessments] =
+      await Promise.all(queries) as [any, any[], any[], any[], any[], any[], any, any[], any[], any[], any[]];
 
     // Compute insights
     const sleepForInsights = sleepLogs.filter(
@@ -354,6 +376,21 @@ export async function POST(
           irritability: e.irritability,
           medication: e.tookMedication,
           warningSigns: e.warningSigns,
+          provenance: e.mode === "AUTO_FROM_SNAPSHOT" ? "snapshots" : "manual",
+          snapshotCount: e.snapshotCount ?? 0,
+          moodRange: e.moodRange,
+          morningEveningDelta: e.morningEveningDelta,
+          abruptShifts: e.abruptShifts,
+          anxietyPeak: e.anxietyPeak,
+          irritabilityPeak: e.irritabilityPeak,
+        })),
+        moodSnapshots: (moodSnapshots as { localDate: string; capturedAt: Date; mood: number; energy: number; anxiety: number; irritability: number }[]).map((s) => ({
+          date: s.localDate,
+          time: s.capturedAt.toLocaleTimeString("sv-SE", { timeZone: TZ, hour: "2-digit", minute: "2-digit" }),
+          mood: s.mood,
+          energy: s.energy,
+          anxiety: s.anxiety,
+          irritability: s.irritability,
         })),
         sleepLogs: sleepLogs
           .filter((l) => l.date >= cutoff30Str)

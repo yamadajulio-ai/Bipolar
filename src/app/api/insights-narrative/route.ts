@@ -130,18 +130,16 @@ export async function POST(request: NextRequest) {
     // Minimal select per model — LGPD data minimization
     const sleepSelect = { date: true, bedtime: true, wakeTime: true, totalHours: true, quality: true, awakenings: true, excluded: true } as const;
     const diarySelect = { date: true, mood: true, sleepHours: true, energyLevel: true, anxietyLevel: true, irritability: true, tookMedication: true, warningSigns: true } as const;
-    const rhythmSelect = { date: true, wakeTime: true, firstContact: true, mainActivityStart: true, dinnerTime: true, bedtime: true } as const;
     const financialSelect = { date: true, amount: true } as const;
 
     // Fetch ALL data in parallel (including new sources: assessments, life events, cognitive)
     const [
-      sleepLogs30, entries30, rhythms30, plannerBlocks,
+      sleepLogs30, entries30, plannerBlocks,
       sleepLogs90, entries90, financialTxs,
       assessments, lifeEvents, cognitiveTests,
     ] = await Promise.all([
       prisma.sleepLog.findMany({ where: { userId, date: { gte: d30str } }, select: sleepSelect, orderBy: { date: "asc" }, take: 500 }),
       prisma.diaryEntry.findMany({ where: { userId, date: { gte: d30str } }, select: diarySelect, orderBy: { date: "asc" }, take: 500 }),
-      prisma.dailyRhythm.findMany({ where: { userId, date: { gte: d30str } }, select: rhythmSelect, orderBy: { date: "asc" }, take: 500 }),
       prisma.plannerBlock.findMany({ where: { userId, startAt: { gte: d30 } }, select: { startAt: true, category: true }, orderBy: { startAt: "asc" }, take: 1000 }),
       prisma.sleepLog.findMany({ where: { userId, date: { gte: d90str } }, select: sleepSelect, orderBy: { date: "asc" }, take: 500 }),
       prisma.diaryEntry.findMany({ where: { userId, date: { gte: d90str } }, select: diarySelect, orderBy: { date: "asc" }, take: 500 }),
@@ -184,7 +182,7 @@ export async function POST(request: NextRequest) {
 
     // Compute insights (deterministic) — use filtered sleep logs
     const insights = computeInsights(
-      filteredSleep30, entries30, rhythms30, plannerBlockInputs,
+      filteredSleep30, entries30, [], plannerBlockInputs,
       now, TZ, entries90, filteredSleep90, financialTxs,
     );
 

@@ -28,10 +28,6 @@ interface PatientReport {
       moodHeadline: string | null;
       alerts: { variant: string; title: string; message: string }[];
     };
-    rhythm: {
-      overallRegularity: number | null;
-      hasEnoughData: boolean;
-    };
     thermometer: {
       position: number;
       maniaScore: number;

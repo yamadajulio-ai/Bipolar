@@ -251,18 +251,6 @@ export async function POST(
           irritability: true,
         },
       }),
-      prisma.dailyRhythm.findMany({
-        where: { userId: validAccess.userId, date: { gte: cutoff30Str } },
-        select: {
-          date: true,
-          wakeTime: true,
-          firstContact: true,
-          mainActivityStart: true,
-          dinnerTime: true,
-          bedtime: true,
-        },
-        orderBy: { date: "asc" },
-      }),
       prisma.plannerBlock.findMany({
         where: {
           userId: validAccess.userId,
@@ -330,8 +318,8 @@ export async function POST(
       }),
     ];
 
-    const [user, sleepLogs, entries, moodSnapshots, rhythms, rawPlannerBlocks, crisisPlan, sosEvents, weeklyAssessments, lifeChartEvents, functioningAssessments] =
-      await Promise.all(queries) as [any, any[], any[], any[], any[], any[], any, any[], any[], any[], any[]];
+    const [user, sleepLogs, entries, moodSnapshots, rawPlannerBlocks, crisisPlan, sosEvents, weeklyAssessments, lifeChartEvents, functioningAssessments] =
+      await Promise.all(queries) as [any, any[], any[], any[], any[], any, any[], any[], any[], any[]];
 
     // Compute insights
     const sleepForInsights = sleepLogs.filter(
@@ -355,7 +343,7 @@ export async function POST(
     const insights = computeInsights(
       sleepForInsights,
       entries,
-      rhythms,
+      [],
       plannerBlocks,
       now,
       TZ,
@@ -370,10 +358,6 @@ export async function POST(
       insights: {
         sleep: insights.sleep,
         mood: insights.mood,
-        rhythm: {
-          overallRegularity: insights.rhythm.overallRegularity,
-          hasEnoughData: insights.rhythm.hasEnoughData,
-        },
         thermometer: insights.thermometer,
         risk: insights.risk,
         combinedPatterns: insights.combinedPatterns,

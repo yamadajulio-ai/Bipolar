@@ -28,7 +28,6 @@ export default async function AdminEngagementPage() {
   const [
     checkinUsers7d,
     sleepUsers7d,
-    rhythmUsers7d,
     exerciseUsers30d,
     plannerUsers,
     assessmentUsers30d,
@@ -40,7 +39,6 @@ export default async function AdminEngagementPage() {
   ] = await Promise.all([
     prisma.diaryEntry.groupBy({ by: ["userId"], where: { createdAt: { gte: sevenDaysAgo } } }).then((r) => r.length),
     prisma.sleepLog.groupBy({ by: ["userId"], where: { createdAt: { gte: sevenDaysAgo } } }).then((r) => r.length),
-    prisma.dailyRhythm.groupBy({ by: ["userId"], where: { createdAt: { gte: sevenDaysAgo } } }).then((r) => r.length),
     prisma.exerciseSession.groupBy({ by: ["userId"], where: { completedAt: { gte: thirtyDaysAgo } } }).then((r) => r.length),
     prisma.plannerBlock.groupBy({ by: ["userId"] }).then((r) => r.length),
     prisma.weeklyAssessment.groupBy({ by: ["userId"], where: { createdAt: { gte: thirtyDaysAgo } } }).then((r) => r.length),
@@ -54,7 +52,6 @@ export default async function AdminEngagementPage() {
   const featureAdoption = [
     { name: "Check-in diário", users: checkinUsers7d, period: "7d" },
     { name: "Registro de sono", users: sleepUsers7d, period: "7d" },
-    { name: "Rotina/Ritmos", users: rhythmUsers7d, period: "7d" },
     { name: "Exercícios", users: exerciseUsers30d, period: "30d" },
     { name: "Planejador", users: plannerUsers, period: "total" },
     { name: "Avaliação semanal", users: assessmentUsers30d, period: "30d" },

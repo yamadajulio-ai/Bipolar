@@ -76,7 +76,6 @@ export async function POST(request: NextRequest) {
     const [
       diaryEntries,
       sleepLogs,
-      dailyRhythms,
       plannerBlocks,
       exerciseSessions,
       courseProgress,
@@ -88,7 +87,6 @@ export async function POST(request: NextRequest) {
     ] = await Promise.all([
       prisma.diaryEntry.findMany({ where: { userId }, orderBy: { date: "desc" } }),
       prisma.sleepLog.findMany({ where: { userId }, orderBy: { date: "desc" } }),
-      prisma.dailyRhythm.findMany({ where: { userId }, orderBy: { date: "desc" } }),
       prisma.plannerBlock.findMany({
         where: { userId },
         orderBy: { startAt: "desc" },
@@ -109,7 +107,6 @@ export async function POST(request: NextRequest) {
       user: { id: user.id, email: user.email, name: user.name, authProvider: user.authProvider, createdAt: user.createdAt },
       diaryEntries,
       sleepLogs,
-      dailyRhythms,
       plannerBlocks,
       exerciseSessions,
       courseProgress,

@@ -16,8 +16,6 @@ const sections: { title: string; items: ModuleItem[] }[] = [
       { href: "/diario/tendencias", label: "Tendências do Diário", description: "Gráficos e alertas de padrão" },
       { href: "/sono", label: "Sono", description: "Registro detalhado de sono" },
       { href: "/sono/tendencias", label: "Tendências de Sono", description: "Regularidade e qualidade" },
-      { href: "/rotina", label: "Rotina", description: "Seus horários-âncora do dia" },
-      { href: "/rotina/tendencias", label: "Tendências de Rotina", description: "Regularidade de âncoras" },
       { href: "/financeiro", label: "Financeiro", description: "Gastos cruzados com humor e energia" },
     ],
   },

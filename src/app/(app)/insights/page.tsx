@@ -165,17 +165,13 @@ export default async function InsightsPage({
   cutoff30.setDate(cutoff30.getDate() - 30);
   const cutoff30Str = cutoff30.toLocaleDateString("sv-SE", { timeZone: TZ });
 
-  const [allSleepLogs, allEntries, rhythms, rawPlannerBlocks, financialTxs, journalEntries90] = await Promise.all([
+  const [allSleepLogs, allEntries, rawPlannerBlocks, financialTxs, journalEntries90] = await Promise.all([
     prisma.sleepLog.findMany({
       where: { userId: session.userId, date: { gte: cutoff90Str } },
       orderBy: { date: "asc" },
     }),
     prisma.diaryEntry.findMany({
       where: { userId: session.userId, date: { gte: cutoff90Str } },
-      orderBy: { date: "asc" },
-    }),
-    prisma.dailyRhythm.findMany({
-      where: { userId: session.userId, date: { gte: cutoff30Str } },
       orderBy: { date: "asc" },
     }),
     prisma.plannerBlock.findMany({
@@ -224,10 +220,7 @@ export default async function InsightsPage({
   });
 
   const allSleepLogsFiltered = allSleepLogs.filter((l) => !l.excluded);
-  const insights = computeInsights(sleepLogsForInsights, entries, rhythms, plannerBlocks, now, TZ, allEntries, allSleepLogsFiltered, financialTxs);
-
-  const anchorsWithData = Object.entries(insights.rhythm.anchors)
-    .filter(([, anchor]) => anchor.variance !== null);
+  const insights = computeInsights(sleepLogsForInsights, entries, [], plannerBlocks, now, TZ, allEntries, allSleepLogsFiltered, financialTxs);
 
   const lastNights = allSleepLogs.filter((l) => l.totalHours > 0).slice(-nightsToShow).reverse();
 
@@ -240,12 +233,6 @@ export default async function InsightsPage({
   const moodVariant = insights.mood.moodAmplitude !== null && insights.mood.moodAmplitude >= 3 ? "danger" as const
     : insights.mood.moodAmplitude !== null && insights.mood.moodAmplitude >= 2 ? "warning" as const
     : entries.length > 0 ? "positive" as const
-    : "neutral" as const;
-
-  const rhythmVariant = insights.rhythm.overallRegularity !== null
-    ? insights.rhythm.overallRegularity >= 70 ? "positive" as const
-      : insights.rhythm.overallRegularity >= 40 ? "warning" as const
-      : "danger" as const
     : "neutral" as const;
 
   const medVariant = insights.mood.medicationAdherence !== null
@@ -455,26 +442,6 @@ export default async function InsightsPage({
               )}
             </InsightCard>
 
-            {/* Rotina */}
-            <InsightCard
-              title="Rotina"
-              icon="⏰"
-              variant={rhythmVariant}
-              what={insights.rhythm.overallRegularity !== null
-                ? `Regularidade: ${insights.rhythm.overallRegularity}%`
-                : "Sem dados de rotina suficientes"
-              }
-              meaning={insights.rhythm.overallRegularity !== null
-                ? insights.rhythm.overallRegularity >= 70 ? "Rotina consistente — fator protetor importante"
-                  : insights.rhythm.overallRegularity >= 40 ? "Rotina moderada — tente fixar horário de acordar"
-                  : "Rotina irregular — horários variáveis podem desestabilizar o humor"
-                : undefined
-              }
-              action={insights.rhythm.overallRegularity !== null && insights.rhythm.overallRegularity < 40
-                ? "Comece pelo horário de acordar — é o mais impactante"
-                : undefined
-              }
-            />
 
             {/* Medicação */}
             <InsightCard
@@ -853,118 +820,6 @@ export default async function InsightsPage({
             </section>
           )}
 
-          {/* ── Ritmo Social (IPSRT) ─────────────────── */}
-          <section className="mb-8">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-lg">⏰</span>
-              <h2 className="text-lg font-semibold">Ritmo Social</h2>
-            </div>
-            <p className="mb-4 text-xs text-foreground/60">
-              Horários consistentes para dormir, acordar e atividades protegem contra episódios. Quanto maior a %, mais regular.
-            </p>
-
-            {anchorsWithData.length > 0 ? (
-              <Card className="mb-4">
-                {insights.rhythm.overallRegularity !== null && (
-                  <div className="mb-4">
-                    <div className="mb-1 flex items-center justify-between">
-                      <MetricLabel metricKey="regularidadeGeral" className="text-sm font-medium">Regularidade geral</MetricLabel>
-                      <span className={`text-sm font-bold ${
-                        insights.rhythm.overallRegularity >= 70 ? "text-emerald-600"
-                          : insights.rhythm.overallRegularity >= 40 ? "text-amber-600"
-                          : "text-red-600"
-                      }`}>{insights.rhythm.overallRegularity}%</span>
-                    </div>
-                    <div className="h-2.5 w-full rounded-full bg-black/10">
-                      <div
-                        className={`h-2.5 rounded-full transition-all ${
-                          insights.rhythm.overallRegularity >= 70 ? "bg-emerald-400"
-                            : insights.rhythm.overallRegularity >= 40 ? "bg-amber-400"
-                            : "bg-red-400"
-                        }`}
-                        style={{ width: `${Math.max(3, insights.rhythm.overallRegularity)}%` }}
-                      />
-                    </div>
-                    {insights.rhythm.overallRegularity < 30 && (
-                      <p className="mt-1.5 text-[11px] text-foreground/60">
-                        Regularidade baixa indica horários muito variáveis. Tente fixar primeiro o horário de acordar — é o que mais impacta o ritmo.
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                <div className="space-y-3">
-                  {anchorsWithData.map(([key, anchor]) => {
-                    const score = anchor.regularityScore ?? 0;
-                    return (
-                      <div key={key}>
-                        <div className="flex items-center gap-3">
-                          <div className="w-40 flex-shrink-0">
-                            <span className="text-sm">{anchor.label}</span>
-                            {anchor.source && (
-                              <span className="ml-1 text-[10px] text-muted">
-                                ({SOURCE_LABELS[anchor.source]})
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex-1 h-2 rounded-full bg-black/10">
-                            <div
-                              className={`h-2 rounded-full ${colorToBg(anchor.color!)}`}
-                              style={{ width: `${Math.max(5, score)}%` }}
-                            />
-                          </div>
-                          <div className="w-20 text-right flex-shrink-0">
-                            <span className="text-xs font-medium">{score}%</span>
-                            <span className="text-[10px] text-muted ml-1">±{anchor.variance}min</span>
-                          </div>
-                        </div>
-                        {anchor.windowScore !== null && (
-                          <div className="ml-40 pl-3 mt-0.5 text-[10px] text-muted">
-                            Janela SRM: {anchor.windowScore}% dos dias dentro de ±45min
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
-                  {anchorsWithData.map(([key, anchor]) => (
-                    <span key={key} className="text-[10px] text-muted">
-                      {anchor.label}: {anchor.daysCount} dias
-                    </span>
-                  ))}
-                </div>
-
-                {(insights.rhythm.usedSleepFallback || insights.rhythm.usedPlannerFallback) && (
-                  <p className="mt-2 text-xs text-muted italic">
-                    {insights.rhythm.usedSleepFallback && insights.rhythm.usedPlannerFallback
-                      ? "* Dados complementados com registros de sono e eventos do planejador."
-                      : insights.rhythm.usedSleepFallback
-                        ? "* Dados de \"Acordar\" e \"Dormir\" complementados com registros de sono."
-                        : "* Dados de contato social, atividade e jantar inferidos do planejador."}
-                  </p>
-                )}
-              </Card>
-            ) : (
-              <Card className="mb-4">
-                <h3 className="mb-2 text-sm font-semibold">O que é o Ritmo Social?</h3>
-                <p className="mb-3 text-sm text-muted">
-                  Monitoramos 5 atividades-âncora do seu dia: horário de acordar, primeiro contato social,
-                  início da atividade principal, jantar e horário de dormir. Quanto mais regulares, maior a estabilidade.
-                </p>
-                <Link
-                  href="/rotina/novo"
-                  className="inline-block rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white"
-                >
-                  Registrar meu ritmo de hoje
-                </Link>
-              </Card>
-            )}
-
-            <AlertList alerts={insights.rhythm.alerts} />
-          </section>
-
           {/* ── Histórico de noites ──────────────────── */}
           {lastNights.length > 0 && (
             <section className="mb-8">
@@ -1137,10 +992,6 @@ export default async function InsightsPage({
                 <p>
                   <span className="font-medium text-foreground/70">Correlações:</span> Usamos um método estatístico que mede se duas coisas variam juntas (ex: sono e humor).
                   Com menos de 14 dias de dados, a força máxima mostrada é &quot;fraca&quot; por precaução.
-                </p>
-                <p>
-                  <span className="font-medium text-foreground/70">Ritmo Social:</span> Baseado na Terapia de Ritmos Sociais (IPSRT). Mede a % de dias em que seus horários ficaram dentro de ±45min do seu padrão.
-                  Social Jet Lag = diferença entre seu horário de sono em dias úteis vs fim de semana.
                 </p>
                 <p>
                   <span className="font-medium text-foreground/70">Ciclagem Rápida:</span> Detecta se houve 4 ou mais episódios em 12 meses (critério diagnóstico internacional).

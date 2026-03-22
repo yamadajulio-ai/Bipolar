@@ -52,20 +52,7 @@ export async function GET() {
       },
     });
 
-    const rhythms = await prisma.dailyRhythm.findMany({
-      where: { userId: session.userId, date: { gte: cutoff30Str } },
-      orderBy: { date: "asc" },
-      select: {
-        date: true,
-        wakeTime: true,
-        firstContact: true,
-        mainActivityStart: true,
-        dinnerTime: true,
-        bedtime: true,
-      },
-    });
-
-    const insights = computeInsights(sleepLogs, entries, rhythms, [], now, TZ);
+    const insights = computeInsights(sleepLogs, entries, [], [], now, TZ);
 
     return NextResponse.json({
       midpoint: insights.sleep.midpoint,

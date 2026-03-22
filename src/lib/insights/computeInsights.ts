@@ -239,7 +239,7 @@ export interface InsightsResult {
   seasonality: SeasonalityAnalysis | null;
   /** P2: Calendar heatmap data (last 90 days) */
   heatmap: HeatmapDay[];
-  /** Personal stability score (0-100) — composite of sleep, rhythm, mood, medication */
+  /** Personal stability score (0-100) — composite of sleep, mood, medication */
   stability: StabilityScore | null;
 }
 
@@ -252,11 +252,10 @@ export interface StabilityScore {
   label: string;
   /** Component scores for breakdown display */
   components: {
-    sleepRegularity: number | null;    // 0-100 (weight: 30%)
-    rhythmRegularity: number | null;   // 0-100 (weight: 25%)
-    medicationAdherence: number | null; // 0-100 (weight: 20%)
-    moodStability: number | null;      // 0-100 (weight: 15%)
-    instability: number | null;        // 0-100 (weight: 10%, inverse of mood amplitude)
+    sleepRegularity: number | null;    // 0-100 (weight: 35%)
+    medicationAdherence: number | null; // 0-100 (weight: 30%)
+    moodStability: number | null;      // 0-100 (weight: 20%)
+    instability: number | null;        // 0-100 (weight: 15%, inverse of mood amplitude)
   };
   /** true when dataAvailable < 10 (score may shift with more data) */
   provisional: boolean;
@@ -1495,17 +1494,49 @@ function computeEpisodePrediction(
   const maniaSignals: string[] = [];
   const depressionSignals: string[] = [];
 
-  // 1. Sleep reduction pattern (strong mania predictor — Harvey, Goodwin)
+  // Track which signal categories fired for interaction bonuses
+  let sleepReductionFired = false;
+  let moodElevationFired = false;
+  let energyElevationFired = false;
+  let maniaProdromesFired = false;
+  let reducedNeedForSleepFired = false;
+  let irregularityFired = false;
+
+  // ── 1. Sleep duration (strong mania predictor — Harvey, Goodwin) ──
+  // Uses personal baseline (30-day avg) when available to avoid false positives
+  // for short sleepers. Falls back to absolute thresholds without baseline.
   if (recentSleep.length >= 3) {
     const avgRecent = recentSleep.reduce((s, l) => s + l.totalHours, 0) / recentSleep.length;
-    if (avgRecent < 5) {
+    const baseline = sleep.avgDuration; // 30-day personal average (null if <1 record)
+    const hasBaseline = baseline !== null && baseline > 0;
+
+    // Relative reduction: recent avg significantly below personal baseline
+    const relativeDropH = hasBaseline ? baseline - avgRecent : 0;
+    // Absolute check still needed for extreme values (anyone <5h is concerning)
+    const absoluteSevere = avgRecent < 5;
+    const absoluteModerate = avgRecent < 6;
+
+    if (absoluteSevere || (hasBaseline && relativeDropH >= 2)) {
+      // Severe: <5h absolute OR ≥2h below personal baseline
       maniaRisk += 25;
-      maniaSignals.push("Sono muito reduzido (<5h média)");
-    } else if (avgRecent < 6) {
+      maniaSignals.push(
+        hasBaseline
+          ? `Sono muito reduzido (${avgRecent.toFixed(1)}h vs ${baseline.toFixed(1)}h habitual)`
+          : "Sono muito reduzido (<5h média)",
+      );
+      sleepReductionFired = true;
+    } else if (absoluteModerate || (hasBaseline && relativeDropH >= 1)) {
+      // Moderate: <6h absolute OR ≥1h below personal baseline
       maniaRisk += 15;
-      maniaSignals.push("Sono reduzido (<6h média)");
+      maniaSignals.push(
+        hasBaseline
+          ? `Sono reduzido (${avgRecent.toFixed(1)}h vs ${baseline.toFixed(1)}h habitual)`
+          : "Sono reduzido (<6h média)",
+      );
+      sleepReductionFired = true;
     }
-    // Progressive reduction trend
+
+    // Progressive reduction trend (within the 7-day window itself)
     if (recentSleep.length >= 4) {
       const half = Math.floor(recentSleep.length / 2);
       const first = recentSleep.slice(0, half);
@@ -1515,25 +1546,92 @@ function computeEpisodePrediction(
       if (avgSecond < avgFirst - 0.5) {
         maniaRisk += 10;
         maniaSignals.push("Sono em queda progressiva");
+        sleepReductionFired = true;
       }
     }
-    // Hypersomnia (depression predictor)
-    if (avgRecent > 10) {
+
+    // Hypersomnia (depression predictor) — also baseline-aware
+    const relativeGainH = hasBaseline ? avgRecent - baseline : 0;
+    if (avgRecent > 10 || (hasBaseline && relativeGainH >= 3)) {
       depressionRisk += 20;
-      depressionSignals.push("Hipersonia (>10h média)");
-    } else if (avgRecent > 9) {
+      depressionSignals.push(
+        hasBaseline
+          ? `Hipersonia (${avgRecent.toFixed(1)}h vs ${baseline.toFixed(1)}h habitual)`
+          : "Hipersonia (>10h média)",
+      );
+    } else if (avgRecent > 9 || (hasBaseline && relativeGainH >= 2)) {
       depressionRisk += 10;
-      depressionSignals.push("Sono prolongado (>9h média)");
+      depressionSignals.push(
+        hasBaseline
+          ? `Sono prolongado (${avgRecent.toFixed(1)}h vs ${baseline.toFixed(1)}h habitual)`
+          : "Sono prolongado (>9h média)",
+      );
     }
   }
 
-  // 2. Sleep regularity disruption (Bauer & Whybrow)
-  if (sleep.bedtimeVariance !== null && sleep.bedtimeVariance > 90) {
-    maniaRisk += 10;
-    maniaSignals.push("Horários de sono muito irregulares");
+  // ── 2. Warning signs (ISBD prodrome research) — collected early for interaction checks ──
+  const allRecentSigns = new Set<string>();
+  for (const e of recentEntries) {
+    for (const s of parseStringArray(e.warningSigns)) allRecentSigns.add(s);
   }
 
-  // 3. Mood elevation/escalation
+  // Clinically distinct: "não preciso dormir" is a core DSM/ISBD mania criterion,
+  // NOT the same as insomnia or schedule disruption.
+  // Gets its own +12% weight below, so excluded from maniaProdromes to avoid double counting.
+  if (allRecentSigns.has("nao_precisa_dormir")) {
+    reducedNeedForSleepFired = true;
+  }
+
+  const maniaProdromes = ["pensamentos_acelerados", "gastos_impulsivos", "energia_excessiva",
+    "planos_grandiosos", "fala_rapida", "aumento_atividade", "agitacao",
+    "sociabilidade_aumentada", "comportamento_risco"];
+  const depProdromes = ["isolamento", "desesperanca", "dificuldade_concentracao",
+    "apetite_alterado", "anedonia"];
+
+  const matchedMania = maniaProdromes.filter((s) => allRecentSigns.has(s));
+  const matchedDep = depProdromes.filter((s) => allRecentSigns.has(s));
+
+  if (matchedMania.length >= 3) {
+    maniaRisk += 15;
+    maniaSignals.push(`${matchedMania.length} sinais prodrômicos de mania`);
+    maniaProdromesFired = true;
+  } else if (matchedMania.length >= 2) {
+    maniaRisk += 8;
+    maniaSignals.push(`${matchedMania.length} sinais prodrômicos de mania`);
+    maniaProdromesFired = true;
+  }
+
+  if (matchedDep.length >= 3) {
+    depressionRisk += 15;
+    depressionSignals.push(`${matchedDep.length} sinais prodrômicos de depressão`);
+  } else if (matchedDep.length >= 2) {
+    depressionRisk += 8;
+    depressionSignals.push(`${matchedDep.length} sinais prodrômicos de depressão`);
+  }
+
+  // "Reduced need for sleep" as standalone strong mania signal (+12%)
+  // Distinct from sono_reduzido: the person feels they DON'T NEED sleep (not insomnia)
+  if (allRecentSigns.has("nao_precisa_dormir")) {
+    maniaRisk += 12;
+    maniaSignals.push("Sente que não precisa dormir");
+  }
+
+  // ── 3. Sleep regularity disruption — vulnerability modifier (Bauer & Whybrow) ──
+  // Irregularity alone (normal duration, no other signals) = vulnerability, not proximal risk.
+  // Weight scales up when combined with sleep reduction or mania prodromes.
+  if (sleep.bedtimeVariance !== null && sleep.bedtimeVariance > 90) {
+    irregularityFired = true;
+    const baseIrregularity = 5; // vulnerability alone
+    const interactionBonus =
+      (sleepReductionFired ? 5 : 0) +
+      (reducedNeedForSleepFired ? 5 : 0) +
+      (maniaProdromesFired ? 3 : 0);
+    const irregularityWeight = baseIrregularity + interactionBonus;
+    maniaRisk += irregularityWeight;
+    maniaSignals.push("Horários de sono irregulares");
+  }
+
+  // ── 4. Mood elevation/escalation ──
   if (recentEntries.length >= 3) {
     const moods = recentEntries.map((e) => e.mood);
     const highMoodDays = moods.filter((m) => m >= 4).length;
@@ -1543,6 +1641,7 @@ function computeEpisodePrediction(
     if (highMoodDays >= 3) {
       maniaRisk += 15;
       maniaSignals.push(`Humor elevado ${highMoodDays}/${moods.length} dias`);
+      moodElevationFired = true;
     }
     if (lowMoodDays >= 3) {
       depressionRisk += 15;
@@ -1557,6 +1656,7 @@ function computeEpisodePrediction(
       if (secondAvg > firstAvg + 0.5 && avgMood >= 3.5) {
         maniaRisk += 10;
         maniaSignals.push("Humor em escalada");
+        moodElevationFired = true;
       }
       if (secondAvg < firstAvg - 0.5 && avgMood <= 2.5) {
         depressionRisk += 10;
@@ -1565,12 +1665,13 @@ function computeEpisodePrediction(
     }
   }
 
-  // 4. Energy/irritability (prodromal signals — Kessing, STEP-BD)
+  // ── 5. Energy / irritability / anxiety (Kessing, STEP-BD) ──
   const highEnergy = recentEntries.filter((e) => e.energyLevel !== null && e.energyLevel >= 4).length;
   const lowEnergy = recentEntries.filter((e) => e.energyLevel !== null && e.energyLevel <= 2).length;
   if (highEnergy >= 3) {
     maniaRisk += 10;
     maniaSignals.push("Energia elevada frequente");
+    energyElevationFired = true;
   }
   if (lowEnergy >= 3) {
     depressionRisk += 10;
@@ -1583,45 +1684,27 @@ function computeEpisodePrediction(
     maniaSignals.push("Irritabilidade alta");
   }
 
-  // 5. Warning signs clustering (ISBD prodrome research)
-  const allRecentSigns = new Set<string>();
-  for (const e of recentEntries) {
-    for (const s of parseStringArray(e.warningSigns)) allRecentSigns.add(s);
-  }
-  const maniaProdromes = ["pensamentos_acelerados", "gastos_impulsivos", "energia_excessiva",
-    "planos_grandiosos", "fala_rapida", "aumento_atividade", "agitacao"];
-  const depProdromes = ["isolamento", "desesperanca", "dificuldade_concentracao", "apetite_alterado"];
-
-  const matchedMania = maniaProdromes.filter((s) => allRecentSigns.has(s));
-  const matchedDep = depProdromes.filter((s) => allRecentSigns.has(s));
-
-  if (matchedMania.length >= 3) {
-    maniaRisk += 15;
-    maniaSignals.push(`${matchedMania.length} sinais prodrômicos de mania`);
-  } else if (matchedMania.length >= 2) {
-    maniaRisk += 8;
-    maniaSignals.push(`${matchedMania.length} sinais prodrômicos de mania`);
-  }
-
-  if (matchedDep.length >= 3) {
-    depressionRisk += 15;
-    depressionSignals.push(`${matchedDep.length} sinais prodrômicos de depressão`);
-  } else if (matchedDep.length >= 2) {
+  // Anxiety: high anxiety contributes to depression risk (also common in mixed states)
+  const highAnxiety = recentEntries.filter((e) => e.anxietyLevel !== null && e.anxietyLevel >= 4).length;
+  if (highAnxiety >= 3) {
     depressionRisk += 8;
-    depressionSignals.push(`${matchedDep.length} sinais prodrômicos de depressão`);
+    depressionSignals.push("Ansiedade elevada frequente");
   }
 
-  // 6. Thermometer corroboration
+  // ── 6. Thermometer corroboration — capped to avoid double counting with mood ──
+  // Thermometer EWMA and mood elevation measure overlapping constructs.
+  // Apply reduced weight when mood elevation already fired.
   if (thermometer) {
     if (thermometer.maniaScore >= 40) {
-      maniaRisk += 10;
+      const thermoManiaWeight = moodElevationFired ? 5 : 10;
+      maniaRisk += thermoManiaWeight;
     }
     if (thermometer.depressionScore >= 40) {
       depressionRisk += 10;
     }
   }
 
-  // 7. Medication non-adherence amplifies risk
+  // ── 7. Medication non-adherence amplifies risk ──
   const recentMeds = recentEntries.filter((e) => e.tookMedication !== null);
   const noMedDays = recentMeds.filter((e) => e.tookMedication === "nao").length;
   if (recentMeds.length >= 3 && noMedDays / recentMeds.length >= 0.5) {
@@ -1629,6 +1712,34 @@ function computeEpisodePrediction(
     depressionRisk += 10;
     maniaSignals.push("Baixa adesão à medicação");
     depressionSignals.push("Baixa adesão à medicação");
+  }
+
+  // ── 8. Interaction bonus: mania activation cluster ──
+  // When ≥3 independent signal categories fire, the convergence is clinically
+  // more significant than the sum — add cluster bonus (ISBD, STEP-BD).
+  const maniaCategories = [
+    sleepReductionFired || reducedNeedForSleepFired,
+    moodElevationFired,
+    energyElevationFired,
+    maniaProdromesFired,
+    irregularityFired,
+  ].filter(Boolean).length;
+  if (maniaCategories >= 4) {
+    maniaRisk += 10;
+    maniaSignals.push("Convergência de múltiplos sinais de ativação");
+  } else if (maniaCategories >= 3) {
+    maniaRisk += 5;
+    maniaSignals.push("Convergência de sinais de ativação");
+  }
+
+  // ── 9. Mixed state flag ──
+  // Both mania and depression signals elevated simultaneously — highest suicide risk (ISBD)
+  if (maniaRisk >= 20 && depressionRisk >= 20) {
+    const mixedBonus = 8;
+    maniaRisk += mixedBonus;
+    depressionRisk += mixedBonus;
+    maniaSignals.push("Sinais mistos (mania + depressão simultâneos)");
+    depressionSignals.push("Sinais mistos (mania + depressão simultâneos)");
   }
 
   // Cap at 100
@@ -1643,7 +1754,11 @@ function computeEpisodePrediction(
   const recommendations: string[] = [];
   if (level === "elevado") {
     recommendations.push("Considere entrar em contato com seu profissional de saúde");
-    if (maniaRisk > depressionRisk) {
+    if (maniaRisk >= 20 && depressionRisk >= 20) {
+      // Mixed state — specific guidance
+      recommendations.push("Sinais mistos detectados — priorize contato com profissional");
+      recommendations.push("Mantenha rotina estável e evite decisões importantes");
+    } else if (maniaRisk > depressionRisk) {
       recommendations.push("Priorize higiene do sono: escureça o quarto, evite telas, mantenha horário fixo");
       recommendations.push("Evite estímulos excessivos e atividades noturnas");
     } else {
@@ -1882,11 +1997,10 @@ function computeHeatmapData(
 // ── Stability Score ─────────────────────────────────────────
 
 const STABILITY_WEIGHTS = {
-  sleepRegularity: 0.30,
-  rhythmRegularity: 0.25,
-  medicationAdherence: 0.20,
-  moodStability: 0.15,
-  instability: 0.10,
+  sleepRegularity: 0.35,
+  medicationAdherence: 0.30,
+  moodStability: 0.20,
+  instability: 0.15,
 };
 
 const STABILITY_MIN_DAYS = 5;
@@ -1896,7 +2010,6 @@ const STABILITY_RISK_CAP = 40;
 function computeStabilityScore(
   sleep: SleepInsights,
   mood: MoodInsights,
-  rhythm: RhythmInsights,
   risk: RiskScore | null,
   entries: DiaryEntryInput[],
   baselineScore?: number | null,
@@ -1904,26 +2017,23 @@ function computeStabilityScore(
   const dataAvailable = Math.max(sleep.recordCount, entries.length);
   if (dataAvailable < STABILITY_MIN_DAYS) return null;
 
-  // 1. Sleep regularity (30%): bedtimeVariance ≤ 30min = 100, ≥ 120min = 0
+  // 1. Sleep regularity (30%): uses same scale as rhythm anchors for consistency
+  //    bedtimeVariance ≤ 30min = 100, ≥ 180min = 0 (regularityScoreFromVariance)
   let sleepReg: number | null = null;
   if (sleep.bedtimeVariance != null) {
-    sleepReg = Math.max(0, Math.min(100, 100 - ((sleep.bedtimeVariance - 30) / 90) * 100));
+    sleepReg = regularityScoreFromVariance(sleep.bedtimeVariance);
   }
 
-  // 2. Rhythm regularity (25%): already 0-100
-  const rhythmReg = rhythm.overallRegularity;
-
-  // 3. Medication adherence (20%): already 0-100
-  // When user doesn't track medication, redistribute weight to sleep+rhythm
+  // 2. Medication adherence (30%): already 0-100
   const medAdherence = mood.medicationAdherence;
 
-  // 4. Mood stability (15%): inverse of mood standard deviation (lower variance = more stable)
+  // 3. Mood stability (20%): inverse of mood standard deviation (lower variance = more stable)
   let moodStab: number | null = null;
   if (mood.moodAmplitude != null) {
     moodStab = Math.max(0, Math.min(100, (1 - mood.moodAmplitude / 4) * 100));
   }
 
-  // 5. Instability (10%): inverse of mood amplitude oscillations
+  // 4. Instability (15%): inverse of mood amplitude oscillations
   // Uses day-over-day mood change magnitude
   let instabilityScore: number | null = null;
   if (entries.length >= 3) {
@@ -1944,7 +2054,6 @@ function computeStabilityScore(
   // Compute weighted average (skip null components, redistribute weights)
   const weightedComponents = [
     { key: "sleepRegularity", value: sleepReg, weight: STABILITY_WEIGHTS.sleepRegularity },
-    { key: "rhythmRegularity", value: rhythmReg, weight: STABILITY_WEIGHTS.rhythmRegularity },
     { key: "medicationAdherence", value: medAdherence, weight: STABILITY_WEIGHTS.medicationAdherence },
     { key: "moodStability", value: moodStab, weight: STABILITY_WEIGHTS.moodStability },
     { key: "instability", value: instabilityScore, weight: STABILITY_WEIGHTS.instability },
@@ -1992,7 +2101,6 @@ function computeStabilityScore(
     label,
     components: {
       sleepRegularity: sleepReg != null ? Math.round(sleepReg) : null,
-      rhythmRegularity: rhythmReg != null ? Math.round(rhythmReg) : null,
       medicationAdherence: medAdherence != null ? Math.round(medAdherence) : null,
       moodStability: moodStab != null ? Math.round(moodStab) : null,
       instability: instabilityScore != null ? Math.round(instabilityScore) : null,
@@ -2057,7 +2165,7 @@ export function computeInsights(
   const seasonality = computeSeasonalityAnalysis(extEntries);
   const heatmap = computeHeatmapData(extEntries, extSleep, today, tz);
 
-  const stability = computeStabilityScore(sleep, mood, rhythm, risk, entries);
+  const stability = computeStabilityScore(sleep, mood, risk, entries);
 
   return {
     sleep, mood, rhythm, chart, combinedPatterns, risk, thermometer,

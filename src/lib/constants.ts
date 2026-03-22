@@ -15,6 +15,11 @@ export const WARNING_SIGNS = [
   { key: "uso_alcool", label: "Uso de álcool ou substâncias" },
   { key: "conflitos", label: "Mais conflitos interpessoais" },
   { key: "fala_rapida", label: "Falando mais rápido que o normal" },
+  // v2: clinically distinct signals for better prediction
+  { key: "nao_precisa_dormir", label: "Sinto que não preciso dormir (sem cansaço)" },
+  { key: "anedonia", label: "Perda de interesse nas coisas que gosta" },
+  { key: "sociabilidade_aumentada", label: "Mais sociável ou comunicativo que o normal" },
+  { key: "comportamento_risco", label: "Comportamentos mais arriscados que o normal" },
 ] as const;
 
 // ── ASRM (Altman Self-Rating Mania Scale) — 5 items, 0-4 each ────

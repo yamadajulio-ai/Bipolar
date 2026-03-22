@@ -12,7 +12,6 @@ const LEVEL_CONFIG = {
 
 const COMPONENT_LABELS: Record<string, string> = {
   sleepRegularity: "Sono",
-  rhythmRegularity: "Ritmo",
   medicationAdherence: "Medicação",
   moodStability: "Humor",
   instability: "Estabilidade",

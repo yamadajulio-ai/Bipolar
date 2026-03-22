@@ -32,9 +32,9 @@ export async function GET(request: NextRequest) {
   const nextMonth = mon === 12 ? `${year + 1}-01` : `${year}-${String(mon + 1).padStart(2, "0")}`;
   const endDate = `${nextMonth}-01`;
 
-  let entries, sleepLogs, exerciseSessions, rhythms, weeklyAssessments, lifeChartEvents, functioningAssessments;
+  let entries, sleepLogs, exerciseSessions, weeklyAssessments, lifeChartEvents, functioningAssessments;
   try {
-    [entries, sleepLogs, exerciseSessions, rhythms, weeklyAssessments, lifeChartEvents, functioningAssessments] = await Promise.all([
+    [entries, sleepLogs, exerciseSessions, weeklyAssessments, lifeChartEvents, functioningAssessments] = await Promise.all([
     prisma.diaryEntry.findMany({
       where: { userId: session.userId, date: { gte: startDate, lt: endDate } },
       orderBy: { date: "asc" },
@@ -60,10 +60,6 @@ export async function GET(request: NextRequest) {
     prisma.exerciseSession.findMany({
       where: { userId: session.userId, completedAt: { gte: new Date(startDate), lt: new Date(endDate) } },
       select: { id: true, completedAt: true },
-    }),
-    prisma.dailyRhythm.findMany({
-      where: { userId: session.userId, date: { gte: startDate, lt: endDate } },
-      select: { id: true, date: true },
     }),
     prisma.weeklyAssessment.findMany({
       where: { userId: session.userId, date: { gte: startDate, lt: endDate } },
@@ -128,7 +124,6 @@ export async function GET(request: NextRequest) {
       totalDiaryEntries: entries.length,
       totalSleepLogs: sleepLogs.length,
       totalExercises: exerciseSessions.length,
-      totalRhythms: rhythms.length,
       avgMood: avg(moods),
       avgSleep: avg(sleeps),
       avgEnergy: avg(energies),

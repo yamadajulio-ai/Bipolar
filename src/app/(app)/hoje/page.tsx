@@ -111,8 +111,8 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
 
   // === Fetch all data in parallel ===
   const [
-    todayEntry, todaySleep, todayRhythm,
-    allEntries30, allSleepLogs30, rhythms30, rawPlannerBlocks30, financialTxs30,
+    todayEntry, todaySleep,
+    allEntries30, allSleepLogs30, rawPlannerBlocks30, financialTxs30,
     streakDates, sleepStreakDates,
     upcomingBlocks,
     latestMetrics, recentSleepLogs7,
@@ -129,20 +129,12 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
       where: { userId: session.userId, date: today },
       select: { totalHours: true, quality: true },
     }),
-    prisma.dailyRhythm.findFirst({
-      where: { userId: session.userId, date: today },
-      select: { wakeTime: true, firstContact: true, mainActivityStart: true, dinnerTime: true, bedtime: true },
-    }),
     // 30d data for insights computation
     prisma.diaryEntry.findMany({
       where: { userId: session.userId, date: { gte: cutoff30Str } },
       orderBy: { date: "asc" },
     }),
     prisma.sleepLog.findMany({
-      where: { userId: session.userId, date: { gte: cutoff30Str } },
-      orderBy: { date: "asc" },
-    }),
-    prisma.dailyRhythm.findMany({
       where: { userId: session.userId, date: { gte: cutoff30Str } },
       orderBy: { date: "asc" },
     }),
@@ -200,7 +192,7 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
     };
   });
 
-  const insights = computeInsights(sleepLogsForInsights, entries30, rhythms30, plannerBlocks, now, TZ, allEntries30, allSleepLogs30.filter(l => !l.excluded), financialTxs30);
+  const insights = computeInsights(sleepLogsForInsights, entries30, [], plannerBlocks, now, TZ, allEntries30, allSleepLogs30.filter(l => !l.excluded), financialTxs30);
 
   const { risk, thermometer, combinedPatterns, sleep: sleepInsights } = insights;
 
@@ -339,16 +331,6 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
     !hasGoogleCal && { label: "Google Agenda", href: "/planejador", bg: "bg-blue-50 hover:bg-blue-100", textColor: "text-blue-700" },
     !hasFinancial && { label: "Mobills", href: "/financeiro", bg: "bg-green-50 hover:bg-green-100", textColor: "text-green-700" },
   ].filter(Boolean) as { label: string; href: string; bg: string; textColor: string }[];
-
-  // === Anchors ===
-  const anchors: { label: string; time: string }[] = [];
-  if (todayRhythm) {
-    if (todayRhythm.wakeTime) anchors.push({ label: "Acordar", time: todayRhythm.wakeTime });
-    if (todayRhythm.firstContact) anchors.push({ label: "Contato social", time: todayRhythm.firstContact });
-    if (todayRhythm.mainActivityStart) anchors.push({ label: "Atividade", time: todayRhythm.mainActivityStart });
-    if (todayRhythm.dinnerTime) anchors.push({ label: "Jantar", time: todayRhythm.dinnerTime });
-    if (todayRhythm.bedtime) anchors.push({ label: "Dormir", time: todayRhythm.bedtime });
-  }
 
   // === Chart data (7d) ===
   const chartEntries = allEntries30.filter(e => e.date >= cutoff7Str);
@@ -736,25 +718,9 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
         </Card>
       </Link>
 
-      {/* === 4. ROTINA + PRÓXIMAS ATIVIDADES (compact) === */}
-      {(anchors.length > 0 || upcomingBlocks.length > 0) && (
+      {/* === 4. PRÓXIMAS ATIVIDADES === */}
+      {upcomingBlocks.length > 0 && (
         <Card>
-          {anchors.length > 0 && (
-            <div className={upcomingBlocks.length > 0 ? "mb-3 pb-3 border-b border-border" : ""}>
-              <div className="flex items-center justify-between mb-2">
-                <h2 className="text-sm font-semibold text-foreground">Seus horários-âncora</h2>
-                <Link href="/rotina" className="text-xs text-primary hover:underline">Editar</Link>
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {anchors.map(a => (
-                  <span key={a.label} className="rounded bg-primary/10 px-2 py-1 text-xs">
-                    <span className="font-medium text-primary-dark">{a.time}</span>
-                    <span className="ml-1 text-primary">{a.label}</span>
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
           {upcomingBlocks.length > 0 && (
             <div>
               <div className="flex items-center justify-between mb-2">

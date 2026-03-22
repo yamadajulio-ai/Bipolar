@@ -779,11 +779,13 @@ const ANCHOR_LABELS: Record<string, string> = {
   bedtime: "Horário de dormir",
 };
 
-/** Convert variance to regularity score 0-100. */
+/** Convert variance to regularity score 10-100.
+ *  ≤30min = 100 (very regular), ≥240min = 10 (very irregular).
+ *  Floor of 10 ensures users who sleep regularly get credit even with high variance. */
 export function regularityScoreFromVariance(v: number): number {
   if (v <= 30) return 100;
-  if (v >= 180) return 0;
-  return Math.round(100 * (1 - (v - 30) / 150));
+  if (v >= 240) return 10;
+  return Math.round(10 + 90 * (1 - (v - 30) / 210));
 }
 
 /** Build per-day maps from PlannerBlocks for IPSRT anchor inference. */

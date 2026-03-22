@@ -396,11 +396,22 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
         <Greeting />
         <SafetyNudge riskLevel={riskLevel} bipolarContext={bipolarContext} />
 
-        <Card className="border-red-300 bg-red-50/50">
-          <p className="text-sm font-semibold text-red-800 mb-1">Modo simplificado ativado</p>
-          <p className="text-xs text-red-700/80">
-            Detectamos sinais que merecem atenção. A interface está simplificada para facilitar o que é mais importante agora.
-          </p>
+        <Card className="border-amber-400 bg-amber-50 shadow-sm">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl mt-0.5" aria-hidden="true">⚠️</span>
+            <div>
+              <p className="text-base font-bold text-amber-900 mb-1">Modo simplificado ativado</p>
+              <p className="text-sm text-amber-800">
+                Detectamos sinais que merecem atenção. O painel foi simplificado para mostrar apenas o essencial agora.
+              </p>
+              <a
+                href="/hoje?full=1"
+                className="inline-block mt-2 text-xs text-amber-700 underline hover:text-amber-900"
+              >
+                Ver painel completo
+              </a>
+            </div>
+          </div>
         </Card>
 
         <div className="space-y-3">

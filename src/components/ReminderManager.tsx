@@ -107,17 +107,23 @@ export function ReminderManager() {
       return;
     }
 
-    // If already denied or already asked, do nothing
+    // If denied by the user, respect that — don't nag
     if (Notification.permission === "denied") {
-      localStorage.setItem("sb_notification_asked", "1");
+      localStorage.setItem("sb_notification_asked", Date.now().toString());
       return;
     }
-    if (localStorage.getItem("sb_notification_asked")) return;
 
-    // Ask once — mark as asked regardless of the user's choice
+    // Re-ask every 7 days if permission is still "default" (dismissed, not denied)
+    const lastAsked = localStorage.getItem("sb_notification_asked");
+    if (lastAsked) {
+      const daysSince = (Date.now() - Number(lastAsked)) / (1000 * 60 * 60 * 24);
+      if (daysSince < 7) return;
+    }
+
+    // Ask for permission — re-ask after 7 days if dismissed
     const timer = setTimeout(() => {
       Notification.requestPermission().then((permission) => {
-        localStorage.setItem("sb_notification_asked", "1");
+        localStorage.setItem("sb_notification_asked", Date.now().toString());
         if (permission === "granted") {
           registerPushSubscription().then((ok) => {
             pushRegisteredRef.current = ok;

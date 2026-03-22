@@ -129,14 +129,14 @@ describe("regularityScoreFromVariance", () => {
     expect(regularityScoreFromVariance(30)).toBe(100);
   });
 
-  it("returns 0 for high variance (≥180)", () => {
-    expect(regularityScoreFromVariance(180)).toBe(0);
-    expect(regularityScoreFromVariance(300)).toBe(0);
+  it("returns 10 (floor) for high variance (≥240)", () => {
+    expect(regularityScoreFromVariance(240)).toBe(10);
+    expect(regularityScoreFromVariance(300)).toBe(10);
   });
 
   it("returns intermediate values", () => {
-    // v=105 → 100 * (1 - 75/150) = 50
-    expect(regularityScoreFromVariance(105)).toBe(50);
+    // v=135 → 10 + 90 * (1 - (135-30)/210) = 10 + 90 * 0.5 = 55
+    expect(regularityScoreFromVariance(135)).toBe(55);
   });
 });
 

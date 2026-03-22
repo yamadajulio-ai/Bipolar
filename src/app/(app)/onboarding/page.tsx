@@ -91,6 +91,10 @@ export default function OnboardingPage() {
     health_data: false,
     terms_of_use: false,
     push_notifications: false,
+    assessments: true,
+    crisis_plan: true,
+    sos_chatbot: true,
+    clinical_export: true,
   });
 
   const steps: Step[] = ["welcome", "profile", "goal", "anchor", "week", "consent", "ready"];
@@ -385,6 +389,74 @@ export default function OnboardingPage() {
                   Lembretes para check-in, sono e atividades. Você pode desativar a qualquer momento.
                 </p>
                 <span className="text-[10px] text-muted">Opcional</span>
+              </div>
+            </label>
+
+            {/* Optional — assessments */}
+            <label className="flex items-start gap-3 rounded-lg border border-border bg-surface p-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={consents.assessments}
+                onChange={(e) => setConsents((c) => ({ ...c, assessments: e.target.checked }))}
+                className="mt-0.5 h-4 w-4 accent-primary shrink-0"
+              />
+              <div>
+                <p className="text-sm font-medium text-foreground">Avaliações clínicas</p>
+                <p className="text-xs text-muted mt-0.5">
+                  Autoavaliações estruturadas (PHQ-9, ASRM, FAST) para acompanhar sua evolução.
+                </p>
+                <span className="text-[10px] text-muted">Opcional — pré-marcado</span>
+              </div>
+            </label>
+
+            {/* Optional — crisis plan */}
+            <label className="flex items-start gap-3 rounded-lg border border-border bg-surface p-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={consents.crisis_plan}
+                onChange={(e) => setConsents((c) => ({ ...c, crisis_plan: e.target.checked }))}
+                className="mt-0.5 h-4 w-4 accent-primary shrink-0"
+              />
+              <div>
+                <p className="text-sm font-medium text-foreground">Plano de crise</p>
+                <p className="text-xs text-muted mt-0.5">
+                  Contatos de confiança, profissional e estratégias para momentos difíceis.
+                </p>
+                <span className="text-[10px] text-muted">Opcional — pré-marcado</span>
+              </div>
+            </label>
+
+            {/* Optional — SOS chatbot */}
+            <label className="flex items-start gap-3 rounded-lg border border-border bg-surface p-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={consents.sos_chatbot}
+                onChange={(e) => setConsents((c) => ({ ...c, sos_chatbot: e.target.checked }))}
+                className="mt-0.5 h-4 w-4 accent-primary shrink-0"
+              />
+              <div>
+                <p className="text-sm font-medium text-foreground">SOS — Apoio por IA</p>
+                <p className="text-xs text-muted mt-0.5">
+                  Chatbot de apoio emocional temporário. Não substitui atendimento profissional. Em emergência, funciona mesmo sem este consentimento.
+                </p>
+                <span className="text-[10px] text-muted">Opcional — pré-marcado</span>
+              </div>
+            </label>
+
+            {/* Optional — clinical export */}
+            <label className="flex items-start gap-3 rounded-lg border border-border bg-surface p-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={consents.clinical_export}
+                onChange={(e) => setConsents((c) => ({ ...c, clinical_export: e.target.checked }))}
+                className="mt-0.5 h-4 w-4 accent-primary shrink-0"
+              />
+              <div>
+                <p className="text-sm font-medium text-foreground">Exportação clínica</p>
+                <p className="text-xs text-muted mt-0.5">
+                  Relatórios estruturados para compartilhar com seu profissional de saúde.
+                </p>
+                <span className="text-[10px] text-muted">Opcional — pré-marcado</span>
               </div>
             </label>
           </div>

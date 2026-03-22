@@ -72,6 +72,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
+  // Consent gate: require "assessments" scope (or legacy "health_data" for existing users)
+  const consent = await prisma.consent.findFirst({
+    where: {
+      userId: session.userId,
+      scope: { in: ["assessments", "health_data"] },
+      revokedAt: null,
+    },
+    select: { id: true },
+  });
+  if (!consent) {
+    return NextResponse.json(
+      { error: "Consentimento para avaliações não concedido. Acesse Privacidade para autorizar." },
+      { status: 403 },
+    );
+  }
+
   const allowed = await checkRateLimit(`avaliacao_write:${session.userId}`, 30, 60_000);
   if (!allowed) {
     return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });

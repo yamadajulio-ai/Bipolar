@@ -55,6 +55,22 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
+  // Consent gate: require "crisis_plan" scope (or legacy "health_data" for existing users)
+  const consent = await prisma.consent.findFirst({
+    where: {
+      userId: session.userId,
+      scope: { in: ["crisis_plan", "health_data"] },
+      revokedAt: null,
+    },
+    select: { id: true },
+  });
+  if (!consent) {
+    return NextResponse.json(
+      { error: "Consentimento para plano de crise não concedido. Acesse Privacidade para autorizar." },
+      { status: 403 },
+    );
+  }
+
   const allowed = await checkRateLimit(`crisisplan_write:${session.userId}`, 30, 60_000);
   if (!allowed) {
     return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });

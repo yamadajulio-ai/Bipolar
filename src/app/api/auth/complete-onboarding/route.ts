@@ -9,6 +9,7 @@ const VALID_PROFILES = new Set(["recent", "veteran", "caregiver"]);
 const VALID_CONSENT_SCOPES = new Set([
   "health_data", "terms_of_use", "push_notifications",
   "email_notifications", "whatsapp", "professional_sharing", "ai_narrative",
+  "assessments", "crisis_plan", "sos_chatbot", "clinical_export",
 ]);
 const CONSENT_VERSION = 1;
 

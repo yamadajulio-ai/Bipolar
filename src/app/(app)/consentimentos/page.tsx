@@ -57,6 +57,38 @@ const CONSENT_SCOPES = [
     description: "Permitir que profissionais de saúde acessem seus dados via link de Acesso Profissional.",
     essential: false,
   },
+  {
+    scope: "assessments",
+    label: "Avaliações clínicas",
+    description:
+      "Registro e armazenamento de autoavaliações estruturadas (PHQ-9, ASRM, FAST). " +
+      "Produz dados sensíveis de saúde mental usados para acompanhamento longitudinal.",
+    essential: false,
+  },
+  {
+    scope: "crisis_plan",
+    label: "Plano de crise",
+    description:
+      "Manutenção do plano de crise com contatos de confiança, profissional e estratégias. " +
+      "Inclui dados de terceiros (contatos) inseridos por você.",
+    essential: false,
+  },
+  {
+    scope: "sos_chatbot",
+    label: "SOS — Apoio por IA",
+    description:
+      "Uso do chatbot de apoio emocional temporário. Não substitui atendimento de emergência. " +
+      "Em situações de risco, o recurso funciona independentemente deste consentimento (LGPD art. 11, II, e).",
+    essential: false,
+  },
+  {
+    scope: "clinical_export",
+    label: "Exportação clínica",
+    description:
+      "Geração de relatórios estruturados para compartilhar com seu profissional de saúde. " +
+      "Dados minimizados (sem diário em texto livre).",
+    essential: false,
+  },
 ] as const;
 
 export default function ConsentimentosPage() {

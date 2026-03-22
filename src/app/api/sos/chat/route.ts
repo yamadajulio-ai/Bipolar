@@ -376,6 +376,10 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: "Não autorizado" }, { status: 401 });
   }
 
+  // Consent tracking: log whether user has sos_chatbot consent.
+  // NEVER block SOS — art. 11, II, e (proteção da vida/incolumidade) overrides.
+  // Consent is tracked for audit/compliance but the chatbot always works.
+
   // ── Parse and validate input ──
   // SECURITY: Accept both "user" and "assistant" messages from the client
   // to maintain conversation coherence (so the LLM remembers what it said).

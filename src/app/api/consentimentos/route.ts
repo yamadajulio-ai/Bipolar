@@ -7,6 +7,7 @@ const CONSENT_VERSION = 1;
 const MANAGEABLE_SCOPES = new Set([
   "push_notifications", "email_notifications", "whatsapp",
   "professional_sharing", "ai_narrative",
+  "assessments", "crisis_plan", "sos_chatbot", "clinical_export",
 ]);
 
 // GET — list all current consents

@@ -32,6 +32,22 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
+  // Consent gate: require "clinical_export" scope (or legacy "health_data" for existing users)
+  const consent = await prisma.consent.findFirst({
+    where: {
+      userId: session.userId,
+      scope: { in: ["clinical_export", "health_data"] },
+      revokedAt: null,
+    },
+    select: { id: true },
+  });
+  if (!consent) {
+    return NextResponse.json(
+      { error: "Consentimento para exportação não concedido. Acesse Privacidade para autorizar." },
+      { status: 403 },
+    );
+  }
+
   const allowed = await checkRateLimit(`export:${session.userId}`, 5, 60 * 60 * 1000);
   if (!allowed) {
     return NextResponse.json(

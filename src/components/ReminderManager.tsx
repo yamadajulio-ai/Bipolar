@@ -100,7 +100,7 @@ export function ReminderManager() {
 
     // If already granted, register the push subscription silently
     if (Notification.permission === "granted") {
-      localStorage.setItem("sb_notification_asked", "1");
+      localStorage.setItem("sb_notification_asked", Date.now().toString());
       registerPushSubscription().then((ok) => {
         pushRegisteredRef.current = ok;
       });

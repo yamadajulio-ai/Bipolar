@@ -33,11 +33,16 @@ export default function CheckinPage() {
     fetch(`/api/sono?days=3`)
       .then((r) => r.ok ? r.json() : [])
       .then((logs: { date: string; totalHours: number; excluded: boolean }[]) => {
-        // Use the most recent non-excluded sleep log (always refers to last night)
-        const match = logs.find((l) => !l.excluded);
-        if (match) {
-          setAutoSleepHours(match.totalHours);
-          setSleepHours(String(match.totalHours));
+        // Sum all non-excluded sleep logs from yesterday (night + naps)
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = yesterday.toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
+
+        const yesterdayLogs = logs.filter((l) => l.date === yesterdayStr && !l.excluded);
+        if (yesterdayLogs.length > 0) {
+          const total = Math.round(yesterdayLogs.reduce((sum, l) => sum + l.totalHours, 0) * 10) / 10;
+          setAutoSleepHours(total);
+          setSleepHours(String(total));
         } else {
           setAutoSleepHours(null);
         }
@@ -186,7 +191,7 @@ export default function CheckinPage() {
             ) : autoSleepHours !== null ? (
               <div className="rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-sm text-foreground">
                 <span className="font-medium">{autoSleepHours}h</span>
-                <span className="text-muted ml-1">(do seu último registro de sono)</span>
+                <span className="text-muted ml-1">(total de ontem)</span>
               </div>
             ) : (
               <p className="text-sm text-amber-600">

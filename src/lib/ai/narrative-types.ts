@@ -185,14 +185,14 @@ export type NarrativeSectionKey = (typeof NARRATIVE_SECTION_KEYS)[number];
 export const SECTION_LABELS: Record<NarrativeSectionKey, string> = {
   sleep: "Sono",
   mood: "Humor",
-  socialRhythms: "Ritmos Sociais",
-  plannerContext: "Rotina Planejada",
-  financialContext: "Contexto Financeiro",
-  cognition: "Cognição",
-  weeklyAssessments: "Avaliações Semanais",
-  lifeEvents: "Eventos de Vida",
-  correlations: "Correlações",
-  overallTrend: "Tendência Geral",
+  socialRhythms: "Rotina",
+  plannerContext: "Planejamento",
+  financialContext: "Gastos",
+  cognition: "Atenção e memória",
+  weeklyAssessments: "Avaliações da semana",
+  lifeEvents: "Acontecimentos",
+  correlations: "Padrões observados",
+  overallTrend: "Visão geral",
 };
 
 // ── Section display icons (emoji for lightweight rendering) ────

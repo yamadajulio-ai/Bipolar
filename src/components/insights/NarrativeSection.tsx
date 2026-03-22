@@ -3,20 +3,10 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import type { NarrativeResultV2 } from "@/lib/ai/narrative-types";
 import { NARRATIVE_SECTION_KEYS, SECTION_LABELS, SECTION_ICONS } from "@/lib/ai/narrative-types";
-import { toPublicEvidence } from "@/lib/ai/public-evidence";
-
-interface RawEvidenceChip {
-  text: string;
-  domain: string;
-  kind: string;
-  confidence: string;
-}
-
 interface NarrativeResponse {
   cached: boolean;
   narrativeId?: string;
   narrative?: NarrativeResultV2;
-  evidenceMap?: Record<string, RawEvidenceChip>;
   shareWithProfessional?: boolean;
   createdAt?: string;
   latestAttemptFailed?: boolean;
@@ -227,10 +217,15 @@ export function NarrativeSection() {
 
   if (!narrative) return null;
 
-  // Visible sections (not absent)
-  const visibleSections = NARRATIVE_SECTION_KEYS.filter(
-    (key) => narrative.sections[key]?.status !== "absent"
-  );
+  // Visible sections (not absent), sorted: notable first, then stable, then limited
+  const visibleSections = NARRATIVE_SECTION_KEYS
+    .filter((key) => narrative.sections[key]?.status !== "absent")
+    .sort((a, b) => {
+      const order = { notable: 0, stable: 1, limited: 2 };
+      const sa = order[narrative.sections[a]?.status as keyof typeof order] ?? 3;
+      const sb = order[narrative.sections[b]?.status as keyof typeof order] ?? 3;
+      return sa - sb;
+    });
 
   return (
     <div className="rounded-lg border border-border bg-surface" aria-live="polite">
@@ -242,9 +237,6 @@ export function NarrativeSection() {
       >
         <div className="flex items-center gap-2">
           <h3 className="text-sm font-semibold text-foreground">Resumo inteligente</h3>
-          {data?.cached && (
-            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] text-primary">em cache</span>
-          )}
           {data?.latestAttemptFailed && (
             <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] text-amber-700 dark:bg-amber-900 dark:text-amber-300">versão anterior</span>
           )}
@@ -256,28 +248,40 @@ export function NarrativeSection() {
 
       {expanded && (
         <div className="space-y-4 px-5 pb-5">
-          {/* Guardrail failure notice (when showing older safe narrative) */}
+          {/* Guardrail failure notice */}
           {data?.latestAttemptFailed && (
             <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-800 dark:bg-amber-950">
               <p className="text-xs text-amber-700 dark:text-amber-300">
-                A narrativa mais recente não pôde ser exibida por não atender aos critérios de segurança.
-                Exibindo a versão anterior validada. Você pode tentar gerar uma nova abaixo.
+                A narrativa mais recente não pôde ser exibida. Exibindo a versão anterior validada.
               </p>
             </div>
           )}
 
-          {/* Overview */}
+          {/* 1. Headline — strong, factual */}
           <div>
-            <p className="text-base font-semibold text-foreground">{narrative.overview.headline}</p>
-            <div className="mt-2 space-y-2 text-sm leading-relaxed text-foreground/90">
-              {narrative.overview.summary.split("\n\n").map((p, i) => (
-                <p key={i}>{p}</p>
-              ))}
-            </div>
-            {narrative.overview.dataQualityNote && (
-              <p className="mt-2 text-xs text-muted italic">{narrative.overview.dataQualityNote}</p>
-            )}
+            <p className="text-lg font-bold text-foreground leading-snug">{narrative.overview.headline}</p>
           </div>
+
+          {/* 2. Summary */}
+          <div className="space-y-2 text-sm leading-relaxed text-foreground/90">
+            {narrative.overview.summary.split("\n\n").map((p, i) => (
+              <p key={i}>{p}</p>
+            ))}
+          </div>
+
+          {/* 3. Practical suggestions — CTA block, high visibility */}
+          {narrative.actions.practicalSuggestions.length > 0 && (
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+              <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-primary/70">O que vale fazer agora</h4>
+              <ul className="space-y-2">
+                {narrative.actions.practicalSuggestions.map((s, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-foreground/90">
+                    <span className="mt-0.5 text-primary font-bold">→</span> {s}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {/* Share with professional banner */}
           {narrative.actions.shareWithProfessional && (
@@ -286,7 +290,7 @@ export function NarrativeSection() {
             </div>
           )}
 
-          {/* Sections */}
+          {/* 4. Sections — notable first, only non-absent */}
           {visibleSections.length > 0 && (
             <div className="space-y-2">
               {visibleSections.map((key) => {
@@ -295,11 +299,10 @@ export function NarrativeSection() {
                 const isOpen = expandedSections.has(key);
                 const icon = SECTION_ICONS[key];
                 const hasContent = section.summary || section.keyPoints.length > 0 || section.metrics.length > 0;
-                const statusColor = section.status === "notable" ? "text-amber-600 dark:text-amber-400"
-                  : section.status === "limited" ? "text-muted" : "text-foreground/70";
+                const isNotable = section.status === "notable";
 
                 return (
-                  <div key={key} className="rounded-lg border border-border/50 bg-surface">
+                  <div key={key} className={`rounded-lg border bg-surface ${isNotable ? "border-amber-200 dark:border-amber-800" : "border-border/50"}`}>
                     <button
                       onClick={() => toggleSection(key)}
                       className="flex w-full items-center justify-between p-3"
@@ -307,9 +310,11 @@ export function NarrativeSection() {
                     >
                       <div className="flex items-center gap-2">
                         <span className="text-base" aria-hidden="true">{icon}</span>
-                        <span className="text-sm font-medium text-foreground">{section.title || SECTION_LABELS[key]}</span>
-                        {section.status === "notable" && (
-                          <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-900 dark:text-amber-300">mudança</span>
+                        <span className={`text-sm font-medium ${isNotable ? "text-amber-800 dark:text-amber-200" : "text-foreground"}`}>
+                          {SECTION_LABELS[key]}
+                        </span>
+                        {isNotable && (
+                          <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-900 dark:text-amber-300">mudou</span>
                         )}
                         {section.status === "limited" && (
                           <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] text-muted dark:bg-gray-800">poucos dados</span>
@@ -323,7 +328,18 @@ export function NarrativeSection() {
                     {isOpen && hasContent && (
                       <div className="space-y-2 border-t border-border/30 px-3 pb-3 pt-2">
                         {section.summary && (
-                          <p className={`text-sm leading-relaxed ${statusColor}`}>{section.summary}</p>
+                          <p className="text-sm leading-relaxed text-foreground/80">{section.summary}</p>
+                        )}
+
+                        {section.keyPoints.length > 0 && (
+                          <ul className="space-y-1">
+                            {section.keyPoints.map((p, i) => (
+                              <li key={i} className="flex items-start gap-2 text-xs text-foreground/70">
+                                <span className="mt-1 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-primary/60" />
+                                {p}
+                              </li>
+                            ))}
+                          </ul>
                         )}
 
                         {section.metrics.length > 0 && (
@@ -332,45 +348,6 @@ export function NarrativeSection() {
                               <span key={i} className="rounded-md bg-primary/5 px-2 py-1 text-xs text-foreground/80">{m}</span>
                             ))}
                           </div>
-                        )}
-
-                        {/* Evidence chips — allowlisted data points that informed this section */}
-                        {data?.evidenceMap && section.evidenceIds && section.evidenceIds.length > 0 && (() => {
-                          const chips = toPublicEvidence(data.evidenceMap, section.evidenceIds);
-                          if (chips.length === 0) return null;
-                          return (
-                            <div className="flex flex-wrap gap-1.5">
-                              {chips.map((ev, i) => (
-                                <span
-                                  key={i}
-                                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] border ${
-                                    ev.kind === "alert"
-                                      ? "bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-950 dark:border-amber-800 dark:text-amber-300"
-                                      : ev.kind === "comparison"
-                                      ? "bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-950 dark:border-blue-800 dark:text-blue-300"
-                                      : "bg-surface-alt border-border/50 text-foreground/60"
-                                  }`}
-                                  title={ev.detailText}
-                                >
-                                  <span className={`inline-block h-1 w-1 rounded-full ${
-                                    ev.confidence === "high" ? "bg-emerald-400" : ev.confidence === "medium" ? "bg-amber-400" : "bg-gray-300"
-                                  }`} />
-                                  {ev.chipText}
-                                </span>
-                              ))}
-                            </div>
-                          );
-                        })()}
-
-                        {section.keyPoints.length > 0 && (
-                          <ul className="space-y-1">
-                            {section.keyPoints.map((p, i) => (
-                              <li key={i} className="flex items-start gap-2 text-xs text-foreground/70">
-                                <span className="mt-1 h-1 w-1 flex-shrink-0 rounded-full bg-primary/50" />
-                                {p}
-                              </li>
-                            ))}
-                          </ul>
                         )}
 
                         {section.suggestions.length > 0 && (
@@ -390,68 +367,51 @@ export function NarrativeSection() {
             </div>
           )}
 
-          {/* Practical suggestions */}
-          {narrative.actions.practicalSuggestions.length > 0 && (
-            <div>
-              <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Sugestões práticas</h4>
-              <ul className="space-y-1">
-                {narrative.actions.practicalSuggestions.map((s, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-foreground/80">
-                    <span className="mt-0.5 text-primary">→</span> {s}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
           {/* Closing */}
           {narrative.closing.text && (
-            <p className="text-sm italic text-foreground/60">{narrative.closing.text}</p>
+            <p className="text-sm italic text-foreground/50">{narrative.closing.text}</p>
           )}
 
-          {/* Disclaimer + timestamp — source-aware disclosure.
-              "fallback" = LLM was attempted but failed (data WAS sent to OpenAI).
-              "template_high_risk" / "template_insufficient" = deterministic, no LLM. */}
-          <p className="text-[10px] text-muted italic">
-            {narrative.source === "llm" ? "Gerado por IA"
-              : narrative.source === "fallback" ? "Dados enviados à IA (resumo indisponível)"
-              : "Resumo automático (sem envio de dados a terceiros)"}
-            {narrative.generatedAt && ` em ${new Date(narrative.generatedAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}`}
-            . {APP_DISCLAIMER}
-          </p>
+          {/* Footer: metadata, feedback, regenerate */}
+          <div className="border-t border-border/30 pt-3 space-y-2">
+            <p className="text-[10px] text-muted italic">
+              {narrative.source === "llm" ? "Gerado por IA"
+                : narrative.source === "fallback" ? "Dados enviados à IA (resumo indisponível)"
+                : "Resumo automático"}
+              {narrative.generatedAt && ` em ${new Date(narrative.generatedAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}`}
+              . {APP_DISCLAIMER}
+            </p>
 
-          {/* Feedback buttons */}
-          {data?.narrativeId && (
-            <div className="flex items-center gap-3 border-t border-border/30 pt-3">
-              <span className="text-xs text-muted">Este resumo foi útil?</span>
-              <button
-                onClick={() => submitFeedback("useful")}
-                disabled={feedbackSent !== null}
-                className={`rounded-md px-3 py-1 text-xs transition-colors ${feedbackSent === "useful" ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300" : "bg-surface hover:bg-primary/5 text-muted border border-border/50"} disabled:cursor-default`}
-              >
-                {feedbackSent === "useful" ? "Obrigado!" : "Sim"}
-              </button>
-              <button
-                onClick={() => submitFeedback("not_useful")}
-                disabled={feedbackSent !== null}
-                className={`rounded-md px-3 py-1 text-xs transition-colors ${feedbackSent === "not_useful" ? "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300" : "bg-surface hover:bg-primary/5 text-muted border border-border/50"} disabled:cursor-default`}
-              >
-                {feedbackSent === "not_useful" ? "Obrigado!" : "Não"}
-              </button>
-            </div>
-          )}
+            {data?.narrativeId && (
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-muted">Este resumo foi útil?</span>
+                <button
+                  onClick={() => submitFeedback("useful")}
+                  disabled={feedbackSent !== null}
+                  className={`rounded-md px-3 py-1 text-xs transition-colors ${feedbackSent === "useful" ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300" : "bg-surface hover:bg-primary/5 text-muted border border-border/50"} disabled:cursor-default`}
+                >
+                  {feedbackSent === "useful" ? "Obrigado!" : "Sim"}
+                </button>
+                <button
+                  onClick={() => submitFeedback("not_useful")}
+                  disabled={feedbackSent !== null}
+                  className={`rounded-md px-3 py-1 text-xs transition-colors ${feedbackSent === "not_useful" ? "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300" : "bg-surface hover:bg-primary/5 text-muted border border-border/50"} disabled:cursor-default`}
+                >
+                  {feedbackSent === "not_useful" ? "Obrigado!" : "Não"}
+                </button>
+              </div>
+            )}
 
-          {/* Inline error on regeneration */}
-          {error && <p role="alert" className="text-xs text-red-600 dark:text-red-400">{error}</p>}
+            {error && <p role="alert" className="text-xs text-red-600 dark:text-red-400">{error}</p>}
 
-          {/* Regenerate button */}
-          <button
-            onClick={generate}
-            disabled={retryCooldown || loading}
-            className="text-xs text-primary underline disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? "Gerando..." : retryCooldown ? "Aguarde..." : "Gerar novo resumo"}
-          </button>
+            <button
+              onClick={generate}
+              disabled={retryCooldown || loading}
+              className="text-xs text-primary underline disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? "Gerando..." : retryCooldown ? "Aguarde..." : "Atualizar com novos registros"}
+            </button>
+          </div>
         </div>
       )}
     </div>

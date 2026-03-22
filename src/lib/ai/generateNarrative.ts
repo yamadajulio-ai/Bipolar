@@ -501,21 +501,138 @@ function absentSection(title: string): NarrativeSectionOutput {
   return { status: "absent", title, summary: "", keyPoints: [], metrics: [], suggestions: [], evidenceIds: [] };
 }
 
-function getHighRiskTemplateV2(insights: InsightsResult): NarrativeResultV2 {
-  const factorsText = sanitizeRiskFactors(insights.risk?.factors || []);
+// ── High-risk compositor helpers ──────────────────────────────
+
+function buildHighRiskHeadline(input: NarrativeInputV2): string {
+  const signals: string[] = [];
+  // Check sleep
+  const sleepAlerts = input.sections.sleep.evidence.filter(e => e.kind === "alert");
+  const sleepTrend = input.sections.sleep.evidence.find(e => e.id === "sleep_trend_30d");
+  if (sleepAlerts.length > 0 || (sleepTrend && typeof sleepTrend.rawValue === "number" && sleepTrend.rawValue < 0)) {
+    signals.push("seu sono ficou mais curto");
+  }
+  // Check mood
+  const moodAlerts = input.sections.mood.evidence.filter(e => e.kind === "alert");
+  const moodAmplitude = input.sections.mood.evidence.find(e => e.id === "mood_amplitude_7d");
+  if (moodAlerts.length > 0 || (moodAmplitude && typeof moodAmplitude.rawValue === "number" && moodAmplitude.rawValue >= 30)) {
+    signals.push("seu humor oscilou mais");
+  }
+  // Check rhythms
+  const rhythmAlerts = input.sections.socialRhythms.evidence.filter(e => e.kind === "alert");
+  if (rhythmAlerts.length > 0) {
+    signals.push("sua rotina ficou menos estável");
+  }
+  // Check assessments
+  const assessAlerts = input.sections.assessments.evidence.filter(e => e.kind === "comparison" && typeof e.rawValue === "number");
+  if (assessAlerts.length > 0) {
+    signals.push("suas avaliações semanais mudaram");
+  }
+
+  if (signals.length === 0) return "Seus registros recentes merecem atenção.";
+  if (signals.length === 1) return `Nos últimos dias, ${signals[0]}.`;
+  const last = signals.pop();
+  return `Nos últimos dias, ${signals.join(", ")} e ${last}.`;
+}
+
+function buildSectionFromEvidence(
+  title: string,
+  evidence: Evidence[],
+  domainStatus: "ok" | "limited" | "absent",
+): NarrativeSectionOutput {
+  if (domainStatus === "absent" || evidence.length === 0) {
+    return absentSection(title);
+  }
+
+  const hasAlerts = evidence.some(e => e.kind === "alert");
+  const status = hasAlerts ? "notable" as const : domainStatus === "limited" ? "limited" as const : "stable" as const;
+
+  // Build summary from priority 1 evidence
+  const priority1 = evidence.filter(e => e.priority === 1);
+  const summaryParts = priority1.length > 0 ? priority1 : evidence.slice(0, 2);
+  const summary = summaryParts.map(e => e.text).join(". ") + ".";
+
+  // Key points from all evidence (max 3)
+  const keyPoints = evidence.slice(0, 3).map(e => e.text);
+
+  // Metrics from metric-type evidence
+  const metrics = evidence.filter(e => e.kind === "metric").slice(0, 3).map(e => e.text);
+
+  // Evidence IDs
+  const evidenceIds = evidence.map(e => e.id);
+
+  return { status, title, summary, keyPoints, metrics, suggestions: [], evidenceIds };
+}
+
+// ── High-risk deterministic compositor ───────────────────────
+
+function getHighRiskTemplateV2(insights: InsightsResult, input: NarrativeInputV2): NarrativeResultV2 {
+  // 1. Build headline from actual evidence signals
+  const headline = buildHighRiskHeadline(input);
+
+  // 2. Build top signals for overview summary — pick priority 1 alerts first, then priority 1 metrics
+  const allEvidence: Evidence[] = [];
+  for (const section of Object.values(input.sections)) {
+    allEvidence.push(...section.evidence);
+  }
+  const topSignals = [
+    ...allEvidence.filter(e => e.kind === "alert" && e.priority === 1),
+    ...allEvidence.filter(e => e.kind !== "alert" && e.priority === 1),
+  ].slice(0, 4);
+
+  const summaryText = topSignals.length > 0
+    ? topSignals.map(e => e.text).join(". ") + "."
+    : `Os fatores identificados incluem: ${sanitizeRiskFactors(insights.risk?.factors || [])}.`;
+  const overviewEvidenceIds = topSignals.map(e => e.id);
+
+  // 3. Build sections from actual evidence
+  const sleepSection = buildSectionFromEvidence("Sono", input.sections.sleep.evidence, input.sections.sleep.status);
+  const moodSection = buildSectionFromEvidence("Humor", input.sections.mood.evidence, input.sections.mood.status);
+  const rhythmSection = buildSectionFromEvidence("Ritmos Sociais", input.sections.socialRhythms.evidence, input.sections.socialRhythms.status);
+  const plannerSection = buildSectionFromEvidence("Rotina Planejada", input.sections.planner.evidence, input.sections.planner.status);
+  const financialSection = buildSectionFromEvidence("Contexto Financeiro", input.sections.financial.evidence, input.sections.financial.status);
+  const cognitionSection = buildSectionFromEvidence("Cognição", input.sections.cognition.evidence, input.sections.cognition.status);
+  const assessSection = buildSectionFromEvidence("Avaliações Semanais", input.sections.assessments.evidence, input.sections.assessments.status);
+  const lifeSection = buildSectionFromEvidence("Eventos de Vida", input.sections.lifeEvents.evidence, input.sections.lifeEvents.status);
+  const corrSection = buildSectionFromEvidence("Correlações", input.sections.correlations.evidence, input.sections.correlations.status);
+  const trendSection = buildSectionFromEvidence("Tendência Geral", input.sections.trend.evidence, input.sections.trend.status);
+  // Mark overallTrend as notable for high-risk if it has any evidence
+  if (trendSection.status !== "absent") {
+    trendSection.status = "notable";
+  }
+
+  // 4. Build practical suggestions from notable domains
+  const suggestions: string[] = [];
+  if (sleepSection.status === "notable") {
+    suggestions.push("Nos próximos dias, tente proteger seus horários de dormir e acordar");
+  }
+  if (moodSection.status === "notable") {
+    suggestions.push("Compartilhe este resumo com seu profissional ou alguém de confiança");
+  }
+  if (rhythmSection.status === "notable") {
+    suggestions.push("Tente manter pelo menos dois horários-âncora fixos: acordar e dormir");
+  }
+  // Always include crisis line
+  suggestions.push("Se perceber piora rápida, procure ajuda — CVV 188, SAMU 192");
+  // Ensure at least 2 suggestions (Zod min is 2)
+  if (suggestions.length < 2) {
+    suggestions.unshift("Compartilhe este resumo com seu profissional ou alguém de confiança");
+  }
+  // Cap at 3
+  const practicalSuggestions = suggestions.slice(0, 3);
+
   return {
     schemaVersion: "narrative_v2",
     source: "template_high_risk",
-    overview: { headline: "Seus dados merecem atenção especial neste período.", summary: `Seus dados dos últimos 30 dias apresentam indicadores que merecem atenção especial. Os fatores identificados incluem: ${factorsText}.\n\nLembre-se: esses dados são ferramentas de acompanhamento e não substituem a avaliação clínica. Seu profissional poderá interpretar esses padrões dentro do contexto completo da sua saúde.`, dataQualityNote: "Análise baseada nos registros disponíveis.", evidenceIds: [] },
+    overview: { headline, summary: summaryText, dataQualityNote: "Análise baseada nos registros disponíveis.", evidenceIds: overviewEvidenceIds },
     sections: {
-      sleep: absentSection("Sono"), mood: absentSection("Humor"), socialRhythms: absentSection("Ritmos Sociais"),
-      plannerContext: absentSection("Rotina Planejada"), financialContext: absentSection("Contexto Financeiro"),
-      cognition: absentSection("Cognição"), weeklyAssessments: absentSection("Avaliações Semanais"),
-      lifeEvents: absentSection("Eventos de Vida"), correlations: absentSection("Correlações"),
-      overallTrend: { status: "notable", title: "Atenção", summary: `Fatores identificados: ${factorsText}`, keyPoints: ["Seus indicadores merecem atenção", `Fatores: ${factorsText}`, "Os dados numéricos nos cards acima trazem mais detalhes"], metrics: [], suggestions: ["Continue registrando seus dados diariamente"], evidenceIds: [] },
+      sleep: sleepSection, mood: moodSection, socialRhythms: rhythmSection,
+      plannerContext: plannerSection, financialContext: financialSection,
+      cognition: cognitionSection, weeklyAssessments: assessSection,
+      lifeEvents: lifeSection, correlations: corrSection,
+      overallTrend: trendSection,
     },
-    actions: { shareWithProfessional: true, practicalSuggestions: ["Compartilhe esses dados com seu profissional na próxima consulta", "Continue registrando seus dados diariamente — isso ajuda no acompanhamento"] },
-    closing: { text: "Você não precisa interpretar esses dados sozinho(a). O app está aqui para organizar e facilitar essa conversa com seu profissional." },
+    actions: { shareWithProfessional: true, practicalSuggestions },
+    closing: { text: "Você não precisa interpretar esses dados sozinho(a). O app organiza esses sinais para facilitar a conversa com quem te acompanha." },
     generatedAt: new Date().toISOString(),
   };
 }
@@ -582,9 +699,14 @@ export async function generateNarrative(
 
   if (input.riskLevel === "high") {
     Sentry.addBreadcrumb({ message: "AI narrative V2: high-risk template (bypassed LLM)", level: "info", data: { riskScore: insights.risk?.score } });
-    const tmpl = getHighRiskTemplateV2(insights);
+    const tmpl = getHighRiskTemplateV2(insights, input);
     // Defense-in-depth: verify template output is also clean
-    const tmplText = [tmpl.overview.summary, tmpl.sections.overallTrend.summary, ...tmpl.sections.overallTrend.keyPoints].join(" ");
+    const allTexts: string[] = [tmpl.overview.headline, tmpl.overview.summary];
+    for (const sec of Object.values(tmpl.sections)) {
+      allTexts.push(sec.summary, ...sec.keyPoints, ...sec.metrics);
+    }
+    allTexts.push(...tmpl.actions.practicalSuggestions, tmpl.closing.text);
+    const tmplText = allTexts.join(" ");
     if (containsForbiddenContent(tmplText)) {
       Sentry.captureMessage("High-risk template contained forbidden content after sanitization", { level: "error", tags: { feature: "ai-narrative-v2" } });
       return { narrative: getSafeFallbackV2(), persistence: { ...basePersistence, bypassLlm: true, bypassReason: "high_risk", guardrailPassed: false, guardrailViolations: ["template_forbidden_content"] } };

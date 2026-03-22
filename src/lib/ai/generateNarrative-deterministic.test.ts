@@ -158,13 +158,20 @@ describe("generateNarrative — deterministic paths", () => {
       const result = await generateNarrative(insights, makeExtra());
       const narrative = result.narrative as Record<string, unknown>;
       const overview = narrative.overview as Record<string, string>;
-      expect(overview.headline).toContain("atenção especial");
-      expect(overview.summary).toContain("horários de sono muito irregulares");
-      expect(overview.summary).toContain("oscilação de humor acima do esperado");
+      // Compositor uses evidence-based headline (no generic "atenção especial")
+      expect(overview.headline).toBeTruthy();
+      // Summary is built from actual evidence, not risk factor phrases
+      expect(overview.summary).toBeTruthy();
+      expect(overview.summary.length).toBeGreaterThan(10);
       expect(mockResponsesCreate).not.toHaveBeenCalled();
+
+      // Sections should be populated from evidence, not all absent
+      const sections = narrative.sections as Record<string, Record<string, unknown>>;
+      expect(sections.sleep.status).not.toBe("absent");
+      expect(sections.mood.status).not.toBe("absent");
     });
 
-    it("drops unknown factors (fail-closed) and uses fallback", async () => {
+    it("drops unknown factors (fail-closed) and uses evidence-based summary", async () => {
       const factors = ["unknown_factor_1", "unknown_factor_2", "unknown_factor_3"];
       const insights = makeInsights({
         risk: { level: "atencao_alta", score: 90, factors },
@@ -173,13 +180,15 @@ describe("generateNarrative — deterministic paths", () => {
       const result = await generateNarrative(insights, makeExtra());
       const narrative = result.narrative as Record<string, unknown>;
       const overview = narrative.overview as Record<string, string>;
-      expect(overview.summary).toContain("múltiplos indicadores elevados");
+      // Unknown factors never appear raw in the output
       for (const f of factors) {
         expect(overview.summary).not.toContain(f);
       }
+      // Summary should contain real evidence text
+      expect(overview.summary).toBeTruthy();
     });
 
-    it("uses fallback text when no factors provided", async () => {
+    it("uses evidence-based summary even when no factors provided", async () => {
       const insights = makeInsights({
         risk: { level: "atencao_alta", score: 80, factors: [] },
       });
@@ -187,7 +196,9 @@ describe("generateNarrative — deterministic paths", () => {
       const result = await generateNarrative(insights, makeExtra());
       const narrative = result.narrative as Record<string, unknown>;
       const overview = narrative.overview as Record<string, string>;
-      expect(overview.summary).toContain("múltiplos indicadores elevados");
+      // Compositor builds summary from evidence, not static factors text
+      expect(overview.summary).toBeTruthy();
+      expect(overview.summary.length).toBeGreaterThan(10);
     });
 
     it("always includes generatedAt ISO date", async () => {

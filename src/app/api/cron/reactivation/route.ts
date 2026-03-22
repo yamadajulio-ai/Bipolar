@@ -60,7 +60,7 @@ const PRIVACY_PAYLOAD: PushPayload = {
   title: "Suporte Bipolar",
   body: "Você tem uma sugestão pendente.",
   tag: "reactivation",
-  url: "/",
+  url: "/hoje",
 };
 
 /** Minimum hours between reactivation messages to the same user */

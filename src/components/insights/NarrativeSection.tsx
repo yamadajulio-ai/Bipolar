@@ -85,7 +85,7 @@ export function NarrativeSection() {
       const res = await fetch("/api/insights-narrative", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ consent: true }),
+        body: JSON.stringify({ consent: consentChecked }),
         signal: abortRef.current.signal,
       });
       if (!res.ok) {
@@ -410,11 +410,12 @@ export function NarrativeSection() {
           )}
 
           {/* Disclaimer + timestamp — source-aware disclosure.
-              "fallback" after LLM attempt still means data was sent to OpenAI. */}
+              "fallback" = LLM was attempted but failed (data WAS sent to OpenAI).
+              "template_high_risk" / "template_insufficient" = deterministic, no LLM. */}
           <p className="text-[10px] text-muted italic">
             {narrative.source === "llm" ? "Gerado por IA"
-              : narrative.source === "fallback" ? "Processado por IA (resumo indisponível)"
-              : "Resumo automático"}
+              : narrative.source === "fallback" ? "Dados enviados à IA (resumo indisponível)"
+              : "Resumo automático (sem envio de dados a terceiros)"}
             {narrative.generatedAt && ` em ${new Date(narrative.generatedAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}`}
             . {APP_DISCLAIMER}
           </p>

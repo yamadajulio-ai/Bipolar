@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import * as Sentry from "@sentry/nextjs";
 import { prisma } from "@/lib/db";
+import { maskIp } from "@/lib/security";
 
 /**
  * WhatsApp Cloud API webhook.
@@ -129,9 +130,71 @@ export async function POST(request: NextRequest) {
             level: "info",
           });
 
-          // Simple keyword-based responses for pilot
-          // TODO: Expand with proper NLU or structured menus
-          // Full check-in flow will be implemented when Meta Business is set up
+          // ── In-band opt-out (WhatsApp policy requirement) ──────────
+          // Users must be able to stop messages by replying within WhatsApp.
+          // Handles: PARAR, SAIR, STOP, CANCELAR (case-insensitive, trimmed)
+          const normalizedText = (text as string).trim().toUpperCase();
+          const OPT_OUT_KEYWORDS = new Set(["PARAR", "SAIR", "STOP", "CANCELAR"]);
+          const OPT_IN_KEYWORDS = new Set(["ATIVAR", "INICIAR", "START"]);
+
+          if (OPT_OUT_KEYWORDS.has(normalizedText)) {
+            // Find user by whatsappPhone and revoke consent + disable channel
+            const user = await prisma.user.findFirst({
+              where: { whatsappPhone: `+${from}` },
+              select: { id: true },
+            });
+            if (user) {
+              // Revoke whatsapp consent
+              await prisma.consent.updateMany({
+                where: { userId: user.id, scope: "whatsapp", revokedAt: null },
+                data: { revokedAt: new Date() },
+              });
+              // Disable WhatsApp in CommunicationPreference
+              await prisma.communicationPreference.updateMany({
+                where: { userId: user.id },
+                data: { whatsapp: false },
+              });
+              Sentry.addBreadcrumb({
+                category: "whatsapp",
+                message: "Opt-out processed via keyword",
+                level: "info",
+              });
+            }
+            continue;
+          }
+
+          if (OPT_IN_KEYWORDS.has(normalizedText)) {
+            // Re-enable for users who previously opted out
+            const user = await prisma.user.findFirst({
+              where: { whatsappPhone: `+${from}` },
+              select: { id: true },
+            });
+            if (user) {
+              // Grant whatsapp consent
+              const existingConsent = await prisma.consent.findFirst({
+                where: { userId: user.id, scope: "whatsapp", revokedAt: null },
+                select: { id: true },
+              });
+              if (!existingConsent) {
+                await prisma.consent.create({
+                  data: { userId: user.id, scope: "whatsapp" },
+                });
+              }
+              // Enable WhatsApp in CommunicationPreference
+              await prisma.communicationPreference.updateMany({
+                where: { userId: user.id },
+                data: { whatsapp: true },
+              });
+              Sentry.addBreadcrumb({
+                category: "whatsapp",
+                message: "Opt-in processed via keyword",
+                level: "info",
+              });
+            }
+            continue;
+          }
+
+          // Other messages — placeholder for future NLU/structured menus
         }
       }
     }

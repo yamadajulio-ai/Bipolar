@@ -125,4 +125,24 @@ describe("isAllowedPushEndpoint", () => {
       expect(isAllowedPushEndpoint("https://FCM.GOOGLEAPIS.COM/push")).toBe(true);
     });
   });
+
+  // ── SSRF: private/reserved address blocking ───────────────────
+  describe("blocks private and reserved addresses", () => {
+    const privateEndpoints = [
+      ["localhost", "https://localhost/push"],
+      ["loopback IPv4", "https://127.0.0.1/push"],
+      ["loopback 0.0.0.0", "https://0.0.0.0/push"],
+      ["IPv6 loopback", "https://[::1]/push"],
+      ["10.x private", "https://10.0.0.1/push"],
+      ["172.16.x private", "https://172.16.0.1/push"],
+      ["172.31.x private", "https://172.31.255.255/push"],
+      ["192.168.x private", "https://192.168.0.1/push"],
+      ["link-local 169.254", "https://169.254.169.254/latest/meta-data/"],
+      ["AWS metadata", "https://169.254.170.2/push"],
+    ] as const;
+
+    it.each(privateEndpoints)("%s: %s", (_name, endpoint) => {
+      expect(isAllowedPushEndpoint(endpoint)).toBe(false);
+    });
+  });
 });

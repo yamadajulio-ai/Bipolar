@@ -44,12 +44,13 @@ const reminderMessages: Record<string, PushPayload> = {
   },
 };
 
-// Privacy mode: generic text that hides health content on lock screens
+// Privacy mode: generic text AND neutral URL that hide all health context on lock screens.
+// Semantic URLs like /sono, /checkin would leak context via notification history/analytics.
 const PRIVACY_PAYLOAD: PushPayload = {
   title: "Suporte Bipolar",
   body: "Você tem um lembrete pendente.",
   tag: "reminder",
-  url: "/",
+  url: "/hoje",
 };
 
 // Short-lived lock to prevent concurrent cron workers from processing the same reminder.
@@ -195,7 +196,8 @@ export async function GET(request: NextRequest) {
         if (!acquired) continue;
 
         acquiredKeys.add(baseKey);
-        const effectivePayload = settings.privacyMode ? { ...PRIVACY_PAYLOAD, url: payload.url } : payload;
+        // Privacy mode: use fully generic payload (no semantic URL leak)
+        const effectivePayload = settings.privacyMode ? PRIVACY_PAYLOAD : payload;
         for (const sub of userSubs) {
           tasks.push({
             subId: sub.id,

@@ -482,8 +482,16 @@ export function prepareNarrativeInput(insights: InsightsResult, extra: Narrative
 // ── Source fingerprint ─────────────────────────────────────────
 
 export function computeSourceFingerprint(input: NarrativeInputV2): string {
-  // Include prompt + schema version so cache invalidates when generation logic changes
-  const payload = { v: `${PROMPT_VERSION}:${SCHEMA_VERSION}`, input };
+  // Include ALL version keys + model config so cache invalidates when ANY generation logic changes.
+  // Missing a key here means stale cache could serve narratives that would be
+  // blocked by a newer guardrail or generated differently by a different model.
+  const model = process.env.OPENAI_NARRATIVE_MODEL || DEFAULT_MODEL;
+  const payload = {
+    v: `${PROMPT_VERSION}:${SCHEMA_VERSION}:${ANALYTICS_VERSION}:${GUARDRAIL_VERSION}`,
+    model,
+    reasoningEffort: "medium",
+    input,
+  };
   return createHash("sha256").update(JSON.stringify(payload)).digest("hex").slice(0, 32);
 }
 

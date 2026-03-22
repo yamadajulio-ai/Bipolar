@@ -2033,15 +2033,16 @@ function computeStabilityScore(
       subScores.push({ value: regularityScoreFromVariance(sleep.bedtimeVariance), weight: 0.30 });
     }
 
-    // 1b. Duration adequacy (30%): 7-9h = 100, <5h or >11h = 0, linear between
+    // 1b. Duration adequacy (30%): 7-9h = 100, proportional down to 0h = 0
     if (sleep.avgDuration != null) {
       let durScore: number;
       if (sleep.avgDuration >= 7 && sleep.avgDuration <= 9) {
         durScore = 100;
       } else if (sleep.avgDuration < 7) {
-        durScore = Math.max(0, Math.round(100 * (sleep.avgDuration - 4) / 3)); // 4h=0, 7h=100
+        durScore = Math.round(100 * sleep.avgDuration / 7); // 0h=0, 3.5h=50, 7h=100
       } else {
-        durScore = Math.max(0, Math.round(100 * (12 - sleep.avgDuration) / 3)); // 9h=100, 12h=0
+        // Over 9h: gentle decrease, 9h=100, 14h=64 (diminishing, not punitive)
+        durScore = Math.max(10, Math.round(100 * (1 - (sleep.avgDuration - 9) / 14)));
       }
       subScores.push({ value: durScore, weight: 0.30 });
     }

@@ -287,7 +287,13 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
   }
 
   // Check-in
-  tasks.push({ label: "Check-ins diários", href: "/checkin", done: !!todayEntry, priority: 2 });
+  const checkinCount = todayEntry?.snapshotCount ?? 0;
+  tasks.push({
+    label: checkinCount > 0 ? `Check-ins diários (${checkinCount} feito${checkinCount > 1 ? "s" : ""})` : "Check-ins diários",
+    href: "/checkin",
+    done: false,
+    priority: 2,
+  });
 
   // Sleep
   if (haeKey) {

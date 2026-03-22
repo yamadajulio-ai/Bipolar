@@ -68,14 +68,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Session rotation: destroy pre-auth cookie before creating authenticated session
+    // Prevents session fixation — any pre-existing cookie is invalidated
     const session = await getSession();
-    session.userId = user.id;
-    session.email = user.email;
-    session.isLoggedIn = true;
-    session.onboarded = user.onboarded;
-    session.lastActive = Date.now();
-    session.createdAt = Date.now();
-    await session.save();
+    session.destroy();
+
+    const freshSession = await getSession();
+    freshSession.userId = user.id;
+    freshSession.email = user.email;
+    freshSession.isLoggedIn = true;
+    freshSession.onboarded = user.onboarded;
+    freshSession.lastActive = Date.now();
+    freshSession.createdAt = Date.now();
+    await freshSession.save();
 
     return NextResponse.json({ success: true, onboarded: user.onboarded });
   } catch (err) {

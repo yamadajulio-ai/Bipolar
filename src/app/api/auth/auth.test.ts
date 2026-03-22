@@ -170,13 +170,15 @@ describe("POST /api/auth/login", () => {
     expect(res.status).toBe(401);
   });
 
-  it("returns 200 and sets session on valid login", async () => {
+  it("returns 200 and rotates session on valid login (anti-fixation)", async () => {
     mockUserFindUnique.mockResolvedValueOnce({ id: "u1", email: "t@test.com", passwordHash: "hash", onboarded: true });
     const res = await POST(makeRequest({ email: "t@test.com", senha: "correctpw" }));
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.success).toBe(true);
     expect(body.onboarded).toBe(true);
+    // Session rotation: destroy called before save (prevents session fixation)
+    expect(mockSession.destroy).toHaveBeenCalled();
     expect(mockSession.save).toHaveBeenCalled();
     expect(mockSession.userId).toBe("u1");
     expect(mockSession.isLoggedIn).toBe(true);
@@ -263,12 +265,14 @@ describe("POST /api/auth/cadastro", () => {
     expect(body.error).toContain("já está cadastrado");
   });
 
-  it("returns 201 and creates user + session on success", async () => {
+  it("returns 201, creates user, and rotates session on success", async () => {
     mockUserFindUnique.mockResolvedValueOnce(null);
     mockUserCreate.mockResolvedValueOnce({ id: "new-user", email: "new@example.com" });
     const res = await POST(makeRequest(validBody, "https://suportebipolar.com/api/auth/cadastro"));
     expect(res.status).toBe(201);
     expect(mockUserCreate).toHaveBeenCalled();
+    // Session rotation: destroy before save
+    expect(mockSession.destroy).toHaveBeenCalled();
     expect(mockSession.save).toHaveBeenCalled();
     expect(mockSession.isLoggedIn).toBe(true);
     expect(mockSession.onboarded).toBe(false);

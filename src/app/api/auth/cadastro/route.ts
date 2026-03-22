@@ -81,14 +81,18 @@ export async function POST(request: NextRequest) {
       select: { id: true, email: true },
     });
 
+    // Session rotation: destroy pre-auth cookie before creating authenticated session
     const session = await getSession();
-    session.userId = user.id;
-    session.email = user.email;
-    session.isLoggedIn = true;
-    session.onboarded = false;
-    session.lastActive = Date.now();
-    session.createdAt = Date.now();
-    await session.save();
+    session.destroy();
+
+    const freshSession = await getSession();
+    freshSession.userId = user.id;
+    freshSession.email = user.email;
+    freshSession.isLoggedIn = true;
+    freshSession.onboarded = false;
+    freshSession.lastActive = Date.now();
+    freshSession.createdAt = Date.now();
+    await freshSession.save();
 
     return NextResponse.json({ success: true }, { status: 201 });
   } catch (err) {

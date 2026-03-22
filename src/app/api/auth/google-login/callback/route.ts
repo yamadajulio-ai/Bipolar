@@ -93,14 +93,18 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Session rotation: destroy pre-auth cookie before creating authenticated session
     const session = await getSession();
-    session.userId = user.id;
-    session.email = user.email;
-    session.isLoggedIn = true;
-    session.onboarded = user.onboarded;
-    session.lastActive = Date.now();
-    session.createdAt = Date.now();
-    await session.save();
+    session.destroy();
+
+    const freshSession = await getSession();
+    freshSession.userId = user.id;
+    freshSession.email = user.email;
+    freshSession.isLoggedIn = true;
+    freshSession.onboarded = user.onboarded;
+    freshSession.lastActive = Date.now();
+    freshSession.createdAt = Date.now();
+    await freshSession.save();
 
     const redirectTo = user.onboarded ? "/hoje" : "/onboarding";
     const response = NextResponse.redirect(new URL(redirectTo, request.url));

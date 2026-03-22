@@ -160,7 +160,7 @@ export default function CheckinPage() {
           <label htmlFor="sleep-hours" className="block text-sm font-medium text-foreground mb-1">
             Horas de sono
           </label>
-          <p className="text-xs text-muted mb-2">Quantas horas você dormiu na última noite?</p>
+          <p className="text-xs text-muted mb-2">Quantas horas você dormiu ontem?</p>
 
           <label className="flex items-center gap-2 text-sm text-muted mb-3 cursor-pointer">
             <input

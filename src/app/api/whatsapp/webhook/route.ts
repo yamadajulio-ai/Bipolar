@@ -107,22 +107,6 @@ export async function POST(request: NextRequest) {
 
           if (!text || !from) continue;
 
-          // Durable idempotency: dedupe by message.id via persistent ledger.
-          // Survives restarts, replays, and late retries from Meta.
-          if (messageId) {
-            try {
-              await prisma.processedWhatsAppMessage.create({
-                data: { messageId },
-              });
-            } catch (err) {
-              // Unique constraint violation = already processed → skip
-              if (err && typeof err === "object" && "code" in err && (err as { code: string }).code === "P2002") {
-                continue;
-              }
-              throw err; // Unexpected error — let outer catch handle it
-            }
-          }
-
           // Breadcrumb only — no phone data in logs (even masked, PHI risk)
           Sentry.addBreadcrumb({
             category: "whatsapp",
@@ -142,25 +126,41 @@ export async function POST(request: NextRequest) {
           const OPT_OUT_KEYWORDS = new Set(["PARAR", "SAIR", "STOP", "CANCELAR"]);
 
           if (OPT_OUT_KEYWORDS.has(normalizedText)) {
-            // Find user by whatsappPhone and revoke consent + disable channel
-            // Atomic: if marker was saved but this crashes, retry is safe
-            // because dedupe skips and the user just sends PARAR again.
+            // Atomic: dedupe marker + opt-out in a single interactive transaction.
+            // If any step fails, nothing is committed — Meta retries safely.
             const user = await prisma.user.findFirst({
               where: { whatsappPhone: `+${from}` },
               select: { id: true },
             });
+
+            try {
+              await prisma.$transaction(async (tx) => {
+                // Dedupe marker inside transaction — if already processed, P2002 aborts all
+                if (messageId) {
+                  await tx.processedWhatsAppMessage.create({
+                    data: { messageId },
+                  });
+                }
+                if (user) {
+                  await tx.consent.updateMany({
+                    where: { userId: user.id, scope: "whatsapp", revokedAt: null },
+                    data: { revokedAt: new Date() },
+                  });
+                  await tx.communicationPreference.updateMany({
+                    where: { userId: user.id },
+                    data: { whatsapp: false },
+                  });
+                }
+              });
+            } catch (err) {
+              // P2002 = already processed (dedupe) → skip silently
+              if (err && typeof err === "object" && "code" in err && (err as { code: string }).code === "P2002") {
+                continue;
+              }
+              throw err;
+            }
+
             if (user) {
-              // Atomic transaction: revoke consent + disable preference together
-              await prisma.$transaction([
-                prisma.consent.updateMany({
-                  where: { userId: user.id, scope: "whatsapp", revokedAt: null },
-                  data: { revokedAt: new Date() },
-                }),
-                prisma.communicationPreference.updateMany({
-                  where: { userId: user.id },
-                  data: { whatsapp: false },
-                }),
-              ]);
               Sentry.addBreadcrumb({
                 category: "whatsapp",
                 message: "Opt-out processed via keyword",
@@ -168,6 +168,22 @@ export async function POST(request: NextRequest) {
               });
             }
             continue;
+          }
+
+          // Durable idempotency: dedupe by message.id via persistent ledger.
+          // Survives restarts, replays, and late retries from Meta.
+          if (messageId) {
+            try {
+              await prisma.processedWhatsAppMessage.create({
+                data: { messageId },
+              });
+            } catch (err) {
+              // Unique constraint violation = already processed → skip
+              if (err && typeof err === "object" && "code" in err && (err as { code: string }).code === "P2002") {
+                continue;
+              }
+              throw err; // Unexpected error — let outer catch handle it
+            }
           }
 
           // Other messages — placeholder for future NLU/structured menus

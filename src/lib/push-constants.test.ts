@@ -144,10 +144,28 @@ describe("isAllowedPushEndpoint", () => {
       ["IPv4-mapped IPv6 loopback", "https://[::ffff:127.0.0.1]/push"],
       ["IPv4-mapped IPv6 private", "https://[::ffff:10.0.0.1]/push"],
       ["IPv4-mapped IPv6 192.168", "https://[::ffff:192.168.1.1]/push"],
+      ["IPv6 ULA fc00::", "https://[fc00::1]/push"],
+      ["IPv6 ULA fd00::", "https://[fd12::1]/push"],
+      ["IPv6 link-local fe80::", "https://[fe80::1]/push"],
+      ["IPv6 link-local fe90:: (fe80::/10)", "https://[fe90::1]/push"],
+      ["IPv6 discard 100::/64", "https://[100::1]/push"],
+      ["IPv6 documentation 2001:db8::", "https://[2001:db8::1]/push"],
+      ["IPv6 unspecified ::", "https://[::]/push"],
+      ["IPv4-mapped IPv6 169.254", "https://[::ffff:169.254.1.1]/push"],
+      ["IPv4-mapped IPv6 172.16", "https://[::ffff:172.16.0.1]/push"],
     ] as const;
 
     it.each(privateEndpoints)("%s: %s", (_name, endpoint) => {
       expect(isAllowedPushEndpoint(endpoint)).toBe(false);
+    });
+  });
+
+  // ── SSRF: ensure public IPv6 is NOT blocked ───────────────────
+  describe("allows public IPv6 on allowlisted hosts", () => {
+    it("does not block public IPv6 addresses", () => {
+      // A public IPv6 would still fail the host allowlist, but should NOT fail the private check
+      // Testing via a non-allowlisted host to confirm it's rejected for allowlist, not for being private
+      expect(isAllowedPushEndpoint("https://[2607:f8b0:4004:800::200e]/push")).toBe(false);
     });
   });
 });

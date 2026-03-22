@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { maskIp, getClientIp } from "@/lib/security";
+import { maskIp, getClientIp, checkRateLimit } from "@/lib/security";
 import { verifyPin } from "@/lib/auth";
 import * as Sentry from "@sentry/nextjs";
 import { computeInsights } from "@/lib/insights/computeInsights";
@@ -40,6 +40,17 @@ export async function POST(
   }
 
   const { token } = await params;
+  const rawIp = getClientIp(request);
+
+  // Rate limit by IP: 20 attempts per 15 min (catches spray attacks across tokens)
+  if (!(await checkRateLimit(`prof_access_ip:${rawIp}`, 20, 15 * 60 * 1000))) {
+    return privateJson({ error: "Muitas tentativas. Aguarde 15 minutos." }, { status: 429 });
+  }
+
+  // Rate limit by token: 10 attempts per 15 min (tighter, per-link brute force)
+  if (!(await checkRateLimit(`prof_access_token:${token}`, 10, 15 * 60 * 1000))) {
+    return privateJson({ error: "Muitas tentativas para este link. Aguarde 15 minutos." }, { status: 429 });
+  }
 
   try {
     const body = await request.json();

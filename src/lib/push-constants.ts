@@ -9,19 +9,19 @@ import * as ipaddr from "ipaddr.js";
  * (WNS, Mozilla) get wildcard matching. Others require exact host match.
  */
 
-/** Hosts that allow subdomain matching (e.g., db3p.notify.windows.com, ap1.web.push.apple.com) */
+/** Hosts that allow subdomain matching — only for providers with documented wildcard FQDNs */
 const WILDCARD_HOSTS = new Set([
-  "wns.windows.com",         // Microsoft WNS: *.wns.windows.com
-  "notify.windows.com",      // Microsoft WNS: *.notify.windows.com
-  "push.services.mozilla.com",       // Mozilla: *.push.services.mozilla.com
-  "updates.push.services.mozilla.com", // Mozilla: *.updates.push.services.mozilla.com
+  "wns.windows.com",         // Microsoft WNS: documented *.wns.windows.com
+  "notify.windows.com",      // Microsoft WNS: documented *.notify.windows.com
   "web.push.apple.com",      // Apple: regional prefixes (ap1, etc.)
 ]);
 
 /** Hosts that require exact match only (no wildcard subdomains) */
 const EXACT_HOSTS = new Set([
-  "fcm.googleapis.com",      // Google FCM: single documented endpoint
-  "push.api.chrome.google.com", // Chrome: single documented endpoint
+  "fcm.googleapis.com",                 // Google FCM: single documented endpoint
+  "push.api.chrome.google.com",         // Chrome: single documented endpoint
+  "push.services.mozilla.com",          // Mozilla Autopush: exact documented endpoint
+  "updates.push.services.mozilla.com",  // Mozilla Autopush: exact documented endpoint
 ]);
 
 /** All known push service hosts (exported for tests) */

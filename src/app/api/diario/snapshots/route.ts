@@ -211,9 +211,15 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "Registro não encontrado" }, { status: 404 });
     }
 
-    // Check 15-min edit window — anchored to server-side receivedAt, not client capturedAt
-    const anchor = snapshot.receivedAt ?? snapshot.capturedAt;
-    const elapsed = Date.now() - anchor.getTime();
+    // Check 15-min edit window — anchored to server-side receivedAt only
+    // Legacy snapshots without receivedAt cannot be edited (no trusted anchor)
+    if (!snapshot.receivedAt) {
+      return NextResponse.json(
+        { error: "Este registro não suporta edição (registrado antes da funcionalidade)" },
+        { status: 403 },
+      );
+    }
+    const elapsed = Date.now() - snapshot.receivedAt.getTime();
     if (elapsed > EDIT_WINDOW_MS) {
       return NextResponse.json(
         { error: "Janela de edição expirou (limite: 15 minutos)" },

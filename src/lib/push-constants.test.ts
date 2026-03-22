@@ -34,12 +34,12 @@ describe("isAllowedPushEndpoint", () => {
     });
   });
 
-  // ── Subdomain matching (wildcard hosts only) ───────────────────
+  // ── Subdomain matching (wildcard hosts only: WNS, Apple) ────────
   describe("accepts subdomains of wildcard-allowed hosts", () => {
     const wildcardEndpoints = [
-      ["Mozilla subdomain", "https://autopush.push.services.mozilla.com/wpush/v2/abc"],
       ["Apple regional", "https://ap1.web.push.apple.com/QWer"],
       ["WNS datacenter", "https://db3p.notify.windows.com/w/?token=xyz"],
+      ["WNS alternate", "https://db5.wns.windows.com/w/?token=xyz"],
     ] as const;
 
     it.each(wildcardEndpoints)("%s: %s", (_name, endpoint) => {
@@ -52,6 +52,8 @@ describe("isAllowedPushEndpoint", () => {
     const exactOnlySubdomains = [
       ["FCM subdomain", "https://us-east1.fcm.googleapis.com/fcm/send/abc"],
       ["Chrome subdomain", "https://us1.push.api.chrome.google.com/v1/messages"],
+      ["Mozilla subdomain", "https://autopush.push.services.mozilla.com/wpush/v2/abc"],
+      ["Mozilla updates subdomain", "https://stage.updates.push.services.mozilla.com/wpush/v2/abc"],
     ] as const;
 
     it.each(exactOnlySubdomains)("%s: %s", (_name, endpoint) => {

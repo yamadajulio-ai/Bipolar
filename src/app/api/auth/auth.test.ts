@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { NextRequest } from "next/server";
 
 /**
  * Integration tests for auth routes: login, logout, cadastro, export, excluir-conta.
@@ -82,12 +83,12 @@ vi.mock("@/lib/crypto", () => ({
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function makeRequest(body: unknown, url = "https://suportebipolar.com/api/auth/login"): Request {
-  return new Request(url, {
+function makeRequest(body: unknown, url = "https://suportebipolar.com/api/auth/login"): NextRequest {
+  return new NextRequest(new Request(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
-  });
+  }));
 }
 
 function resetSession(overrides: Partial<typeof mockSession> = {}) {
@@ -115,25 +116,25 @@ beforeEach(() => {
 // ═══════════════════════════════════════════════════════════════════════════
 
 describe("POST /api/auth/login", () => {
-  let POST: (req: Request) => Promise<Response>;
+  let POST: (req: NextRequest) => Promise<Response>;
 
   beforeEach(async () => {
     ({ POST } = await import("./login/route"));
   });
 
   it("returns 400 for invalid email", async () => {
-    const res = await POST(makeRequest({ email: "not-email", senha: "12345678" }) as never);
+    const res = await POST(makeRequest({ email: "not-email", senha: "12345678" }));
     expect(res.status).toBe(400);
   });
 
   it("returns 400 for missing password", async () => {
-    const res = await POST(makeRequest({ email: "test@test.com", senha: "" }) as never);
+    const res = await POST(makeRequest({ email: "test@test.com", senha: "" }));
     expect(res.status).toBe(400);
   });
 
   it("returns 429 when IP rate limited", async () => {
     mockCheckRateLimit.mockResolvedValueOnce(false);
-    const res = await POST(makeRequest({ email: "test@test.com", senha: "12345678" }) as never);
+    const res = await POST(makeRequest({ email: "test@test.com", senha: "12345678" }));
     expect(res.status).toBe(429);
     const body = await res.json();
     expect(body.error).toContain("Muitas tentativas");
@@ -141,7 +142,7 @@ describe("POST /api/auth/login", () => {
 
   it("returns 429 when email rate limited", async () => {
     mockCheckRateLimit.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
-    const res = await POST(makeRequest({ email: "test@test.com", senha: "12345678" }) as never);
+    const res = await POST(makeRequest({ email: "test@test.com", senha: "12345678" }));
     expect(res.status).toBe(429);
     const body = await res.json();
     expect(body.error).toContain("e-mail");
@@ -149,13 +150,13 @@ describe("POST /api/auth/login", () => {
 
   it("returns 401 for non-existent user", async () => {
     mockUserFindUnique.mockResolvedValueOnce(null);
-    const res = await POST(makeRequest({ email: "nobody@test.com", senha: "12345678" }) as never);
+    const res = await POST(makeRequest({ email: "nobody@test.com", senha: "12345678" }));
     expect(res.status).toBe(401);
   });
 
   it("returns 400 for social-only account (no passwordHash)", async () => {
     mockUserFindUnique.mockResolvedValueOnce({ id: "u1", email: "g@test.com", passwordHash: null, onboarded: true });
-    const res = await POST(makeRequest({ email: "g@test.com", senha: "12345678" }) as never);
+    const res = await POST(makeRequest({ email: "g@test.com", senha: "12345678" }));
     expect(res.status).toBe(400);
     const body = await res.json();
     expect(body.error).toContain("Google");
@@ -165,13 +166,13 @@ describe("POST /api/auth/login", () => {
     const { verifyPassword } = await import("@/lib/auth");
     (verifyPassword as ReturnType<typeof vi.fn>).mockResolvedValueOnce(false);
     mockUserFindUnique.mockResolvedValueOnce({ id: "u1", email: "t@test.com", passwordHash: "hash", onboarded: true });
-    const res = await POST(makeRequest({ email: "t@test.com", senha: "wrongpw!!" }) as never);
+    const res = await POST(makeRequest({ email: "t@test.com", senha: "wrongpw!!" }));
     expect(res.status).toBe(401);
   });
 
   it("returns 200 and sets session on valid login", async () => {
     mockUserFindUnique.mockResolvedValueOnce({ id: "u1", email: "t@test.com", passwordHash: "hash", onboarded: true });
-    const res = await POST(makeRequest({ email: "t@test.com", senha: "correctpw" }) as never);
+    const res = await POST(makeRequest({ email: "t@test.com", senha: "correctpw" }));
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.success).toBe(true);
@@ -187,15 +188,15 @@ describe("POST /api/auth/login", () => {
 // ═══════════════════════════════════════════════════════════════════════════
 
 describe("POST /api/auth/logout", () => {
-  let POST: (req: Request) => Promise<Response>;
+  let POST: (req: NextRequest) => Promise<Response>;
 
   beforeEach(async () => {
     ({ POST } = await import("./logout/route"));
   });
 
   it("destroys session and redirects with Clear-Site-Data", async () => {
-    const req = new Request("https://suportebipolar.com/api/auth/logout", { method: "POST" });
-    const res = await POST(req as never);
+    const req = new NextRequest(new Request("https://suportebipolar.com/api/auth/logout", { method: "POST" }));
+    const res = await POST(req);
     expect(mockSession.destroy).toHaveBeenCalled();
     expect(res.status).toBe(303);
     expect(res.headers.get("Clear-Site-Data")).toBe('"cache", "cookies", "storage"');
@@ -208,7 +209,7 @@ describe("POST /api/auth/logout", () => {
 // ═══════════════════════════════════════════════════════════════════════════
 
 describe("POST /api/auth/cadastro", () => {
-  let POST: (req: Request) => Promise<Response>;
+  let POST: (req: NextRequest) => Promise<Response>;
   const validBody = {
     email: "new@example.com",
     senha: "StrongPw1!",
@@ -223,40 +224,40 @@ describe("POST /api/auth/cadastro", () => {
 
   it("returns 429 when rate limited", async () => {
     mockCheckRateLimit.mockResolvedValueOnce(false);
-    const res = await POST(makeRequest(validBody, "https://suportebipolar.com/api/auth/cadastro") as never);
+    const res = await POST(makeRequest(validBody, "https://suportebipolar.com/api/auth/cadastro"));
     expect(res.status).toBe(429);
   });
 
   it("returns 400 for invalid email", async () => {
-    const res = await POST(makeRequest({ ...validBody, email: "bad" }, "https://suportebipolar.com/api/auth/cadastro") as never);
+    const res = await POST(makeRequest({ ...validBody, email: "bad" }, "https://suportebipolar.com/api/auth/cadastro"));
     expect(res.status).toBe(400);
     const body = await res.json();
     expect(body.errors).toBeDefined();
   });
 
   it("returns 400 for short password", async () => {
-    const res = await POST(makeRequest({ ...validBody, senha: "short", confirmarSenha: "short" }, "https://suportebipolar.com/api/auth/cadastro") as never);
+    const res = await POST(makeRequest({ ...validBody, senha: "short", confirmarSenha: "short" }, "https://suportebipolar.com/api/auth/cadastro"));
     expect(res.status).toBe(400);
   });
 
   it("returns 400 for mismatched passwords", async () => {
-    const res = await POST(makeRequest({ ...validBody, confirmarSenha: "DifferentPw!" }, "https://suportebipolar.com/api/auth/cadastro") as never);
+    const res = await POST(makeRequest({ ...validBody, confirmarSenha: "DifferentPw!" }, "https://suportebipolar.com/api/auth/cadastro"));
     expect(res.status).toBe(400);
   });
 
   it("returns 400 when ageGate is false", async () => {
-    const res = await POST(makeRequest({ ...validBody, ageGate: false }, "https://suportebipolar.com/api/auth/cadastro") as never);
+    const res = await POST(makeRequest({ ...validBody, ageGate: false }, "https://suportebipolar.com/api/auth/cadastro"));
     expect(res.status).toBe(400);
   });
 
   it("returns 400 when healthConsent is false", async () => {
-    const res = await POST(makeRequest({ ...validBody, healthConsent: false }, "https://suportebipolar.com/api/auth/cadastro") as never);
+    const res = await POST(makeRequest({ ...validBody, healthConsent: false }, "https://suportebipolar.com/api/auth/cadastro"));
     expect(res.status).toBe(400);
   });
 
   it("returns 409 for duplicate email", async () => {
     mockUserFindUnique.mockResolvedValueOnce({ id: "existing" });
-    const res = await POST(makeRequest(validBody, "https://suportebipolar.com/api/auth/cadastro") as never);
+    const res = await POST(makeRequest(validBody, "https://suportebipolar.com/api/auth/cadastro"));
     expect(res.status).toBe(409);
     const body = await res.json();
     expect(body.error).toContain("já está cadastrado");
@@ -265,7 +266,7 @@ describe("POST /api/auth/cadastro", () => {
   it("returns 201 and creates user + session on success", async () => {
     mockUserFindUnique.mockResolvedValueOnce(null);
     mockUserCreate.mockResolvedValueOnce({ id: "new-user", email: "new@example.com" });
-    const res = await POST(makeRequest(validBody, "https://suportebipolar.com/api/auth/cadastro") as never);
+    const res = await POST(makeRequest(validBody, "https://suportebipolar.com/api/auth/cadastro"));
     expect(res.status).toBe(201);
     expect(mockUserCreate).toHaveBeenCalled();
     expect(mockSession.save).toHaveBeenCalled();
@@ -279,7 +280,7 @@ describe("POST /api/auth/cadastro", () => {
 // ═══════════════════════════════════════════════════════════════════════════
 
 describe("POST /api/auth/export", () => {
-  let POST: (req: Request) => Promise<Response>;
+  let POST: (req: NextRequest) => Promise<Response>;
   const url = "https://suportebipolar.com/api/auth/export";
 
   beforeEach(async () => {
@@ -288,13 +289,13 @@ describe("POST /api/auth/export", () => {
 
   it("returns 401 when not logged in", async () => {
     resetSession({ isLoggedIn: false });
-    const res = await POST(makeRequest({ password: "pw" }, url) as never);
+    const res = await POST(makeRequest({ password: "pw" }, url));
     expect(res.status).toBe(401);
   });
 
   it("returns 429 when rate limited", async () => {
     mockCheckRateLimit.mockResolvedValueOnce(false);
-    const res = await POST(makeRequest({ password: "pw" }, url) as never);
+    const res = await POST(makeRequest({ password: "pw" }, url));
     expect(res.status).toBe(429);
   });
 
@@ -303,7 +304,7 @@ describe("POST /api/auth/export", () => {
       id: "user-1", email: "t@test.com", name: null, authProvider: "email",
       passwordHash: "hash", createdAt: new Date(),
     });
-    const res = await POST(makeRequest({}, url) as never);
+    const res = await POST(makeRequest({}, url));
     expect(res.status).toBe(422);
     const body = await res.json();
     expect(body.requiresPassword).toBe(true);
@@ -316,7 +317,7 @@ describe("POST /api/auth/export", () => {
       id: "user-1", email: "t@test.com", name: null, authProvider: "email",
       passwordHash: "hash", createdAt: new Date(),
     });
-    const res = await POST(makeRequest({ password: "wrong" }, url) as never);
+    const res = await POST(makeRequest({ password: "wrong" }, url));
     expect(res.status).toBe(403);
     const body = await res.json();
     expect(body.error).toContain("Senha incorreta");
@@ -327,7 +328,7 @@ describe("POST /api/auth/export", () => {
       id: "user-1", email: "t@test.com", name: "Julio", authProvider: "email",
       passwordHash: "hash", createdAt: new Date(),
     });
-    const res = await POST(makeRequest({ password: "correct" }, url) as never);
+    const res = await POST(makeRequest({ password: "correct" }, url));
     expect(res.status).toBe(200);
     expect(res.headers.get("Content-Disposition")).toContain("attachment");
     expect(res.headers.get("Cache-Control")).toContain("no-store");
@@ -342,7 +343,7 @@ describe("POST /api/auth/export", () => {
       id: "user-1", email: "g@test.com", name: null, authProvider: "google",
       passwordHash: null, createdAt: new Date(),
     });
-    const res = await POST(makeRequest({}, url) as never);
+    const res = await POST(makeRequest({}, url));
     expect(res.status).toBe(403);
     const body = await res.json();
     expect(body.requiresReauth).toBe(true);
@@ -354,7 +355,7 @@ describe("POST /api/auth/export", () => {
       id: "user-1", email: "g@test.com", name: null, authProvider: "google",
       passwordHash: null, createdAt: new Date(),
     });
-    const res = await POST(makeRequest({}, url) as never);
+    const res = await POST(makeRequest({}, url));
     expect(res.status).toBe(200);
   });
 });
@@ -364,7 +365,7 @@ describe("POST /api/auth/export", () => {
 // ═══════════════════════════════════════════════════════════════════════════
 
 describe("POST /api/auth/excluir-conta", () => {
-  let POST: (req: Request) => Promise<Response>;
+  let POST: (req: NextRequest) => Promise<Response>;
   const url = "https://suportebipolar.com/api/auth/excluir-conta";
 
   beforeEach(async () => {
@@ -373,19 +374,19 @@ describe("POST /api/auth/excluir-conta", () => {
 
   it("returns 401 when not logged in", async () => {
     resetSession({ isLoggedIn: false });
-    const res = await POST(makeRequest({ password: "pw" }, url) as never);
+    const res = await POST(makeRequest({ password: "pw" }, url));
     expect(res.status).toBe(401);
   });
 
   it("returns 429 when rate limited", async () => {
     mockCheckRateLimit.mockResolvedValueOnce(false);
-    const res = await POST(makeRequest({ password: "pw" }, url) as never);
+    const res = await POST(makeRequest({ password: "pw" }, url));
     expect(res.status).toBe(429);
   });
 
   it("returns 422 (requiresPassword) for email user without password", async () => {
     mockUserFindUnique.mockResolvedValueOnce({ passwordHash: "hash", authProvider: "email" });
-    const res = await POST(makeRequest({}, url) as never);
+    const res = await POST(makeRequest({}, url));
     expect(res.status).toBe(422);
     const body = await res.json();
     expect(body.requiresPassword).toBe(true);
@@ -395,13 +396,13 @@ describe("POST /api/auth/excluir-conta", () => {
     const { verifyPassword } = await import("@/lib/auth");
     (verifyPassword as ReturnType<typeof vi.fn>).mockResolvedValueOnce(false);
     mockUserFindUnique.mockResolvedValueOnce({ passwordHash: "hash", authProvider: "email" });
-    const res = await POST(makeRequest({ password: "wrong" }, url) as never);
+    const res = await POST(makeRequest({ password: "wrong" }, url));
     expect(res.status).toBe(403);
   });
 
   it("deletes user, destroys session, and redirects for email user with correct password", async () => {
     mockUserFindUnique.mockResolvedValueOnce({ passwordHash: "hash", authProvider: "email" });
-    const res = await POST(makeRequest({ password: "correct" }, url) as never);
+    const res = await POST(makeRequest({ password: "correct" }, url));
     expect(res.status).toBe(303);
     expect(mockUserDelete).toHaveBeenCalledWith({ where: { id: "user-1" } });
     expect(mockSession.destroy).toHaveBeenCalled();
@@ -411,7 +412,7 @@ describe("POST /api/auth/excluir-conta", () => {
   it("returns 403 (requiresReauth) for OAuth user with stale session", async () => {
     resetSession({ lastActive: Date.now() - 10 * 60 * 1000 });
     mockUserFindUnique.mockResolvedValueOnce({ passwordHash: null, authProvider: "google" });
-    const res = await POST(makeRequest({}, url) as never);
+    const res = await POST(makeRequest({}, url));
     expect(res.status).toBe(403);
     const body = await res.json();
     expect(body.requiresReauth).toBe(true);
@@ -426,7 +427,7 @@ describe("POST /api/auth/excluir-conta", () => {
     const originalFetch = globalThis.fetch;
     globalThis.fetch = vi.fn().mockResolvedValueOnce({ ok: true });
 
-    const res = await POST(makeRequest({}, url) as never);
+    const res = await POST(makeRequest({}, url));
     expect(res.status).toBe(303);
     expect(mockUserDelete).toHaveBeenCalled();
     expect(mockSession.destroy).toHaveBeenCalled();
@@ -446,7 +447,7 @@ describe("POST /api/auth/excluir-conta", () => {
     const originalFetch = globalThis.fetch;
     globalThis.fetch = vi.fn().mockRejectedValueOnce(new Error("network"));
 
-    const res = await POST(makeRequest({}, url) as never);
+    const res = await POST(makeRequest({}, url));
     expect(res.status).toBe(303);
     expect(mockUserDelete).toHaveBeenCalled();
 

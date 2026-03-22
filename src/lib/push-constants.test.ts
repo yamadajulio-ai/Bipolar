@@ -34,17 +34,28 @@ describe("isAllowedPushEndpoint", () => {
     });
   });
 
-  // ── Subdomain matching ──────────────────────────────────────────
-  describe("accepts subdomains of known hosts", () => {
-    const subdomainEndpoints = [
-      "https://us-east1.fcm.googleapis.com/fcm/send/abc",
-      "https://autopush.push.services.mozilla.com/wpush/v2/abc",
-      "https://ap1.web.push.apple.com/QWer",
-      "https://db3p.notify.windows.com/w/?token=xyz",
-    ];
+  // ── Subdomain matching (wildcard hosts only) ───────────────────
+  describe("accepts subdomains of wildcard-allowed hosts", () => {
+    const wildcardEndpoints = [
+      ["Mozilla subdomain", "https://autopush.push.services.mozilla.com/wpush/v2/abc"],
+      ["Apple regional", "https://ap1.web.push.apple.com/QWer"],
+      ["WNS datacenter", "https://db3p.notify.windows.com/w/?token=xyz"],
+    ] as const;
 
-    it.each(subdomainEndpoints)("%s", (endpoint) => {
+    it.each(wildcardEndpoints)("%s: %s", (_name, endpoint) => {
       expect(isAllowedPushEndpoint(endpoint)).toBe(true);
+    });
+  });
+
+  // ── Exact-only hosts reject subdomains ────────────────────────
+  describe("rejects subdomains of exact-match-only hosts", () => {
+    const exactOnlySubdomains = [
+      ["FCM subdomain", "https://us-east1.fcm.googleapis.com/fcm/send/abc"],
+      ["Chrome subdomain", "https://us1.push.api.chrome.google.com/v1/messages"],
+    ] as const;
+
+    it.each(exactOnlySubdomains)("%s: %s", (_name, endpoint) => {
+      expect(isAllowedPushEndpoint(endpoint)).toBe(false);
     });
   });
 

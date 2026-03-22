@@ -135,10 +135,10 @@ export function projectSnapshots(snapshots: SnapshotInput[]): ProjectionResult |
   // Latest non-null note
   const note = [...sorted].reverse().find((s) => s.note)?.note ?? null;
 
-  // Risk scores
+  // Risk scores (guarded: sorted.length >= 1 guaranteed here, but defensive for reuse)
   const riskScores = sorted.map((s) => snapshotRisk(s));
   const riskScoreCurrent = snapshotRisk(latest);
-  const riskScorePeak = Math.max(...riskScores);
+  const riskScorePeak = riskScores.length > 0 ? Math.max(...riskScores) : 0;
 
   return {
     mood: latest.mood,

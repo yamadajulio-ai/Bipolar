@@ -64,6 +64,8 @@ async function reprojectEntry(entryId: string, dailyUpdate?: Record<string, unkn
         aggregationVersion: AGGREGATION_VERSION,
         riskScoreCurrent: projection.riskScoreCurrent,
         riskScorePeak: projection.riskScorePeak,
+        // Invalidate stale confirmation — projection changed, old confirmation is semantically invalid
+        summaryConfirmedAt: null,
         ...dailyUpdate,
       },
     });
@@ -209,8 +211,9 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "Registro não encontrado" }, { status: 404 });
     }
 
-    // Check 15-min edit window
-    const elapsed = Date.now() - snapshot.capturedAt.getTime();
+    // Check 15-min edit window — anchored to server-side receivedAt, not client capturedAt
+    const anchor = snapshot.receivedAt ?? snapshot.capturedAt;
+    const elapsed = Date.now() - anchor.getTime();
     if (elapsed > EDIT_WINDOW_MS) {
       return NextResponse.json(
         { error: "Janela de edição expirou (limite: 15 minutos)" },

@@ -4,23 +4,39 @@ import * as ipaddr from "ipaddr.js";
  * Allowlist of known Web Push service hosts.
  * Shared between push-subscriptions route (write-time) and web-push lib (send-time).
  * This prevents SSRF via crafted subscription endpoints.
+ *
+ * Per-provider wildcard policy: only families that officially use subdomains
+ * (WNS, Mozilla) get wildcard matching. Others require exact host match.
  */
+
+/** Hosts that allow subdomain matching (e.g., db3p.notify.windows.com, ap1.web.push.apple.com) */
+const WILDCARD_HOSTS = new Set([
+  "wns.windows.com",         // Microsoft WNS: *.wns.windows.com
+  "notify.windows.com",      // Microsoft WNS: *.notify.windows.com
+  "push.services.mozilla.com",       // Mozilla: *.push.services.mozilla.com
+  "updates.push.services.mozilla.com", // Mozilla: *.updates.push.services.mozilla.com
+  "web.push.apple.com",      // Apple: regional prefixes (ap1, etc.)
+]);
+
+/** Hosts that require exact match only (no wildcard subdomains) */
+const EXACT_HOSTS = new Set([
+  "fcm.googleapis.com",      // Google FCM: single documented endpoint
+  "push.api.chrome.google.com", // Chrome: single documented endpoint
+]);
+
+/** All known push service hosts (exported for tests) */
 export const PUSH_SERVICE_HOSTS = [
-  "fcm.googleapis.com",
-  "updates.push.services.mozilla.com",
-  "push.services.mozilla.com",
-  "web.push.apple.com",
-  "wns.windows.com",
-  "notify.windows.com",
-  "push.api.chrome.google.com",
+  ...EXACT_HOSTS,
+  ...WILDCARD_HOSTS,
 ];
 
-/**
- * Private/reserved CIDR ranges that must never be used as push endpoints (SSRF).
- * Uses ipaddr.js for robust IPv4/IPv6 parsing — no hand-rolled regex.
- */
 const BLOCKED_HOSTNAMES = new Set(["localhost", "0.0.0.0"]);
 
+/**
+ * Allowlist-only IP policy: only "unicast" range passes.
+ * All other ranges (loopback, private, reserved, teredo, 6to4, etc.) are blocked.
+ * This is fail-closed by design — new/unknown ranges are automatically blocked.
+ */
 function isPrivateOrReservedIP(ip: string): boolean {
   try {
     let addr = ipaddr.parse(ip);
@@ -30,31 +46,10 @@ function isPrivateOrReservedIP(ip: string): boolean {
       addr = (addr as ipaddr.IPv6).toIPv4Address();
     }
 
-    // ipaddr.js range() returns one of:
-    // IPv4: 'unspecified', 'broadcast', 'loopback', 'multicast', 'linkLocal',
-    //        'private', 'carrierGradeNat', 'reserved', 'unicast'
-    // IPv6: 'unspecified', 'loopback', 'multicast', 'linkLocal', 'uniqueLocal',
-    //        'ipv4Mapped', '6to4', 'teredo', 'reserved', 'benchmarking',
-    //        'amt', 'as112v6', 'deprecated', 'orchid2', 'droneRemoteIdProtocol', 'unicast'
-    const range = addr.range();
-
-    const BLOCKED_RANGES = new Set([
-      "unspecified",
-      "broadcast",
-      "loopback",
-      "multicast",
-      "linkLocal",
-      "private",
-      "carrierGradeNat",
-      "reserved",
-      "uniqueLocal",
-      "benchmarking",
-      "discard",
-    ]);
-
-    return BLOCKED_RANGES.has(range);
+    // Only allow unicast — everything else is blocked (fail-closed)
+    return addr.range() !== "unicast";
   } catch {
-    // If parsing fails, treat as suspicious → block
+    // Parse failure → block
     return true;
   }
 }
@@ -75,6 +70,18 @@ function isPrivateOrReservedHostname(hostname: string): boolean {
   return false;
 }
 
+function matchesAllowedHost(hostname: string): boolean {
+  // Check exact hosts first
+  if (EXACT_HOSTS.has(hostname)) return true;
+
+  // Check wildcard hosts (exact match OR subdomain)
+  for (const host of WILDCARD_HOSTS) {
+    if (hostname === host || hostname.endsWith("." + host)) return true;
+  }
+
+  return false;
+}
+
 export function isAllowedPushEndpoint(endpoint: string): boolean {
   try {
     const url = new URL(endpoint);
@@ -83,9 +90,7 @@ export function isAllowedPushEndpoint(endpoint: string): boolean {
     if (url.port !== "" && url.port !== "443") return false;
     // Block loopback, private, and reserved addresses (SSRF defense)
     if (isPrivateOrReservedHostname(url.hostname)) return false;
-    return PUSH_SERVICE_HOSTS.some(
-      (host) => url.hostname === host || url.hostname.endsWith("." + host),
-    );
+    return matchesAllowedHost(url.hostname);
   } catch {
     return false;
   }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Card } from "@/components/Card";
 import Link from "next/link";
 
@@ -122,11 +122,15 @@ export function MedicationDoseCheckin({ date, onComplete, onTrackingStatus }: Pr
     );
   }
 
+  const hasTracking = summary ? summary.state !== "NOT_TRACKED" : null;
+  const onTrackingStatusRef = useRef(onTrackingStatus);
+  onTrackingStatusRef.current = onTrackingStatus;
+
   useEffect(() => {
-    if (summary) {
-      onTrackingStatus?.(summary.state !== "NOT_TRACKED");
+    if (hasTracking !== null) {
+      onTrackingStatusRef.current?.(hasTracking);
     }
-  }, [summary, onTrackingStatus]);
+  }, [hasTracking]);
 
   if (!summary || summary.state === "NOT_TRACKED") {
     return null; // No medications configured, caller shows legacy UI

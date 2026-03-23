@@ -18,6 +18,7 @@ import { Sparkline } from "@/components/insights/Sparkline";
 import { NarrativeSection } from "@/components/insights/NarrativeSection";
 import { InsightsTabs } from "@/components/insights/InsightsTabs";
 import { ContextualFeedbackButtons } from "@/components/feedback/ContextualFeedbackButtons";
+import { SpendingMoodInsightCard } from "@/components/insights/SpendingMoodInsightCard";
 import Link from "next/link";
 import { Suspense } from "react";
 
@@ -789,6 +790,13 @@ export default async function InsightsPage({
                 <h2 className="mb-3 text-lg font-semibold">Humor e Sono — 30 dias</h2>
                 <InsightsCharts data={insights.chart.chartData} />
               </Card>
+            </section>
+          )}
+
+          {/* ── Humor e Gastos (spending × mood insight) ── */}
+          {insights.spendingMood.state !== "hidden" && (
+            <section className="mb-8">
+              <SpendingMoodInsightCard data={insights.spendingMood} />
             </section>
           )}
 

@@ -50,6 +50,26 @@ export interface FinancialTxInput {
   amount: number; // negative = expense
 }
 
+// ── Spending × Mood Insight (for Insights page card) ──────────
+export interface SpendingMoodChartPoint {
+  date: string;      // DD/MM
+  expense: number;   // absolute value
+  mood: number | null;
+  spike: boolean;
+}
+
+export interface SpendingMoodInsight {
+  state: "hidden" | "learning" | "noSignal" | "watch" | "strong";
+  summary: string;
+  helper?: string;
+  chips: string[];
+  chartRangeLabel?: string;
+  chartData?: SpendingMoodChartPoint[];
+  ctaHref: string;
+  /** Screen-reader summary */
+  srSummary?: string;
+}
+
 // ── Output types ────────────────────────────────────────────
 
 type StatusColor = "green" | "yellow" | "red";
@@ -243,6 +263,8 @@ export interface InsightsResult {
   heatmap: HeatmapDay[];
   /** Personal stability score (0-100) — composite of sleep, mood, medication */
   stability: StabilityScore | null;
+  /** Spending × Mood clinical insight card */
+  spendingMood: SpendingMoodInsight;
 }
 
 export interface StabilityScore {
@@ -2158,6 +2180,152 @@ function computeStabilityScore(
   };
 }
 
+// ── Spending × Mood Insight ──────────────────────────────────
+
+function computeSpendingMoodInsight(
+  financialTxs: FinancialTxInput[] | undefined,
+  entries: DiaryEntryInput[],
+  sleepLogs: SleepLogInput[],
+  today: Date,
+  tz: string,
+): SpendingMoodInsight {
+  const CTA = "/financeiro?from=insights";
+  const HIDDEN: SpendingMoodInsight = { state: "hidden", summary: "", chips: [], ctaHref: CTA };
+
+  if (!financialTxs || financialTxs.length === 0) return HIDDEN;
+
+  // Aggregate daily expenses (only negative amounts = expenses)
+  const dailyExp: Record<string, number> = {};
+  for (const tx of financialTxs) {
+    if (tx.amount < 0) {
+      dailyExp[tx.date] = (dailyExp[tx.date] ?? 0) + Math.abs(tx.amount);
+    }
+  }
+
+  const expDates = Object.keys(dailyExp).sort();
+  if (expDates.length < 5) return HIDDEN;
+
+  // Build mood lookup
+  const moodByDate: Record<string, number> = {};
+  const energyByDate: Record<string, number> = {};
+  for (const e of entries) {
+    moodByDate[e.date] = e.mood;
+    if (e.energyLevel != null) energyByDate[e.date] = e.energyLevel;
+  }
+
+  // Build sleep lookup
+  const sleepByDate: Record<string, number> = {};
+  for (const s of sleepLogs) {
+    sleepByDate[s.date] = s.totalHours;
+  }
+
+  // Count overlap days (both expense + mood)
+  const overlapDays = expDates.filter((d) => moodByDate[d] != null);
+  if (overlapDays.length < 5) {
+    return {
+      state: "learning",
+      summary: "Ainda estamos aprendendo seu padrão de gastos. Quando houver mais dias registrados, vamos comparar melhor com seu humor.",
+      chips: [`${expDates.length} dias com gastos`, `${overlapDays.length} com humor registrado`],
+      ctaHref: CTA,
+    };
+  }
+
+  // MAD z-score for spike detection
+  const values = expDates.map((d) => dailyExp[d]);
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  const median = sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+  const devs = values.map((x) => Math.abs(x - median));
+  const devsSorted = [...devs].sort((a, b) => a - b);
+  const madMid = Math.floor(devsSorted.length / 2);
+  const madVal = devsSorted.length % 2 !== 0 ? devsSorted[madMid] : (devsSorted[madMid - 1] + devsSorted[madMid]) / 2;
+  const sigma = madVal * 1.4826;
+
+  // Identify spike days (z >= 2 AND at least R$50 above median)
+  const spikeDays: string[] = [];
+  for (const date of expDates) {
+    if (sigma > 0 && (dailyExp[date] - median) / sigma >= 2 && (dailyExp[date] - median) >= 50) {
+      spikeDays.push(date);
+    }
+  }
+
+  // Check convergence: spike + high mood OR high energy OR short sleep
+  const convergentDays = spikeDays.filter((d) => {
+    const highMood = (moodByDate[d] ?? 0) >= 4;
+    const highEnergy = (energyByDate[d] ?? 0) >= 4;
+    const shortSleep = (sleepByDate[d] ?? 99) < 6;
+    return highMood || highEnergy || shortSleep;
+  });
+
+  // Determine state
+  let state: SpendingMoodInsight["state"];
+  if (spikeDays.length >= 2 && convergentDays.length >= 2) {
+    state = "strong";
+  } else if (spikeDays.length >= 1 && convergentDays.length >= 1) {
+    state = "watch";
+  } else {
+    state = "noSignal";
+  }
+
+  // Build chart data (last 14 days only for mobile readability)
+  const fourteenAgo = new Date(today);
+  fourteenAgo.setDate(fourteenAgo.getDate() - 13);
+  const str14 = dateStr(fourteenAgo, tz);
+
+  const chartData: SpendingMoodChartPoint[] = [];
+  let cursor = new Date(fourteenAgo);
+  for (let i = 0; i < 14; i++) {
+    const d = dateStr(cursor, tz);
+    const parts = d.split("-");
+    chartData.push({
+      date: `${parts[2]}/${parts[1]}`,
+      expense: dailyExp[d] ?? 0,
+      mood: moodByDate[d] ?? null,
+      spike: spikeDays.includes(d),
+    });
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  // Build summary text
+  const chips: string[] = [];
+  if (spikeDays.length > 0) {
+    chips.push(`${spikeDays.length} dia${spikeDays.length > 1 ? "s" : ""} acima do seu padrão`);
+  }
+  if (convergentDays.length > 0) {
+    chips.push(`${convergentDays.length} coincidi${convergentDays.length > 1 ? "ram" : "u"} com humor mais alto`);
+  }
+
+  let summary: string;
+  let helper: string | undefined;
+  let srSummary: string;
+
+  if (state === "noSignal") {
+    summary = "Neste período, seus gastos não acompanharam mudanças de humor de forma consistente.";
+    srSummary = `Nos últimos 30 dias, ${spikeDays.length} dia${spikeDays.length !== 1 ? "s" : ""} com gastos acima do padrão, sem associação clara com humor.`;
+    return {
+      state, summary, chips: chips.length > 0 ? chips : ["Sem padrão identificado"], ctaHref: CTA, srSummary,
+      chartRangeLabel: "Últimos 14 dias",
+      chartData: chartData.some((d) => d.expense > 0) ? chartData : undefined,
+    };
+  }
+
+  if (state === "watch") {
+    summary = "Em alguns dias, seus gastos subiram junto com mudanças de humor. Vale observar.";
+    helper = "Isso é um padrão para observar, não uma conclusão sobre episódio.";
+  } else {
+    summary = "Seus gastos aumentaram em dias de humor mais alto e mais energia. Isso pode ser um sinal precoce para acompanhar.";
+    helper = "Considere compartilhar esse padrão com seu profissional de saúde.";
+  }
+
+  srSummary = `Nos últimos 30 dias, houve ${spikeDays.length} dia${spikeDays.length !== 1 ? "s" : ""} com gastos acima do padrão; em ${convergentDays.length} deles o humor esteve mais alto.`;
+
+  return {
+    state, summary, helper, chips, ctaHref: CTA, srSummary,
+    chartRangeLabel: "Últimos 14 dias",
+    chartData,
+  };
+}
+
 // ── Main Export ─────────────────────────────────────────────
 
 export function computeInsights(
@@ -2210,9 +2378,10 @@ export function computeInsights(
   const heatmap = computeHeatmapData(extEntries, extSleep, today, tz);
 
   const stability = computeStabilityScore(sleep, mood, risk, entries, mainSleepLogs);
+  const spendingMood = computeSpendingMoodInsight(financialTxs, entries, mainSleepLogs, today, tz);
 
   return {
     sleep, mood, rhythm, chart, combinedPatterns, risk, thermometer,
-    prediction, cycling, seasonality, heatmap, stability,
+    prediction, cycling, seasonality, heatmap, stability, spendingMood,
   };
 }

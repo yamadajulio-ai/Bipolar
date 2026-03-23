@@ -98,9 +98,36 @@ export default function SOSPage() {
 
   const wrapperClass = "flex min-h-screen flex-col items-center justify-center bg-gray-950 px-4 py-8";
 
+  // Persistent top bar for sub-views — direct escape back to app or SOS main
+  const subViewHeader = (
+    <div className="mx-auto flex w-full max-w-lg items-center justify-between pb-3">
+      <button
+        onClick={() => setView("main")}
+        className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-gray-400 transition-colors hover:bg-gray-800 hover:text-white"
+        aria-label="Voltar para o SOS"
+      >
+        <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+          <polyline points="15 18 9 12 15 6" />
+        </svg>
+        SOS
+      </button>
+      <Link
+        href={isLoggedIn ? "/hoje" : "/"}
+        className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-gray-400 no-underline transition-colors hover:bg-gray-800 hover:text-white"
+      >
+        <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+          <polyline points="9 22 9 12 15 12 15 22" />
+        </svg>
+        {isLoggedIn ? "Voltar ao app" : "Início"}
+      </Link>
+    </div>
+  );
+
   if (view === "breathing") {
     return (
       <div className={wrapperClass}>
+        {subViewHeader}
         <div className="mx-auto w-full max-w-lg">
           {liveRegion}
           <QuickBreathing onClose={() => setView("main")} />
@@ -112,6 +139,7 @@ export default function SOSPage() {
   if (view === "grounding") {
     return (
       <div className={wrapperClass}>
+        {subViewHeader}
         {liveRegion}
         <StepByStepGrounding onClose={() => setView("main")} />
       </div>
@@ -121,6 +149,7 @@ export default function SOSPage() {
   if (view === "chat") {
     return (
       <div className={wrapperClass}>
+        {subViewHeader}
         {liveRegion}
         <SOSChatbot onClose={() => setView("main")} />
       </div>
@@ -130,6 +159,7 @@ export default function SOSPage() {
   if (view === "waiting188") {
     return (
       <div className={wrapperClass}>
+        {subViewHeader}
         {liveRegion}
         <SOSChatbot onClose={() => setView("main")} waitingMode />
       </div>

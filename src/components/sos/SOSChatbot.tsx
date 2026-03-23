@@ -649,7 +649,7 @@ export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
   return (
     <div
       className="mx-auto flex max-w-lg flex-col rounded-2xl bg-gray-900 text-white"
-      style={{ height: "calc(100vh - 120px)", minHeight: "400px" }}
+      style={{ height: "calc(100vh - 160px)", minHeight: "400px" }}
       role="log"
       aria-label="Chat de acolhimento"
     >
@@ -700,8 +700,8 @@ export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
           )}
           <button
             onClick={onClose}
-            className="rounded-lg bg-gray-800 px-3 py-1.5 text-sm text-gray-300 hover:bg-gray-700"
-            aria-label="Fechar chat"
+            className="rounded-lg border border-gray-600 bg-gray-800 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-700"
+            aria-label="Fechar chat e voltar ao SOS"
           >
             Voltar
           </button>

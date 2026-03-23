@@ -783,6 +783,13 @@ export default async function InsightsPage({
             )}
           </section>
 
+          {/* ── P2: Dynamic ordering — "strong" spending card rises above mood/sleep chart ── */}
+          {insights.spendingMood.state === "strong" && (
+            <section className="mb-8">
+              <SpendingMoodInsightCard data={insights.spendingMood} />
+            </section>
+          )}
+
           {/* ── Gráfico Humor e Sono ──────────────────── */}
           {insights.chart.chartData.length >= 3 && (
             <section className="mb-8">
@@ -793,8 +800,8 @@ export default async function InsightsPage({
             </section>
           )}
 
-          {/* ── Humor e Gastos (spending × mood insight) ── */}
-          {insights.spendingMood.state !== "hidden" && (
+          {/* ── Humor e Gastos (spending × mood insight) — watch/learning/noSignal stay here ── */}
+          {insights.spendingMood.state !== "hidden" && insights.spendingMood.state !== "strong" && (
             <section className="mb-8">
               <SpendingMoodInsightCard data={insights.spendingMood} />
             </section>

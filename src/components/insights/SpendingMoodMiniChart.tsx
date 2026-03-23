@@ -164,13 +164,25 @@ export function SpendingMoodMiniChart({ data }: Props) {
               }) as any
             }
           />
+          {/* Halo line: white outline underneath for contrast over bars (1.09:1 → 4.5:1+) */}
+          <Line
+            yAxisId="mood"
+            dataKey="mood"
+            type="monotone"
+            stroke="#ffffff"
+            strokeWidth={5}
+            dot={false}
+            connectNulls={false}
+            isAnimationActive={!reducedMotion}
+            legendType="none"
+          />
           <Line
             yAxisId="mood"
             dataKey="mood"
             type="monotone"
             stroke={COLOR_MOOD}
             strokeWidth={2}
-            dot={{ r: 3, fill: COLOR_MOOD }}
+            dot={{ r: 3, fill: COLOR_MOOD, stroke: "#ffffff", strokeWidth: 1.5 }}
             connectNulls={false}
             isAnimationActive={!reducedMotion}
           />

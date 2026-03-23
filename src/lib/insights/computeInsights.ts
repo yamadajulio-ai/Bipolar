@@ -2220,7 +2220,8 @@ function hasActivationWindow(
     if ((moodByDate[d] ?? 0) >= 4) { signals.add("humor"); signalCount++; }
     if ((energyByDate[d] ?? 0) >= 4) { signals.add("energia"); signalCount++; }
     // Sleep: compare to personal average (not absolute 6h) — "less than usual"
-    const sleepThreshold = Math.min(avgSleep - 1.5, 6);
+    // No cap: avg 8h → threshold 6.5h, avg 9h → 7.5h (personal baseline matters)
+    const sleepThreshold = avgSleep - 1.5;
     if (d in sleepByDate && sleepByDate[d] < sleepThreshold) { signals.add("sono"); signalCount++; }
   }
 
@@ -2241,10 +2242,49 @@ function computeSpendingMoodInsight(
   if (!financialTxs || financialTxs.length === 0) return HIDDEN;
 
   // Aggregate daily expenses (only negative amounts = expenses)
+  // Also track transaction count per day for frequency-based analysis (P2)
   const dailyExp: Record<string, number> = {};
+  const dailyTxCount: Record<string, number> = {};
   for (const tx of financialTxs) {
     if (tx.amount < 0) {
-      dailyExp[tx.date] = (dailyExp[tx.date] ?? 0) + Math.abs(tx.amount);
+      const abs = Math.abs(tx.amount);
+      dailyExp[tx.date] = (dailyExp[tx.date] ?? 0) + abs;
+      dailyTxCount[tx.date] = (dailyTxCount[tx.date] ?? 0) + 1;
+    }
+  }
+
+  // P2: Filter out recurring expenses (heuristic: amounts that appear ±5% on 3+ distinct dates
+  // are likely rent, subscriptions, or regular bills — they inflate daily totals artificially)
+  const amountOccurrences: Record<number, number> = {};
+  for (const tx of financialTxs) {
+    if (tx.amount >= 0) continue;
+    const rounded = Math.round(Math.abs(tx.amount)); // round to nearest R$1
+    amountOccurrences[rounded] = (amountOccurrences[rounded] ?? 0) + 1;
+  }
+  // Identify recurring amounts (same ±5% on 3+ dates)
+  const recurringAmounts = new Set<number>();
+  const amountKeys = Object.keys(amountOccurrences).map(Number);
+  for (const amt of amountKeys) {
+    if (amountOccurrences[amt] >= 3) {
+      recurringAmounts.add(amt);
+    }
+  }
+  // Subtract recurring amounts from daily totals
+  if (recurringAmounts.size > 0) {
+    for (const tx of financialTxs) {
+      if (tx.amount >= 0) continue;
+      const rounded = Math.round(Math.abs(tx.amount));
+      if (recurringAmounts.has(rounded)) {
+        dailyExp[tx.date] = Math.max(0, (dailyExp[tx.date] ?? 0) - Math.abs(tx.amount));
+        dailyTxCount[tx.date] = Math.max(0, (dailyTxCount[tx.date] ?? 0) - 1);
+      }
+    }
+    // Remove dates with zero expense after filtering
+    for (const date of Object.keys(dailyExp)) {
+      if (dailyExp[date] <= 0) {
+        delete dailyExp[date];
+        delete dailyTxCount[date];
+      }
     }
   }
 
@@ -2269,9 +2309,9 @@ function computeSpendingMoodInsight(
     ? sleepValues.reduce((a, b) => a + b, 0) / sleepValues.length
     : 7; // default 7h if no sleep data
 
-  // Count overlap days (expense + mood OR energy — not just mood)
+  // Count overlap days (expense + mood OR energy OR sleep data)
   const overlapDays = expDates.filter((d) =>
-    moodByDate[d] != null || energyByDate[d] != null
+    moodByDate[d] != null || energyByDate[d] != null || sleepByDate[d] != null
   );
   if (overlapDays.length < 5) {
     return {
@@ -2308,29 +2348,100 @@ function computeSpendingMoodInsight(
   const adaptiveFloor = Math.max(median * 0.3, 20); // min R$20 to avoid noise on very low spenders
 
   // Identify spike days (z >= 2 AND above adaptive floor)
+  // P2: Compute median transaction count for frequency-based spike detection
+  const txCounts = expDates.map((d) => dailyTxCount[d] ?? 0).filter((c) => c > 0);
+  const sortedCounts = [...txCounts].sort((a, b) => a - b);
+  const countMid = Math.floor(sortedCounts.length / 2);
+  const medianTxCount = sortedCounts.length > 0
+    ? (sortedCounts.length % 2 !== 0 ? sortedCounts[countMid] : (sortedCounts[countMid - 1] + sortedCounts[countMid]) / 2)
+    : 1;
+  // Frequency spike threshold: ≥ max(4, 2× median count)
+  const freqThreshold = Math.max(4, Math.ceil(medianTxCount * 2));
+
   const spikeDays: string[] = [];
   for (const date of expDates) {
     const delta = dailyExp[date] - median;
+    let isSpike = false;
     if (sigma > 0) {
       if (delta / sigma >= 2 && delta >= adaptiveFloor) {
-        spikeDays.push(date);
+        isSpike = true;
       }
     } else {
       // sigma = 0: all values are identical. Any value above median is a spike.
       if (delta > 0 && delta >= adaptiveFloor) {
-        spikeDays.push(date);
+        isSpike = true;
       }
     }
+    // P2: Frequency-based spike — many small purchases in one day above median
+    // Catches impulsive buying pattern (many transactions, not necessarily huge total)
+    if (!isSpike && (dailyTxCount[date] ?? 0) >= freqThreshold && delta > 0) {
+      isSpike = true;
+    }
+    if (isSpike) spikeDays.push(date);
   }
 
   // Check convergence with ±1 day activation window
-  // Strong requires 2+ signals OR high mood; tracks which signals were seen
-  const allSignals = new Set<string>();
-  const convergentDays = spikeDays.filter((d) => {
+  // Score-based allocation: each spike is scored by signal proximity and strength,
+  // highest-scoring spikes claim signals first (avoids first-claim-wins bias)
+  // Deduplicate: each calendar day's signal can only support one spike
+  interface SpikeCandidate {
+    date: string;
+    score: number;
+    signals: Set<string>;
+    claims: string[];
+  }
+
+  const sleepThreshold = avgSleep - 1.5;
+  const candidates: SpikeCandidate[] = [];
+  for (const d of spikeDays) {
     const result = hasActivationWindow(d, expDates, moodByDate, energyByDate, sleepByDate, avgSleep);
-    if (result.match) result.signals.forEach((s) => allSignals.add(s));
-    return result.match;
-  });
+    if (!result.match) continue;
+
+    const spkDt = new Date(d + "T12:00:00");
+    const prev = new Date(spkDt); prev.setDate(prev.getDate() - 1);
+    const next = new Date(spkDt); next.setDate(next.getDate() + 1);
+    const fmtD = (dt: Date) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+    // Proximity weights: same-day signals score 2, ±1 day scores 1
+    const windowDates: [string, number][] = [[d, 2], [fmtD(prev), 1], [fmtD(next), 1]];
+
+    let score = 0;
+    const claims: string[] = [];
+    for (const [wd, proximity] of windowDates) {
+      if ((moodByDate[wd] ?? 0) >= 4) {
+        score += proximity * 1.5; // mood has highest weight (strongest mania signal)
+        claims.push(`${wd}:humor`);
+      }
+      if ((energyByDate[wd] ?? 0) >= 4) {
+        score += proximity;
+        claims.push(`${wd}:energia`);
+      }
+      if (wd in sleepByDate && sleepByDate[wd] < sleepThreshold) {
+        score += proximity;
+        claims.push(`${wd}:sono`);
+      }
+    }
+
+    candidates.push({ date: d, score, signals: result.signals, claims });
+  }
+
+  // Sort by score descending, then chronologically as tiebreaker
+  candidates.sort((a, b) => b.score - a.score || a.date.localeCompare(b.date));
+
+  // Greedily assign signals to highest-scoring spikes
+  const allSignals = new Set<string>();
+  const usedSignalDays = new Set<string>();
+  const convergentDays: string[] = [];
+  for (const cand of candidates) {
+    const unclaimed = cand.claims.filter((k) => !usedSignalDays.has(k));
+    const hasUnclaimedMood = unclaimed.some((k) => k.endsWith(":humor"));
+    if (unclaimed.length >= 2 || hasUnclaimedMood) {
+      unclaimed.forEach((k) => usedSignalDays.add(k));
+      cand.signals.forEach((s) => allSignals.add(s));
+      convergentDays.push(cand.date);
+    }
+  }
+  // Restore chronological order for consistent output
+  convergentDays.sort();
 
   // Determine state — strong requires repetition (2+ convergent days)
   let state: SpendingMoodInsight["state"];

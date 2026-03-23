@@ -18,7 +18,7 @@ const STATE_BADGES: Record<string, { label: string; className: string }> = {
   learning: { label: "Coletando dados", className: "bg-gray-100 text-gray-700 border border-gray-200" },
   noSignal: { label: "Sem sinal claro", className: "bg-gray-100 text-gray-700 border border-gray-200" },
   watch: { label: "Vale observar", className: "bg-amber-100 text-amber-800 border border-amber-200" },
-  strong: { label: "Atenção", className: "bg-red-100 text-red-800 border border-red-200" },
+  strong: { label: "Acompanhar de perto", className: "bg-amber-200 text-amber-900 border border-amber-300" },
 };
 
 export function SpendingMoodInsightCard({ data }: Props) {
@@ -27,10 +27,12 @@ export function SpendingMoodInsightCard({ data }: Props) {
   const badge = STATE_BADGES[data.state];
   const showChart = data.state === "watch" || data.state === "strong";
 
+  const chartDescId = "spending-mood-sr-desc";
+
   return (
     <Card>
-      {/* Screen reader summary */}
-      {data.srSummary && <p className="sr-only">{data.srSummary}</p>}
+      {/* Screen reader summary — programmatically associated with chart figure */}
+      {data.srSummary && <p id={chartDescId} className="sr-only">{data.srSummary}</p>}
 
       {/* Header */}
       <div className="mb-2 flex items-center justify-between">
@@ -45,14 +47,14 @@ export function SpendingMoodInsightCard({ data }: Props) {
       {/* Summary text */}
       <p className="text-sm text-foreground/80 leading-relaxed">{data.summary}</p>
 
-      {/* Chart (only for watch/strong with data) */}
+      {/* Chart (only for watch/strong with data) — wrapped in figure for SR association */}
       {showChart && data.chartData && data.chartData.some((d) => d.expense > 0) && (
-        <div className="mt-3">
+        <figure className="mt-3" role="img" aria-describedby={data.srSummary ? chartDescId : undefined}>
           {data.chartRangeLabel && (
-            <p className="mb-1 text-[10px] font-medium text-muted">{data.chartRangeLabel}</p>
+            <figcaption className="mb-1 text-[10px] font-medium text-muted">{data.chartRangeLabel}</figcaption>
           )}
           <SpendingMoodMiniChart data={data.chartData} />
-        </div>
+        </figure>
       )}
 
       {/* Chips */}
@@ -72,7 +74,7 @@ export function SpendingMoodInsightCard({ data }: Props) {
 
       {/* Helper text */}
       {data.helper && (
-        <p className="mt-2 text-xs text-muted italic">{data.helper}</p>
+        <p className="mt-2 text-xs text-foreground/60">{data.helper}</p>
       )}
 
       {/* CTA */}

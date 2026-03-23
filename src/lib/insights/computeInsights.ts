@@ -2182,6 +2182,52 @@ function computeStabilityScore(
 
 // ── Spending × Mood Insight ──────────────────────────────────
 
+/** Helper: get date string for day offset from a base date */
+function dayOffset(base: Date, offset: number, tz: string): string {
+  const d = new Date(base);
+  d.setDate(d.getDate() + offset);
+  return dateStr(d, tz);
+}
+
+/** Check activation signals in a ±1 day window around a spike date */
+function hasActivationWindow(
+  spikeDate: string,
+  allDates: string[],
+  moodByDate: Record<string, number>,
+  energyByDate: Record<string, number>,
+  sleepByDate: Record<string, number>,
+  avgSleep: number,
+): { match: boolean; signals: Set<string> } {
+  // Build ±1 day window
+  const idx = allDates.indexOf(spikeDate);
+  const window = [spikeDate];
+  if (idx > 0) window.push(allDates[idx - 1]);
+  if (idx < allDates.length - 1) window.push(allDates[idx + 1]);
+  // Also check adjacent calendar dates not in allDates (mood/sleep may exist on non-expense days)
+  const parts = spikeDate.split("-").map(Number);
+  const spkDt = new Date(parts[0], parts[1] - 1, parts[2]);
+  const prev = new Date(spkDt); prev.setDate(prev.getDate() - 1);
+  const next = new Date(spkDt); next.setDate(next.getDate() + 1);
+  const prevStr = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, "0")}-${String(prev.getDate()).padStart(2, "0")}`;
+  const nextStr = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}-${String(next.getDate()).padStart(2, "0")}`;
+  if (!window.includes(prevStr)) window.push(prevStr);
+  if (!window.includes(nextStr)) window.push(nextStr);
+
+  const signals = new Set<string>();
+  let signalCount = 0;
+
+  for (const d of window) {
+    if ((moodByDate[d] ?? 0) >= 4) { signals.add("humor"); signalCount++; }
+    if ((energyByDate[d] ?? 0) >= 4) { signals.add("energia"); signalCount++; }
+    // Sleep: compare to personal average (not absolute 6h) — "less than usual"
+    const sleepThreshold = Math.min(avgSleep - 1.5, 6);
+    if (d in sleepByDate && sleepByDate[d] < sleepThreshold) { signals.add("sono"); signalCount++; }
+  }
+
+  // Require at least 2 signals OR high mood (strongest individual signal for mania)
+  return { match: signalCount >= 2 || signals.has("humor"), signals };
+}
+
 function computeSpendingMoodInsight(
   financialTxs: FinancialTxInput[] | undefined,
   entries: DiaryEntryInput[],
@@ -2205,22 +2251,28 @@ function computeSpendingMoodInsight(
   const expDates = Object.keys(dailyExp).sort();
   if (expDates.length < 5) return HIDDEN;
 
-  // Build mood lookup
+  // Build mood/energy/sleep lookups
   const moodByDate: Record<string, number> = {};
   const energyByDate: Record<string, number> = {};
   for (const e of entries) {
     moodByDate[e.date] = e.mood;
     if (e.energyLevel != null) energyByDate[e.date] = e.energyLevel;
   }
-
-  // Build sleep lookup
   const sleepByDate: Record<string, number> = {};
   for (const s of sleepLogs) {
     sleepByDate[s.date] = s.totalHours;
   }
 
-  // Count overlap days (both expense + mood)
-  const overlapDays = expDates.filter((d) => moodByDate[d] != null);
+  // Compute average sleep for adaptive threshold (personal baseline)
+  const sleepValues = Object.values(sleepByDate);
+  const avgSleep = sleepValues.length > 0
+    ? sleepValues.reduce((a, b) => a + b, 0) / sleepValues.length
+    : 7; // default 7h if no sleep data
+
+  // Count overlap days (expense + mood OR energy — not just mood)
+  const overlapDays = expDates.filter((d) =>
+    moodByDate[d] != null || energyByDate[d] != null
+  );
   if (overlapDays.length < 5) {
     return {
       state: "learning",
@@ -2235,29 +2287,52 @@ function computeSpendingMoodInsight(
   const sorted = [...values].sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
   const median = sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+
+  let sigma: number;
   const devs = values.map((x) => Math.abs(x - median));
   const devsSorted = [...devs].sort((a, b) => a - b);
   const madMid = Math.floor(devsSorted.length / 2);
   const madVal = devsSorted.length % 2 !== 0 ? devsSorted[madMid] : (devsSorted[madMid - 1] + devsSorted[madMid]) / 2;
-  const sigma = madVal * 1.4826;
 
-  // Identify spike days (z >= 2 AND at least R$50 above median)
+  if (madVal > 0) {
+    sigma = madVal * 1.4826;
+  } else {
+    // P0 fallback: MAD = 0 (most values are identical).
+    // Fall back to mean absolute deviation from median.
+    const meanDev = devs.reduce((a, b) => a + b, 0) / devs.length;
+    sigma = meanDev > 0 ? meanDev : 0;
+  }
+
+  // Adaptive floor: 30% above median (replaces fixed R$50)
+  // This scales with the user's spending level
+  const adaptiveFloor = Math.max(median * 0.3, 20); // min R$20 to avoid noise on very low spenders
+
+  // Identify spike days (z >= 2 AND above adaptive floor)
   const spikeDays: string[] = [];
   for (const date of expDates) {
-    if (sigma > 0 && (dailyExp[date] - median) / sigma >= 2 && (dailyExp[date] - median) >= 50) {
-      spikeDays.push(date);
+    const delta = dailyExp[date] - median;
+    if (sigma > 0) {
+      if (delta / sigma >= 2 && delta >= adaptiveFloor) {
+        spikeDays.push(date);
+      }
+    } else {
+      // sigma = 0: all values are identical. Any value above median is a spike.
+      if (delta > 0 && delta >= adaptiveFloor) {
+        spikeDays.push(date);
+      }
     }
   }
 
-  // Check convergence: spike + high mood OR high energy OR short sleep
+  // Check convergence with ±1 day activation window
+  // Strong requires 2+ signals OR high mood; tracks which signals were seen
+  const allSignals = new Set<string>();
   const convergentDays = spikeDays.filter((d) => {
-    const highMood = (moodByDate[d] ?? 0) >= 4;
-    const highEnergy = (energyByDate[d] ?? 0) >= 4;
-    const shortSleep = (sleepByDate[d] ?? 99) < 6;
-    return highMood || highEnergy || shortSleep;
+    const result = hasActivationWindow(d, expDates, moodByDate, energyByDate, sleepByDate, avgSleep);
+    if (result.match) result.signals.forEach((s) => allSignals.add(s));
+    return result.match;
   });
 
-  // Determine state
+  // Determine state — strong requires repetition (2+ convergent days)
   let state: SpendingMoodInsight["state"];
   if (spikeDays.length >= 2 && convergentDays.length >= 2) {
     state = "strong";
@@ -2269,16 +2344,12 @@ function computeSpendingMoodInsight(
 
   // Build chart data (last 14 days only for mobile readability)
   // Only for watch/strong states — noSignal doesn't show the chart
+  // Chart values are relative to median (e.g., 1.5x) — avoids exposing R$ in clinical context
   let chartData: SpendingMoodChartPoint[] | undefined;
   if (state === "watch" || state === "strong") {
     chartData = [];
-    // Use timezone-safe day iteration (add 86400s to epoch, re-derive dateStr)
-    const fourteenAgo = new Date(today);
-    fourteenAgo.setDate(fourteenAgo.getDate() - 13);
     for (let i = 0; i < 14; i++) {
-      const cursor = new Date(fourteenAgo);
-      cursor.setDate(cursor.getDate() + i);
-      const d = dateStr(cursor, tz);
+      const d = dayOffset(today, i - 13, tz);
       const parts = d.split("-");
       chartData.push({
         date: `${parts[2]}/${parts[1]}`,
@@ -2289,13 +2360,19 @@ function computeSpendingMoodInsight(
     }
   }
 
-  // Build summary text
+  // Build chips — describe what was actually detected, not assumed
   const chips: string[] = [];
   if (spikeDays.length > 0) {
     chips.push(`${spikeDays.length} dia${spikeDays.length > 1 ? "s" : ""} acima do seu padrão`);
   }
   if (convergentDays.length > 0) {
-    chips.push(`${convergentDays.length} coincidi${convergentDays.length > 1 ? "ram" : "u"} com humor mais alto`);
+    // Describe actual signals found, not generic "humor mais alto"
+    const signalParts: string[] = [];
+    if (allSignals.has("humor")) signalParts.push("humor mais alto");
+    if (allSignals.has("energia")) signalParts.push("mais energia");
+    if (allSignals.has("sono")) signalParts.push("menos sono");
+    const signalText = signalParts.length > 0 ? signalParts.join(", ") : "sinais de ativação";
+    chips.push(`${convergentDays.length} coincidi${convergentDays.length > 1 ? "ram" : "u"} com ${signalText}`);
   }
 
   let summary: string;
@@ -2310,15 +2387,24 @@ function computeSpendingMoodInsight(
     };
   }
 
+  // Build signal-accurate summaries (P0: copy must match what logic detected)
+  const signalParts: string[] = [];
+  if (allSignals.has("humor")) signalParts.push("humor mais alto");
+  if (allSignals.has("energia")) signalParts.push("mais energia");
+  if (allSignals.has("sono")) signalParts.push("menos sono que o habitual");
+  const signalPhrase = signalParts.length > 0
+    ? signalParts.join(", ")
+    : "sinais de ativação";
+
   if (state === "watch") {
-    summary = "Em alguns dias, seus gastos subiram junto com mudanças de humor. Vale observar.";
-    helper = "Isso é um padrão para observar, não uma conclusão sobre episódio.";
+    summary = `Em alguns dias, seus gastos subiram junto com ${signalPhrase}. Vale observar.`;
+    helper = "Isso mostra uma associação nos seus registros, não uma conclusão sobre episódio.";
   } else {
-    summary = "Seus gastos aumentaram em dias de humor mais alto e mais energia. Isso pode ser um sinal precoce para acompanhar.";
-    helper = "Considere compartilhar esse padrão com seu profissional de saúde.";
+    summary = `Nos seus registros recentes, houve mais de uma coincidência entre gastos acima do seu padrão e ${signalPhrase}. Isso merece acompanhamento.`;
+    helper = "Este insight mostra uma associação nos seus registros. Não indica causa nem substitui avaliação clínica.";
   }
 
-  srSummary = `Nos últimos 30 dias, houve ${spikeDays.length} dia${spikeDays.length !== 1 ? "s" : ""} com gastos acima do padrão; em ${convergentDays.length} deles o humor esteve mais alto.`;
+  srSummary = `Nos últimos 30 dias, houve ${spikeDays.length} dia${spikeDays.length !== 1 ? "s" : ""} com gastos acima do padrão; em ${convergentDays.length} deles houve ${signalPhrase}.`;
 
   return {
     state, summary, helper, chips, ctaHref: CTA, srSummary,

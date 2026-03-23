@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/Card";
 import { Alert } from "@/components/Alert";
@@ -32,6 +32,15 @@ function getWeekEndDate(): string {
   return `${y2}-${m2}-${d2}`;
 }
 
+interface ExistingAssessment {
+  asrmScores: string | null;
+  phq9Scores: string | null;
+  fastScores: string | null;
+  notes: string | null;
+  date: string;
+  createdAt: string;
+}
+
 export default function AvaliacaoSemanalPage() {
   const router = useRouter();
   const [step, setStep] = useState<Step>("asrm");
@@ -43,6 +52,56 @@ export default function AvaliacaoSemanalPage() {
   const [error, setError] = useState("");
   const [safetyFlag, setSafetyFlag] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [existing, setExisting] = useState<ExistingAssessment | null>(null);
+  const [showExistingWarning, setShowExistingWarning] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Check if assessment already exists for current week
+  useEffect(() => {
+    async function checkExisting() {
+      try {
+        const res = await fetch("/api/avaliacao-semanal?limit=1");
+        if (!res.ok) { setLoading(false); return; }
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          const latest = data[0];
+          const weekEnd = getWeekEndDate();
+          if (latest.date === weekEnd) {
+            setExisting(latest);
+            setShowExistingWarning(true);
+          }
+        }
+      } catch {
+        // silently continue — not critical
+      } finally {
+        setLoading(false);
+      }
+    }
+    checkExisting();
+  }, []);
+
+  function prefillFromExisting(assessment: ExistingAssessment) {
+    if (assessment.asrmScores) {
+      const parsed = JSON.parse(assessment.asrmScores);
+      if (Array.isArray(parsed)) setAsrmScores(parsed);
+    }
+    if (assessment.phq9Scores) {
+      const parsed = JSON.parse(assessment.phq9Scores);
+      if (Array.isArray(parsed)) setPhq9Scores(parsed);
+    }
+    if (assessment.fastScores) {
+      const parsed = typeof assessment.fastScores === "string"
+        ? JSON.parse(assessment.fastScores)
+        : assessment.fastScores;
+      if (parsed && typeof parsed === "object") setFastScores(parsed);
+    }
+    if (assessment.notes) setNotes(assessment.notes);
+    setShowExistingWarning(false);
+  }
+
+  function startFresh() {
+    setShowExistingWarning(false);
+  }
 
   const setAsrm = useCallback((idx: number, val: number) => {
     setAsrmScores((prev) => {
@@ -145,6 +204,57 @@ export default function AvaliacaoSemanalPage() {
           </button>
         </Card>
         {safetyFlag && <SafetyNudge phq9Item9={phq9Item9} />}
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-lg py-12 text-center">
+        <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        <p className="mt-2 text-sm text-muted">Carregando...</p>
+      </div>
+    );
+  }
+
+  if (showExistingWarning && existing) {
+    const createdDate = new Date(existing.createdAt);
+    const formattedDate = createdDate.toLocaleDateString("pt-BR", {
+      timeZone: TZ,
+      day: "2-digit",
+      month: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    return (
+      <div className="mx-auto max-w-lg space-y-4">
+        <h1 className="text-2xl font-bold">Avaliação Semanal</h1>
+        <Alert variant="warning">
+          <p className="font-medium">Você já preencheu esta semana</p>
+          <p className="mt-1 text-sm">
+            Existe uma avaliação salva em {formattedDate}. Se continuar, as respostas anteriores serão substituídas.
+          </p>
+        </Alert>
+        <div className="flex flex-col gap-3">
+          <button
+            onClick={() => prefillFromExisting(existing)}
+            className="rounded-lg bg-primary px-6 py-3 text-sm font-medium text-white hover:bg-primary-dark"
+          >
+            Editar respostas anteriores
+          </button>
+          <button
+            onClick={startFresh}
+            className="rounded-lg border border-border px-6 py-3 text-sm font-medium text-muted hover:border-primary/50"
+          >
+            Começar do zero
+          </button>
+          <button
+            onClick={() => router.back()}
+            className="text-sm text-muted hover:text-foreground"
+          >
+            Voltar
+          </button>
+        </div>
       </div>
     );
   }

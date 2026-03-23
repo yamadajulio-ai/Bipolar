@@ -4,7 +4,6 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { BottomNav } from "@/components/BottomNav";
 import { Alert } from "@/components/Alert";
-import { SOSButton } from "@/components/SOSButton";
 import { ReminderManager } from "@/components/ReminderManager";
 import { InstallBanner } from "@/components/InstallBanner";
 
@@ -36,7 +35,6 @@ export default async function AppLayout({
       </main>
       <Footer />
       <BottomNav />
-      <SOSButton />
       <ReminderManager />
       <InstallBanner />
     </div>

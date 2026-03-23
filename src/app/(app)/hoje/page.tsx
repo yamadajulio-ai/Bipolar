@@ -13,6 +13,7 @@ import { SafetyNudge } from "@/components/insights/SafetyNudge";
 import { StabilityScoreWidget } from "@/components/dashboard/StabilityScoreWidget";
 import Link from "next/link";
 import Image from "next/image";
+import { SOSButton } from "@/components/SOSButton";
 
 const TZ = "America/Sao_Paulo";
 
@@ -825,6 +826,8 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
           </div>
         </Card>
       )}
+
+      <SOSButton />
     </div>
   );
 }

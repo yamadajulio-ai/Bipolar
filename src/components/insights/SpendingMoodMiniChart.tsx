@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import {
   ComposedChart,
   Bar,
@@ -9,7 +10,6 @@ import {
   Tooltip,
   ResponsiveContainer,
   Cell,
-  ReferenceLine,
 } from "recharts";
 import type { SpendingMoodChartPoint } from "@/lib/insights/computeInsights";
 
@@ -36,18 +36,46 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Toolti
       <p className="font-medium">{point.date}</p>
       {point.expense > 0 && <p>Gastos: R${point.expense.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ".")}</p>}
       {point.mood != null && <p>Humor: {point.mood}/5</p>}
-      {point.spike && <p className="mt-1 font-medium text-amber-400">Acima do seu padrão</p>}
+      {point.spike && <p className="mt-1 font-medium text-amber-400">⚠ Acima do seu padrão</p>}
     </div>
+  );
+}
+
+/** Custom bar shape: adds a dashed top border on spike days for non-color accessibility */
+function SpikeBar(props: { x?: number; y?: number; width?: number; height?: number; spike?: boolean; fill?: string }) {
+  const { x = 0, y = 0, width = 0, height = 0, spike, fill } = props;
+  if (height <= 0) return null;
+  const r = Math.min(3, width / 2);
+  return (
+    <g>
+      <rect x={x} y={y} width={width} height={height} fill={fill} rx={r} ry={r} />
+      {spike && (
+        <line
+          x1={x} y1={y} x2={x + width} y2={y}
+          stroke="#92400e" strokeWidth={2.5} strokeDasharray="3 2"
+        />
+      )}
+    </g>
   );
 }
 
 export function SpendingMoodMiniChart({ data }: Props) {
   const maxExpense = Math.max(...data.map((d) => d.expense), 1);
+  const [reducedMotion, setReducedMotion] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReducedMotion(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setReducedMotion(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
 
   return (
     <div>
       <p className="mb-2 text-[10px] text-muted">
-        barras = gastos &middot; linha = humor
+        barras = gastos &middot; linha = humor &middot;
+        <span className="inline-block ml-1 w-3 border-t-2 border-dashed border-amber-700 align-middle" /> = acima do padrão
       </p>
       <ResponsiveContainer width="100%" height={180}>
         <ComposedChart data={data} margin={{ top: 5, right: 5, bottom: 0, left: -15 }}>
@@ -79,21 +107,30 @@ export function SpendingMoodMiniChart({ data }: Props) {
             width={20}
           />
           <Tooltip content={<CustomTooltip />} />
-          <ReferenceLine yAxisId="expense" y={0} stroke="transparent" />
           <Bar
             yAxisId="expense"
             dataKey="expense"
-            radius={[3, 3, 0, 0]}
             maxBarSize={24}
-            opacity={0.8}
-          >
-            {data.map((entry, i) => (
-              <Cell
-                key={i}
-                fill={entry.spike ? "#d97706" : "#94a3b8"}
-              />
-            ))}
-          </Bar>
+            isAnimationActive={!reducedMotion}
+            shape={
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              ((props: any) => {
+                const idx = props.index as number;
+                const entry = data[idx];
+                return (
+                  <SpikeBar
+                    x={props.x}
+                    y={props.y}
+                    width={props.width}
+                    height={props.height}
+                    spike={entry?.spike}
+                    fill={entry?.spike ? "#d97706" : "#94a3b8"}
+                  />
+                );
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              }) as any
+            }
+          />
           <Line
             yAxisId="mood"
             dataKey="mood"
@@ -102,6 +139,7 @@ export function SpendingMoodMiniChart({ data }: Props) {
             strokeWidth={2}
             dot={{ r: 3, fill: "#3b82f6" }}
             connectNulls
+            isAnimationActive={!reducedMotion}
           />
         </ComposedChart>
       </ResponsiveContainer>

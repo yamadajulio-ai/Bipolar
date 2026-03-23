@@ -2268,22 +2268,25 @@ function computeSpendingMoodInsight(
   }
 
   // Build chart data (last 14 days only for mobile readability)
-  const fourteenAgo = new Date(today);
-  fourteenAgo.setDate(fourteenAgo.getDate() - 13);
-  const str14 = dateStr(fourteenAgo, tz);
-
-  const chartData: SpendingMoodChartPoint[] = [];
-  let cursor = new Date(fourteenAgo);
-  for (let i = 0; i < 14; i++) {
-    const d = dateStr(cursor, tz);
-    const parts = d.split("-");
-    chartData.push({
-      date: `${parts[2]}/${parts[1]}`,
-      expense: dailyExp[d] ?? 0,
-      mood: moodByDate[d] ?? null,
-      spike: spikeDays.includes(d),
-    });
-    cursor.setDate(cursor.getDate() + 1);
+  // Only for watch/strong states — noSignal doesn't show the chart
+  let chartData: SpendingMoodChartPoint[] | undefined;
+  if (state === "watch" || state === "strong") {
+    chartData = [];
+    // Use timezone-safe day iteration (add 86400s to epoch, re-derive dateStr)
+    const fourteenAgo = new Date(today);
+    fourteenAgo.setDate(fourteenAgo.getDate() - 13);
+    for (let i = 0; i < 14; i++) {
+      const cursor = new Date(fourteenAgo);
+      cursor.setDate(cursor.getDate() + i);
+      const d = dateStr(cursor, tz);
+      const parts = d.split("-");
+      chartData.push({
+        date: `${parts[2]}/${parts[1]}`,
+        expense: dailyExp[d] ?? 0,
+        mood: moodByDate[d] ?? null,
+        spike: spikeDays.includes(d),
+      });
+    }
   }
 
   // Build summary text
@@ -2304,8 +2307,6 @@ function computeSpendingMoodInsight(
     srSummary = `Nos últimos 30 dias, ${spikeDays.length} dia${spikeDays.length !== 1 ? "s" : ""} com gastos acima do padrão, sem associação clara com humor.`;
     return {
       state, summary, chips: chips.length > 0 ? chips : ["Sem padrão identificado"], ctaHref: CTA, srSummary,
-      chartRangeLabel: "Últimos 14 dias",
-      chartData: chartData.some((d) => d.expense > 0) ? chartData : undefined,
     };
   }
 

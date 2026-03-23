@@ -1151,4 +1151,70 @@ describe("detectCrisisInTexts", () => {
       expect(detectMulti(messages)).toBe(false);
     });
   });
+
+  // ── Bipolar-specific CONTEXTUAL patterns ──────────────────────
+
+  describe("Bipolar-specific CONTEXTUAL — single hit without harm → false", () => {
+    it.each([
+      "estou num estado misto",
+      "não durmo há dias",
+      "estou agitada",
+      "perdi o controle da dieta",
+      "gastei tudo no mercado",
+      "ouvindo vozes do vizinho",
+      "pensamentos acelerados",
+      "irritada demais com tudo",
+      "sem dormir faz dias",
+      "acordada há muito tempo",
+      "cabeca nao para",
+      "estou descontrolada",
+      "estou explodindo de raiva",
+      "gastei muito dinheiro no shopping",
+    ])("does NOT detect alone: %s", (text) => {
+      expect(detect(text)).toBe(false);
+    });
+  });
+
+  describe("Bipolar-specific CONTEXTUAL — 2+ hits → true", () => {
+    it.each([
+      "estado misto e agitação forte",
+      "não durmo há dias e ouço vozes",
+      "pensamentos acelerados e perdi o controle",
+      "gastei tudo e estou descontrolada",
+      "sem dormir faz dias e irritada demais",
+      "estado misto e cabeca nao para",
+      "acelerado e explodindo de raiva",
+    ])("detects 2+ bipolar signals: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("Bipolar-specific CONTEXTUAL — 1 hit + harm context → true", () => {
+    it.each([
+      ["estou num estado misto", "não aguento mais"],
+      ["não durmo há dias", "estou desesperada"],
+      ["perdi o controle", "estou sofrendo demais"],
+      ["ouvindo vozes", "preciso de ajuda urgente"],
+      ["pensamentos acelerados", "sem esperança"],
+      ["irritada demais", "surtando"],
+    ])("detects across messages: %s + %s", (msg1, msg2) => {
+      expect(detectMulti([msg1, msg2])).toBe(true);
+    });
+  });
+
+  describe("Bipolar-specific — multi-day insomnia variants", () => {
+    it.each([
+      "não durmo há 3 noites",
+      "não consigo dormir há dias",
+      "sem dormir a 4 dias",
+      "acordado há muito tempo",
+      "sem dormir faz uma semana",
+      "não durmo faz noites",
+    ])("detects as contextual: %s (needs corroboration)", (text) => {
+      // Single contextual hit → false alone
+      expect(detect(text)).toBe(false);
+      // With harm context → true
+      expect(detectMulti([text, "estou sofrendo demais"])).toBe(true);
+    });
+  });
 });

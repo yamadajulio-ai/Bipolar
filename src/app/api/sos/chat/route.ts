@@ -205,8 +205,8 @@ const CONTEXTUAL_CRISIS: RegExp[] = [
   // severe sleep deprivation — key prodromal/crisis indicators for bipolar disorder.
   // Per ISBD/STEP-BD: mixed states carry the highest suicide risk in bipolar.
   /\b(estado\s*misto|misto\s*e\s*(depress|agit))/i, // patient self-reports mixed state
-  /\b(nao\s*durmo|nao\s*consigo\s*dormir)\s*(ha|a|faz)\s*(dias|noites|[2-9]|uma\s*semana)/i, // multi-day insomnia
-  /\b(sem\s*dormir|acordad[oa])\s*(ha|a|faz)\s*(dias|noites|[2-9]|muito\s*tempo)/i, // severe sleep deprivation
+  /\b(nao\s*durmo|nao\s*consigo\s*dormir)\s*(ha|a|faz)\s*(dias|noites|[2-9]|uma\s*semana|muito\s*tempo)/i, // multi-day insomnia
+  /\b(sem\s*dormir|acordad[oa])\s*(ha|a|faz)\s*(dias|noites|[2-9]|uma\s*semana|muito\s*tempo)/i, // severe sleep deprivation
   /\b(agitad[oa]|agitacao|nao\s*(paro|consigo\s*parar))\b/i, // psychomotor agitation
   /\b(perdi\s*o\s*controle|fora\s*de\s*controle|descontrolad[oa])\b/i, // loss of control (impulsivity)
   /\b(gastei\s*tudo|gastei\s*muito\s*dinheiro|divida|endividad[oa])\b/i, // impulsive spending
@@ -322,7 +322,7 @@ const ChatInputSchema = z.object({
 
 // ── Rate limiting: 30 requests per 15 minutes per user ──────────
 
-const RATE_LIMIT_WINDOW = 15 * 60; // 15 minutes in seconds
+const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes in milliseconds
 const RATE_LIMIT_MAX = 30;
 
 // ── Minimal telemetry (no transcripts) ──────────────────────────

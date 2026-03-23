@@ -103,6 +103,13 @@ export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
   const abortRef = useRef<AbortController | null>(null);
   const sessionStartRef = useRef(Date.now());
   const lastSpokenIndexRef = useRef(-1);
+  const ttsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const speakingRef = useRef(speaking);
+  speakingRef.current = speaking;
+  const streamingRef = useRef(streaming);
+  streamingRef.current = streaming;
+  const listeningRef = useRef(listening);
+  listeningRef.current = listening;
   const [elapsedMin, setElapsedMin] = useState(0);
 
   // Auto-scroll
@@ -124,6 +131,7 @@ export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
       recognitionRef.current?.abort?.();
       recognitionRef.current?.stop?.();
       stopSpeaking();
+      if (ttsTimeoutRef.current) clearTimeout(ttsTimeoutRef.current);
     };
   }, []);
 
@@ -146,6 +154,29 @@ export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
       };
     }
   }, []);
+
+  // Safety re-arm: when streaming ends in hands-free mode without TTS,
+  // ensure the voice loop resumes (catches race conditions and iOS TTS failures)
+  useEffect(() => {
+    if (streaming || !handsFree || speaking || listening) return;
+    // If TTS is disabled, re-arm after a short delay
+    if (!ttsEnabled) {
+      const timer = setTimeout(() => {
+        if (handsFreeRef.current && !streamingRef.current && !speakingRef.current && !listeningRef.current) {
+          startContinuousListening();
+        }
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+    // If TTS is enabled, give TTS effect time to fire (it runs on same deps).
+    // If after 3s we're still not speaking or listening, force re-arm.
+    const safetyTimer = setTimeout(() => {
+      if (handsFreeRef.current && !streamingRef.current && !speakingRef.current && !listeningRef.current) {
+        startContinuousListening();
+      }
+    }, 3000);
+    return () => clearTimeout(safetyTimer);
+  }, [streaming, handsFree, speaking, listening, ttsEnabled]);
 
   // Handoff reminders: 10 min intermediate + 20 min session timeout
   // Use ref for ttsEnabled to avoid restarting timers when TTS is toggled
@@ -205,18 +236,38 @@ export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
         ? "Sou uma inteligência artificial de acolhimento temporário. " + lastMsg.content
         : lastMsg.content;
       setSpeaking(true);
+
+      // Safety timeout: iOS sometimes never fires onend/onerror
+      if (ttsTimeoutRef.current) clearTimeout(ttsTimeoutRef.current);
+      const maxTime = Math.max(15000, textToSpeak.length * 80);
+      ttsTimeoutRef.current = setTimeout(() => {
+        if (speakingRef.current) {
+          stopSpeaking();
+          setSpeaking(false);
+          if (handsFreeRef.current && !streamingRef.current) {
+            startContinuousListening();
+          }
+        }
+      }, maxTime);
+
       speak(
         textToSpeak,
         () => {
+          if (ttsTimeoutRef.current) clearTimeout(ttsTimeoutRef.current);
           setSpeaking(false);
           // In hands-free mode, auto-start listening after TTS finishes
-          if (handsFree && !streaming) {
+          if (handsFreeRef.current && !streamingRef.current) {
             startContinuousListening();
           }
         },
         () => {
           // TTS error — clear speaking state to unblock the voice cycle
+          if (ttsTimeoutRef.current) clearTimeout(ttsTimeoutRef.current);
           setSpeaking(false);
+          // Still try to re-arm on error
+          if (handsFreeRef.current && !streamingRef.current) {
+            setTimeout(() => startContinuousListening(), 500);
+          }
         },
       );
     }
@@ -512,7 +563,7 @@ export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
           // Transient — retry after short delay if still in hands-free mode
           if (handsFreeRef.current) {
             setTimeout(() => {
-              if (handsFreeRef.current && !streaming && !speaking) {
+              if (handsFreeRef.current && !streamingRef.current && !speakingRef.current) {
                 startContinuousListening();
               }
             }, 500);
@@ -524,7 +575,7 @@ export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
           if (handsFreeRef.current) {
             setTimeout(() => {
               setError(null);
-              if (handsFreeRef.current && !streaming && !speaking) {
+              if (handsFreeRef.current && !streamingRef.current && !speakingRef.current) {
                 startContinuousListening();
               }
             }, 2000);
@@ -534,7 +585,7 @@ export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
           // Unknown — retry once if hands-free
           if (handsFreeRef.current) {
             setTimeout(() => {
-              if (handsFreeRef.current && !streaming && !speaking) {
+              if (handsFreeRef.current && !streamingRef.current && !speakingRef.current) {
                 startContinuousListening();
               }
             }, 1000);
@@ -544,14 +595,14 @@ export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
     };
     recognition.onend = () => {
       setListening(false);
-      // If hands-free and no TTS pending (no new assistant message to speak),
-      // re-arm listening after a short delay to maintain the loop
-      if (handsFreeRef.current && !streaming && !speaking) {
+      // If hands-free and no TTS pending, re-arm listening to maintain the loop.
+      // Use refs to avoid stale closure values.
+      if (handsFreeRef.current && !streamingRef.current && !speakingRef.current) {
         // TTS onend callback handles restart after speaking;
-        // this handles the case where there's no TTS (e.g., ttsEnabled was toggled off)
+        // this handles the case where there's no TTS or recognition ended early
         if (!ttsEnabledRef.current) {
           setTimeout(() => {
-            if (handsFreeRef.current && !streaming && !speaking) {
+            if (handsFreeRef.current && !streamingRef.current && !speakingRef.current) {
               startContinuousListening();
             }
           }, 300);

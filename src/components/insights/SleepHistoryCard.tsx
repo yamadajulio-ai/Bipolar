@@ -20,6 +20,17 @@ function formatSleepDuration(hours: number): string {
   return `${h}h${m.toString().padStart(2, "0")}`;
 }
 
+/** Compute raw bed-to-wake span in hours */
+function bedToWakeHours(bedtime: string, wakeTime: string): number | null {
+  const [bH, bM] = bedtime.split(":").map(Number);
+  const [wH, wM] = wakeTime.split(":").map(Number);
+  if (isNaN(bH) || isNaN(bM) || isNaN(wH) || isNaN(wM)) return null;
+  let bedMin = bH * 60 + bM;
+  let wakeMin = wH * 60 + wM;
+  if (wakeMin <= bedMin) wakeMin += 24 * 60;
+  return (wakeMin - bedMin) / 60;
+}
+
 export function SleepHistoryCard({ log }: { log: SleepLog }) {
   const [excluded, setExcluded] = useState(log.excluded);
   const [toggling, setToggling] = useState(false);
@@ -29,6 +40,12 @@ export function SleepHistoryCard({ log }: { log: SleepLog }) {
   const isShort = !isNap && log.totalHours < 6;
   const isGood = log.totalHours >= 7;
   const isSuspect = !isNap && log.totalHours >= 1 && log.totalHours < 4.5;
+
+  // Detect awakenings: difference between bed-to-wake span and stored totalHours
+  const inBedHours = bedToWakeHours(log.bedtime, log.wakeTime);
+  const awakeMinutes = inBedHours !== null
+    ? Math.round((inBedHours - log.totalHours) * 60)
+    : 0;
   const durationPct = Math.min(100, Math.max(8, (log.totalHours / 10) * 100));
   const dateObj = new Date(log.date + "T12:00:00");
   const weekday = dateObj.toLocaleDateString("pt-BR", { weekday: "short" });
@@ -113,7 +130,14 @@ export function SleepHistoryCard({ log }: { log: SleepLog }) {
       </div>
 
       <div className="flex items-center justify-between text-[11px] text-muted">
-        <span>{log.bedtime} → {log.wakeTime}</span>
+        <div className="flex flex-col">
+          <span>{log.bedtime} → {log.wakeTime}</span>
+          {awakeMinutes >= 2 && (
+            <span className="text-[10px] text-muted/70">
+              {awakeMinutes}min acordado (relógio)
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-3">
           {log.hrv != null && (
             <span>HRV <strong className="text-foreground">{log.hrv}</strong>ms</span>

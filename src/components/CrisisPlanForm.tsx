@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/Card";
 import { Alert } from "@/components/Alert";
 import { FormField } from "@/components/FormField";
@@ -24,6 +24,35 @@ interface CrisisPlanFormProps {
 }
 
 export function CrisisPlanForm({ initialData }: CrisisPlanFormProps) {
+  const [hasConsent, setHasConsent] = useState<boolean | null>(null);
+  const [consentLoading, setConsentLoading] = useState(false);
+
+  // Check consent on mount
+  useEffect(() => {
+    fetch("/api/consentimentos")
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (!data) { setHasConsent(false); return; }
+        const granted = data.consents?.some(
+          (c: { scope: string }) => c.scope === "crisis_plan" || c.scope === "health_data",
+        );
+        setHasConsent(!!granted);
+      })
+      .catch(() => setHasConsent(false));
+  }, []);
+
+  async function grantConsent() {
+    setConsentLoading(true);
+    try {
+      const res = await fetch("/api/consentimentos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scope: "crisis_plan", action: "grant" }),
+      });
+      if (res.ok) setHasConsent(true);
+    } catch { /* ignore */ }
+    finally { setConsentLoading(false); }
+  }
   const [contacts, setContacts] = useState<Contact[]>(() => {
     if (initialData?.trustedContacts) {
       try {
@@ -158,6 +187,26 @@ export function CrisisPlanForm({ initialData }: CrisisPlanFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {hasConsent === false && (
+        <Card className="border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30">
+          <div className="flex items-start gap-3">
+            <input
+              type="checkbox"
+              id="consent-crisis-plan"
+              checked={false}
+              onChange={grantConsent}
+              disabled={consentLoading}
+              className="mt-1 h-4 w-4 rounded border-border text-primary focus:ring-primary"
+            />
+            <label htmlFor="consent-crisis-plan" className="text-sm text-foreground">
+              <strong>Autorizo o armazenamento do meu plano de crise</strong>
+              <span className="block mt-1 text-xs text-muted">
+                Seus dados ficam protegidos e criptografados. Você pode revogar essa autorização a qualquer momento em Privacidade.
+              </span>
+            </label>
+          </div>
+        </Card>
+      )}
       {message && (
         <Alert variant="success">{message}</Alert>
       )}

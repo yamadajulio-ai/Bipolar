@@ -106,6 +106,7 @@ export function SafetyInterstitial({ source, sourceAssessmentId, onComplete, onD
               <p className="text-sm text-orange-900 flex-1">{q}</p>
               <div className="flex gap-1.5 shrink-0">
                 <button
+                  aria-label={`Sim — ${q}`}
                   onClick={() => {
                     const next = [...asqAnswers];
                     next[i] = true;
@@ -120,6 +121,7 @@ export function SafetyInterstitial({ source, sourceAssessmentId, onComplete, onD
                   Sim
                 </button>
                 <button
+                  aria-label={`Não — ${q}`}
                   onClick={() => {
                     const next = [...asqAnswers];
                     next[i] = false;
@@ -277,7 +279,7 @@ function BssaFlow({
   saving: boolean;
   onComplete: (result: BssaResult) => void;
 }) {
-  const [bssaStep, setBssaStep] = useState(0);
+  const [currentKey, setCurrentKey] = useState<keyof BssaResult>("thoughtRecency");
   const [answers, setAnswers] = useState<Partial<BssaResult>>({
     thoughtRecency: undefined,
     thoughtFrequency: undefined,
@@ -289,11 +291,12 @@ function BssaFlow({
     canStaySafe: undefined,
   });
 
-  const questions: {
+  const allQuestions: {
     key: keyof BssaResult;
     label: string;
     options: { value: string; label: string }[];
-    show?: () => boolean;
+    /** Only show this question if condition returns true */
+    showIf?: () => boolean;
   }[] = [
     {
       key: "thoughtRecency",
@@ -325,6 +328,24 @@ function BssaFlow({
       ],
     },
     {
+      key: "planIsDetailed",
+      label: "O plano é detalhado — você sabe quando, onde ou como faria?",
+      options: [
+        { value: "false", label: "Não, é vago" },
+        { value: "true", label: "Sim, é detalhado" },
+      ],
+      showIf: () => answers.hasPlan === true,
+    },
+    {
+      key: "hasAccessToMeans",
+      label: "Você tem acesso aos meios para fazer o que planejou?",
+      options: [
+        { value: "false", label: "Não" },
+        { value: "true", label: "Sim" },
+      ],
+      showIf: () => answers.hasPlan === true,
+    },
+    {
       key: "pastAttempt",
       label: "Você já tentou se machucar ou tirar a própria vida antes?",
       options: [
@@ -346,27 +367,44 @@ function BssaFlow({
     },
   ];
 
-  const currentQ = questions[bssaStep];
+  // Compute visible questions with current answers (for showIf evaluation)
+  function getVisibleQuestions(ans: Partial<BssaResult>) {
+    return allQuestions.filter((q) => {
+      if (!q.showIf) return true;
+      // Evaluate showIf with the given answers snapshot
+      if (q.key === "planIsDetailed" || q.key === "hasAccessToMeans") {
+        return ans.hasPlan === true;
+      }
+      return true;
+    });
+  }
+
+  const visibleQuestions = getVisibleQuestions(answers);
+  const currentQ = visibleQuestions.find((q) => q.key === currentKey);
+  const currentVisibleIndex = visibleQuestions.findIndex((q) => q.key === currentKey);
   if (!currentQ) return null;
 
   function handleAnswer(value: string) {
-    const key = currentQ.key;
+    const key = currentQ!.key;
     let parsed: string | boolean = value;
     if (value === "true") parsed = true;
     if (value === "false") parsed = false;
 
     const next = { ...answers, [key]: parsed };
-    setAnswers(next);
 
-    // If they have a plan, ask if it's detailed and if they have access
-    if (key === "hasPlan" && parsed === true) {
-      // For simplicity, assume detailed + access if they say yes to plan
-      next.planIsDetailed = true;
-      next.hasAccessToMeans = true;
+    // If hasPlan is false, reset dependent fields
+    if (key === "hasPlan" && parsed === false) {
+      next.planIsDetailed = false;
+      next.hasAccessToMeans = false;
     }
 
-    if (bssaStep < questions.length - 1) {
-      setBssaStep(bssaStep + 1);
+    setAnswers(next);
+
+    // Find next visible question using updated answers
+    const updatedVisible = getVisibleQuestions(next);
+    const idx = updatedVisible.findIndex((q) => q.key === key);
+    if (idx < updatedVisible.length - 1) {
+      setCurrentKey(updatedVisible[idx + 1].key);
     } else {
       // Complete
       const result: BssaResult = {
@@ -386,7 +424,7 @@ function BssaFlow({
   return (
     <div className="rounded-xl border border-orange-400 bg-orange-50 p-6 shadow-sm">
       <p className="text-xs text-orange-600 mb-1">
-        Pergunta {bssaStep + 1} de {questions.length}
+        Pergunta {currentVisibleIndex + 1} de {visibleQuestions.length}
       </p>
       <h3 className="text-sm font-semibold text-orange-900 mb-4">
         {currentQ.label}
@@ -395,6 +433,7 @@ function BssaFlow({
         {currentQ.options.map((opt) => (
           <button
             key={opt.value}
+            aria-label={`${opt.label} — ${currentQ.label}`}
             onClick={() => handleAnswer(opt.value)}
             disabled={saving}
             className="block w-full rounded-lg border border-orange-300 bg-white px-4 py-3 text-sm text-left text-orange-900 hover:bg-orange-100 transition-colors disabled:opacity-50"

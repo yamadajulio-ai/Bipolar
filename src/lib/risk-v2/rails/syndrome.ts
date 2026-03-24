@@ -4,7 +4,8 @@
  * Anchored on validated scales: ASRM (mania) + PHQ-9 (depression).
  * Mixed = ASRM ≥ 6 AND PHQ-9 ≥ 10 + corroborators.
  *
- * NEVER produces RED. Maximum is ORANGE.
+ * RED is possible for severe acute mania (psychiatric emergency even without suicidality):
+ * ASRM ≥ 11 + ≥3 activation corroborators + dangerous signs (agitation, disinhibition, psychosis).
  */
 
 import type { DerivedFeatures, RailResult } from "../types";
@@ -13,6 +14,15 @@ import { maxLayer, type AlertLayer } from "../types";
 export function evaluateSyndromeRail(f: DerivedFeatures): RailResult {
   const reasons: string[] = [];
   let layer: AlertLayer = "CLEAR";
+
+  // ── Severe acute mania — psychiatric emergency ─────────────────
+  if (f.severeManiaAcute) {
+    return {
+      layer: "RED",
+      reasons: ["mania_aguda_grave"],
+      confidence: "high",
+    };
+  }
 
   // ── Mixed features ─────────────────────────────────────────────
   if (f.mixedOrange) {

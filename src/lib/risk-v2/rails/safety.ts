@@ -67,14 +67,33 @@ export function evaluateSafetyRail(f: DerivedFeatures): RailResult {
     return { layer: "ORANGE", reasons: ["phq9_item9_positivo_sem_triagem"], confidence: "medium", pending: true };
   }
 
+  // ── PHQ-9 item 9 restratification (after completed screening) ───
+  // Item 9 frequency matters: 3 = nearly every day → higher risk
+  // Modifiers: mixed state, severe depression, BSSA risk factors, past attempt
+  if (f.latestPhq9Item9 !== null && f.latestPhq9Item9 >= 1 && f.safetyScreenCompleted) {
+    const highFrequency = f.latestPhq9Item9 >= 3; // Nearly every day
+    const moderateFrequency = f.latestPhq9Item9 >= 2; // More than half the days
+    const hasRiskModifier = f.mixedOrange || f.depressionOrange ||
+      (f.latestBssa && (
+        f.latestBssa.thoughtFrequency === "daily" || f.latestBssa.thoughtFrequency === "many_times_day" ||
+        f.latestBssa.pastAttempt !== "never"
+      ));
+
+    if (highFrequency) {
+      // Nearly every day = ORANGE regardless of screening result
+      return { layer: "ORANGE", reasons: ["phq9_item9_frequente"], confidence: "high" };
+    }
+    if (moderateFrequency && hasRiskModifier) {
+      // More than half + modifier = ORANGE
+      return { layer: "ORANGE", reasons: ["phq9_item9_moderado_com_modificador"], confidence: "high" };
+    }
+    // Low frequency (several days) with completed screening = YELLOW
+    return { layer: "YELLOW", reasons: ["phq9_item9_positivo_triagem_ok"], confidence: "medium" };
+  }
+
   // ── YELLOW: Historical or low-grade signal ─────────────────────
   if (f.latestBssa && f.latestBssa.pastAttempt === ">1_year") {
     return { layer: "YELLOW", reasons: ["historico_tentativa_remota"], confidence: "medium" };
-  }
-
-  if (f.latestPhq9Item9 !== null && f.latestPhq9Item9 >= 1 && f.safetyScreenCompleted) {
-    // PHQ-9 item 9 positive but safety screen completed and non-acute
-    return { layer: "YELLOW", reasons: ["phq9_item9_positivo_triagem_ok"], confidence: "medium" };
   }
 
   if (f.todayHasSuicidalWarningSign && f.safetyScreenCompleted) {

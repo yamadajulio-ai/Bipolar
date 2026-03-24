@@ -14,6 +14,9 @@ import type { AlertLayer, RailResult } from "./types";
 
 export function getHeadline(layer: AlertLayer, safety: RailResult, syndrome: RailResult): string {
   if (layer === "RED") {
+    if (syndrome.reasons.includes("mania_aguda_grave")) {
+      return "Seus registros indicam um episódio intenso";
+    }
     return "Sua segurança vem primeiro";
   }
 
@@ -47,6 +50,9 @@ export function getHeadline(layer: AlertLayer, safety: RailResult, syndrome: Rai
 
 export function getDescription(layer: AlertLayer, safety: RailResult, syndrome: RailResult): string {
   if (layer === "RED") {
+    if (syndrome.reasons.includes("mania_aguda_grave")) {
+      return "Seus registros mostram sinais muito intensos de ativação — perda de sono, agitação, mudanças abruptas. Procure atendimento psiquiátrico de urgência agora.";
+    }
     return "Pelos seus registros e respostas, pode haver risco agudo. Procure ajuda agora.";
   }
 
@@ -88,11 +94,14 @@ const REASON_LABELS: Record<string, string> = {
   preparacao_ultimos_12_meses: "Preparação nos últimos 12 meses",
   ideacao_recente: "Ideação suicida recente",
   phq9_item9_positivo_sem_triagem: "Sinal na avaliação semanal — triagem pendente",
+  phq9_item9_frequente: "Pensamentos de autolesão frequentes (quase diários)",
+  phq9_item9_moderado_com_modificador: "Pensamentos de autolesão com fatores agravantes",
   historico_tentativa_remota: "Histórico de tentativa (remoto)",
   phq9_item9_positivo_triagem_ok: "Sinal na avaliação semanal — triagem já realizada",
   sinal_suicida_com_triagem_ok: "Sinal de alerta com triagem já realizada",
 
   // Syndrome
+  mania_aguda_grave: "Sinais intensos de ativação — possível episódio maníaco agudo",
   sinais_mistos_com_corroboracao: "Sinais mistos (ativação + rebaixamento simultâneos)",
   sinais_mistos_sem_corroboracao_completa: "Possíveis sinais mistos",
   sindrome_maniforme_provavel: "Sinais de ativação / possível hipomania",

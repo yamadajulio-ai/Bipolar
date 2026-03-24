@@ -28,6 +28,8 @@ import {
   ESSENTIAL_CATEGORIES,
   ASRM_HYPOMANIA_CUTOFF,
   ASRM_ACTIVATION_CUTOFF,
+  ASRM_SEVERE_MANIA_CUTOFF,
+  SEVERE_MANIA_MIN_CORROBORATORS,
   PHQ9_MODERATE_CUTOFF,
   PHQ9_SEVERE_CUTOFF,
   WARNING_CLUSTER_THRESHOLD,
@@ -312,6 +314,16 @@ export function deriveFeatures(input: DeriveFeaturesInput): DerivedFeatures {
     (scalesFresh && latestAsrmTotal !== null && latestAsrmTotal >= ASRM_ACTIVATION_CUTOFF && maniaActivationCount >= 2)
   );
 
+  // ── Syndrome: Severe mania (psychiatric emergency without suicidality) ──
+  // ASRM ≥ 11 + ≥3 corroborators + dangerous warning signs (agitation, disinhibition, psychotic features)
+  const dangerousManiaSigns = todayWarningSigns.some((s) =>
+    s === "agitacao" || s === "desinibicao" || s === "planos_grandiosos" || s === "agressividade",
+  );
+  const severeManiaAcute = scalesFresh &&
+    latestAsrmTotal !== null && latestAsrmTotal >= ASRM_SEVERE_MANIA_CUTOFF &&
+    activationCorroborators >= SEVERE_MANIA_MIN_CORROBORATORS &&
+    (dangerousManiaSigns || (sleepDropMajor && shortSleepStreak));
+
   // ── Syndrome: Depression ──────────────────────────────────────
   const depressionOrange = scalesFresh && latestPhq9Total !== null && (
     latestPhq9Total >= PHQ9_SEVERE_CUTOFF ||
@@ -377,6 +389,7 @@ export function deriveFeatures(input: DeriveFeaturesInput): DerivedFeatures {
     maniaYellow,
     depressionOrange,
     depressionYellow,
+    severeManiaAcute,
     prodromeMajorCount,
     prodromeMinorCount,
     prodromeOrange,

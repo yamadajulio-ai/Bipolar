@@ -57,6 +57,11 @@ export const PHQ9_MODERATE_CUTOFF = 10;
 /** PHQ-9 ≥ 15: moderately severe depression */
 export const PHQ9_SEVERE_CUTOFF = 15;
 
+/** ASRM ≥ 11: strongly elevated — suggests full mania (not just hypomania) */
+export const ASRM_SEVERE_MANIA_CUTOFF = 11;
+/** Minimum activation corroborators for severe mania RED (psychiatric emergency) */
+export const SEVERE_MANIA_MIN_CORROBORATORS = 3;
+
 // ── Medication adherence ─────────────────────────────────────────
 /** Adherence below this for mood stabilizers/antipsychotics = major concern */
 export const MED_NONADHERENCE_THRESHOLD = 0.80;

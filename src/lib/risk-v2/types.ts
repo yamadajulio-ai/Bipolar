@@ -144,6 +144,9 @@ export interface DerivedFeatures {
   depressionOrange: boolean;
   depressionYellow: boolean;
 
+  /** Severe mania: ASRM ≥ 11 + ≥3 corroborators + dangerous signs — psychiatric emergency even without suicidality */
+  severeManiaAcute: boolean;
+
   // Prodrome derived
   prodromeMajorCount: number;
   prodromeMinorCount: number;

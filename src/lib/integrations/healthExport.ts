@@ -48,9 +48,10 @@ export interface ProcessedSleepNight {
   date: string;       // YYYY-MM-DD (morning/wake date)
   bedtime: string;    // HH:MM
   wakeTime: string;   // HH:MM
-  totalHours: number;
+  totalHours: number; // Full bed-to-wake span (includes awake time)
   quality: number;    // 0-100
   awakenings: number;
+  awakeMinutes: number; // Minutes spent awake during sleep period
   hrv?: number;       // Heart Rate Variability SDNN (ms)
   heartRate?: number; // Resting heart rate (bpm)
   hasStages?: boolean; // Whether quality was derived from real stage data
@@ -563,6 +564,7 @@ function parseSummarizedData(
       totalHours,
       quality: 50, // Default — no stage breakdown in summarized mode
       awakenings: 0,
+      awakeMinutes: 0,
     });
   }
 
@@ -623,24 +625,24 @@ function processNight(segments: SleepSegment[]): ProcessedSleepNight | null {
   const bedtime = new Date(Math.min(...allSleepSegments.map((s) => s.start.getTime())));
   const wakeTime = new Date(Math.max(...allSleepSegments.map((s) => s.end.getTime())));
 
-  // Total sleep hours: when we have both generic "asleep" and detailed stages,
-  // use the full sleep span minus awake segments for more accurate total.
-  // This avoids the bug where summing only detailed stages gives a fraction
-  // of actual sleep time (e.g. 4h instead of 8h).
+  // Total sleep hours: full bed-to-wake span (includes awake time).
+  // awakeMinutes is tracked separately for display purposes.
+  const spanMs = wakeTime.getTime() - bedtime.getTime();
+  const awakeMs = segments
+    .filter((s) => s.stage === "awake")
+    .reduce((sum, s) => {
+      const segStart = Math.max(s.start.getTime(), bedtime.getTime());
+      const segEnd = Math.min(s.end.getTime(), wakeTime.getTime());
+      return sum + Math.max(0, segEnd - segStart);
+    }, 0);
+  const awakeMinutes = Math.round(awakeMs / (1000 * 60));
+
+  // For totalHours: use full span when we have proper boundaries,
+  // otherwise sum segments directly (fallback for sparse data)
   let totalMs: number;
   if (hasStageBreakdown && allSleepSegments.some((s) => s.stage === "asleep")) {
-    // We have both generic and detailed: use span minus awake time
-    const spanMs = wakeTime.getTime() - bedtime.getTime();
-    const awakeMs = segments
-      .filter((s) => s.stage === "awake")
-      .reduce((sum, s) => {
-        const segStart = Math.max(s.start.getTime(), bedtime.getTime());
-        const segEnd = Math.min(s.end.getTime(), wakeTime.getTime());
-        return sum + Math.max(0, segEnd - segStart);
-      }, 0);
-    totalMs = spanMs - awakeMs;
+    totalMs = spanMs; // Full bed-to-wake span
   } else {
-    // Only one type of data: sum the sleep segments directly
     totalMs = sleepSegments.reduce((sum, s) => sum + (s.end.getTime() - s.start.getTime()), 0);
   }
   const totalHours = Math.round((totalMs / (1000 * 60 * 60)) * 100) / 100;
@@ -665,6 +667,7 @@ function processNight(segments: SleepSegment[]): ProcessedSleepNight | null {
     totalHours,
     quality,
     awakenings,
+    awakeMinutes,
   };
 }
 

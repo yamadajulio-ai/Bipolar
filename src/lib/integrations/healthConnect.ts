@@ -337,6 +337,7 @@ function parseSleepSession(
     totalHours: Math.round(totalHours * 100) / 100,
     quality,
     awakenings,
+    awakeMinutes: Math.round(awakeSec / 60),
     hasStages,
     ...(hrv !== undefined && { hrv }),
     ...(heartRate !== undefined && { heartRate }),

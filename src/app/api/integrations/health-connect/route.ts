@@ -153,6 +153,7 @@ export async function POST(request: NextRequest) {
         totalHours: night.totalHours,
         quality: night.quality,
         awakenings: night.awakenings,
+        awakeMinutes: night.awakeMinutes,
         hrv: night.hrv ?? null,
         heartRate: night.heartRate ?? null,
       };
@@ -162,6 +163,7 @@ export async function POST(request: NextRequest) {
         bedtime: night.bedtime,
         wakeTime: night.wakeTime,
         totalHours: night.totalHours,
+        awakeMinutes: night.awakeMinutes,
       };
       // Only overwrite quality/awakenings if derived from real stage data
       if (night.hasStages) {

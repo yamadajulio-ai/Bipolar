@@ -106,7 +106,7 @@ export default async function SonoPage() {
           <Card className={`border-l-4 ${
             avgDuration !== null
               ? avgDuration >= 7 && avgDuration <= 9 ? "border-l-green-500"
-                : avgDuration >= 6 || avgDuration <= 10 ? "border-l-amber-500"
+                : avgDuration >= 5 ? "border-l-amber-500"
                 : "border-l-red-500"
               : "border-l-border"
           }`}>

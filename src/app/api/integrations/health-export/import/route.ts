@@ -41,6 +41,7 @@ export async function POST(request: NextRequest) {
         totalHours: night.totalHours,
         quality: night.quality,
         awakenings: night.awakenings,
+        awakeMinutes: night.awakeMinutes,
         hrv: night.hrv ?? null,
         heartRate: night.heartRate ?? null,
       };

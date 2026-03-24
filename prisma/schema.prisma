@@ -153,8 +153,9 @@ model SleepLog {
   wakeTime   String // HH:MM
   totalHours Float
   quality    Int // 0..100
-  awakenings Int      @default(0)
-  hrv        Int? // Heart Rate Variability (ms) — ex: RMSSD from wearable
+  awakenings   Int      @default(0)
+  awakeMinutes Int      @default(0) // Minutes spent awake during sleep period (from wearable)
+  hrv          Int? // Heart Rate Variability (ms) — ex: RMSSD from wearable
   heartRate  Int? // Resting heart rate (bpm) during sleep
   excluded   Boolean  @default(false) // Incomplete/unreliable record — excluded from metrics
   preRoutine String? // JSON array of routine keys

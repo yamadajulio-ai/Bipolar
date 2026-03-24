@@ -9,6 +9,7 @@ interface SleepLog {
   bedtime: string;
   wakeTime: string;
   totalHours: number;
+  awakeMinutes: number;
   hrv: number | null;
   heartRate: number | null;
   excluded: boolean;
@@ -37,15 +38,19 @@ export function SleepHistoryCard({ log }: { log: SleepLog }) {
   const router = useRouter();
 
   const isNap = log.totalHours < 1;
-  const isShort = !isNap && log.totalHours < 6;
-  const isGood = log.totalHours >= 7;
+  const isCritical = !isNap && log.totalHours < 5;   // < 5h → vermelho
+  const isShort = !isNap && log.totalHours >= 5 && log.totalHours < 6; // 5-6h → âmbar
+  const isOk = !isNap && log.totalHours >= 6 && log.totalHours < 7;   // 6-7h → neutro
+  const isGood = log.totalHours >= 7;                                   // >= 7h → verde
   const isSuspect = !isNap && log.totalHours >= 1 && log.totalHours < 4.5;
 
-  // Detect awakenings: difference between bed-to-wake span and stored totalHours
+  // Awake minutes: prefer DB field, fallback to computed from bed-to-wake span
   const inBedHours = bedToWakeHours(log.bedtime, log.wakeTime);
-  const awakeMinutes = inBedHours !== null
-    ? Math.round((inBedHours - log.totalHours) * 60)
-    : 0;
+  const awakeMinutes = log.awakeMinutes > 0
+    ? log.awakeMinutes
+    : inBedHours !== null
+      ? Math.max(0, Math.round((inBedHours - log.totalHours) * 60))
+      : 0;
   const durationPct = Math.min(100, Math.max(8, (log.totalHours / 10) * 100));
   const dateObj = new Date(log.date + "T12:00:00");
   const weekday = dateObj.toLocaleDateString("pt-BR", { weekday: "short" });
@@ -70,29 +75,34 @@ export function SleepHistoryCard({ log }: { log: SleepLog }) {
     }
   }
 
+  // Color bands: <1h purple (nap) | <5h red | 5-6h amber | 6-7h neutral | >=7h green
   const borderColor = excluded
     ? "border-border bg-surface-alt/50 opacity-60"
     : isNap
       ? "border-purple-200 bg-purple-50/40"
-      : isShort
+      : isCritical
         ? "border-red-200 bg-red-50/50"
-        : isGood
-          ? "border-emerald-200/50 bg-emerald-50/30"
-          : "border-border bg-surface";
+        : isShort
+          ? "border-amber-200 bg-amber-50/40"
+          : isGood
+            ? "border-emerald-200/50 bg-emerald-50/30"
+            : "border-border bg-surface";
 
   const durationColor = excluded
     ? "text-muted line-through"
     : isNap ? "text-purple-600"
-      : isShort ? "text-red-600"
-        : isGood ? "text-emerald-700"
-          : "text-foreground";
+      : isCritical ? "text-red-600"
+        : isShort ? "text-amber-600"
+          : isGood ? "text-emerald-700"
+            : "text-foreground";
 
   const barColor = excluded
     ? "bg-border"
     : isNap ? "bg-purple-400"
-      : isShort ? "bg-red-400"
-        : isGood ? "bg-emerald-400"
-          : "bg-amber-400";
+      : isCritical ? "bg-red-400"
+        : isShort ? "bg-amber-400"
+          : isGood ? "bg-emerald-400"
+            : "bg-amber-300";
 
   return (
     <div className={`rounded-lg border p-3 ${borderColor} transition-opacity`}>

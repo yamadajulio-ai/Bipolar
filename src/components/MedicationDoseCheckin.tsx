@@ -35,6 +35,7 @@ export function MedicationDoseCheckin({ date, onComplete, onTrackingStatus }: Pr
   const [summary, setSummary] = useState<MedicationDaySummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<Set<string>>(new Set());
+  const [editing, setEditing] = useState<Set<string>>(new Set());
 
   const fetchSummary = useCallback(async () => {
     try {
@@ -206,21 +207,43 @@ export function MedicationDoseCheckin({ date, onComplete, onTrackingStatus }: Pr
       {loggedDoses.length > 0 && (
         <div className="mb-3">
           <div className="space-y-1.5">
-            {loggedDoses.map((dose) => (
-              <div
-                key={dose.scheduleId}
-                className={`flex items-center gap-2 text-xs rounded-md px-2.5 py-1.5 ${
-                  dose.status === "TAKEN"
-                    ? "bg-emerald-50 text-emerald-700"
-                    : "bg-red-50 text-red-700"
-                }`}
-              >
-                <span>{dose.status === "TAKEN" ? "✓" : "✗"}</span>
-                <span className="font-medium">{dose.medicationName}</span>
-                {dose.dosageText && <span className="text-muted">({dose.dosageText})</span>}
-                <span className="ml-auto">{dose.timeLocal}</span>
-              </div>
-            ))}
+            {loggedDoses.map((dose) =>
+              editing.has(dose.scheduleId) ? (
+                <DoseRow
+                  key={dose.scheduleId}
+                  dose={{ ...dose, status: "PENDING", isOverdue: true }}
+                  saving={saving.has(dose.scheduleId)}
+                  onLog={(id, status) => {
+                    logDose(id, status);
+                    setEditing((prev) => {
+                      const next = new Set(prev);
+                      next.delete(id);
+                      return next;
+                    });
+                  }}
+                />
+              ) : (
+                <button
+                  key={dose.scheduleId}
+                  type="button"
+                  onClick={() =>
+                    setEditing((prev) => new Set(prev).add(dose.scheduleId))
+                  }
+                  className={`flex items-center gap-2 text-xs rounded-md px-2.5 py-1.5 w-full text-left ${
+                    dose.status === "TAKEN"
+                      ? "bg-emerald-50 text-emerald-700"
+                      : "bg-red-50 text-red-700"
+                  }`}
+                >
+                  <span>{dose.status === "TAKEN" ? "✓" : "✗"}</span>
+                  <span className="font-medium">{dose.medicationName}</span>
+                  {dose.dosageText && (
+                    <span className="text-muted">({dose.dosageText})</span>
+                  )}
+                  <span className="ml-auto">{dose.timeLocal}</span>
+                </button>
+              ),
+            )}
           </div>
         </div>
       )}

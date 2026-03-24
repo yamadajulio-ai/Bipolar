@@ -14,8 +14,7 @@ export async function GET() {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
-  const limited = await checkRateLimit(`hae_status_read:${session.userId}`, 60, 60_000);
-  if (limited) {
+  if (!(await checkRateLimit(`hae_status_read:${session.userId}`, 60, 60_000))) {
     return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
   }
 
@@ -79,8 +78,7 @@ export async function DELETE() {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
-  const limitedDel = await checkRateLimit(`hae_status_write:${session.userId}`, 30, 60_000);
-  if (limitedDel) {
+  if (!(await checkRateLimit(`hae_status_write:${session.userId}`, 30, 60_000))) {
     return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
   }
 

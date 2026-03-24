@@ -27,8 +27,7 @@ export async function GET() {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
-  const limited = await checkRateLimit(`acesso_prof_read:${session.userId}`, 60, 60_000);
-  if (limited) {
+  if (!(await checkRateLimit(`acesso_prof_read:${session.userId}`, 60, 60_000))) {
     return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
   }
 
@@ -66,8 +65,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
-  const limitedPost = await checkRateLimit(`acesso_prof_write:${session.userId}`, 30, 60_000);
-  if (limitedPost) {
+  if (!(await checkRateLimit(`acesso_prof_write:${session.userId}`, 30, 60_000))) {
     return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
   }
 
@@ -128,8 +126,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
-  const limitedDel = await checkRateLimit(`acesso_prof_write:${session.userId}`, 30, 60_000);
-  if (limitedDel) {
+  if (!(await checkRateLimit(`acesso_prof_write:${session.userId}`, 30, 60_000))) {
     return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
   }
 

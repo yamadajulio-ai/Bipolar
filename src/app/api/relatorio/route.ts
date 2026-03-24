@@ -10,8 +10,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
-  const limited = await checkRateLimit(`relatorio_read:${session.userId}`, 60, 60_000);
-  if (limited) {
+  if (!(await checkRateLimit(`relatorio_read:${session.userId}`, 60, 60_000))) {
     return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
   }
 

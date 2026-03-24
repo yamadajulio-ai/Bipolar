@@ -33,8 +33,7 @@ export async function POST(request: NextRequest) {
   const rateLimitKey = isAuth
     ? `sos_write:${session.userId}`
     : `sos_write_anon:${maskIp(getClientIp(request) || "unknown")}`;
-  const limited = await checkRateLimit(rateLimitKey, 60, 60_000);
-  if (limited) {
+  if (!(await checkRateLimit(rateLimitKey, 60, 60_000))) {
     return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
   }
 

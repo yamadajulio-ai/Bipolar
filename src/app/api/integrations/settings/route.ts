@@ -23,8 +23,7 @@ export async function GET() {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
-  const limited = await checkRateLimit(`integ_settings_read:${session.userId}`, 60, 60_000);
-  if (limited) {
+  if (!(await checkRateLimit(`integ_settings_read:${session.userId}`, 60, 60_000))) {
     return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
   }
 
@@ -47,8 +46,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
-  const limited = await checkRateLimit(`integ_settings_write:${session.userId}`, 30, 60_000);
-  if (limited) {
+  if (!(await checkRateLimit(`integ_settings_write:${session.userId}`, 30, 60_000))) {
     return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
   }
 
@@ -98,8 +96,7 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
-  const limitedPatch = await checkRateLimit(`integ_settings_write:${session.userId}`, 30, 60_000);
-  if (limitedPatch) {
+  if (!(await checkRateLimit(`integ_settings_write:${session.userId}`, 30, 60_000))) {
     return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
   }
 
@@ -150,8 +147,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
-  const limitedDel = await checkRateLimit(`integ_settings_write:${session.userId}`, 30, 60_000);
-  if (limitedDel) {
+  if (!(await checkRateLimit(`integ_settings_write:${session.userId}`, 30, 60_000))) {
     return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
   }
 

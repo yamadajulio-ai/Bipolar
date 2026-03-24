@@ -9,12 +9,47 @@ import { isSnapshotEnabled } from "@/lib/featureFlags";
 import * as Sentry from "@sentry/nextjs";
 
 const EDIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const REPROJECT_MAX_RETRIES = 3;
+
+/** Check if an error is a Prisma P2034 serialization failure */
+function isSerializationFailure(err: unknown): boolean {
+  return (
+    err !== null &&
+    typeof err === "object" &&
+    "code" in err &&
+    (err as { code: string }).code === "P2034"
+  );
+}
+
+/** Call reprojectEntry with retry on serialization conflicts (P2034) */
+async function reprojectWithRetry(
+  entryId: string,
+  dailyUpdate?: Record<string, unknown>,
+): Promise<number> {
+  for (let attempt = 0; attempt < REPROJECT_MAX_RETRIES; attempt++) {
+    try {
+      return await reprojectEntry(entryId, dailyUpdate);
+    } catch (err) {
+      if (isSerializationFailure(err) && attempt < REPROJECT_MAX_RETRIES - 1) {
+        Sentry.addBreadcrumb({
+          category: "db.retry",
+          message: `reprojectEntry serialization retry ${attempt + 1}/${REPROJECT_MAX_RETRIES} for entry ${entryId}`,
+          level: "warning",
+        });
+        continue;
+      }
+      throw err;
+    }
+  }
+  // Unreachable, but satisfies TypeScript
+  throw new Error("reprojectWithRetry: exhausted retries");
+}
 
 const snapshotSchema = z.object({
   mood: z.number().int().min(1).max(5),
   energy: z.number().int().min(1).max(5),
-  anxiety: z.number().int().min(1).max(5),
-  irritability: z.number().int().min(1).max(5),
+  anxiety: z.number().int().min(1).max(5).optional(),
+  irritability: z.number().int().min(1).max(5).optional(),
   warningSignsNow: z.string().optional(),
   note: z.string().max(280).optional(),
   clientRequestId: z.string().min(1).max(100),
@@ -34,47 +69,55 @@ const editSchema = z.object({
   note: z.string().max(280).optional(),
 });
 
-/** Helper: re-project all snapshots and update DiaryEntry */
+/** Helper: re-project all snapshots and update DiaryEntry.
+ *  Wrapped in a serializable transaction to prevent race conditions
+ *  when concurrent requests reproject the same entry. */
 async function reprojectEntry(entryId: string, dailyUpdate?: Record<string, unknown>) {
-  const allSnapshots = await prisma.moodSnapshot.findMany({
-    where: { diaryEntryId: entryId },
-    orderBy: { capturedAt: "asc" },
-  });
-
-  const projection = projectSnapshots(allSnapshots);
-  if (projection) {
-    await prisma.diaryEntry.update({
-      where: { id: entryId },
-      data: {
-        mood: projection.mood,
-        energyLevel: projection.energyLevel,
-        anxietyLevel: projection.anxietyLevel,
-        irritability: projection.irritability,
-        warningSigns: projection.warningSigns,
-        note: projection.note,
-        snapshotCount: projection.snapshotCount,
-        firstSnapshotAt: projection.firstSnapshotAt,
-        lastSnapshotAt: projection.lastSnapshotAt,
-        moodRange: projection.moodRange,
-        moodInstability: projection.moodInstability,
-        anxietyPeak: projection.anxietyPeak,
-        irritabilityPeak: projection.irritabilityPeak,
-        morningEveningDelta: projection.morningEveningDelta,
-        abruptShifts: projection.abruptShifts,
-        aggregationVersion: AGGREGATION_VERSION,
-        riskScoreCurrent: projection.riskScoreCurrent,
-        riskScorePeak: projection.riskScorePeak,
-        // Invalidate stale confirmation — projection changed, old confirmation is semantically invalid
-        summaryConfirmedAt: null,
-        ...dailyUpdate,
-      },
+  return prisma.$transaction(async (tx) => {
+    const allSnapshots = await tx.moodSnapshot.findMany({
+      where: { diaryEntryId: entryId },
+      orderBy: { capturedAt: "asc" },
     });
-  }
-  return allSnapshots.length;
+
+    const projection = projectSnapshots(allSnapshots);
+    if (projection) {
+      await tx.diaryEntry.update({
+        where: { id: entryId },
+        data: {
+          mood: projection.mood,
+          energyLevel: projection.energyLevel,
+          anxietyLevel: projection.anxietyLevel,
+          irritability: projection.irritability,
+          warningSigns: projection.warningSigns,
+          note: projection.note,
+          snapshotCount: projection.snapshotCount,
+          firstSnapshotAt: projection.firstSnapshotAt,
+          lastSnapshotAt: projection.lastSnapshotAt,
+          moodRange: projection.moodRange,
+          moodInstability: projection.moodInstability,
+          anxietyPeak: projection.anxietyPeak,
+          irritabilityPeak: projection.irritabilityPeak,
+          morningEveningDelta: projection.morningEveningDelta,
+          abruptShifts: projection.abruptShifts,
+          aggregationVersion: AGGREGATION_VERSION,
+          riskScoreCurrent: projection.riskScoreCurrent,
+          riskScorePeak: projection.riskScorePeak,
+          // Invalidate stale confirmation — projection changed, old confirmation is semantically invalid
+          summaryConfirmedAt: null,
+          ...dailyUpdate,
+        },
+      });
+    }
+    return allSnapshots.length;
+  }, {
+    isolationLevel: "Serializable",
+  });
 }
 
 /** POST /api/diario/snapshots — create a mood snapshot */
 export async function POST(request: NextRequest) {
+  const start = performance.now();
+
   const session = await getSession();
   if (!session.isLoggedIn) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
@@ -128,8 +171,8 @@ export async function POST(request: NextRequest) {
         mood: parsed.data.mood,
         sleepHours: parsed.data.sleepHours ?? 0,
         energyLevel: parsed.data.energy,
-        anxietyLevel: parsed.data.anxiety,
-        irritability: parsed.data.irritability,
+        anxietyLevel: parsed.data.anxiety ?? null,
+        irritability: parsed.data.irritability ?? null,
         tookMedication: parsed.data.tookMedication ?? null,
         warningSigns: parsed.data.warningSignsNow ?? null,
         mode: "AUTO_FROM_SNAPSHOT",
@@ -147,8 +190,8 @@ export async function POST(request: NextRequest) {
         clientRequestId: parsed.data.clientRequestId,
         mood: parsed.data.mood,
         energy: parsed.data.energy,
-        anxiety: parsed.data.anxiety,
-        irritability: parsed.data.irritability,
+        anxiety: parsed.data.anxiety ?? null,
+        irritability: parsed.data.irritability ?? null,
         warningSignsNow: parsed.data.warningSignsNow ?? null,
         note: parsed.data.note ?? null,
       },
@@ -163,13 +206,16 @@ export async function POST(request: NextRequest) {
       dailyUpdate.tookMedication = parsed.data.tookMedication;
     }
 
-    const count = await reprojectEntry(entry.id, dailyUpdate);
+    const count = await reprojectWithRetry(entry.id, dailyUpdate);
 
-    return NextResponse.json({
+    const elapsed = Math.round(performance.now() - start);
+    const res = NextResponse.json({
       id: snapshot.id,
       snapshotCount: count,
       capturedAt: snapshot.capturedAt,
     }, { status: 201 });
+    res.headers.set("Server-Timing", `total;dur=${elapsed}`);
+    return res;
   } catch (err) {
     Sentry.captureException(err, { tags: { endpoint: "diario/snapshots" } });
     return NextResponse.json(
@@ -260,7 +306,7 @@ export async function PATCH(request: NextRequest) {
     });
 
     // Re-project
-    await reprojectEntry(snapshot.diaryEntryId);
+    await reprojectWithRetry(snapshot.diaryEntryId);
 
     return NextResponse.json({ updated: true });
   } catch (err) {

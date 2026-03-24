@@ -177,7 +177,7 @@ export default function CheckinPage() {
         try { sessionStorage.removeItem(DRAFT_KEY); } catch {}
         track({ name: "checkin_complete", mode, snapshotCount: todaySnapshots.length });
         setSuccess(true);
-        setTimeout(() => router.push("/hoje"), 3000);
+        setTimeout(() => router.push("/hoje"), 8000);
       } else {
         // Create new snapshot
         const clientRequestId = `${today}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -221,7 +221,7 @@ export default function CheckinPage() {
         try { sessionStorage.removeItem(DRAFT_KEY); } catch {}
         track({ name: "checkin_complete", mode, snapshotCount: todaySnapshots.length + 1 });
         setSuccess(true);
-        setTimeout(() => router.push("/hoje"), 3000);
+        setTimeout(() => router.push("/hoje"), 8000);
       }
     } catch {
       setError("Erro de conexão. Tente novamente.");
@@ -231,6 +231,7 @@ export default function CheckinPage() {
   }
 
   if (success) {
+    const snapshotCount = todaySnapshots.length + (editingSnapshotId ? 0 : 1);
     return (
       <div className="mx-auto max-w-lg space-y-4">
         <div className="rounded-xl bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 p-6 text-center space-y-3">
@@ -240,12 +241,12 @@ export default function CheckinPage() {
             </svg>
           </div>
           <p className="text-lg font-semibold text-green-700 dark:text-green-300">Registrado!</p>
-          {todaySnapshots.length > 0 && (
+          {snapshotCount > 0 && (
             <p className="text-sm text-green-600 dark:text-green-400">
-              {todaySnapshots.length + (editingSnapshotId ? 0 : 1)} registro{todaySnapshots.length + (editingSnapshotId ? 0 : 1) !== 1 ? "s" : ""} hoje
+              {snapshotCount} {snapshotCount === 1 ? "registro" : "registros"} hoje
             </p>
           )}
-          <p className="text-sm text-muted">Que tal registrar seu sono tamb\u00e9m?</p>
+          <p className="text-sm text-muted">Que tal registrar seu sono também?</p>
           <Link
             href="/sono/novo"
             className="inline-block text-sm font-medium text-primary hover:text-primary-dark underline"
@@ -253,7 +254,15 @@ export default function CheckinPage() {
             Registrar sono
           </Link>
         </div>
-        <p className="text-center text-xs text-muted">Redirecionando para a tela inicial...</p>
+        <div className="flex flex-col items-center gap-2">
+          <button
+            onClick={() => router.push("/hoje")}
+            className="text-sm font-medium text-primary hover:text-primary-dark underline"
+          >
+            Ir para a tela inicial
+          </button>
+          <p className="text-center text-xs text-muted">Redirecionando automaticamente em alguns segundos...</p>
+        </div>
       </div>
     );
   }

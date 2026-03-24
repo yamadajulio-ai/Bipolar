@@ -13,8 +13,8 @@ interface ModuleItem {
 const quickAccess: ModuleItem[] = [
   { href: "/checkin", label: "Check-in", description: "Registrar humor agora" },
   { href: "/sono/novo", label: "Registrar Sono", description: "Novo registro de sono" },
-  { href: "/insights", label: "Insights", description: "Padr\u00f5es e tend\u00eancias" },
-  { href: "/plano-de-crise", label: "Plano de Crise", description: "Contatos e estrat\u00e9gias" },
+  { href: "/insights", label: "Insights", description: "Padrões e tendências" },
+  { href: "/plano-de-crise", label: "Plano de Crise", description: "Contatos e estratégias" },
 ];
 
 const sections: { title: string; items: ModuleItem[]; defaultOpen: boolean }[] = [
@@ -22,31 +22,31 @@ const sections: { title: string; items: ModuleItem[]; defaultOpen: boolean }[] =
     title: "Registros",
     defaultOpen: true,
     items: [
-      { href: "/meu-diario", label: "Meu Di\u00e1rio", description: "Pensamentos, sentimentos e insights pessoais" },
-      { href: "/diario", label: "Hist\u00f3rico de Humor", description: "Hist\u00f3rico completo de check-ins e tend\u00eancias" },
-      { href: "/diario/tendencias", label: "Tend\u00eancias de Humor", description: "Gr\u00e1ficos e alertas de padr\u00e3o" },
-      { href: "/sono", label: "Hist\u00f3rico de Sono", description: "Registro detalhado de sono" },
-      { href: "/sono/tendencias", label: "Tend\u00eancias de Sono", description: "Regularidade e qualidade" },
+      { href: "/meu-diario", label: "Meu Diário", description: "Pensamentos, sentimentos e insights pessoais" },
+      { href: "/diario", label: "Histórico de Humor", description: "Histórico completo de check-ins e tendências" },
+      { href: "/diario/tendencias", label: "Tendências de Humor", description: "Gráficos e alertas de padrão" },
+      { href: "/sono", label: "Histórico de Sono", description: "Registro detalhado de sono" },
+      { href: "/sono/tendencias", label: "Tendências de Sono", description: "Regularidade e qualidade" },
       { href: "/financeiro", label: "Financeiro", description: "Gastos cruzados com humor e energia" },
     ],
   },
   {
-    title: "Avalia\u00e7\u00f5es",
+    title: "Avaliações",
     defaultOpen: true,
     items: [
-      { href: "/avaliacao-semanal", label: "Avalia\u00e7\u00e3o Semanal", description: "Mania, depress\u00e3o e funcionamento" },
+      { href: "/avaliacao-semanal", label: "Avaliação Semanal", description: "Mania, depressão e funcionamento" },
       { href: "/life-chart", label: "Life Chart", description: "Registro de eventos significativos" },
-      { href: "/circadiano", label: "Circadiano", description: "An\u00e1lise do seu ritmo circadiano" },
-      { href: "/cognitivo", label: "Cognitivo", description: "Tarefas de tempo de rea\u00e7\u00e3o e mem\u00f3ria" },
-      { href: "/relatorio", label: "Relat\u00f3rio Mensal", description: "Resumo para profissionais de sa\u00fade" },
+      { href: "/circadiano", label: "Circadiano", description: "Análise do seu ritmo circadiano" },
+      { href: "/cognitivo", label: "Cognitivo", description: "Tarefas de tempo de reação e memória" },
+      { href: "/relatorio", label: "Relatório Mensal", description: "Resumo para profissionais de saúde" },
     ],
   },
   {
     title: "Bem-estar",
     defaultOpen: true,
     items: [
-      { href: "/exercicios", label: "Exerc\u00edcios", description: "Respira\u00e7\u00e3o e aterramento" },
-      { href: "/sons", label: "Sons Ambiente", description: "Ru\u00eddo branco, rosa, marrom e chuva" },
+      { href: "/exercicios", label: "Exercícios", description: "Respiração e aterramento" },
+      { href: "/sons", label: "Sons Ambiente", description: "Ruído branco, rosa, marrom e chuva" },
       { href: "/planejador", label: "Agenda - Rotina", description: "Blocos semanais de atividades" },
     ],
   },
@@ -56,23 +56,23 @@ const sections: { title: string; items: ModuleItem[]; defaultOpen: boolean }[] =
     items: [
       { href: "/como-usar", label: "Como Usar", description: "Guia completo de como usar o sistema" },
       { href: "/conteudos", label: "Biblioteca", description: "Artigos educacionais sobre Transtorno Bipolar" },
-      { href: "/noticias", label: "Not\u00edcias", description: "Estudos e not\u00edcias atualizadas" },
+      { href: "/noticias", label: "Notícias", description: "Estudos e notícias atualizadas" },
       { href: "/cursos", label: "Cursos", description: "Cursos estruturados com aulas" },
-      { href: "/familias", label: "Fam\u00edlias", description: "Guia para familiares e cuidadores" },
+      { href: "/familias", label: "Famílias", description: "Guia para familiares e cuidadores" },
     ],
   },
   {
-    title: "Configura\u00e7\u00f5es",
+    title: "Configurações",
     defaultOpen: false,
     items: [
-      { href: "/medicamentos", label: "Meus Medicamentos", description: "Cadastre medicamentos e hor\u00e1rios para ades\u00e3o por dose" },
-      { href: "/plano-de-crise", label: "Plano de Crise", description: "Contatos e estrat\u00e9gias pessoais" },
-      { href: "/integracoes", label: "Integra\u00e7\u00f5es", description: "Apple Health, Health Connect, Google Agenda, Mobills" },
-      { href: "/perfil", label: "Perfil de Sa\u00fade", description: "Acesso a recursos e recomenda\u00e7\u00f5es" },
+      { href: "/medicamentos", label: "Meus Medicamentos", description: "Cadastre medicamentos e horários para adesão por dose" },
+      { href: "/plano-de-crise", label: "Plano de Crise", description: "Contatos e estratégias pessoais" },
+      { href: "/integracoes", label: "Integrações", description: "Apple Health, Health Connect, Google Agenda, Mobills" },
+      { href: "/perfil", label: "Perfil de Saúde", description: "Acesso a recursos e recomendações" },
       { href: "/acesso-profissional", label: "Acesso Profissional", description: "Compartilhe dados com seu psiquiatra" },
       { href: "/consentimentos", label: "Privacidade", description: "Gerenciar consentimentos e dados" },
-      { href: "/feedback", label: "Feedback", description: "Sugest\u00f5es, problemas ou elogios" },
-      { href: "/conta", label: "Conta", description: "Configura\u00e7\u00f5es e lembretes" },
+      { href: "/feedback", label: "Feedback", description: "Sugestões, problemas ou elogios" },
+      { href: "/conta", label: "Conta", description: "Configurações e lembretes" },
     ],
   },
 ];
@@ -132,10 +132,10 @@ function getContextualRecommendation(): { href: string; label: string; descripti
       return { href: "/sono/novo", label: "Registrar sono", description: "Bom dia! Registre como foi sua noite de sono." };
     }
     if (hour >= 20) {
-      return { href: "/checkin", label: "Check-in noturno", description: "Boa noite! Como voc\u00ea est\u00e1 se sentindo agora?" };
+      return { href: "/checkin", label: "Check-in noturno", description: "Boa noite! Como você está se sentindo agora?" };
     }
   } catch {
-    // timezone parsing failed \u2014 skip
+    // timezone parsing failed — skip
   }
   return null;
 }

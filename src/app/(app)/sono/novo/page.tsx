@@ -121,7 +121,7 @@ export default function NovoSonoPage() {
             Fazer check-in
           </Link>
         </div>
-        <p className="text-center text-xs text-muted">Redirecionando para o hist\u00f3rico de sono...</p>
+        <p className="text-center text-xs text-muted">Redirecionando para o histórico de sono...</p>
       </div>
     );
   }

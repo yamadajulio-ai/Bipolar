@@ -396,6 +396,22 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
               <p className="text-sm text-amber-800">
                 Detectamos sinais que merecem atenção. O painel foi simplificado para mostrar apenas o essencial agora.
               </p>
+              {risk?.factors && risk.factors.length > 0 && (
+                <details className="mt-2">
+                  <summary className="text-xs text-amber-700 cursor-pointer hover:text-amber-900">
+                    Por que esse alerta foi ativado?
+                  </summary>
+                  <ul className="mt-1.5 space-y-0.5 text-xs text-amber-800">
+                    {risk.factors.map((f, i) => (
+                      <li key={i}>• {f}</li>
+                    ))}
+                    {bipolarContext.mixedFeatures && (
+                      <li>• Estado misto: {bipolarContext.mixedStrength === "forte" ? "forte" : "provável"} (M:{thermometer?.maniaScore ?? "?"} D:{thermometer?.depressionScore ?? "?"})</li>
+                    )}
+                    <li className="text-amber-600 mt-1">Score total: {risk.score} (alerta a partir de 4)</li>
+                  </ul>
+                </details>
+              )}
               <a
                 href="/hoje?full=1"
                 className="inline-block mt-2 text-xs text-amber-700 underline hover:text-amber-900"

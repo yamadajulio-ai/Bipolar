@@ -1,16 +1,15 @@
 "use client";
 
 /**
- * SafetyNudge — shown when PHQ-9 item 9 >= 1, risk score is high,
- * or bipolar-specific triggers are detected (mixed state, sleep
- * deprivation, agitation/impulsivity).
+ * SafetyNudge — shown on /insights and /avaliacao-semanal when
+ * PHQ-9 item 9 >= 1 or bipolar-specific triggers are detected.
  *
- * Emergency resources are tiered per Brazilian health system:
- * - SAMU 192 = emergência/risco imediato
- * - CVV 188 = escuta e apoio emocional 24h
- * - CAPS/UBS = cuidado continuado
+ * POST risk-v2 migration:
+ * - "emergencia" level REMOVED — SAMU 192 is now exclusive to SafetyModeScreen (RED).
+ * - Only "atencao" (CVV 188) and "cuidado" (CAPS/UBS) remain.
+ * - PHQ-9 item 9 positive links user to safety screening on /hoje.
  *
- * Based on Columbia Protocol guidelines for digital tools.
+ * Based on ASQ Toolkit guidelines for digital tools.
  */
 
 interface Props {
@@ -35,37 +34,24 @@ interface Props {
   } | null;
 }
 
-type UrgencyLevel = "emergencia" | "atencao" | "cuidado";
+type UrgencyLevel = "atencao" | "cuidado";
 
 function getUrgencyLevel(
   phq9Item9: number | null | undefined,
   riskLevel: string | null | undefined,
   bipolarContext: Props["bipolarContext"],
 ): UrgencyLevel {
-  // Emergency: active suicidal ideation (PHQ-9 item 9 >= 2) or very high risk
-  if (phq9Item9 !== null && phq9Item9 !== undefined && phq9Item9 >= 2) return "emergencia";
-  if (riskLevel === "atencao_alta") return "emergencia";
-
-  // Emergency: strong mixed state (high M + D simultaneously — most dangerous bipolar state)
-  if (bipolarContext?.mixedFeatures && bipolarContext.mixedStrength === "forte") return "emergencia";
-
-  // Attention: moderate signals — PHQ-9 item 9 = 1, probable mixed, or severe sleep deprivation
+  // Attention: PHQ-9 item 9 positive, high risk, mixed state, severe sleep deprivation
   if (phq9Item9 !== null && phq9Item9 !== undefined && phq9Item9 >= 1) return "atencao";
+  if (riskLevel === "atencao_alta") return "atencao";
   if (bipolarContext?.mixedFeatures) return "atencao";
   if (bipolarContext?.consecutiveShortSleep && bipolarContext.consecutiveShortSleep >= 4) return "atencao";
-
-  // Attention: multiple mania signs (agitation, impulsivity, racing thoughts)
   if (bipolarContext?.maniaSignsActive && bipolarContext.maniaSignsActive.length >= 2) return "atencao";
 
   return "cuidado";
 }
 
 function getHeadline(urgency: UrgencyLevel, bipolarContext: Props["bipolarContext"]): string {
-  if (urgency === "emergencia") {
-    return "Percebemos que você pode estar passando por um momento difícil";
-  }
-
-  // Bipolar-specific headlines
   if (bipolarContext?.mixedFeatures) {
     return "Seus registros mostram sinais mistos que merecem atenção";
   }
@@ -76,14 +62,21 @@ function getHeadline(urgency: UrgencyLevel, bipolarContext: Props["bipolarContex
     return "Seus registros recentes mostram sinais de ativação que merecem atenção";
   }
 
+  if (urgency === "atencao") {
+    return "Percebemos que você pode estar passando por um momento difícil";
+  }
+
   return "Cuidando de você";
 }
 
-function getDescription(urgency: UrgencyLevel, bipolarContext: Props["bipolarContext"]): string {
-  if (urgency === "emergencia") {
-    return "Se você está tendo pensamentos de se machucar, saiba que existem pessoas prontas para ajudar — 24 horas, todos os dias.";
+function getDescription(
+  urgency: UrgencyLevel,
+  phq9Item9: number | null | undefined,
+  bipolarContext: Props["bipolarContext"],
+): string {
+  if (phq9Item9 !== null && phq9Item9 !== undefined && phq9Item9 >= 1) {
+    return "Suas respostas indicam pensamentos que merecem atenção. Na página Hoje há uma triagem rápida e confidencial que pode ajudar a entender qual apoio faz sentido agora.";
   }
-
   if (bipolarContext?.mixedFeatures) {
     return "Quando sinais de ativação e rebaixamento aparecem juntos, o desconforto pode ser intenso. Conversar com seu profissional pode ajudar a entender o que está acontecendo.";
   }
@@ -109,45 +102,42 @@ export function SafetyNudge({ phq9Item9, riskLevel, compact, bipolarContext }: P
   if (!showForPhq9 && !showForRisk && !showForBipolar) return null;
 
   const urgency = getUrgencyLevel(phq9Item9, riskLevel, bipolarContext);
-  const isUrgent = urgency === "emergencia";
-  const liveRole = isUrgent ? "alert" as const : "status" as const;
+  const isAtencao = urgency === "atencao";
 
   if (compact) {
     return (
       <div
-        role={liveRole}
-        className={`rounded-lg p-3 text-sm ${
-          isUrgent
-            ? "border border-red-700 bg-red-950/50 text-red-200"
-            : "border border-amber-700 bg-amber-950/50 text-amber-200"
-        }`}
+        role="alert"
+        aria-live="polite"
+        className="rounded-lg border border-amber-700 bg-amber-950/50 p-3 text-sm text-amber-200"
       >
         <p className="font-medium">
-          {isUrgent
-            ? "Se precisar de ajuda agora:"
-            : "Lembre-se: você não está sozinho."}
+          Lembre-se: você não está sozinho.
         </p>
         <div className="mt-1 flex flex-wrap gap-2">
-          {isUrgent && (
-            <a
-              href="tel:192"
-              className="inline-flex items-center rounded-full bg-red-700/50 px-3 py-1 text-xs font-medium hover:bg-red-700/70"
-            >
-              SAMU 192
-            </a>
-          )}
           <a
             href="tel:188"
-            className="inline-flex items-center rounded-full bg-white/10 px-3 py-1 text-xs font-medium hover:bg-white/20"
+            aria-label="Ligar para CVV 188"
+            className="inline-flex items-center rounded-full bg-white/10 px-3 py-1 min-h-[44px] min-w-[44px] text-xs font-medium hover:bg-white/20"
           >
             CVV 188
           </a>
           <a
             href="/sos"
-            className="inline-flex items-center rounded-full bg-white/10 px-3 py-1 text-xs font-medium hover:bg-white/20"
+            aria-label="Abrir página de SOS"
+            className="inline-flex items-center rounded-full bg-white/10 px-3 py-1 min-h-[44px] min-w-[44px] text-xs font-medium hover:bg-white/20"
           >
             SOS
           </a>
+          {showForPhq9 && (
+            <a
+              href="/hoje"
+              aria-label="Ir para triagem de segurança"
+              className="inline-flex items-center rounded-full bg-amber-700/50 px-3 py-1 min-h-[44px] min-w-[44px] text-xs font-medium hover:bg-amber-700/70"
+            >
+              Triagem rápida
+            </a>
+          )}
         </div>
       </div>
     );
@@ -155,89 +145,72 @@ export function SafetyNudge({ phq9Item9, riskLevel, compact, bipolarContext }: P
 
   return (
     <div
-      role={liveRole}
-      className={`rounded-xl p-5 ${
-        isUrgent
-          ? "border border-red-700 bg-red-950/50"
-          : "border border-amber-700 bg-amber-950/50"
-      }`}
+      role="alert"
+      aria-live="polite"
+      className="rounded-xl border border-amber-700 bg-amber-950/50 p-5"
     >
-      <h3
-        className={`mb-2 text-sm font-semibold ${
-          isUrgent ? "text-red-300" : "text-amber-300"
-        }`}
-      >
+      <h3 className="mb-2 text-sm font-semibold text-amber-300">
         {getHeadline(urgency, bipolarContext)}
       </h3>
 
-      <p className={`mb-3 text-sm ${isUrgent ? "text-red-200" : "text-amber-200"}`}>
-        {getDescription(urgency, bipolarContext)}
+      <p className="mb-3 text-sm text-amber-200">
+        {getDescription(urgency, phq9Item9, bipolarContext)}
       </p>
 
-      {/* Tiered emergency resources — differentiated per Brazilian health system */}
       <div className="space-y-2">
-        {/* Tier 1: Emergency — SAMU 192 (shown for urgent/emergency level) */}
-        {isUrgent && (
-          <div className="flex flex-wrap gap-2">
-            <a
-              href="tel:192"
-              className="inline-flex items-center rounded-lg bg-red-700 px-4 py-2 text-sm font-medium text-white hover:bg-red-600"
-            >
-              SAMU 192 — Emergência
-            </a>
-          </div>
+        {/* PHQ-9 item 9 positive: link to safety screening on /hoje */}
+        {showForPhq9 && (
+          <a
+            href="/hoje"
+            aria-label="Ir para triagem de segurança na página Hoje"
+            className="inline-flex items-center rounded-lg bg-amber-700 px-4 py-2 min-h-[44px] min-w-[44px] text-sm font-medium text-white hover:bg-amber-600"
+          >
+            Fazer triagem de segurança
+          </a>
         )}
 
-        {/* Tier 2: Emotional support — CVV 188 (always shown) */}
+        {/* CVV 188 + SOS + Crisis plan */}
         <div className="flex flex-wrap gap-2">
           <a
             href="tel:188"
-            className={`inline-flex items-center rounded-lg px-4 py-2 text-sm font-medium ${
-              isUrgent
-                ? "bg-white/10 text-gray-200 hover:bg-white/20"
-                : "bg-amber-700 text-white hover:bg-amber-600"
+            aria-label="Ligar para CVV 188 — Escuta e apoio 24 horas"
+            className={`inline-flex items-center rounded-lg px-4 py-2 min-h-[44px] min-w-[44px] text-sm font-medium ${
+              isAtencao && !showForPhq9
+                ? "bg-amber-700 text-white hover:bg-amber-600"
+                : "bg-white/10 text-foreground/80 hover:bg-white/20"
             }`}
           >
             CVV 188 — Escuta e apoio 24h
           </a>
           <a
             href="/sos"
-            className="inline-flex items-center rounded-lg bg-white/10 px-4 py-2 text-sm font-medium text-gray-200 hover:bg-white/20"
+            aria-label="Abrir página de SOS"
+            className="inline-flex items-center rounded-lg bg-white/10 px-4 py-2 min-h-[44px] min-w-[44px] text-sm font-medium text-foreground/80 hover:bg-white/20"
           >
             Abrir SOS
           </a>
           <a
             href="/plano-de-crise"
-            className="inline-flex items-center rounded-lg bg-white/10 px-4 py-2 text-sm font-medium text-gray-200 hover:bg-white/20"
+            aria-label="Abrir meu plano de crise"
+            className="inline-flex items-center rounded-lg bg-white/10 px-4 py-2 min-h-[44px] min-w-[44px] text-sm font-medium text-foreground/80 hover:bg-white/20"
           >
             Meu plano de crise
           </a>
         </div>
 
-        {/* Tier 3: Continued care — CAPS/UBS + alternative for users without professional */}
-        <div className={`mt-1 rounded-lg p-2 text-xs ${
-          isUrgent ? "bg-red-950/30 text-red-300/80" : "bg-amber-950/30 text-amber-300/80"
-        }`}>
-          {urgency === "emergencia" ? (
-            <p>
-              Se não tem profissional de referência: vá ao pronto-socorro ou UPA mais próximo,
-              ou ligue 192 (SAMU) para atendimento psiquiátrico de urgência.
-            </p>
-          ) : (
-            <>
-              <p className="font-medium mb-0.5">Não tem profissional de referência?</p>
-              <p>
-                O CAPS (Centro de Atenção Psicossocial) oferece atendimento gratuito pelo SUS,
-                inclusive para transtorno bipolar. Procure o CAPS mais próximo ou peça
-                encaminhamento na UBS do seu bairro.
-              </p>
-            </>
-          )}
+        {/* CAPS/UBS guidance for users without a professional */}
+        <div className="mt-1 rounded-lg bg-amber-950/30 p-2 text-xs text-amber-300/80">
+          <p className="font-medium mb-0.5">Não tem profissional de referência?</p>
+          <p>
+            O CAPS (Centro de Atenção Psicossocial) oferece atendimento gratuito pelo SUS,
+            inclusive para transtorno bipolar. Procure o CAPS mais próximo ou peça
+            encaminhamento na UBS do seu bairro.
+          </p>
         </div>
       </div>
 
       <p className="mt-3 text-[10px] text-muted">
-        Este aplicativo não substitui avaliação profissional. Em emergência, ligue 192 (SAMU).
+        Este aplicativo não substitui avaliação profissional.
       </p>
     </div>
   );

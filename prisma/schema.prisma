@@ -8,51 +8,56 @@ datasource db {
 }
 
 model User {
-  id               String             @id @default(uuid())
-  email            String             @unique
-  passwordHash     String?
-  authProvider     String             @default("email")
-  googleSub        String?            @unique
-  name             String?
-  whatsappPhone    String?            // E.164 format, e.g. "+5511999999999"
-  role             String             @default("user") // "user" | "admin"
-  onboarded        Boolean            @default(false)
-  onboardingGoal   String?
-  createdAt        DateTime           @default(now())
-  entries          DiaryEntry[]
-  medications      Medication[]
-  medicationLogs   MedicationLog[]
-  views            ContentView[]
-  sleepLogs        SleepLog[]
-  exerciseSessions ExerciseSession[]
-  dailyRhythms     DailyRhythm[]
-  reminderSettings ReminderSettings?
-  crisisPlan       CrisisPlan?
-  courseProgress    CourseProgress[]
-  plannerBlocks    PlannerBlock[]
-  stabilityRule    StabilityRule?
-  googleAccount         GoogleAccount?
-  integrationKeys       IntegrationKey[]
-  healthMetrics         HealthMetric[]
-  financialTransactions FinancialTransaction[]
-  alertFeedbacks        AlertFeedback[]
-  sosEvents             SOSEvent[]
-  socioeconomicProfile  SocioeconomicProfile?
-  professionalAccesses  ProfessionalAccess[]
-  consents              Consent[]
-  weeklyAssessments     WeeklyAssessment[]
-  lifeChartEvents       LifeChartEvent[]
-  functioningAssessments FunctioningAssessment[]
-  cognitiveTests         CognitiveTest[]
-  pushSubscriptions      PushSubscription[]
-  feedbacks              Feedback[]
-  contextualFeedbacks    ContextualFeedback[]
-  journalEntries         JournalEntry[]
-  narratives             Narrative[]
+  id                      String                   @id @default(uuid())
+  email                   String                   @unique
+  passwordHash            String?
+  passwordChangedAt       DateTime?
+  authProvider            String                   @default("email")
+  googleSub               String?                  @unique
+  name                    String?
+  whatsappPhone           String? // E.164 format, e.g. "+5511999999999"
+  role                    String                   @default("user") // "user" | "admin"
+  onboarded               Boolean                  @default(false)
+  onboardingGoal          String?
+  createdAt               DateTime                 @default(now())
+  entries                 DiaryEntry[]
+  medications             Medication[]
+  medicationLogs          MedicationLog[]
+  views                   ContentView[]
+  sleepLogs               SleepLog[]
+  exerciseSessions        ExerciseSession[]
+  dailyRhythms            DailyRhythm[]
+  reminderSettings        ReminderSettings?
+  crisisPlan              CrisisPlan?
+  courseProgress          CourseProgress[]
+  plannerBlocks           PlannerBlock[]
+  stabilityRule           StabilityRule?
+  googleAccount           GoogleAccount?
+  integrationKeys         IntegrationKey[]
+  healthMetrics           HealthMetric[]
+  financialTransactions   FinancialTransaction[]
+  alertFeedbacks          AlertFeedback[]
+  sosEvents               SOSEvent[]
+  socioeconomicProfile    SocioeconomicProfile?
+  professionalAccesses    ProfessionalAccess[]
+  consents                Consent[]
+  weeklyAssessments       WeeklyAssessment[]
+  lifeChartEvents         LifeChartEvent[]
+  functioningAssessments  FunctioningAssessment[]
+  cognitiveTests          CognitiveTest[]
+  pushSubscriptions       PushSubscription[]
+  feedbacks               Feedback[]
+  contextualFeedbacks     ContextualFeedback[]
+  journalEntries          JournalEntry[]
+  narratives              Narrative[]
   communicationPreference CommunicationPreference?
-  messageLogs            MessageLog[]
-  displayPreferences     DisplayPreferences?
-  moodSnapshots          MoodSnapshot[]
+  messageLogs             MessageLog[]
+  displayPreferences      DisplayPreferences?
+  moodSnapshots           MoodSnapshot[]
+  dailyRiskSnapshots      DailyRiskSnapshot[]
+  alertEpisodes           AlertEpisode[]
+  safetyScreenings        SafetyScreeningSession[]
+  earlyWarningProfile     EarlyWarningProfile?
 }
 
 enum DiaryEntryMode {
@@ -61,70 +66,70 @@ enum DiaryEntryMode {
 }
 
 model DiaryEntry {
-  id             String   @id @default(uuid())
+  id             String  @id @default(uuid())
   userId         String
-  date           String   // YYYY-MM-DD
-  mood           Int      // 1..5
-  sleepHours     Float    // 0..24
-  note           String?  // max 280 chars
-  energyLevel    Int?     // 1..5 (1=letargico, 5=agitado)
-  anxietyLevel   Int?     // 1..5
-  irritability   Int?     // 1..5
-  tookMedication String?  // legacy: "sim" | "nao" | "nao_sei" — kept for backward compat
-  warningSigns   String?  // JSON array of selected warning sign keys
+  date           String // YYYY-MM-DD
+  mood           Int // 1..5
+  sleepHours     Float // 0..24
+  note           String? // max 280 chars
+  energyLevel    Int? // 1..5 (1=letargico, 5=agitado)
+  anxietyLevel   Int? // 1..5
+  irritability   Int? // 1..5
+  tookMedication String? // legacy: "sim" | "nao" | "nao_sei" — kept for backward compat
+  warningSigns   String? // JSON array of selected warning sign keys
 
   // Snapshot metadata
   mode                DiaryEntryMode @default(LEGACY_SINGLE)
   snapshotCount       Int            @default(0)
   firstSnapshotAt     DateTime?
   lastSnapshotAt      DateTime?
-  moodRange           Int?           // max - min mood across snapshots
-  moodInstability     Float?         // mean absolute successive difference
-  anxietyPeak         Int?           // max anxiety across snapshots
-  irritabilityPeak    Int?           // max irritability across snapshots
-  morningEveningDelta Int?           // last mood - first mood
-  abruptShifts        Int?           // count of mood changes >= 2 points
+  moodRange           Int? // max - min mood across snapshots
+  moodInstability     Float? // mean absolute successive difference
+  anxietyPeak         Int? // max anxiety across snapshots
+  irritabilityPeak    Int? // max irritability across snapshots
+  morningEveningDelta Int? // last mood - first mood
+  abruptShifts        Int? // count of mood changes >= 2 points
   aggregationVersion  Int            @default(1)
   summaryConfirmedAt  DateTime?
 
   // Risk scores (snapshot-derived)
-  riskScoreCurrent    Int?           // risk from latest snapshot
-  riskScoreDaily      Int?           // risk from daily aggregate
-  riskScorePeak       Int?           // max risk across all snapshots
+  riskScoreCurrent Int? // risk from latest snapshot
+  riskScoreDaily   Int? // risk from daily aggregate
+  riskScorePeak    Int? // max risk across all snapshots
 
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @default(now()) @updatedAt
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @default(now()) @updatedAt
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   medicationLogs MedicationLog[]
   snapshots      MoodSnapshot[]
 
+  @@unique([userId, date])
   @@index([userId])
   @@index([date])
-  @@unique([userId, date])
 }
 
 model MoodSnapshot {
-  id              String   @id @default(cuid())
-  userId          String
-  diaryEntryId    String
+  id           String @id @default(cuid())
+  userId       String
+  diaryEntryId String
 
   capturedAt      DateTime // instante real do check-in (UTC)
   receivedAt      DateTime @default(now()) // quando o servidor recebeu
-  localDate       String   // YYYY-MM-DD em America/Sao_Paulo
+  localDate       String // YYYY-MM-DD em America/Sao_Paulo
   timezone        String   @default("America/Sao_Paulo")
   clientRequestId String   @unique // idempotência mobile
 
-  mood            Int      // 1..5
-  energy          Int      // 1..5
-  anxiety         Int      // 1..5
-  irritability    Int      // 1..5
-  warningSignsNow String?  // JSON array, sinais momentâneos
+  mood            Int // 1..5
+  energy          Int // 1..5
+  anxiety         Int // 1..5
+  irritability    Int // 1..5
+  warningSignsNow String? // JSON array, sinais momentâneos
   note            String?
 
-  createdAt       DateTime @default(now())
+  createdAt DateTime @default(now())
 
-  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  diaryEntry      DiaryEntry @relation(fields: [diaryEntryId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  diaryEntry DiaryEntry @relation(fields: [diaryEntryId], references: [id], onDelete: Cascade)
 
   @@index([userId, localDate, capturedAt])
   @@index([userId, capturedAt])
@@ -143,28 +148,28 @@ model ContentView {
 model SleepLog {
   id         String   @id @default(uuid())
   userId     String
-  date       String   // YYYY-MM-DD (morning date)
-  bedtime    String   // HH:MM
-  wakeTime   String   // HH:MM
+  date       String // YYYY-MM-DD (morning date)
+  bedtime    String // HH:MM
+  wakeTime   String // HH:MM
   totalHours Float
-  quality    Int      // 0..100
+  quality    Int // 0..100
   awakenings Int      @default(0)
-  hrv        Int?     // Heart Rate Variability (ms) — ex: RMSSD from wearable
-  heartRate  Int?     // Resting heart rate (bpm) during sleep
+  hrv        Int? // Heart Rate Variability (ms) — ex: RMSSD from wearable
+  heartRate  Int? // Resting heart rate (bpm) during sleep
   excluded   Boolean  @default(false) // Incomplete/unreliable record — excluded from metrics
-  preRoutine String?  // JSON array of routine keys
-  notes      String?  // max 280 chars
+  preRoutine String? // JSON array of routine keys
+  notes      String? // max 280 chars
   createdAt  DateTime @default(now())
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
   @@unique([userId, date])
+  @@index([userId])
 }
 
 model ExerciseSession {
   id           String   @id @default(uuid())
   userId       String
-  exerciseType String   // "respiracao_478" | "respiracao_box" | "respiracao_diafragmatica" | "aterramento_5sentidos" | "aterramento_muscular"
+  exerciseType String // "respiracao_478" | "respiracao_box" | "respiracao_diafragmatica" | "aterramento_5sentidos" | "aterramento_muscular"
   durationSecs Int
   completedAt  DateTime @default(now())
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -176,18 +181,18 @@ model ExerciseSession {
 model DailyRhythm {
   id                String   @id @default(uuid())
   userId            String
-  date              String   // YYYY-MM-DD
-  wakeTime          String?  // HH:MM
-  firstContact      String?  // HH:MM
-  mainActivityStart String?  // HH:MM
-  dinnerTime        String?  // HH:MM
-  bedtime           String?  // HH:MM
-  notes             String?  // max 280 chars
+  date              String // YYYY-MM-DD
+  wakeTime          String? // HH:MM
+  firstContact      String? // HH:MM
+  mainActivityStart String? // HH:MM
+  dinnerTime        String? // HH:MM
+  bedtime           String? // HH:MM
+  notes             String? // max 280 chars
   createdAt         DateTime @default(now())
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
   @@unique([userId, date])
+  @@index([userId])
 }
 
 model ReminderSettings {
@@ -205,12 +210,12 @@ model ReminderSettings {
 model CrisisPlan {
   id                String   @id @default(uuid())
   userId            String   @unique
-  trustedContacts   String?  // JSON array of { name, phone }
+  trustedContacts   String? // JSON array of { name, phone }
   professionalName  String?
   professionalPhone String?
-  medications       String?  // JSON array of medication names only
+  medications       String? // JSON array of medication names only
   preferredHospital String?
-  copingStrategies  String?  // JSON array of strings
+  copingStrategies  String? // JSON array of strings
   updatedAt         DateTime @updatedAt
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -218,7 +223,7 @@ model CrisisPlan {
 model CourseProgress {
   id          String   @id @default(uuid())
   userId      String
-  courseSlug   String
+  courseSlug  String
   lessonSlug  String
   completedAt DateTime @default(now())
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -230,42 +235,42 @@ model CourseProgress {
 // ── Planner (Calendário de Estabilidade) ───────────────────────────
 
 model PlannerBlock {
-  id          String   @id @default(uuid())
-  userId      String
-  title       String
-  category    String   // "sono", "medicacao", "refeicao", "trabalho", "social", "exercicio", "lazer", "outro"
-  kind        String   @default("FLEX") // "ANCHOR" | "FLEX" | "RISK"
-  isRoutine   Boolean  @default(false)
-  startAt     DateTime
-  endAt       DateTime
-  notes       String?
-  energyCost  Int      @default(3)  // 0..10
-  stimulation   Int      @default(1)  // 0=LOW, 1=MED, 2=HIGH
+  id            String   @id @default(uuid())
+  userId        String
+  title         String
+  category      String // "sono", "medicacao", "refeicao", "trabalho", "social", "exercicio", "lazer", "outro"
+  kind          String   @default("FLEX") // "ANCHOR" | "FLEX" | "RISK"
+  isRoutine     Boolean  @default(false)
+  startAt       DateTime
+  endAt         DateTime
+  notes         String?
+  energyCost    Int      @default(3) // 0..10
+  stimulation   Int      @default(1) // 0=LOW, 1=MED, 2=HIGH
   googleEventId String?
-  googleColor   String?              // Google Calendar colorId (1-11)
+  googleColor   String? // Google Calendar colorId (1-11)
   sourceType    String   @default("app") // "app" | "google"
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  recurrence  PlannerRecurrence?
-  exceptions  PlannerException[]
+  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recurrence PlannerRecurrence?
+  exceptions PlannerException[]
 
+  @@unique([userId, googleEventId])
   @@index([userId, startAt])
   @@index([userId, endAt])
-  @@unique([userId, googleEventId])
 }
 
 model PlannerRecurrence {
-  id        String   @id @default(uuid())
-  blockId   String   @unique
-  freq      String   // "NONE" | "DAILY" | "WEEKLY"
-  interval  Int      @default(1)
-  weekDays  String?  // "1,3,5" (0=Dom..6=Sab) when WEEKLY
+  id        String    @id @default(uuid())
+  blockId   String    @unique
+  freq      String // "NONE" | "DAILY" | "WEEKLY"
+  interval  Int       @default(1)
+  weekDays  String? // "1,3,5" (0=Dom..6=Sab) when WEEKLY
   until     DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
-  block     PlannerBlock @relation(fields: [blockId], references: [id], onDelete: Cascade)
+  block PlannerBlock @relation(fields: [blockId], references: [id], onDelete: Cascade)
 }
 
 model PlannerException {
@@ -279,7 +284,7 @@ model PlannerException {
   overrideNotes   String?
   createdAt       DateTime  @default(now())
 
-  block           PlannerBlock @relation(fields: [blockId], references: [id], onDelete: Cascade)
+  block PlannerBlock @relation(fields: [blockId], references: [id], onDelete: Cascade)
 
   @@unique([blockId, occurrenceDate])
 }
@@ -292,12 +297,12 @@ model StabilityRule {
   minBufferBeforeSleep Int      @default(60)
   maxLateNightsPerWeek Int      @default(2)
   protectAnchors       Boolean  @default(true)
-  targetSleepTimeMin   Int?     // minutes since 00:00 (e.g. 1380 = 23:00)
-  targetWakeTimeMin    Int?     // minutes since 00:00 (e.g. 420 = 07:00)
+  targetSleepTimeMin   Int? // minutes since 00:00 (e.g. 1380 = 23:00)
+  targetWakeTimeMin    Int? // minutes since 00:00 (e.g. 420 = 07:00)
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
-  user                 User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // ── Integracoes Externas ────────────────────────────────────────
@@ -314,19 +319,19 @@ model GoogleAccount {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  user         User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model IntegrationKey {
   id               String   @id @default(uuid())
   userId           String
-  service          String   // "health_auto_export"
+  service          String // "health_auto_export"
   apiKey           String   @unique
   enabled          Boolean  @default(true)
   createdAt        DateTime @default(now())
-  lastPayloadDebug String?  // Last raw payload sample for debugging
+  lastPayloadDebug String? // Last raw payload sample for debugging
 
-  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, service])
 }
@@ -336,13 +341,13 @@ model IntegrationKey {
 model HealthMetric {
   id        String   @id @default(uuid())
   userId    String
-  date      String   // YYYY-MM-DD
-  metric    String   // "steps", "active_calories", "blood_oxygen"
+  date      String // YYYY-MM-DD
+  metric    String // "steps", "active_calories", "blood_oxygen"
   value     Float
-  unit      String   // "count", "kcal", "%"
+  unit      String // "count", "kcal", "%"
   createdAt DateTime @default(now())
 
-  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, date, metric])
   @@index([userId, date])
@@ -353,7 +358,7 @@ model HealthMetric {
 model NewsArticle {
   id          String   @id @default(uuid())
   externalId  String   @unique
-  source      String   // "pubmed" | "google_news"
+  source      String // "pubmed" | "google_news"
   title       String
   url         String
   publishedAt DateTime
@@ -369,7 +374,7 @@ model NewsArticle {
 
 model RateLimit {
   id        String   @id @default(uuid())
-  key       String   // e.g. "login:192.168.1.1"
+  key       String // e.g. "login:192.168.1.1"
   expiresAt DateTime
   createdAt DateTime @default(now())
 
@@ -381,9 +386,9 @@ model RateLimit {
 model ProfessionalAccess {
   id                String    @id @default(uuid())
   userId            String
-  token             String    @unique     // URL-safe random token
-  pinHash           String                // bcrypt hash of 6-digit PIN
-  label             String?               // e.g. "Dr. Silva"
+  token             String    @unique // URL-safe random token
+  pinHash           String // bcrypt hash of 6-digit PIN
+  label             String? // e.g. "Dr. Silva"
   expiresAt         DateTime
   consentGivenAt    DateTime  @default(now())
   revokedAt         DateTime?
@@ -393,8 +398,8 @@ model ProfessionalAccess {
   shareSosEvents    Boolean   @default(false)
   createdAt         DateTime  @default(now())
 
-  user              User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  accessLogs        AccessLog[]
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessLogs AccessLog[]
 
   @@index([userId])
   @@index([token])
@@ -403,11 +408,11 @@ model ProfessionalAccess {
 model AccessLog {
   id        String   @id @default(uuid())
   accessId  String
-  action    String   // "pin_validated" | "data_viewed" | "pin_failed" | "locked"
+  action    String // "pin_validated" | "data_viewed" | "pin_failed" | "locked"
   ip        String?
   createdAt DateTime @default(now())
 
-  access    ProfessionalAccess @relation(fields: [accessId], references: [id], onDelete: Cascade)
+  access ProfessionalAccess @relation(fields: [accessId], references: [id], onDelete: Cascade)
 
   @@index([accessId, createdAt])
 }
@@ -415,23 +420,23 @@ model AccessLog {
 model SocioeconomicProfile {
   id                  String   @id @default(uuid())
   userId              String   @unique
-  careAccess          String   // "regular" | "irregular" | "sem_acesso"
-  medicationSource    String   // "sus" | "plano" | "particular" | "nao_toma"
-  consultFrequency    String   // "mensal" | "trimestral" | "semestral" | "quando_consigo" | "nunca"
+  careAccess          String // "regular" | "irregular" | "sem_acesso"
+  medicationSource    String // "sus" | "plano" | "particular" | "nao_toma"
+  consultFrequency    String // "mensal" | "trimestral" | "semestral" | "quando_consigo" | "nunca"
   hasEmergencyContact Boolean  @default(false)
-  livingSituation     String?  // "estavel" | "instavel" | "situacao_rua"
+  livingSituation     String? // "estavel" | "instavel" | "situacao_rua"
   updatedAt           DateTime @updatedAt
 
-  user                User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model SOSEvent {
   id        String   @id @default(uuid())
-  userId    String
-  action    String   // "opened" | "called_188" | "called_192" | "called_contact" | "breathing" | "grounding"
+  userId    String?
+  action    String // "opened" | "called_188" | "called_192" | "called_contact" | "breathing" | "grounding"
   createdAt DateTime @default(now())
 
-  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
 }
@@ -439,30 +444,30 @@ model SOSEvent {
 model FinancialTransaction {
   id          String    @id @default(uuid())
   userId      String
-  date        String    // YYYY-MM-DD
+  date        String // YYYY-MM-DD
   description String
-  amount      Float     // positivo = receita, negativo = despesa
+  amount      Float // positivo = receita, negativo = despesa
   category    String
   account     String?
   source      String    @default("manual") // "manual" | "mobills_csv"
   occurredAt  DateTime? // horário real da transação (para detectar gastos noturnos)
   createdAt   DateTime  @default(now())
 
-  user        User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId, date])
   @@unique([userId, date, description, amount])
+  @@index([userId, date])
 }
 
 model AlertFeedback {
   id        String   @id @default(uuid())
   userId    String
-  alertType String   // "spending_spike" | "frequency_spike" | "sustained_increase"
-  alertDate String   // YYYY-MM-DD
+  alertType String // "spending_spike" | "frequency_spike" | "sustained_increase"
+  alertDate String // YYYY-MM-DD
   useful    Boolean
   createdAt DateTime @default(now())
 
-  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, alertType, alertDate])
   @@index([userId])
@@ -473,9 +478,9 @@ model AlertFeedback {
 model AdminAuditLog {
   id        String   @id @default(uuid())
   userId    String
-  action    String   // "view_feedbacks" | "reveal_email" | "filter_priority"
-  metadata  String?  // JSON: { feedbackId, filters, etc. }
-  ip        String?  // masked /24
+  action    String // "view_feedbacks" | "reveal_email" | "filter_priority"
+  metadata  String? // JSON: { feedbackId, filters, etc. }
+  ip        String? // masked /24
   createdAt DateTime @default(now())
 
   @@index([userId, createdAt])
@@ -487,14 +492,14 @@ model AdminAuditLog {
 model Feedback {
   id         String   @id @default(uuid())
   userId     String
-  category   String   // "suggestion" | "bug" | "praise" | "other"
+  category   String // "suggestion" | "bug" | "praise" | "other"
   message    String
-  screen     String?  // tela relacionada (opcional)
+  screen     String? // tela relacionada (opcional)
   canContact Boolean  @default(false)
   priority   String   @default("normal") // "normal" | "high" (crise detectada)
-  route      String?  // rota atual do usuário
-  appVersion String?  // versão do build
-  clientType String?  // "pwa" | "safari" | "chrome"
+  route      String? // rota atual do usuário
+  appVersion String? // versão do build
+  clientType String? // "pwa" | "safari" | "chrome"
   createdAt  DateTime @default(now())
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -507,7 +512,7 @@ model Feedback {
 model ContextualFeedback {
   id         String   @id @default(uuid())
   userId     String
-  contextKey String   // "insight:2026-03-18" | "content:abc123" | "report:2026-03"
+  contextKey String // "insight:2026-03-18" | "content:abc123" | "report:2026-03"
   useful     Boolean
   createdAt  DateTime @default(now())
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -519,15 +524,15 @@ model ContextualFeedback {
 // ── LGPD — Consentimentos ─────────────────────────────────────────
 
 model Consent {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   userId    String
-  scope     String   // "health_data" | "terms_of_use" | "ai_narrative" | "push_notifications" | "email_notifications" | "whatsapp" | "professional_sharing"
-  version   Int      @default(1) // consent policy version — bump when terms change
-  grantedAt DateTime @default(now())
+  scope     String // "health_data" | "terms_of_use" | "ai_narrative" | "push_notifications" | "email_notifications" | "whatsapp" | "professional_sharing"
+  version   Int       @default(1) // consent policy version — bump when terms change
+  grantedAt DateTime  @default(now())
   revokedAt DateTime?
-  ipAddress String?  // masked /24
+  ipAddress String? // masked /24
 
-  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, scope])
 }
@@ -535,20 +540,20 @@ model Consent {
 // ── Avaliação Semanal (ASRM + PHQ-9 + FAST) ─────────────────────
 
 model WeeklyAssessment {
-  id              String   @id @default(uuid())
-  userId          String
-  date            String   // YYYY-MM-DD (week ending date)
-  asrmScores      String?  // JSON: [0-4, 0-4, 0-4, 0-4, 0-4]
-  asrmTotal       Int?     // 0-20 (>=6 suggests hypomania)
-  phq9Scores      String?  // JSON: [0-3, 0-3, ..., 0-3] (9 items)
-  phq9Total       Int?     // 0-27
-  phq9Item9       Int?     // Item 9 (ideation) separated for safety flow
-  fastScores      String?  // JSON: { work: 1-5, social: 1-5, ... }
-  fastAvg         Float?   // Average functioning score
-  notes           String?  // max 280 chars
-  createdAt       DateTime @default(now())
+  id         String   @id @default(uuid())
+  userId     String
+  date       String // YYYY-MM-DD (week ending date)
+  asrmScores String? // JSON: [0-4, 0-4, 0-4, 0-4, 0-4]
+  asrmTotal  Int? // 0-20 (>=6 suggests hypomania)
+  phq9Scores String? // JSON: [0-3, 0-3, ..., 0-3] (9 items)
+  phq9Total  Int? // 0-27
+  phq9Item9  Int? // Item 9 (ideation) separated for safety flow
+  fastScores String? // JSON: { work: 1-5, social: 1-5, ... }
+  fastAvg    Float? // Average functioning score
+  notes      String? // max 280 chars
+  createdAt  DateTime @default(now())
 
-  user            User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, date])
   @@index([userId])
@@ -559,13 +564,13 @@ model WeeklyAssessment {
 model LifeChartEvent {
   id        String   @id @default(uuid())
   userId    String
-  date      String   // YYYY-MM-DD
-  eventType String   // "med_change" | "stressor" | "travel" | "hospitalization" | "therapy" | "menstrual" | "other"
-  label     String   // Brief description
+  date      String // YYYY-MM-DD
+  eventType String // "med_change" | "stressor" | "travel" | "hospitalization" | "therapy" | "menstrual" | "other"
+  label     String // Brief description
   notes     String?
   createdAt DateTime @default(now())
 
-  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, date])
 }
@@ -573,19 +578,19 @@ model LifeChartEvent {
 // ── Avaliação de Funcionamento (FAST short) ──────────────────────
 
 model FunctioningAssessment {
-  id          String   @id @default(uuid())
-  userId      String
-  date        String   // YYYY-MM-DD
-  work        Int?     // 1-5 (1=muito difícil, 5=sem dificuldade)
-  social      Int?     // 1-5
-  selfcare    Int?     // 1-5
-  finances    Int?     // 1-5
-  cognition   Int?     // 1-5
-  leisure     Int?     // 1-5
-  avgScore    Float?
-  createdAt   DateTime @default(now())
+  id        String   @id @default(uuid())
+  userId    String
+  date      String // YYYY-MM-DD
+  work      Int? // 1-5 (1=muito difícil, 5=sem dificuldade)
+  social    Int? // 1-5
+  selfcare  Int? // 1-5
+  finances  Int? // 1-5
+  cognition Int? // 1-5
+  leisure   Int? // 1-5
+  avgScore  Float?
+  createdAt DateTime @default(now())
 
-  user        User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, date])
   @@index([userId])
@@ -597,75 +602,75 @@ model PushSubscription {
   id        String   @id @default(uuid())
   userId    String
   endpoint  String
-  p256dh    String   // Base64-encoded P-256 public key
-  auth      String   // Base64-encoded auth secret
+  p256dh    String // Base64-encoded P-256 public key
+  auth      String // Base64-encoded auth secret
   createdAt DateTime @default(now())
 
-  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, endpoint])
-  @@unique([endpoint])        // Global: one endpoint → one user (DB-enforced)
+  @@unique([endpoint]) // Global: one endpoint → one user (DB-enforced)
   @@index([userId])
 }
 
 // ── AI Narrative (persistência + feedback) ──────────────────────
 
 model Narrative {
-  id                    String              @id @default(uuid())
-  userId                String
-  createdAt             DateTime            @default(now())
+  id        String   @id @default(uuid())
+  userId    String
+  createdAt DateTime @default(now())
 
-  periodStart           String              // YYYY-MM-DD
-  periodEnd             String              // YYYY-MM-DD
+  periodStart String // YYYY-MM-DD
+  periodEnd   String // YYYY-MM-DD
 
-  status                String              @default("completed") // completed | failed | fallback
-  riskLevel             String              // low | moderate | high
-  dataQuality           String              // ok | limited | insufficient
+  status      String @default("completed") // completed | failed | fallback
+  riskLevel   String // low | moderate | high
+  dataQuality String // ok | limited | insufficient
 
-  model                 String              // e.g. "gpt-5.4"
-  reasoningEffort       String              // low | medium | high
-  promptVersion         String              // e.g. "v2"
-  schemaVersion         String              // e.g. "narrative_v2"
-  analyticsVersion      String?             // computeInsights version
-  guardrailVersion      String?             // forbidden patterns version
+  model            String // e.g. "gpt-5.4"
+  reasoningEffort  String // low | medium | high
+  promptVersion    String // e.g. "v2"
+  schemaVersion    String // e.g. "narrative_v2"
+  analyticsVersion String? // computeInsights version
+  guardrailVersion String? // forbidden patterns version
 
-  sourceFingerprint     String              // SHA-256 hash of deterministic input snapshot
-  outputJson            Json                // Full NarrativeResultV2
-  renderedText          String?             @db.Text // Flattened text for search/display
+  sourceFingerprint String // SHA-256 hash of deterministic input snapshot
+  outputJson        Json // Full NarrativeResultV2
+  renderedText      String? @db.Text // Flattened text for search/display
 
-  shareWithProfessional Boolean             @default(false)
-  bypassLlm             Boolean             @default(false)
+  shareWithProfessional Boolean @default(false)
+  bypassLlm             Boolean @default(false)
   bypassReason          String?
-  llmAttempted          Boolean             @default(false)
+  llmAttempted          Boolean @default(false)
 
-  guardrailPassed       Boolean             @default(true)
-  guardrailViolations   String[]            // Array of violation descriptions
+  guardrailPassed     Boolean  @default(true)
+  guardrailViolations String[] // Array of violation descriptions
 
-  inputTokens           Int?
-  cachedInputTokens     Int?
-  outputTokens          Int?
-  reasoningTokens       Int?
-  latencyMs             Int?
+  inputTokens       Int?
+  cachedInputTokens Int?
+  outputTokens      Int?
+  reasoningTokens   Int?
+  latencyMs         Int?
 
-  previousNarrativeId   String?
+  previousNarrativeId String?
 
-  user                  User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  feedbacks             NarrativeFeedback[]
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  feedbacks NarrativeFeedback[]
 
   @@index([userId, createdAt(sort: Desc)])
   @@index([userId, sourceFingerprint])
 }
 
 model NarrativeFeedback {
-  id           String   @id @default(uuid())
-  narrativeId  String
-  createdAt    DateTime @default(now())
+  id          String   @id @default(uuid())
+  narrativeId String
+  createdAt   DateTime @default(now())
 
-  rating       String   // useful | not_useful
-  reasonCodes  String[] // e.g. ["too_generic", "inaccurate", "too_long"]
-  comment      String?  @db.Text
+  rating      String // useful | not_useful
+  reasonCodes String[] // e.g. ["too_generic", "inaccurate", "too_long"]
+  comment     String?  @db.Text
 
-  narrative    Narrative @relation(fields: [narrativeId], references: [id], onDelete: Cascade)
+  narrative Narrative @relation(fields: [narrativeId], references: [id], onDelete: Cascade)
 
   @@index([narrativeId, createdAt(sort: Desc)])
 }
@@ -675,11 +680,11 @@ model NarrativeFeedback {
 model CognitiveTest {
   id             String   @id @default(uuid())
   userId         String
-  reactionTimeMs Int?     // Median of 5 trials (ms)
-  digitSpan      Int?     // Max span reached
+  reactionTimeMs Int? // Median of 5 trials (ms)
+  digitSpan      Int? // Max span reached
   createdAt      DateTime @default(now())
 
-  user           User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
 }
@@ -692,36 +697,36 @@ enum JournalType {
 }
 
 enum SnapshotSource {
-  RECENT_CHECKIN  // Auto-captured from recent check-in (< 4h)
-  NONE            // No mood data available at time of entry
+  RECENT_CHECKIN // Auto-captured from recent check-in (< 4h)
+  NONE // No mood data available at time of entry
 }
 
 model JournalEntry {
-  id                String         @id @default(uuid())
-  userId            String
-  type              JournalType
-  content           String         // Plain text only — max 5000 (diary) or 280 (insight)
+  id               String         @id @default(uuid())
+  userId           String
+  type             JournalType
+  content          String // Plain text only — max 5000 (diary) or 280 (insight)
   // ── Immutable mood snapshot at time of entry ──
-  maniaScore        Int?           // 0-100 mania axis
-  depressionScore   Int?           // 0-100 depression axis
-  energyScore       Int?           // 1-5 from check-in
-  zoneAtCapture     String?        // "depressao"|"depressao_leve"|"eutimia"|"hipomania"|"mania"
-  mixedAtCapture    Boolean?       // Was mixed features detected?
-  moodModelVersion  String         @default("v1") // Tracks threshold/EWMA changes
-  snapshotSource    SnapshotSource @default(NONE)
-  sourceCheckInId   String?        // Optional FK to DiaryEntry for provenance
+  maniaScore       Int? // 0-100 mania axis
+  depressionScore  Int? // 0-100 depression axis
+  energyScore      Int? // 1-5 from check-in
+  zoneAtCapture    String? // "depressao"|"depressao_leve"|"eutimia"|"hipomania"|"mania"
+  mixedAtCapture   Boolean? // Was mixed features detected?
+  moodModelVersion String         @default("v1") // Tracks threshold/EWMA changes
+  snapshotSource   SnapshotSource @default(NONE)
+  sourceCheckInId  String? // Optional FK to DiaryEntry for provenance
   // ── Temporal context ──
-  entryDateLocal    String         // YYYY-MM-DD in user's timezone
-  timezone          String         @default("America/Sao_Paulo")
-  capturedAt        DateTime       @default(now()) // When mood snapshot was taken
+  entryDateLocal   String // YYYY-MM-DD in user's timezone
+  timezone         String         @default("America/Sao_Paulo")
+  capturedAt       DateTime       @default(now()) // When mood snapshot was taken
   // ── Consent & edit tracking ──
-  aiUseAllowed      Boolean        @default(false) // Explicit opt-in for AI narrative use
-  editedAt          DateTime?      // Set on any edit (no version history in P0)
+  aiUseAllowed     Boolean        @default(false) // Explicit opt-in for AI narrative use
+  editedAt         DateTime? // Set on any edit (no version history in P0)
   // ── Idempotency ──
-  idempotencyKey    String?        @unique // Client-generated key to prevent duplicate entries
-  createdAt         DateTime       @default(now())
+  idempotencyKey   String?        @unique // Client-generated key to prevent duplicate entries
+  createdAt        DateTime       @default(now())
 
-  user              User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
   @@index([userId, entryDateLocal])
@@ -731,17 +736,17 @@ model JournalEntry {
 // ── Communication Preferences (reactivation, email, WhatsApp) ───
 
 model CommunicationPreference {
-  id        String   @id @default(uuid())
-  userId    String   @unique
-  push      Boolean  @default(true)
-  email     Boolean  @default(false)
-  whatsapp  Boolean  @default(false)
+  id         String   @id @default(uuid())
+  userId     String   @unique
+  push       Boolean  @default(true)
+  email      Boolean  @default(false)
+  whatsapp   Boolean  @default(false)
   quietStart String? // HH:MM — start of quiet hours (no push)
   quietEnd   String? // HH:MM — end of quiet hours
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // ── Message Log (idempotency for reactivation & comms) ──────────
@@ -749,13 +754,13 @@ model CommunicationPreference {
 model MessageLog {
   id        String   @id @default(uuid())
   userId    String
-  channel   String   // "push" | "email" | "whatsapp"
-  category  String   // "reactivation" | "reminder" | "weekly_summary"
-  tier      String?  // "24h" | "72h" | "7d" (for reactivation)
+  channel   String // "push" | "email" | "whatsapp"
+  category  String // "reactivation" | "reminder" | "weekly_summary"
+  tier      String? // "24h" | "72h" | "7d" (for reactivation)
   sentAt    DateTime @default(now())
   delivered Boolean  @default(false)
 
-  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, category, sentAt(sort: Desc)])
   @@index([userId, channel, sentAt(sort: Desc)])
@@ -766,19 +771,19 @@ model MessageLog {
 model DisplayPreferences {
   id               String   @id @default(uuid())
   userId           String   @unique
-  hideStreaks       Boolean  @default(false)
+  hideStreaks      Boolean  @default(false)
   hideAchievements Boolean  @default(false)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  user             User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // ── WhatsApp Processed Messages (durable idempotency ledger) ────
 
 model ProcessedWhatsAppMessage {
   id          String   @id @default(uuid())
-  messageId   String   @unique  // Meta's wamid (globally unique)
+  messageId   String   @unique // Meta's wamid (globally unique)
   processedAt DateTime @default(now())
 
   @@index([messageId])
@@ -787,34 +792,35 @@ model ProcessedWhatsAppMessage {
 // ── Medication Tracking (per-dose adherence) ────────────────────
 
 model Medication {
-  id           String               @id @default(uuid())
+  id           String   @id @default(uuid())
   userId       String
-  name         String               // Free text: "Rivotril", "Depakote 500mg"
-  dosageText   String?              // Free text: "500mg", "2mg"
-  instructions String?              // Free text: "Tomar com alimento"
-  isActive     Boolean              @default(true)
-  isAsNeeded   Boolean              @default(false) // SOS/PRN — excluded from adherence denominator
-  startDate    String               // YYYY-MM-DD
-  endDate      String?              // YYYY-MM-DD — null = indefinite
-  createdAt    DateTime             @default(now())
-  updatedAt    DateTime             @updatedAt
+  name         String // Free text: "Rivotril", "Depakote 500mg"
+  dosageText   String? // Free text: "500mg", "2mg"
+  instructions String? // Free text: "Tomar com alimento"
+  isActive     Boolean  @default(true)
+  isAsNeeded   Boolean  @default(false) // SOS/PRN — excluded from adherence denominator
+  riskRole     String   @default("other") // mood_stabilizer | antipsychotic | antidepressant | anxiolytic | sleep_aid | prn | other
+  startDate    String // YYYY-MM-DD
+  endDate      String? // YYYY-MM-DD — null = indefinite
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  schedules    MedicationSchedule[]
-  logs         MedicationLog[]
+  user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  schedules MedicationSchedule[]
+  logs      MedicationLog[]
 
   @@index([userId, isActive])
 }
 
 model MedicationSchedule {
-  id            String   @id @default(uuid())
+  id            String  @id @default(uuid())
   medicationId  String
-  timeLocal     String   // HH:mm (America/Sao_Paulo)
-  effectiveFrom String   // YYYY-MM-DD — when this schedule starts
-  effectiveTo   String?  // YYYY-MM-DD — null = indefinite
+  timeLocal     String // HH:mm (America/Sao_Paulo)
+  effectiveFrom String // YYYY-MM-DD — when this schedule starts
+  effectiveTo   String? // YYYY-MM-DD — null = indefinite
 
-  medication    Medication      @relation(fields: [medicationId], references: [id], onDelete: Cascade)
-  logs          MedicationLog[]
+  medication Medication      @relation(fields: [medicationId], references: [id], onDelete: Cascade)
+  logs       MedicationLog[]
 
   @@index([medicationId])
 }
@@ -837,17 +843,85 @@ model MedicationLog {
   diaryEntryId       String?
   medicationId       String
   scheduleId         String
-  date               String              // YYYY-MM-DD (America/Sao_Paulo)
+  date               String // YYYY-MM-DD (America/Sao_Paulo)
   status             MedicationLogStatus
-  scheduledTimeLocal String              // Snapshot HH:mm at time of logging
-  takenAt            DateTime?           // Actual UTC timestamp when taken
+  scheduledTimeLocal String // Snapshot HH:mm at time of logging
+  takenAt            DateTime? // Actual UTC timestamp when taken
   source             MedicationLogSource
 
-  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  diaryEntry         DiaryEntry?         @relation(fields: [diaryEntryId], references: [id], onDelete: SetNull)
-  medication         Medication          @relation(fields: [medicationId], references: [id], onDelete: Cascade)
-  schedule           MedicationSchedule  @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  diaryEntry DiaryEntry?        @relation(fields: [diaryEntryId], references: [id], onDelete: SetNull)
+  medication Medication         @relation(fields: [medicationId], references: [id], onDelete: Cascade)
+  schedule   MedicationSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
 
   @@unique([scheduleId, date])
-  @@index([userId, date])
+  @@index([userId, date, scheduleId])
+}
+
+// ── Risk v2: 3-rail alert system ─────────────────────────────────
+
+model DailyRiskSnapshot {
+  id         String   @id @default(cuid())
+  userId     String
+  localDate  String // YYYY-MM-DD in America/Sao_Paulo
+  alertLayer String // CLEAR | YELLOW | ORANGE | RED
+  uiMode     String // default | support | safety
+  safety     String // JSON: RailResult
+  syndrome   String // JSON: RailResult
+  prodrome   String // JSON: RailResult
+  reasons    String // JSON: string[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, localDate])
+  @@index([userId, alertLayer])
+}
+
+model AlertEpisode {
+  id                 String    @id @default(cuid())
+  userId             String
+  layer              String // YELLOW | ORANGE | RED
+  startedAt          DateTime
+  lastTriggeredAt    DateTime
+  minHoldUntil       DateTime?
+  modalCooldownUntil DateTime?
+  resolvedAt         DateTime?
+  reasons            String // JSON: string[]
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, resolvedAt])
+}
+
+model SafetyScreeningSession {
+  id                 String    @id @default(cuid())
+  userId             String
+  source             String // phq9_item9 | warning_sign | manual_help_now
+  sourceAssessmentId String? // FK to WeeklyAssessment.id if triggered by PHQ-9
+  asq                String? // JSON: AsqResult
+  bssa               String? // JSON: BssaResult
+  disposition        String // none | non_urgent | urgent_72h | immediate
+  alertLayer         String // resulting layer from this screening
+  startedAt          DateTime  @default(now())
+  completedAt        DateTime?
+  createdAt          DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, completedAt])
+}
+
+model EarlyWarningProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  maniaSigns      String // JSON: PersonalWarningSign[]
+  depressionSigns String // JSON: PersonalWarningSign[]
+  triggers        String // JSON: string[]
+  preferredResponse String // JSON: { actions: string[] }
+  supportContacts String? // JSON: { name: string, phone: string }[]
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

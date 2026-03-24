@@ -9,11 +9,18 @@ import { computeDisplayStreak, computeLongestStreak, computeAchievements } from 
 import { GamificationWrapper } from "@/components/GamificationWrapper";
 import { computeInsights } from "@/lib/insights/computeInsights";
 import type { PlannerBlockInput } from "@/lib/insights/computeInsights";
-import { SafetyNudge } from "@/components/insights/SafetyNudge";
 import { StabilityScoreWidget } from "@/components/dashboard/StabilityScoreWidget";
 import Link from "next/link";
 import Image from "next/image";
 import { SOSButton } from "@/components/SOSButton";
+import { CoachMarks } from "@/components/dashboard/CoachMarks";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { SimpleMode } from "@/components/dashboard/SimpleMode";
+import { evaluateRisk, buildActions } from "@/lib/risk-v2";
+import type { AlertLayer, WeeklyAssessmentInput, MedicationAdherenceInput, SafetyScreeningInput } from "@/lib/risk-v2";
+import { AlertCard } from "@/components/today/AlertCard";
+import { SafetyModeScreen } from "@/components/today/SafetyModeScreen";
+import { HojeSafetyGate } from "@/components/today/HojeSafetyGate";
 
 const TZ = "America/Sao_Paulo";
 
@@ -120,6 +127,9 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
     googleCal, haeKey, financialTx,
     lastWeeklyAssessment,
     displayPrefs,
+    latestSafetyScreen,
+    openAlertEpisode,
+    activeMedications,
   ] = await Promise.all([
     // Today's data
     prisma.diaryEntry.findFirst({
@@ -147,7 +157,7 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
     }),
     prisma.financialTransaction.findMany({
       where: { userId: session.userId, date: { gte: cutoff30Str } },
-      select: { date: true, amount: true },
+      select: { date: true, amount: true, category: true, description: true },
     }),
     // Streaks
     prisma.diaryEntry.findMany({ where: { userId: session.userId }, orderBy: { date: "desc" }, select: { date: true }, take: 90 }),
@@ -175,10 +185,42 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
     prisma.googleAccount.findFirst({ where: { userId: session.userId }, select: { id: true } }),
     prisma.integrationKey.findFirst({ where: { userId: session.userId, service: "health_auto_export", enabled: true }, select: { id: true } }),
     prisma.financialTransaction.findFirst({ where: { userId: session.userId }, select: { id: true } }),
-    // Last weekly assessment (for "para fazer" section)
-    prisma.weeklyAssessment.findFirst({ where: { userId: session.userId }, orderBy: { createdAt: "desc" }, select: { createdAt: true } }),
+    // Last weekly assessment (for "para fazer" section + risk-v2 scales)
+    prisma.weeklyAssessment.findFirst({
+      where: { userId: session.userId },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, createdAt: true, asrmTotal: true, phq9Total: true, phq9Item9: true },
+    }),
     // Display preferences (server-side gamification visibility)
     prisma.displayPreferences.findUnique({ where: { userId: session.userId }, select: { hideStreaks: true, hideAchievements: true } }),
+    // Risk v2: latest safety screening
+    prisma.safetyScreeningSession.findFirst({
+      where: { userId: session.userId },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, sourceAssessmentId: true, asq: true, bssa: true, disposition: true, alertLayer: true, completedAt: true },
+    }),
+    // Risk v2: open alert episode (for hysteresis)
+    prisma.alertEpisode.findFirst({
+      where: { userId: session.userId, resolvedAt: null },
+      orderBy: { lastTriggeredAt: "desc" },
+      select: { layer: true, lastTriggeredAt: true, minHoldUntil: true, modalCooldownUntil: true, resolvedAt: true },
+    }),
+    // Risk v2: medication adherence (last 7 days for critical meds)
+    prisma.medication.findMany({
+      where: { userId: session.userId, isActive: true, isAsNeeded: false },
+      select: {
+        id: true,
+        riskRole: true,
+        schedules: {
+          where: { effectiveTo: null },
+          select: { id: true },
+        },
+        logs: {
+          where: { date: { gte: cutoff7Str } },
+          select: { status: true, date: true, scheduleId: true },
+        },
+      },
+    }),
   ]);
 
   // === Compute Insights (Risk Radar data) ===
@@ -348,150 +390,139 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
   const formatBlockTime = (d: Date) =>
     d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: TZ });
 
-  // Build bipolar context from computed insights for SafetyNudge
-  const bipolarContext = {
-    mixedFeatures: thermometer?.mixedFeatures ?? false,
-    mixedStrength: thermometer?.mixedStrength ?? null,
-    consecutiveShortSleep: (() => {
-      const match = risk?.factors.find(f => f.includes("noites curtas seguidas"));
-      if (match) {
-        const num = parseInt(match, 10);
-        return isNaN(num) ? 0 : num;
-      }
-      return 0;
-    })(),
-    maniaSignsActive: thermometer?.factors.filter(f =>
-      ["pensamentos acelerados", "gastos impulsivos", "energia excessiva", "planos grandiosos", "agitação", "sono reduzido"].some(s => f.toLowerCase().includes(s))
-    ) ?? [],
-    riskFactors: risk?.factors ?? [],
-  };
+  // === Risk v2: 3-rail alert system ===
+  const todayWarningSigns: string[] = (() => {
+    const ws = todayEntry?.warningSigns;
+    if (!ws) return [];
+    try { const p = JSON.parse(ws as string); return Array.isArray(p) ? p : []; } catch { return []; }
+  })();
 
-  // High risk safety check (for SafetyNudge)
-  // Triggers: atencao_alta, suicidal thoughts, OR bipolar-specific signals
-  const warningSigns = todayEntry?.warningSigns as string[] | null | undefined;
-  const hasBipolarTrigger = bipolarContext.mixedFeatures ||
-    bipolarContext.consecutiveShortSleep >= 4 ||
-    bipolarContext.maniaSignsActive.length >= 2;
-  const showSafetyNudge = riskLevel === "atencao_alta" ||
-    (Array.isArray(warningSigns) && warningSigns.includes("pensamentos_suicidas")) ||
-    hasBipolarTrigger;
+  // Compute medication adherence for critical meds
+  const medAdherence: MedicationAdherenceInput[] = activeMedications.map((med) => {
+    const totalSchedules = med.schedules.length;
+    if (totalSchedules === 0) return { riskRole: med.riskRole, adherence7d: 1, consecutiveMissed: 0 };
+    const totalExpected = totalSchedules * 7;
+    const takenCount = med.logs.filter((l) => l.status === "TAKEN").length;
+    const adherence7d = totalExpected > 0 ? takenCount / totalExpected : 1;
+    // Count consecutive missed from most recent
+    const sortedLogs = [...med.logs].sort((a, b) => b.date.localeCompare(a.date) || a.scheduleId.localeCompare(b.scheduleId));
+    let consecutiveMissed = 0;
+    for (const l of sortedLogs) {
+      if (l.status === "MISSED") consecutiveMissed++;
+      else break;
+    }
+    return { riskRole: med.riskRole, adherence7d, consecutiveMissed };
+  });
 
-  // Crisis/simplified mode: only for truly high risk (not all bipolar triggers)
-  const crisisMode = riskLevel === "atencao_alta" ||
-    (Array.isArray(warningSigns) && warningSigns.includes("pensamentos_suicidas")) ||
-    (bipolarContext.mixedFeatures && bipolarContext.mixedStrength === "forte");
+  const riskV2 = evaluateRisk({
+    userId: session.userId,
+    entries: allEntries30.map((e) => ({
+      date: e.date,
+      mood: e.mood,
+      sleepHours: e.sleepHours,
+      energyLevel: e.energyLevel,
+      anxietyLevel: e.anxietyLevel,
+      irritability: e.irritability,
+      warningSigns: e.warningSigns as string | null,
+      tookMedication: e.tookMedication,
+    })),
+    sleepLogs: allSleepLogs30.map((s) => ({
+      date: s.date,
+      totalHours: s.totalHours,
+      bedtime: s.bedtime,
+      quality: s.quality,
+      excluded: s.excluded,
+      hrv: s.hrv,
+    })),
+    financialTxs: financialTxs30.map((t) => ({
+      date: t.date,
+      amount: Number(t.amount),
+      category: t.category,
+      description: t.description,
+    })),
+    latestWeekly: lastWeeklyAssessment ? {
+      id: lastWeeklyAssessment.id,
+      createdAt: lastWeeklyAssessment.createdAt,
+      asrmTotal: lastWeeklyAssessment.asrmTotal,
+      phq9Total: lastWeeklyAssessment.phq9Total,
+      phq9Item9: lastWeeklyAssessment.phq9Item9,
+    } : null,
+    medications: medAdherence,
+    latestSafetyScreen: latestSafetyScreen ? {
+      id: latestSafetyScreen.id,
+      sourceAssessmentId: latestSafetyScreen.sourceAssessmentId,
+      asq: latestSafetyScreen.asq,
+      bssa: latestSafetyScreen.bssa,
+      disposition: latestSafetyScreen.disposition,
+      alertLayer: latestSafetyScreen.alertLayer,
+      completedAt: latestSafetyScreen.completedAt,
+    } : null,
+    todayWarningSigns,
+    now,
+    tz: TZ,
+    prevEpisode: openAlertEpisode ? {
+      layer: openAlertEpisode.layer as AlertLayer,
+      lastTriggeredAt: openAlertEpisode.lastTriggeredAt,
+      minHoldUntil: openAlertEpisode.minHoldUntil,
+      modalCooldownUntil: openAlertEpisode.modalCooldownUntil,
+      resolvedAt: openAlertEpisode.resolvedAt,
+    } : null,
+  });
 
-  // === CRISIS MODE: show simplified UI (unless user dismissed with ?full=1) ===
-  if (crisisMode && !dismissCrisis) {
+  const alertLayer = riskV2.alertLayer;
+  const alertActions = buildActions(alertLayer, riskV2.rails.safety, riskV2.rails.syndrome, riskV2.rails.prodrome);
+
+  // === NEW USER MODE: simplified dashboard for users with < 3 diary entries ===
+  const isNewUser = allEntries30.length < 3;
+
+  // === RED: Safety Mode — only for acute safety risk (ASQ/BSSA positive) ===
+  if (alertLayer === "RED" && !dismissCrisis) {
     return (
       <div className="space-y-4">
         <Greeting />
-        <SafetyNudge riskLevel={riskLevel} bipolarContext={bipolarContext} />
+        <SafetyModeScreen actions={alertActions} />
+      </div>
+    );
+  }
 
-        <Card className="border-amber-400 bg-amber-50 shadow-sm">
-          <div className="flex items-start gap-3">
-            <span className="text-2xl mt-0.5" aria-hidden="true">⚠️</span>
-            <div>
-              <p className="text-base font-bold text-amber-900 mb-1">Modo simplificado ativado</p>
-              <p className="text-sm text-amber-800">
-                Detectamos sinais que merecem atenção. O painel foi simplificado para mostrar apenas o essencial agora.
-              </p>
-              {risk?.factors && risk.factors.length > 0 && (
-                <details className="mt-2">
-                  <summary className="text-xs text-amber-700 cursor-pointer hover:text-amber-900">
-                    Por que esse alerta foi ativado?
-                  </summary>
-                  <ul className="mt-1.5 space-y-0.5 text-xs text-amber-800">
-                    {risk.factors.map((f, i) => (
-                      <li key={i}>• {f}</li>
-                    ))}
-                    {bipolarContext.mixedFeatures && (
-                      <li>• Estado misto: {bipolarContext.mixedStrength === "forte" ? "forte" : "provável"} (M:{thermometer?.maniaScore ?? "?"} D:{thermometer?.depressionScore ?? "?"})</li>
-                    )}
-                    <li className="text-amber-600 mt-1">Score total: {risk.score} (alerta a partir de 4)</li>
-                  </ul>
-                </details>
-              )}
-              <a
-                href="/hoje?full=1"
-                className="inline-block mt-2 text-xs text-amber-700 underline hover:text-amber-900"
-              >
-                Ver painel completo
-              </a>
-            </div>
+  // === NEW USER MODE: show simplified dashboard (unless user dismissed with ?full=1) ===
+  if (isNewUser && !dismissCrisis) {
+    return (
+      <div className="space-y-4">
+        <Greeting />
+        <CoachMarks />
+
+        {/* Welcome card */}
+        <Card className="bg-primary/5 border-primary/20">
+          <p className="text-lg font-semibold text-foreground mb-1">
+            Seu primeiro passo
+          </p>
+          <p className="text-sm text-muted">
+            Bem-vindo ao Suporte Bipolar! Comece registrando como você se sente.
+            Com poucos dias de dados, o painel de estabilidade e os insights vão se ativar automaticamente.
+          </p>
+        </Card>
+
+        {/* Tasks */}
+        <Card>
+          <h2 className="text-sm font-semibold text-foreground mb-3">Para fazer hoje</h2>
+          <div className="space-y-2">
+            {visibleTasks.map((t, i) => (
+              <Link key={i} href={t.href} className="flex items-center gap-3 no-underline group">
+                <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] ${
+                  t.done ? "bg-emerald-100 border-emerald-300 text-emerald-700" : "border-border text-transparent group-hover:border-primary"
+                }`}>
+                  {t.done ? "✓" : ""}
+                </span>
+                <span className={`text-sm ${t.done ? "text-muted line-through" : "text-foreground group-hover:text-primary"}`}>
+                  {t.label}
+                </span>
+              </Link>
+            ))}
           </div>
         </Card>
 
-        <div className="space-y-3">
-          {/* 1. Plano de crise */}
-          <Link href="/plano-de-crise" className="block no-underline">
-            <Card className="border-red-200 bg-red-50/30 hover:bg-red-50 transition-colors py-5">
-              <div className="flex items-center gap-4">
-                <span className="text-2xl">🛡️</span>
-                <div>
-                  <p className="font-semibold text-foreground">Revisar plano de crise</p>
-                  <p className="text-xs text-muted mt-0.5">Seu plano de segurança personalizado</p>
-                </div>
-              </div>
-            </Card>
-          </Link>
-
-          {/* 2. SOS / Emergência */}
-          <Link href="/sos" className="block no-underline">
-            <Card className="border-red-300 bg-red-100/50 hover:bg-red-100 transition-colors py-5">
-              <div className="flex items-center gap-4">
-                <span className="text-2xl">🆘</span>
-                <div>
-                  <p className="font-semibold text-red-800">SOS — Preciso de ajuda agora</p>
-                  <p className="text-xs text-red-700 mt-0.5">Grounding, contatos de emergência, CVV 188</p>
-                </div>
-              </div>
-            </Card>
-          </Link>
-
-          {/* 3. Medicação */}
-          <Link href="/checkin" className="block no-underline">
-            <Card className="border-border hover:bg-surface-alt transition-colors py-5">
-              <div className="flex items-center gap-4">
-                <span className="text-2xl">💊</span>
-                <div>
-                  <p className="font-semibold text-foreground">Registrar medicação</p>
-                  <p className="text-xs text-muted mt-0.5">
-                    {todayEntry?.tookMedication === "sim" ? "Já registrado hoje ✓" : "Importante manter a adesão"}
-                  </p>
-                </div>
-              </div>
-            </Card>
-          </Link>
-
-          {/* 4. Check-in rápido */}
-          <Link href="/checkin" className="block no-underline">
-            <Card className="border-border hover:bg-surface-alt transition-colors py-5">
-              <div className="flex items-center gap-4">
-                <span className="text-2xl">📝</span>
-                <div>
-                  <p className="font-semibold text-foreground">Check-in rápido</p>
-                  <p className="text-xs text-muted mt-0.5">
-                    {todayEntry ? "Já feito hoje ✓" : "Registrar como você está"}
-                  </p>
-                </div>
-              </div>
-            </Card>
-          </Link>
-
-          {/* 5. Contato de confiança */}
-          <a href="tel:188" className="block no-underline">
-            <Card className="border-amber-200 bg-amber-50/30 hover:bg-amber-50 transition-colors py-5">
-              <div className="flex items-center gap-4">
-                <span className="text-2xl">📞</span>
-                <div>
-                  <p className="font-semibold text-foreground">Ligar para alguém</p>
-                  <p className="text-xs text-muted mt-0.5">CVV 188 (24h) · SAMU 192 · Ou seu contato de confiança</p>
-                </div>
-              </div>
-            </Card>
-          </a>
-        </div>
+        <SOSButton />
 
         <Link
           href="/hoje?full=1"
@@ -499,21 +530,47 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
         >
           Ver painel completo
         </Link>
-
-        <p className="text-[10px] text-center text-muted italic px-4">
-          Este modo é ativado automaticamente quando detectamos sinais que merecem atenção.
-          Ele não substitui avaliação profissional. Quando o padrão se estabilizar, a interface volta ao normal.
-        </p>
       </div>
     );
   }
 
+  // === Simple mode status text ===
+  const simpleModeStatus = (() => {
+    const parts: string[] = [];
+    if (todayEntry) {
+      const m = moodLabels[todayEntry.mood];
+      if (m) parts.push(`humor ${m.text.toLowerCase()}`);
+    }
+    if (todaySleep) {
+      parts.push(`sono ${formatSleepDuration(todaySleep.totalHours)}`);
+    }
+    if (parts.length === 0) return "Sem registros ainda hoje. Comece quando quiser.";
+    return `Hoje: ${parts.join(", ")}.`;
+  })();
+
   return (
+    <SimpleMode statusText={simpleModeStatus}>
     <div className="space-y-4">
       <Greeting />
+      <CoachMarks />
 
-      {/* === SAFETY NUDGE (highest priority) === */}
-      {showSafetyNudge && <SafetyNudge riskLevel={riskLevel} bipolarContext={bipolarContext} />}
+      {/* === RISK V2: ORANGE/YELLOW Alert + Safety Interstitial === */}
+      {(alertLayer === "ORANGE" || alertLayer === "YELLOW") && (
+        <AlertCard
+          layer={alertLayer as "ORANGE" | "YELLOW"}
+          reasons={riskV2.reasons}
+          actions={alertActions}
+          safety={riskV2.rails.safety}
+          syndrome={riskV2.rails.syndrome}
+          prodrome={riskV2.rails.prodrome}
+        />
+      )}
+      {riskV2.rails.safety.pending && (
+        <HojeSafetyGate
+          source={todayWarningSigns.includes("pensamentos_suicidas") ? "warning_sign" : "phq9_item9"}
+          sourceAssessmentId={lastWeeklyAssessment?.id}
+        />
+      )}
 
       {/* === 1. RISK RADAR (Hero) === */}
       {hasEnoughData ? (
@@ -623,7 +680,9 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
             <h2 className="text-sm font-semibold text-foreground">Score de Estabilidade</h2>
             <Link href="/insights" className="text-xs text-primary hover:underline">Detalhes</Link>
           </div>
-          <StabilityScoreWidget stability={insights.stability} />
+          <ErrorBoundary name="StabilityScoreWidget">
+            <StabilityScoreWidget stability={insights.stability} />
+          </ErrorBoundary>
           <p className="mt-2 text-[10px] text-muted italic">
             Baseado nos seus últimos 30 dias · Não é diagnóstico
           </p>
@@ -795,7 +854,9 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
             <h2 className="text-sm font-semibold text-foreground">Últimos 7 dias</h2>
             <Link href="/insights" className="text-xs text-primary hover:underline">Insights</Link>
           </div>
-          <DashboardChartWrapper data={chartData} />
+          <ErrorBoundary name="DashboardChartWrapper">
+            <DashboardChartWrapper data={chartData} />
+          </ErrorBoundary>
         </Card>
       )}
 
@@ -845,5 +906,6 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
 
       <SOSButton />
     </div>
+    </SimpleMode>
   );
 }

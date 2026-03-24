@@ -601,22 +601,7 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
     );
   }
 
-  // === Simple mode status text ===
-  const simpleModeStatus = (() => {
-    const parts: string[] = [];
-    if (todayEntry) {
-      const m = moodLabels[todayEntry.mood];
-      if (m) parts.push(`humor ${m.text.toLowerCase()}`);
-    }
-    if (todaySleep) {
-      parts.push(`sono ${formatSleepDuration(todaySleep.totalHours)}`);
-    }
-    if (parts.length === 0) return "Sem registros ainda hoje. Comece quando quiser.";
-    return `Hoje: ${parts.join(", ")}.`;
-  })();
-
   return (
-    <SimpleMode statusText={simpleModeStatus}>
     <div className="space-y-4">
       <Greeting />
       <CoachMarks />
@@ -973,6 +958,5 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
 
       <SOSButton />
     </div>
-    </SimpleMode>
   );
 }

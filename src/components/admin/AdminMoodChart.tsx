@@ -47,9 +47,9 @@ export function AdminMoodChart({ data }: Props) {
           <Line
             type="monotone"
             dataKey="avg"
-            stroke="#527a6e"
+            stroke="var(--color-primary, #527a6e)"
             strokeWidth={2}
-            dot={{ r: 2, fill: "#527a6e" }}
+            dot={{ r: 2, fill: "var(--color-primary, #527a6e)" }}
             name="Humor médio"
           />
         </LineChart>

@@ -240,11 +240,12 @@ export async function POST(request: NextRequest) {
     // Consent gate: block LLM path entirely without valid consent.
     // For deterministic templates (high-risk, insufficient data), no consent needed.
     if (willCallLlm) {
+      const AI_NARRATIVE_CONSENT_VERSION = 1; // bump when consent text changes
       const existingConsent = await prisma.consent.findFirst({
         where: { userId, scope: "ai_narrative", revokedAt: null },
-        select: { id: true },
+        select: { id: true, version: true },
       });
-      if (!existingConsent) {
+      if (!existingConsent || existingConsent.version < AI_NARRATIVE_CONSENT_VERSION) {
         // Require explicit consent flag from frontend (checkbox + disclosure)
         let body: { consent?: boolean } = {};
         try { body = await request.json(); } catch { /* no body */ }
@@ -254,8 +255,18 @@ export async function POST(request: NextRequest) {
             { status: 403 },
           );
         }
-        // First-time grant: record consent with audit trail
-        await prisma.consent.create({ data: { userId, scope: "ai_narrative" } });
+        // Grant or re-accept consent with version and audit trail
+        if (existingConsent) {
+          // Stale version — bump it
+          await prisma.consent.update({
+            where: { id: existingConsent.id },
+            data: { version: AI_NARRATIVE_CONSENT_VERSION, grantedAt: new Date() },
+          });
+        } else {
+          await prisma.consent.create({
+            data: { userId, scope: "ai_narrative", version: AI_NARRATIVE_CONSENT_VERSION },
+          });
+        }
       }
     }
 

@@ -35,13 +35,18 @@ export function MiniTrendChart({ data }: MiniTrendChartProps) {
           <YAxis yAxisId="mood" domain={[1, 5]} tick={{ fontSize: 10 }} width={25} />
           <YAxis yAxisId="sleep" orientation="right" domain={[0, 14]} tick={{ fontSize: 10 }} width={25} />
           <Tooltip
-            contentStyle={{ fontSize: 12 }}
+            contentStyle={{
+              fontSize: 12,
+              backgroundColor: "var(--color-surface, #fff)",
+              border: "1px solid var(--color-border, #e5e7eb)",
+              borderRadius: "8px",
+            }}
             formatter={(value: number | undefined, name: string | undefined) =>
               [name === "mood" ? `${value}/5` : `${value}h`, name === "mood" ? "Humor" : "Sono"]
             }
           />
-          <Line yAxisId="mood" type="monotone" dataKey="mood" stroke="#527a6e" strokeWidth={2} dot={false} />
-          <Line yAxisId="sleep" type="monotone" dataKey="sleepHours" stroke="#7da399" strokeWidth={2} dot={false} />
+          <Line yAxisId="mood" type="monotone" dataKey="mood" stroke="var(--color-primary, #527a6e)" strokeWidth={2} dot={false} />
+          <Line yAxisId="sleep" type="monotone" dataKey="sleepHours" stroke="var(--color-primary-light, #7da399)" strokeWidth={2} dot={false} />
         </LineChart>
       </ResponsiveContainer>
     </div>

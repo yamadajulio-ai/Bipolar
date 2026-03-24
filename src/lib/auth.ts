@@ -59,6 +59,23 @@ export async function getSession() {
 
     // Sliding refresh: update lastActive stamp every ~1h
     if (!session.lastActive || now - session.lastActive > REFRESH_INTERVAL) {
+      // Check if password was changed after session creation (invalidate stale sessions)
+      if (session.createdAt) {
+        try {
+          const { prisma } = await import("@/lib/db");
+          const user = await prisma.user.findUnique({
+            where: { id: session.userId },
+            select: { passwordChangedAt: true },
+          });
+          if (user?.passwordChangedAt && user.passwordChangedAt.getTime() > session.createdAt) {
+            await session.destroy();
+            return session;
+          }
+        } catch {
+          // Column may not exist pre-migration — skip check silently
+        }
+      }
+
       session.lastActive = now;
       try { await session.save(); } catch { /* Server Component — read-only cookies, skip */ }
     }

@@ -3,6 +3,8 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { EarlySignsChecklist } from "./EarlySignsChecklist";
 
+export const dynamic = "force-static";
+
 export const metadata: Metadata = {
   title: "Checklist de Sinais Precoces de Episódio Bipolar — Suporte Bipolar",
   description:

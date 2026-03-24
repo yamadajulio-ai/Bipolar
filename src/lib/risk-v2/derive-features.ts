@@ -111,6 +111,11 @@ const DEFAULT_MANIA_SIGNS = new Set([
   "aumento_atividade",
   "agitacao",
   "desinibicao",
+  "agressividade",
+  "psicose",
+  "alucinacoes",
+  "delirios",
+  "incapacidade_autocuidado",
 ]);
 
 const DEFAULT_DEPRESSION_SIGNS = new Set([
@@ -317,7 +322,8 @@ export function deriveFeatures(input: DeriveFeaturesInput): DerivedFeatures {
   // ── Syndrome: Severe mania (psychiatric emergency without suicidality) ──
   // ASRM ≥ 11 + ≥3 corroborators + dangerous warning signs (agitation, disinhibition, psychotic features)
   const dangerousManiaSigns = todayWarningSigns.some((s) =>
-    s === "agitacao" || s === "desinibicao" || s === "planos_grandiosos" || s === "agressividade",
+    s === "agitacao" || s === "desinibicao" || s === "planos_grandiosos" || s === "agressividade" ||
+    s === "psicose" || s === "alucinacoes" || s === "delirios" || s === "incapacidade_autocuidado",
   );
   const severeManiaAcute = scalesFresh &&
     latestAsrmTotal !== null && latestAsrmTotal >= ASRM_SEVERE_MANIA_CUTOFF &&

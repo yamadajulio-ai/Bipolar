@@ -55,7 +55,7 @@ export function AdminActivityChart({ data }: Props) {
           <Line
             type="monotone"
             dataKey="checkins"
-            stroke="#527a6e"
+            stroke="var(--color-primary, #527a6e)"
             strokeWidth={2}
             dot={false}
             name="Check-ins"
@@ -63,7 +63,7 @@ export function AdminActivityChart({ data }: Props) {
           <Line
             type="monotone"
             dataKey="sleep"
-            stroke="#7da399"
+            stroke="var(--color-primary-light, #7da399)"
             strokeWidth={2}
             dot={false}
             name="Sono"
@@ -71,7 +71,7 @@ export function AdminActivityChart({ data }: Props) {
           <Line
             type="monotone"
             dataKey="exercises"
-            stroke="#d97706"
+            stroke="var(--color-warning, #d97706)"
             strokeWidth={2}
             dot={false}
             name="Exercícios"

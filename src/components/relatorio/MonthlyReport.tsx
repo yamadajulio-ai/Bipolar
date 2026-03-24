@@ -109,8 +109,8 @@ export function MonthlyReport({ data }: MonthlyReportProps) {
                 <YAxis yAxisId="mood" domain={[1, 5]} tick={{ fontSize: 10 }} width={25} />
                 <YAxis yAxisId="sleep" orientation="right" domain={[0, 14]} tick={{ fontSize: 10 }} width={25} />
                 <Tooltip contentStyle={{ fontSize: 12 }} />
-                <Line yAxisId="mood" type="monotone" dataKey="mood" stroke="#527a6e" strokeWidth={2} name="Humor" />
-                <Line yAxisId="sleep" type="monotone" dataKey="sleep" stroke="#7da399" strokeWidth={2} name="Sono (h)" />
+                <Line yAxisId="mood" type="monotone" dataKey="mood" stroke="var(--color-primary, #527a6e)" strokeWidth={2} name="Humor" />
+                <Line yAxisId="sleep" type="monotone" dataKey="sleep" stroke="var(--color-primary-light, #7da399)" strokeWidth={2} name="Sono (h)" />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -126,7 +126,7 @@ export function MonthlyReport({ data }: MonthlyReportProps) {
               <XAxis dataKey="name" tick={{ fontSize: 10 }} />
               <YAxis tick={{ fontSize: 10 }} width={25} />
               <Tooltip contentStyle={{ fontSize: 12 }} />
-              <Bar dataKey="count" fill="#527a6e" name="Dias" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="count" fill="var(--color-primary, #527a6e)" name="Dias" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>

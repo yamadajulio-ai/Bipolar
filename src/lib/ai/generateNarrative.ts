@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import * as Sentry from "@sentry/nextjs";
 import { z } from "zod/v4";
 import { createHash } from "crypto";
+import { trackError } from "@/lib/telemetry";
 import type { InsightsResult } from "@/lib/insights/computeInsights";
 import type {
   NarrativeInputV2,
@@ -349,106 +350,8 @@ Priorizador fiel e tradutor leigo. Sua função é ajudar a pessoa a entender o 
 - Seções ausentes: status="absent", title com nome da área, summary="" (vazio), arrays vazios
 - evidenceIds devem listar os IDs das evidências que você usou`;
 
-// ── Few-shot examples (5 archetypes per GPT Pro audit) ────────
-
-// Example 1: STABLE — lean, only 3 relevant sections
-const FEW_SHOT_STABLE_INPUT = `Verbalize as seguintes evidências: {"riskLevel":"low","sections":{"sleep":{"status":"ok","evidence":[{"id":"sleep_avg_30d","text":"Sono médio: 7.2 horas (22 registros, confiança alta)"},{"id":"sleep_var_30d","text":"Variação do horário de dormir: 28 minutos"}]},"mood":{"status":"ok","evidence":[{"id":"mood_stability_7d","text":"Resumo do humor: Humor estável"}]},"assessments":{"status":"ok","evidence":[{"id":"assessments_weekly","text":"Questionário semanal de humor: escore 5 (-1 vs semana anterior)"}]}}}`;
-
-const FEW_SHOT_STABLE_OUTPUT = JSON.stringify({
-  schemaVersion: "narrative_v2",
-  overview: { headline: "Semana estável nos seus registros.", summary: "Seu sono ficou em torno de 7,2 horas com pouca variação entre as noites. O humor se manteve estável ao longo dos dias.", dataQualityNote: "Base sólida de registros nesta semana.", evidenceIds: ["sleep_avg_30d", "sleep_var_30d", "mood_stability_7d"] },
-  sections: {
-    sleep: { status: "stable", title: "Sono", summary: "Noites regulares, com meia hora de variação.", keyPoints: ["Média de 7,2 horas por noite", "Variação de 28 minutos"], metrics: ["Sono médio: 7,2h", "Variação: 28min"], suggestions: [], evidenceIds: ["sleep_avg_30d", "sleep_var_30d"] },
-    mood: { status: "stable", title: "Humor", summary: "Humor estável no período.", keyPoints: ["Baixa oscilação"], metrics: [], suggestions: [], evidenceIds: ["mood_stability_7d"] },
-    socialRhythms: { status: "absent", title: "Ritmos Sociais", summary: "", keyPoints: [], metrics: [], suggestions: [], evidenceIds: [] },
-    plannerContext: { status: "absent", title: "Rotina Planejada", summary: "", keyPoints: [], metrics: [], suggestions: [], evidenceIds: [] },
-    financialContext: { status: "absent", title: "Contexto Financeiro", summary: "", keyPoints: [], metrics: [], suggestions: [], evidenceIds: [] },
-    cognition: { status: "absent", title: "Cognição", summary: "", keyPoints: [], metrics: [], suggestions: [], evidenceIds: [] },
-    weeklyAssessments: { status: "stable", title: "Avaliações Semanais", summary: "Escore caiu 1 ponto — dentro da faixa habitual.", keyPoints: ["Escore de humor: 5 (-1 vs semana anterior)"], metrics: [], suggestions: [], evidenceIds: ["assessments_weekly"] },
-    lifeEvents: { status: "absent", title: "Eventos de Vida", summary: "", keyPoints: [], metrics: [], suggestions: [], evidenceIds: [] },
-    correlations: { status: "absent", title: "Correlações", summary: "", keyPoints: [], metrics: [], suggestions: [], evidenceIds: [] },
-    overallTrend: { status: "absent", title: "Tendência Geral", summary: "", keyPoints: [], metrics: [], suggestions: [], evidenceIds: [] },
-  },
-  actions: { shareWithProfessional: false, practicalSuggestions: ["Manter os horários de dormir parecidos no fim de semana ajuda a preservar essa regularidade", "Nos dias mais corridos, registrar pelo menos o sono já mantém a base de comparação"] },
-  closing: { text: "Semana sem grandes mudanças — bom sinal para a estabilidade." },
-});
-
-// Example 2: ALERT — correlation without causal language
-const FEW_SHOT_ALERT_INPUT = `Verbalize as seguintes evidências: {"riskLevel":"moderate","shareWithProfessional":true,"sections":{"sleep":{"status":"ok","evidence":[{"id":"sleep_avg_7d","text":"Sono médio: 5.6 horas"},{"id":"sleep_var_7d","text":"Variação do horário de dormir: 130 minutos"},{"id":"sleep_delta_wow","text":"Tendência do sono: caindo (variação de -1.5h)"}]},"mood":{"status":"ok","evidence":[{"id":"mood_amplitude_7d","text":"Oscilação do humor: 50 (alta)"}]},"correlations":{"status":"ok","evidence":[{"id":"corr_sleep_mood_30d","text":"Associação entre sono e humor: 0.65 (moderada positiva)"}]}}}`;
-
-const FEW_SHOT_ALERT_OUTPUT = JSON.stringify({
-  schemaVersion: "narrative_v2",
-  overview: { headline: "Seu sono encurtou e o humor ficou mais instável nesta semana.", summary: "O sono caiu para 5,6 horas em média — quase 1 hora e meia a menos que a semana anterior. A variação entre as noites passou de 2 horas. Nos seus registros, noites mais curtas coincidiram com dias de humor mais difícil.", dataQualityNote: "Leitura consistente, com mudanças recentes bem marcadas.", evidenceIds: ["sleep_avg_7d", "sleep_var_7d", "sleep_delta_wow", "mood_amplitude_7d"] },
-  sections: {
-    sleep: { status: "notable", title: "Sono", summary: "Noites mais curtas e com horários mais espalhados.", keyPoints: ["Média de 5,6 horas", "Mais de 2 horas de variação entre noites", "Queda de 1,5h vs semana anterior"], metrics: ["Sono médio: 5,6h", "Variação: 130min"], suggestions: ["Tente manter o horário de dormir mais parecido nos próximos dias"], evidenceIds: ["sleep_avg_7d", "sleep_var_7d", "sleep_delta_wow"] },
-    mood: { status: "notable", title: "Humor", summary: "Os check-ins oscilaram mais que o habitual.", keyPoints: ["Oscilação de 50 pontos (alta)"], metrics: [], suggestions: [], evidenceIds: ["mood_amplitude_7d"] },
-    socialRhythms: { status: "absent", title: "Ritmos Sociais", summary: "", keyPoints: [], metrics: [], suggestions: [], evidenceIds: [] },
-    plannerContext: { status: "absent", title: "Rotina Planejada", summary: "", keyPoints: [], metrics: [], suggestions: [], evidenceIds: [] },
-    financialContext: { status: "absent", title: "Contexto Financeiro", summary: "", keyPoints: [], metrics: [], suggestions: [], evidenceIds: [] },
-    cognition: { status: "absent", title: "Cognição", summary: "", keyPoints: [], metrics: [], suggestions: [], evidenceIds: [] },
-    weeklyAssessments: { status: "absent", title: "Avaliações Semanais", summary: "", keyPoints: [], metrics: [], suggestions: [], evidenceIds: [] },
-    lifeEvents: { status: "absent", title: "Eventos de Vida", summary: "", keyPoints: [], metrics: [], suggestions: [], evidenceIds: [] },
-    correlations: { status: "stable", title: "Correlações", summary: "Nos seus registros, noites mais curtas coincidiram com dias de humor mais difícil.", keyPoints: ["Associação moderada entre sono e humor (0,65)"], metrics: [], suggestions: [], evidenceIds: ["corr_sleep_mood_30d"] },
-    overallTrend: { status: "absent", title: "Tendência Geral", summary: "", keyPoints: [], metrics: [], suggestions: [], evidenceIds: [] },
-  },
-  actions: { shareWithProfessional: true, practicalSuggestions: ["Proteger o horário de dormir nos próximos dias — mesmo 30 minutos mais cedo já muda o padrão", "Separar um bloco curto de desaceleração antes de dormir"] },
-  closing: { text: "Vale observar se essa mudança no sono continua nos próximos dias." },
-});
-
-// Example 3: LIMITED — few records, honest about limitations
-const FEW_SHOT_LIMITED_INPUT = `Verbalize as seguintes evidências: {"riskLevel":"low","sections":{"sleep":{"status":"limited","evidence":[{"id":"sleep_count_low","text":"Sono médio: 6.5 horas (4 registros, confiança baixa)"}]},"mood":{"status":"limited","evidence":[{"id":"mood_count_low","text":"Resumo do humor: 2 check-ins registrados"}]}}}`;
-
-const FEW_SHOT_LIMITED_OUTPUT = JSON.stringify({
-  schemaVersion: "narrative_v2",
-  overview: { headline: "Poucos registros ainda para comparar padrões.", summary: "Com 4 noites e 2 check-ins, ainda não dá para traçar comparações firmes. Os primeiros registros mostram sono em torno de 6,5 horas.", dataQualityNote: "Base limitada — comparações ainda frágeis.", evidenceIds: ["sleep_count_low", "mood_count_low"] },
-  sections: {
-    sleep: { status: "limited", title: "Sono", summary: "Média de 6,5 horas em 4 registros — pouco para identificar um padrão.", keyPoints: ["4 registros disponíveis"], metrics: ["Sono médio: 6,5h"], suggestions: [], evidenceIds: ["sleep_count_low"] },
-    mood: { status: "limited", title: "Humor", summary: "Apenas 2 check-ins — pouco para comparar.", keyPoints: ["2 registros disponíveis"], metrics: [], suggestions: [], evidenceIds: ["mood_count_low"] },
-    socialRhythms: { status: "absent", title: "Ritmos Sociais", summary: "", keyPoints: [], metrics: [], suggestions: [], evidenceIds: [] },
-    plannerContext: { status: "absent", title: "Rotina Planejada", summary: "", keyPoints: [], metrics: [], suggestions: [], evidenceIds: [] },
-    financialContext: { status: "absent", title: "Contexto Financeiro", summary: "", keyPoints: [], metrics: [], suggestions: [], evidenceIds: [] },
-    cognition: { status: "absent", title: "Cognição", summary: "", keyPoints: [], metrics: [], suggestions: [], evidenceIds: [] },
-    weeklyAssessments: { status: "absent", title: "Avaliações Semanais", summary: "", keyPoints: [], metrics: [], suggestions: [], evidenceIds: [] },
-    lifeEvents: { status: "absent", title: "Eventos de Vida", summary: "", keyPoints: [], metrics: [], suggestions: [], evidenceIds: [] },
-    correlations: { status: "absent", title: "Correlações", summary: "", keyPoints: [], metrics: [], suggestions: [], evidenceIds: [] },
-    overallTrend: { status: "limited", title: "Tendência Geral", summary: "Retrato inicial — ainda ganhando base.", keyPoints: ["Base pequena de registros"], metrics: [], suggestions: [], evidenceIds: ["sleep_count_low", "mood_count_low"] },
-  },
-  actions: { shareWithProfessional: false, practicalSuggestions: ["Registrar sono e humor por mais alguns dias já monta uma base para a próxima leitura", "Usar os lembretes do app nos mesmos horários facilita a consistência"] },
-  closing: { text: "Cada registro novo deixa a próxima leitura mais útil." },
-});
-
-// Example 4: CONFLICTING SIGNALS — teaches uncertainty
-const FEW_SHOT_CONFLICT_INPUT = `Verbalize as seguintes evidências: {"riskLevel":"moderate","sections":{"sleep":{"status":"ok","evidence":[{"id":"sleep_avg_30d","text":"Sono médio: 7.8 horas (25 registros, confiança alta)"},{"id":"sleep_var_30d","text":"Variação do horário de dormir: 22 minutos"}]},"mood":{"status":"ok","evidence":[{"id":"mood_amplitude_7d","text":"Oscilação do humor: 55 (alta)"}]},"assessments":{"status":"ok","evidence":[{"id":"assess_phq9_weekly","text":"Questionário semanal de humor: escore 12 (+4 vs semana anterior)"},{"id":"assess_asrm_weekly","text":"Questionário semanal de energia e ritmo: escore 3 (-2 vs semana anterior)"}]}}}`;
-
-const FEW_SHOT_CONFLICT_OUTPUT = JSON.stringify({
-  schemaVersion: "narrative_v2",
-  overview: { headline: "Seu sono ficou regular, mas o humor oscilou mais do que o padrão.", summary: "O sono se manteve em 7,8 horas com apenas 22 minutos de variação — noites bem regulares. Porém, o humor oscilou bastante e o escore do questionário semanal subiu 4 pontos. Vale observar que sono estável nem sempre coincide com humor estável.", dataQualityNote: "Boa base de registros. Sinais mistos entre sono e humor.", evidenceIds: ["sleep_avg_30d", "mood_amplitude_7d", "assess_phq9_weekly"] },
-  sections: {
-    sleep: { status: "stable", title: "Sono", summary: "Noites regulares e dentro da faixa habitual.", keyPoints: ["Média de 7,8 horas", "Variação de apenas 22 minutos"], metrics: ["Sono médio: 7,8h", "Variação: 22min"], suggestions: [], evidenceIds: ["sleep_avg_30d", "sleep_var_30d"] },
-    mood: { status: "notable", title: "Humor", summary: "Os check-ins oscilaram mais, mesmo com sono regular.", keyPoints: ["Oscilação de 55 pontos (alta)"], metrics: [], suggestions: [], evidenceIds: ["mood_amplitude_7d"] },
-    socialRhythms: { status: "absent", title: "Ritmos Sociais", summary: "", keyPoints: [], metrics: [], suggestions: [], evidenceIds: [] },
-    plannerContext: { status: "absent", title: "Rotina Planejada", summary: "", keyPoints: [], metrics: [], suggestions: [], evidenceIds: [] },
-    financialContext: { status: "absent", title: "Contexto Financeiro", summary: "", keyPoints: [], metrics: [], suggestions: [], evidenceIds: [] },
-    cognition: { status: "absent", title: "Cognição", summary: "", keyPoints: [], metrics: [], suggestions: [], evidenceIds: [] },
-    weeklyAssessments: { status: "notable", title: "Avaliações Semanais", summary: "O escore de humor subiu 4 pontos, enquanto o de energia caiu 2.", keyPoints: ["Questionário de humor: +4 pontos", "Energia e ritmo: -2 pontos"], metrics: [], suggestions: [], evidenceIds: ["assess_phq9_weekly", "assess_asrm_weekly"] },
-    lifeEvents: { status: "absent", title: "Eventos de Vida", summary: "", keyPoints: [], metrics: [], suggestions: [], evidenceIds: [] },
-    correlations: { status: "absent", title: "Correlações", summary: "", keyPoints: [], metrics: [], suggestions: [], evidenceIds: [] },
-    overallTrend: { status: "absent", title: "Tendência Geral", summary: "", keyPoints: [], metrics: [], suggestions: [], evidenceIds: [] },
-  },
-  actions: { shareWithProfessional: true, practicalSuggestions: ["Registrar como está o humor em diferentes horas do dia ajuda a mapear o padrão", "Manter a rotina de sono que está funcionando bem"] },
-  closing: { text: "Vale acompanhar se essa oscilação de humor continua nos próximos dias." },
-});
-
-const FEW_SHOT_MESSAGES = [
-  { role: "user" as const, content: FEW_SHOT_STABLE_INPUT },
-  { role: "assistant" as const, content: FEW_SHOT_STABLE_OUTPUT },
-  { role: "user" as const, content: FEW_SHOT_ALERT_INPUT },
-  { role: "assistant" as const, content: FEW_SHOT_ALERT_OUTPUT },
-  { role: "user" as const, content: FEW_SHOT_LIMITED_INPUT },
-  { role: "assistant" as const, content: FEW_SHOT_LIMITED_OUTPUT },
-  { role: "user" as const, content: FEW_SHOT_CONFLICT_INPUT },
-  { role: "assistant" as const, content: FEW_SHOT_CONFLICT_OUTPUT },
-];
+// ── Few-shot examples (versioned, extracted to narrativeExamples.ts) ────────
+import { FEW_SHOT_MESSAGES } from "./narrativeExamples";
 
 // ── Anti-example: what the model should NOT produce ──────────
 // BAD OUTPUT (DO NOT GENERATE):
@@ -826,12 +729,15 @@ export async function generateNarrative(
     const tmplText = allTexts.join(" ");
     if (containsForbiddenContent(tmplText)) {
       Sentry.captureMessage("High-risk template contained forbidden content after sanitization", { level: "error", tags: { feature: "ai-narrative-v2" } });
+      trackError({ name: "narrative_error", errorType: "template_forbidden_content", message: "High-risk template contained forbidden content", extra: { riskScore: insights.risk?.score } });
       return { narrative: getSafeFallbackV2(), persistence: { ...basePersistence, bypassLlm: true, bypassReason: "high_risk", guardrailPassed: false, guardrailViolations: ["template_forbidden_content"] } };
     }
+    trackError({ name: "narrative_bypass", errorType: "high_risk", message: "LLM bypassed: high-risk template used", extra: { riskScore: insights.risk?.score } });
     return { narrative: tmpl, persistence: { ...basePersistence, bypassLlm: true, bypassReason: "high_risk" } };
   }
 
   if (insights.sleep.recordCount < 7 || insights.mood.recordCount < 3) {
+    trackError({ name: "narrative_bypass", errorType: "insufficient_data", message: `LLM bypassed: insufficient data (sleep=${insights.sleep.recordCount}, mood=${insights.mood.recordCount})`, extra: {} });
     return { narrative: getInsufficientDataTemplateV2(), persistence: { ...basePersistence, bypassLlm: true, bypassReason: "insufficient_data" } };
   }
 
@@ -864,37 +770,46 @@ export async function generateNarrative(
 
     if (response.status !== "completed") {
       Sentry.captureMessage(`AI narrative V2 response status: ${response.status}`, { level: "warning", tags: { feature: "ai-narrative-v2", reason: response.status, model } });
+      trackError({ name: "narrative_error", errorType: "incomplete_status", message: `Status: ${response.status}`, extra: { model } });
       return { narrative: getSafeFallbackV2(), persistence: { ...basePersistence, guardrailPassed: false, guardrailViolations: [`status:${response.status}`] } };
     }
 
     const refusal = response.output.find((item) => item.type === "message" && item.content?.some((c: { type: string }) => c.type === "refusal"));
     if (refusal) {
       Sentry.captureMessage("AI narrative V2 refused", { level: "warning", tags: { feature: "ai-narrative-v2", reason: "refusal", model } });
+      trackError({ name: "narrative_error", errorType: "refusal", message: "Model refused to generate narrative", extra: { model } });
       return { narrative: getSafeFallbackV2(), persistence: { ...basePersistence, guardrailPassed: false, guardrailViolations: ["refusal"] } };
     }
 
     const content = response.output_text;
-    if (!content) return { narrative: getSafeFallbackV2(), persistence: { ...basePersistence, guardrailPassed: false, guardrailViolations: ["empty_content"] } };
+    if (!content) {
+      trackError({ name: "narrative_error", errorType: "empty_content", message: "LLM returned empty content", extra: { model } });
+      return { narrative: getSafeFallbackV2(), persistence: { ...basePersistence, guardrailPassed: false, guardrailViolations: ["empty_content"] } };
+    }
     if (content.length > 20_000) {
       Sentry.captureMessage("AI narrative V2 oversized", { level: "warning", tags: { feature: "ai-narrative-v2", reason: "oversized", model } });
+      trackError({ name: "narrative_error", errorType: "oversized", message: `LLM output too large: ${content.length} chars`, extra: { model, contentLength: content.length } });
       return { narrative: getSafeFallbackV2(), persistence: { ...basePersistence, guardrailPassed: false, guardrailViolations: ["oversized"] } };
     }
 
     let raw: unknown;
     try { raw = JSON.parse(content); } catch {
       Sentry.captureMessage("AI narrative V2 JSON parse failed", { level: "warning", tags: { feature: "ai-narrative-v2", reason: "json-parse", model } });
+      trackError({ name: "narrative_error", errorType: "json_parse", message: "Failed to parse LLM output as JSON", extra: { model, contentLength: content.length } });
       return { narrative: getSafeFallbackV2(), persistence: { ...basePersistence, guardrailPassed: false, guardrailViolations: ["json_parse_failed"] } };
     }
 
     const parsed = narrativeV2Schema.safeParse(raw);
     if (!parsed.success) {
       Sentry.captureMessage("AI narrative V2 Zod failed", { level: "warning", tags: { feature: "ai-narrative-v2", reason: "zod-validation", model }, extra: { errors: parsed.error.issues.slice(0, 5) } });
+      trackError({ name: "narrative_error", errorType: "zod_validation", message: "LLM output failed schema validation", extra: { model, issueCount: parsed.error.issues.length } });
       return { narrative: getSafeFallbackV2(), persistence: { ...basePersistence, guardrailPassed: false, guardrailViolations: ["zod_validation_failed"] } };
     }
 
     const allText = extractAllText(raw as RawOutput);
     if (containsForbiddenContent(allText)) {
       Sentry.captureMessage("AI narrative V2 forbidden content", { level: "warning", tags: { feature: "ai-narrative-v2", reason: "forbidden-content", model } });
+      trackError({ name: "narrative_error", errorType: "forbidden_content", message: "LLM output contained forbidden clinical content", extra: { model } });
       return { narrative: getSafeFallbackV2(), persistence: { ...basePersistence, guardrailPassed: false, guardrailViolations: ["forbidden_content"] } };
     }
 
@@ -947,6 +862,7 @@ export async function generateNarrative(
     return { narrative: { ...parsed.data, source: "llm" as const, generatedAt: new Date().toISOString() }, persistence: basePersistence };
   } catch (err) {
     Sentry.captureException(err, { tags: { feature: "ai-narrative-v2" }, extra: { note: "Returned safe fallback V2" } });
+    trackError({ name: "narrative_error", errorType: "exception", message: err instanceof Error ? err.message.slice(0, 200) : "unknown", extra: { model } });
     return { narrative: getSafeFallbackV2(), persistence: { ...basePersistence, latencyMs: Date.now() - startMs, guardrailPassed: false, guardrailViolations: [`exception:${err instanceof Error ? err.message.slice(0, 100) : "unknown"}`] } };
   }
 }

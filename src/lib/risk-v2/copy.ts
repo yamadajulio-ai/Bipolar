@@ -51,7 +51,7 @@ export function getHeadline(layer: AlertLayer, safety: RailResult, syndrome: Rai
 export function getDescription(layer: AlertLayer, safety: RailResult, syndrome: RailResult): string {
   if (layer === "RED") {
     if (syndrome.reasons.includes("mania_aguda_grave")) {
-      return "Seus registros mostram sinais muito intensos de ativação — perda de sono, agitação, mudanças abruptas. Procure atendimento psiquiátrico de urgência agora.";
+      return "Seus registros mostram sinais muito intensos de ativação — perda de sono, agitação, mudanças abruptas ou comportamento incomum. Procure atendimento psiquiátrico de urgência agora.";
     }
     return "Pelos seus registros e respostas, pode haver risco agudo. Procure ajuda agora.";
   }
@@ -83,12 +83,17 @@ const REASON_LABELS: Record<string, string> = {
   ideacao_suicida_aguda: "Pensamentos suicidas agudos detectados",
   nao_consegue_se_manter_seguro: "Dificuldade em se manter seguro",
   pensamentos_suicidas_agora: "Pensamentos suicidas neste momento",
+  intencao_declarada_de_agir: "Intenção declarada de agir",
+  plano_para_hoje: "Plano com prazo imediato",
   plano_detalhado_com_acesso_a_meios: "Plano com acesso a meios",
+  plano_com_intencao_incerta_e_prazo_proximo: "Plano com intenção incerta e prazo próximo",
   tentativa_recente: "Tentativa recente",
   comportamento_preparatorio_recente: "Comportamento preparatório recente",
   triagem_seguranca_pendente: "Triagem de segurança pendente",
   asq_positivo: "Triagem de segurança positiva",
   plano_suicida_presente: "Plano suicida identificado",
+  intencao_incerta: "Incerteza sobre intenção de agir",
+  prazo_temporal_proximo: "Prazo temporal próximo identificado",
   incerto_sobre_seguranca: "Incerteza sobre segurança pessoal",
   tentativa_ultimos_12_meses: "Tentativa nos últimos 12 meses",
   preparacao_ultimos_12_meses: "Preparação nos últimos 12 meses",
@@ -101,7 +106,7 @@ const REASON_LABELS: Record<string, string> = {
   sinal_suicida_com_triagem_ok: "Sinal de alerta com triagem já realizada",
 
   // Syndrome
-  mania_aguda_grave: "Sinais intensos de ativação — possível episódio maníaco agudo",
+  mania_aguda_grave: "Sinais intensos de ativação — possível episódio maníaco agudo (pode incluir psicose ou agitação grave)",
   sinais_mistos_com_corroboracao: "Sinais mistos (ativação + rebaixamento simultâneos)",
   sinais_mistos_sem_corroboracao_completa: "Possíveis sinais mistos",
   sindrome_maniforme_provavel: "Sinais de ativação / possível hipomania",

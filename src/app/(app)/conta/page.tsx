@@ -4,6 +4,7 @@ import { Alert } from "@/components/Alert";
 import { DeleteAccountButton } from "@/components/conta/DeleteAccountButton";
 import { ExportDataButton } from "@/components/conta/ExportDataButton";
 import { DisplayPreferences } from "@/components/conta/DisplayPreferences";
+import { ThemeToggle } from "@/components/conta/ThemeToggle";
 
 export default async function ContaPage() {
   const session = await getSession();
@@ -25,6 +26,10 @@ export default async function ContaPage() {
           Conforme a LGPD (Art. 18), você pode exportar ou excluir todos os seus dados a qualquer momento.
         </p>
         <ExportDataButton />
+      </Card>
+
+      <Card className="mb-6">
+        <ThemeToggle />
       </Card>
 
       <Card className="mb-6">

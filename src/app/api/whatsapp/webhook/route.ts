@@ -1,8 +1,41 @@
 import crypto from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod/v4";
 import * as Sentry from "@sentry/nextjs";
 import { prisma } from "@/lib/db";
 import { maskIp } from "@/lib/security";
+
+// ── Zod schemas for Meta WhatsApp Cloud API webhook payload ─────
+const whatsappTextSchema = z.object({ body: z.string() });
+
+const whatsappMessageSchema = z.object({
+  id: z.string().optional(),
+  from: z.string().optional(),
+  text: whatsappTextSchema.optional(),
+  type: z.string().optional(),
+});
+
+const whatsappValueSchema = z.object({
+  messages: z.array(whatsappMessageSchema).optional(),
+  statuses: z.unknown().optional(),
+  metadata: z.unknown().optional(),
+  messaging_product: z.string().optional(),
+});
+
+const whatsappChangeSchema = z.object({
+  value: whatsappValueSchema,
+  field: z.string().optional(),
+});
+
+const whatsappEntrySchema = z.object({
+  id: z.string().optional(),
+  changes: z.array(whatsappChangeSchema).optional(),
+});
+
+const whatsappWebhookSchema = z.object({
+  object: z.string().optional(),
+  entry: z.array(whatsappEntrySchema).optional(),
+});
 
 /**
  * WhatsApp Cloud API webhook.
@@ -91,19 +124,30 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    // WhatsApp may send multiple entries/changes — process all of them
-    const entries = Array.isArray(body.entry) ? body.entry : [];
+    // Validate webhook payload structure with Zod
+    const parsed = whatsappWebhookSchema.safeParse(body);
+    if (!parsed.success) {
+      Sentry.captureMessage("WhatsApp webhook: invalid payload structure", {
+        level: "warning",
+        tags: { endpoint: "whatsapp-webhook", event: "schema_rejected" },
+        extra: { issues: parsed.error.issues.slice(0, 5) },
+      });
+      // Ack to prevent Meta retries (payload is permanently invalid)
+      return NextResponse.json({ ok: true });
+    }
+
+    const entries = parsed.data.entry ?? [];
 
     for (const entry of entries) {
-      const changes = Array.isArray((entry as Record<string, unknown>).changes) ? (entry as Record<string, unknown>).changes as unknown[] : [];
+      const changes = entry.changes ?? [];
       for (const change of changes) {
-        const value = (change as Record<string, unknown>)?.value as Record<string, unknown> | undefined;
-        if (!value?.messages) continue;
+        const messages = change.value.messages;
+        if (!messages) continue;
 
-        for (const message of value.messages as Array<Record<string, unknown>>) {
-          const messageId = message.id as string | undefined;
-          const from = message.from as string | undefined;
-          const text = (message.text as Record<string, unknown>)?.body;
+        for (const message of messages) {
+          const messageId = message.id;
+          const from = message.from;
+          const text = message.text?.body;
 
           if (!text || !from) continue;
 
@@ -122,7 +166,7 @@ export async function POST(request: NextRequest) {
           // LGPD art. 11 requires specific, highlighted, informed consent for
           // sensitive health data — a bare keyword in WhatsApp does not meet
           // that standard. Opt-in must happen in the authenticated app UI.
-          const normalizedText = (text as string).trim().toUpperCase();
+          const normalizedText = text.trim().toUpperCase();
           const OPT_OUT_KEYWORDS = new Set(["PARAR", "SAIR", "STOP", "CANCELAR"]);
 
           if (OPT_OUT_KEYWORDS.has(normalizedText)) {

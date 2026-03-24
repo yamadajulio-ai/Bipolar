@@ -73,6 +73,8 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    // LGPD minimization: select only user-facing fields, exclude internal IDs,
+    // foreign keys, computed aggregations, hashes, and sync metadata.
     const [
       diaryEntries,
       sleepLogs,
@@ -85,20 +87,77 @@ export async function POST(request: NextRequest) {
       feedbacks,
       contextualFeedbacks,
     ] = await Promise.all([
-      prisma.diaryEntry.findMany({ where: { userId }, orderBy: { date: "desc" } }),
-      prisma.sleepLog.findMany({ where: { userId }, orderBy: { date: "desc" } }),
+      prisma.diaryEntry.findMany({
+        where: { userId },
+        orderBy: { date: "desc" },
+        select: {
+          date: true, mood: true, sleepHours: true, note: true,
+          energyLevel: true, anxietyLevel: true, irritability: true,
+          tookMedication: true, warningSigns: true,
+        },
+      }),
+      prisma.sleepLog.findMany({
+        where: { userId },
+        orderBy: { date: "desc" },
+        select: {
+          date: true, bedtime: true, wakeTime: true, totalHours: true,
+          quality: true, awakenings: true, hrv: true, heartRate: true,
+          preRoutine: true, notes: true,
+        },
+      }),
       prisma.plannerBlock.findMany({
         where: { userId },
         orderBy: { startAt: "desc" },
-        include: { recurrence: true, exceptions: true },
+        select: {
+          title: true, category: true, kind: true, isRoutine: true,
+          startAt: true, endAt: true, notes: true, energyCost: true,
+          stimulation: true,
+          recurrence: { select: { freq: true, interval: true, weekDays: true, until: true } },
+          exceptions: { select: { occurrenceDate: true, isCancelled: true, overrideStartAt: true, overrideEndAt: true, overrideTitle: true } },
+        },
       }),
-      prisma.exerciseSession.findMany({ where: { userId }, orderBy: { completedAt: "desc" } }),
-      prisma.courseProgress.findMany({ where: { userId }, orderBy: { completedAt: "desc" } }),
-      prisma.crisisPlan.findUnique({ where: { userId } }),
-      prisma.reminderSettings.findUnique({ where: { userId } }),
-      prisma.financialTransaction.findMany({ where: { userId }, orderBy: { date: "desc" } }),
-      prisma.feedback.findMany({ where: { userId }, orderBy: { createdAt: "desc" } }),
-      prisma.contextualFeedback.findMany({ where: { userId }, orderBy: { createdAt: "desc" } }),
+      prisma.exerciseSession.findMany({
+        where: { userId },
+        orderBy: { completedAt: "desc" },
+        select: { exerciseType: true, durationSecs: true, completedAt: true },
+      }),
+      prisma.courseProgress.findMany({
+        where: { userId },
+        orderBy: { completedAt: "desc" },
+        select: { courseSlug: true, lessonSlug: true, completedAt: true },
+      }),
+      prisma.crisisPlan.findUnique({
+        where: { userId },
+        select: {
+          trustedContacts: true, professionalName: true, professionalPhone: true,
+          medications: true, preferredHospital: true, copingStrategies: true,
+        },
+      }),
+      prisma.reminderSettings.findUnique({
+        where: { userId },
+        select: {
+          wakeReminder: true, sleepReminder: true, diaryReminder: true,
+          breathingReminder: true, enabled: true, privacyMode: true,
+        },
+      }),
+      prisma.financialTransaction.findMany({
+        where: { userId },
+        orderBy: { date: "desc" },
+        select: {
+          date: true, description: true, amount: true, category: true,
+          account: true, occurredAt: true,
+        },
+      }),
+      prisma.feedback.findMany({
+        where: { userId },
+        orderBy: { createdAt: "desc" },
+        select: { category: true, message: true, screen: true, canContact: true, createdAt: true },
+      }),
+      prisma.contextualFeedback.findMany({
+        where: { userId },
+        orderBy: { createdAt: "desc" },
+        select: { contextKey: true, useful: true, createdAt: true },
+      }),
     ]);
 
     const exportData = {

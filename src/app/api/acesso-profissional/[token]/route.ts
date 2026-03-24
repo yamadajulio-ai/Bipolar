@@ -214,6 +214,7 @@ export async function POST(
           heartRate: true,
         },
         orderBy: { date: "asc" },
+        take: 90,
       }),
       prisma.diaryEntry.findMany({
         where: { userId: validAccess.userId, date: { gte: cutoff30Str } },
@@ -238,6 +239,7 @@ export async function POST(
           lastSnapshotAt: true,
         },
         orderBy: { date: "asc" },
+        take: 90,
       }),
       prisma.moodSnapshot.findMany({
         where: { userId: validAccess.userId, localDate: { gte: cutoff30Str } },
@@ -250,6 +252,7 @@ export async function POST(
           anxiety: true,
           irritability: true,
         },
+        take: 90,
       }),
       prisma.plannerBlock.findMany({
         where: {
@@ -259,6 +262,7 @@ export async function POST(
         },
         select: { startAt: true, category: true },
         orderBy: { startAt: "asc" },
+        take: 90,
       }),
       prisma.crisisPlan.findUnique({
         where: { userId: validAccess.userId },
@@ -273,6 +277,7 @@ export async function POST(
             where: { userId: validAccess.userId, createdAt: { gte: cutoff30 } },
             orderBy: { createdAt: "desc" },
             select: { action: true, createdAt: true },
+            take: 30,
           })
         : Promise.resolve([]),
       // Weekly assessments (last 12 weeks)
@@ -320,6 +325,45 @@ export async function POST(
 
     const [user, sleepLogs, entries, moodSnapshots, rawPlannerBlocks, crisisPlan, sosEvents, weeklyAssessments, lifeChartEvents, functioningAssessments] =
       await Promise.all(queries) as [any, any[], any[], any[], any[], any, any[], any[], any[], any[]];
+
+    // Count total records for truncation detection
+    const [
+      totalSleepLogs,
+      totalEntries,
+      totalMoodSnapshots,
+      totalPlannerBlocks,
+      totalSosEvents,
+      totalWeeklyAssessments,
+      totalFunctioningAssessments,
+    ] = await Promise.all([
+      prisma.sleepLog.count({ where: { userId: validAccess.userId, date: { gte: cutoff90Str } } }),
+      prisma.diaryEntry.count({ where: { userId: validAccess.userId, date: { gte: cutoff30Str } } }),
+      prisma.moodSnapshot.count({ where: { userId: validAccess.userId, localDate: { gte: cutoff30Str } } }),
+      prisma.plannerBlock.count({
+        where: {
+          userId: validAccess.userId,
+          startAt: { gte: cutoff30 },
+          category: { in: ["social", "trabalho", "refeicao"] },
+        },
+      }),
+      validAccess.shareSosEvents
+        ? prisma.sOSEvent.count({ where: { userId: validAccess.userId, createdAt: { gte: cutoff30 } } })
+        : Promise.resolve(0),
+      prisma.weeklyAssessment.count({ where: { userId: validAccess.userId } }),
+      prisma.functioningAssessment.count({ where: { userId: validAccess.userId } }),
+    ]);
+
+    // Build truncation info
+    const truncatedCollections: Record<string, { returned: number; total: number }> = {};
+    if (totalSleepLogs > 90) truncatedCollections.sleepLogs = { returned: 90, total: totalSleepLogs };
+    if (totalEntries > 90) truncatedCollections.entries = { returned: 90, total: totalEntries };
+    if (totalMoodSnapshots > 90) truncatedCollections.moodSnapshots = { returned: 90, total: totalMoodSnapshots };
+    if (totalPlannerBlocks > 90) truncatedCollections.plannerBlocks = { returned: 90, total: totalPlannerBlocks };
+    if (totalSosEvents > 30) truncatedCollections.sosEvents = { returned: 30, total: totalSosEvents };
+    if (totalWeeklyAssessments > 12) truncatedCollections.weeklyAssessments = { returned: 12, total: totalWeeklyAssessments };
+    if (totalFunctioningAssessments > 12) truncatedCollections.functioningAssessments = { returned: 12, total: totalFunctioningAssessments };
+
+    const isTruncated = Object.keys(truncatedCollections).length > 0;
 
     // Compute insights
     const sleepForInsights = sleepLogs.filter(
@@ -428,6 +472,13 @@ export async function POST(
         leisure: a.leisure,
         avgScore: a.avgScore,
       })),
+      ...(isTruncated
+        ? {
+            truncated: truncatedCollections,
+            notice:
+              "Alguns dados foram limitados nesta visualização. Para o histórico completo, solicite ao paciente uma exportação clínica de 365 dias em Configurações → Exportar Dados Clínicos.",
+          }
+        : {}),
     };
 
     return privateJson(report);

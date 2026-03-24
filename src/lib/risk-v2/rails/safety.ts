@@ -25,8 +25,20 @@ export function evaluateSafetyRail(f: DerivedFeatures): RailResult {
     if (f.latestBssa.thoughtRecency === "now") {
       return { layer: "RED", reasons: ["pensamentos_suicidas_agora"], confidence: "high" };
     }
+    // Intent to act = yes → RED regardless of plan detail (NIMH BSSA: stated intent is highest-risk signal)
+    if (f.latestBssa.intentToAct === "yes") {
+      return { layer: "RED", reasons: ["intencao_declarada_de_agir"], confidence: "high" };
+    }
+    // Imminent timeline (today) → RED
+    if (f.latestBssa.planTimeline === "today") {
+      return { layer: "RED", reasons: ["plano_para_hoje"], confidence: "high" };
+    }
     if (f.latestBssa.hasPlan && f.latestBssa.planIsDetailed && f.latestBssa.hasAccessToMeans) {
       return { layer: "RED", reasons: ["plano_detalhado_com_acesso_a_meios"], confidence: "high" };
+    }
+    // Plan + intent unsure + near timeline → RED (convergent risk)
+    if (f.latestBssa.hasPlan && f.latestBssa.intentToAct === "unsure" && f.latestBssa.planTimeline === "within_days") {
+      return { layer: "RED", reasons: ["plano_com_intencao_incerta_e_prazo_proximo"], confidence: "high" };
     }
     if (f.latestBssa.pastAttempt === "<3_months" || f.latestBssa.pastAttempt === "<7_days") {
       return { layer: "RED", reasons: ["tentativa_recente"], confidence: "high" };
@@ -48,6 +60,13 @@ export function evaluateSafetyRail(f: DerivedFeatures): RailResult {
   if (f.latestBssa) {
     if (f.latestBssa.hasPlan) {
       return { layer: "ORANGE", reasons: ["plano_suicida_presente"], confidence: "high" };
+    }
+    // Intent unsure (without plan) or near-term timeline → ORANGE
+    if (f.latestBssa.intentToAct === "unsure") {
+      return { layer: "ORANGE", reasons: ["intencao_incerta"], confidence: "high" };
+    }
+    if (f.latestBssa.planTimeline === "within_days" || f.latestBssa.planTimeline === "within_weeks") {
+      return { layer: "ORANGE", reasons: ["prazo_temporal_proximo"], confidence: "high" };
     }
     if (f.latestBssa.canStaySafe === "unsure") {
       return { layer: "ORANGE", reasons: ["incerto_sobre_seguranca"], confidence: "high" };
@@ -73,10 +92,13 @@ export function evaluateSafetyRail(f: DerivedFeatures): RailResult {
   if (f.latestPhq9Item9 !== null && f.latestPhq9Item9 >= 1 && f.safetyScreenCompleted) {
     const highFrequency = f.latestPhq9Item9 >= 3; // Nearly every day
     const moderateFrequency = f.latestPhq9Item9 >= 2; // More than half the days
-    const hasRiskModifier = f.mixedOrange || f.depressionOrange ||
+    // Risk modifiers: mixed state, severe depression, BSSA factors, prior attempt (ASQ q4 or BSSA)
+    const hasPriorAttempt = (f.latestBssa && f.latestBssa.pastAttempt !== "never") ||
+      (f.latestAsq && f.latestAsq.q4); // ASQ q4: "Have you ever tried to kill yourself?"
+    const hasRiskModifier = f.mixedOrange || f.depressionOrange || hasPriorAttempt ||
       (f.latestBssa && (
         f.latestBssa.thoughtFrequency === "daily" || f.latestBssa.thoughtFrequency === "many_times_day" ||
-        f.latestBssa.pastAttempt !== "never"
+        f.latestBssa.intentToAct === "unsure"
       ));
 
     if (highFrequency) {

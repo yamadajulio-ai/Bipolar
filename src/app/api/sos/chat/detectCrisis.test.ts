@@ -1,9 +1,13 @@
 import { describe, it, expect } from "vitest";
-import { _detectCrisisInTexts as detectCrisisInTexts } from "./route";
+import { _detectCrisisInTexts as detectCrisisInTexts } from "@/lib/sos/crisisDetection";
+import type { CrisisResult } from "@/lib/sos/crisisDetection";
 
-// Helper: wraps a single string in the array format detectCrisisInTexts expects
-const detect = (text: string) => detectCrisisInTexts([text]);
-const detectMulti = (texts: string[]) => detectCrisisInTexts(texts);
+// Helpers: boolean checks (backward-compatible with existing tests)
+const detect = (text: string) => detectCrisisInTexts([text]) !== "none";
+const detectMulti = (texts: string[]) => detectCrisisInTexts(texts) !== "none";
+// Helpers: exact result checks (for tier-specific tests)
+const detectResult = (text: string): CrisisResult => detectCrisisInTexts([text]);
+const detectMultiResult = (texts: string[]): CrisisResult => detectCrisisInTexts(texts);
 
 describe("detectCrisisInTexts", () => {
   // ── EXPLICIT patterns (always trigger) ─────────────────────────
@@ -1154,24 +1158,35 @@ describe("detectCrisisInTexts", () => {
 
   // ── Bipolar-specific CONTEXTUAL patterns ──────────────────────
 
-  describe("Bipolar-specific CONTEXTUAL — single hit without harm → false", () => {
+  describe("Bipolar-specific CONTEXTUAL — moderate single hit without harm → false", () => {
     it.each([
-      "estou num estado misto",
       "não durmo há dias",
       "estou agitada",
       "perdi o controle da dieta",
       "gastei tudo no mercado",
-      "ouvindo vozes do vizinho",
+      "ouvindo vozes do vizinho", // benign override: "do vizinho"
       "pensamentos acelerados",
       "irritada demais com tudo",
       "sem dormir faz dias",
-      "acordada há muito tempo",
       "cabeca nao para",
       "estou descontrolada",
       "estou explodindo de raiva",
       "gastei muito dinheiro no shopping",
     ])("does NOT detect alone: %s", (text) => {
       expect(detect(text)).toBe(false);
+    });
+  });
+
+  describe("Bipolar-specific CONTEXTUAL — severe single hit → decompensation", () => {
+    it.each([
+      "estou num estado misto",
+      "acordada há muito tempo",
+    ])("returns decompensation alone: %s", (text) => {
+      expect(detectResult(text)).toBe("decompensation");
+    });
+
+    it("'fora de controle' alone is NOT severe (downgraded R12)", () => {
+      expect(detectResult("fora de controle")).toBe("none");
     });
   });
 
@@ -1202,19 +1217,1172 @@ describe("detectCrisisInTexts", () => {
     });
   });
 
-  describe("Bipolar-specific — multi-day insomnia variants", () => {
+  describe("Bipolar-specific — multi-day insomnia variants (moderate: needs corroboration)", () => {
+    it.each([
+      "não consigo dormir há dias",
+      "não durmo faz noites",
+      "não durmo há 2 noites",
+    ])("does NOT detect alone: %s", (text) => {
+      expect(detect(text)).toBe(false);
+      expect(detectMulti([text, "estou sofrendo demais"])).toBe(true);
+    });
+  });
+
+  describe("Bipolar-specific — multi-day insomnia variants (severe: ≥3d → decompensation)", () => {
     it.each([
       "não durmo há 3 noites",
-      "não consigo dormir há dias",
       "sem dormir a 4 dias",
       "acordado há muito tempo",
       "sem dormir faz uma semana",
-      "não durmo faz noites",
-    ])("detects as contextual: %s (needs corroboration)", (text) => {
-      // Single contextual hit → false alone
+    ])("returns decompensation alone: %s", (text) => {
+      expect(detectResult(text)).toBe("decompensation");
+      // With harm context → escalates to crisis
+      expect(detectMultiResult([text, "estou sofrendo demais"])).toBe("crisis");
+    });
+  });
+
+  // ══════════════════════════════════════════════════════════════════
+  // P0 REGRESSION: benign medication adherence must NEVER trigger
+  // ══════════════════════════════════════════════════════════════════
+
+  describe("P0 regression — benign medication adherence must NOT detect", () => {
+    it.each([
+      "tomei rivotril hoje",
+      "tomei sertralina de manhã",
+      "tomei quetiapina antes de dormir",
+      "tomei clonazepam",
+      "tomei diazepam ontem",
+      "engoli o comprimido de fluoxetina",
+      "bebi o litio com água",
+      "tomei carbamazepina agora",
+      "tomei risperidona",
+      "tomei haloperidol",
+      "tomei amitriptilina",
+      "tomei tryptanol",
+      "tomei haldol",
+      "tomei frontal",
+      "tomei lexotan",
+      "tomei alprazolam",
+      "tomei clozapina à noite",
+      "tomei seroquel com o jantar",
+      "vou tomar rivotril agora",
+      "vou tomar sertralina",
+      "quero tomar meu clonazepam",
+      // Single-dose brand name (therapeutic)
+      "tomei 1 rivotril antes de dormir",
+      "tomei 1 clonazepam",
+      "tomei 1 sertralina de manhã",
+    ])("does NOT detect: %s", (text) => {
       expect(detect(text)).toBe(false);
-      // With harm context → true
-      expect(detectMulti([text, "estou sofrendo demais"])).toBe(true);
+    });
+  });
+
+  describe("P0 regression — medication with overdose quantifier STILL detects", () => {
+    it.each([
+      "tomei muitos rivotril",
+      "tomei todos os clonazepam",
+      "engoli vários diazepam",
+      "tomei um monte de sertralina",
+      "vou tomar muitos rivotril",
+      "vou engolir todos os lexotan",
+      "quero tomar vários alprazolam",
+      "quero engolir um monte de quetiapina",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  // ══════════════════════════════════════════════════════════════════
+  // TIER SEPARATION: bipolar decompensation vs crisis
+  // ══════════════════════════════════════════════════════════════════
+
+  describe("Tier separation — pure bipolar 2+ hits → decompensation (not crisis)", () => {
+    it.each([
+      "estado misto e agitação forte",
+      "não durmo há dias e ouço vozes",
+      "pensamentos acelerados e perdi o controle",
+      "gastei tudo e estou descontrolada",
+      "sem dormir faz dias e irritada demais",
+      "estado misto e cabeca nao para",
+      "acelerado e explodindo de raiva",
+    ])("returns decompensation: %s", (text) => {
+      expect(detectResult(text)).toBe("decompensation");
+    });
+  });
+
+  describe("Tier separation — bipolar + harm context → crisis (escalated)", () => {
+    it.each([
+      ["estou num estado misto", "não aguento mais"],
+      ["não durmo há dias", "estou desesperada"],
+      ["pensamentos acelerados", "sem esperança"],
+      ["irritada demais", "surtando"],
+      ["ouvindo vozes", "preciso de ajuda urgente"],
+    ])("returns crisis: %s + %s", (msg1, msg2) => {
+      expect(detectMultiResult([msg1, msg2])).toBe("crisis");
+    });
+  });
+
+  describe("Tier separation — bipolar + harm contextual → crisis (mixed)", () => {
+    it.each([
+      "agitado e quero sumir",
+      "estado misto e tenho um plano",
+      "não durmo há dias e fiz testamento",
+    ])("returns crisis: %s", (text) => {
+      expect(detectResult(text)).toBe("crisis");
+    });
+  });
+
+  describe("Tier separation — EXPLICIT always returns crisis", () => {
+    it.each([
+      "quero me matar",
+      "tomei todos os remédios",
+      "vou me suicidar",
+    ])("returns crisis: %s", (text) => {
+      expect(detectResult(text)).toBe("crisis");
+    });
+  });
+
+  describe("Tier separation — moderate bipolar hit alone → none", () => {
+    it.each([
+      "estou agitada",
+      "não durmo há dias",
+      "pensamentos acelerados",
+      "gastei tudo",
+    ])("returns none: %s", (text) => {
+      expect(detectResult(text)).toBe("none");
+    });
+  });
+
+  describe("Tier separation — severe bipolar hit alone → decompensation", () => {
+    it.each([
+      "estou num estado misto",
+      "ouvindo vozes",
+    ])("returns decompensation: %s", (text) => {
+      expect(detectResult(text)).toBe("decompensation");
+    });
+  });
+
+  describe("Tier separation — 'fora de controle' downgraded to regular contextual (R12)", () => {
+    it("returns none alone (needs 2+ hits)", () => {
+      expect(detectResult("fora de controle")).toBe("none");
+    });
+    it("returns decompensation with 2 bipolar hits", () => {
+      expect(detectResult("fora de controle e pensamentos acelerados")).toBe("decompensation");
+    });
+    it("returns crisis with harm context", () => {
+      expect(detectMultiResult(["fora de controle", "não aguento mais"])).toBe("crisis");
+    });
+  });
+
+  // ══════════════════════════════════════════════════════════════════
+  // P2: Extended insomnia duration patterns
+  // ══════════════════════════════════════════════════════════════════
+
+  describe("Extended insomnia — severe durations → decompensation alone", () => {
+    it.each([
+      "não durmo há 10 dias",
+      "sem dormir faz 15 dias",
+      "não consigo dormir há 72 horas",
+      "acordado há 48 horas",
+      "sem dormir faz duas semanas",
+      "não durmo há um mês",
+      "sem dormir a 12 dias",
+    ])("returns decompensation alone, crisis with harm: %s", (text) => {
+      expect(detectResult(text)).toBe("decompensation");
+      expect(detectMultiResult([text, "estou sofrendo demais"])).toBe("crisis");
+    });
+  });
+
+  // ══════════════════════════════════════════════════════════════════
+  // P2: Passive ideation gap coverage
+  // ══════════════════════════════════════════════════════════════════
+
+  describe("Passive ideation — new variants must detect", () => {
+    it.each([
+      "não queria ter acordado hoje",
+      "queria dormir pra sempre",
+      "queria dormir para sempre",
+      "não quero estar vivo",
+      "não quero estar viva",
+      "não queria estar vivo",
+      "não queria estar viva",
+      "dar fim em mim",
+      "não queria ter nascido",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  // ══════════════════════════════════════════════════════════════════
+  // R11 — Written-out numbers threshold split
+  // ══════════════════════════════════════════════════════════════════
+
+  describe("R11 — written-out numbers: generic meds ≥5 only", () => {
+    it.each([
+      "tomei dois comprimidos",
+      "tomei dois comprimidos de manhã",
+      "tomei três comprimidos",
+      "tomei quatro comprimidos",
+      "tomei dois remédios",
+      "tomei três remédios por dia",
+    ])("does NOT detect generic low count: %s", (text) => {
+      expect(detect(text)).toBe(false);
+    });
+
+    it.each([
+      "tomei cinco comprimidos",
+      "tomei dez remédios",
+      "engoli vinte comprimidos",
+      "tomei quinze pílulas",
+      "vou tomar cem medicamentos",
+    ])("detects generic high count: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("R11 — written-out numbers: brand meds ≥2 (doubling is concerning)", () => {
+    it.each([
+      "tomei dois rivotril",
+      "tomei três clonazepam",
+      "engoli dois diazepam",
+      "tomei quatro sertralina",
+      "vou tomar dois quetiapina",
+    ])("detects brand ≥2: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  // ══════════════════════════════════════════════════════════════════
+  // R11 — BIPOLAR_SEVERE single-hit decompensation
+  // ══════════════════════════════════════════════════════════════════
+
+  describe("R11 — severe bipolar single-hit → decompensation", () => {
+    it.each([
+      "ouvindo vozes",
+      "ouço vozes",
+      "estado misto",
+      "não durmo há 3 dias",
+      "sem dormir faz 72 horas",
+      "acordado há uma semana",
+      "não consigo dormir há muito tempo",
+    ])("returns decompensation: %s", (text) => {
+      expect(detectResult(text)).toBe("decompensation");
+    });
+  });
+
+  describe("R11 — moderate bipolar single-hit still requires corroboration", () => {
+    it.each([
+      "estou agitada",
+      "gastei tudo no mercado",
+      "pensamentos acelerados",
+      "irritada demais com tudo",
+      "gastei muito dinheiro no shopping",
+      "não durmo há 2 noites",
+    ])("returns none (needs 2+ hits): %s", (text) => {
+      expect(detectResult(text)).toBe("none");
+    });
+  });
+
+  // ══════════════════════════════════════════════════════════════════
+  // R11 — New lexical patterns (Brazilian means, vehicular, self-harm)
+  // ══════════════════════════════════════════════════════════════════
+
+  describe("R11 — Brazilian poisoning means must detect", () => {
+    it.each([
+      "tomei chumbinho",
+      "bebi água sanitária",
+      "engoli soda cáustica",
+      "tomei raticida",
+      "vou tomar chumbinho",
+      "quero beber cloro",
+      "tomei desinfetante",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("R11 — gas means must detect", () => {
+    it.each([
+      "abri o gás",
+      "liguei o gás",
+      "vou abrir o gás",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("R11 — vehicular self-harm must detect", () => {
+    it.each([
+      "vou bater o carro no poste",
+      "vou jogar o carro contra o muro",
+      "quero meter o carro no caminhão",
+      "vou jogar carro no rio",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("R11 — self-harm beyond cutting must detect", () => {
+    it.each([
+      "me queimei",
+      "vou me queimar",
+      "me mutilar",
+      "me mutilei",
+      "me furar",
+      "me furei",
+      "me esfaquear",
+      "estou me queimando",
+      "estou me mutilando",
+      "abri os pulsos",
+      "abrir meus pulsos",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("R11 — 'fazer merda' as contextual", () => {
+    it("does NOT detect alone: vou fazer merda", () => {
+      expect(detect("vou fazer merda")).toBe(false);
+    });
+    it("does NOT detect benign: vou fazer merda no trabalho", () => {
+      expect(detect("vou fazer merda no trabalho")).toBe(false);
+    });
+    it("detects with harm context: vou fazer merda + não aguento", () => {
+      expect(detectMulti(["vou fazer merda", "não aguento mais"])).toBe(true);
+    });
+  });
+
+  // ══════════════════════════════════════════════════════════════════
+  // R11 — New benign overrides
+  // ══════════════════════════════════════════════════════════════════
+
+  describe("R11 — benign overrides for broad patterns", () => {
+    it.each([
+      "me joguei no chão de cansaço",
+      "me joguei na rede",
+      "me joguei na cadeira",
+      "pulei da cadeira de susto",
+      "pulei do banco",
+      "tomei uma caixa de leite",
+      "bebi um frasco de água",
+      "tomei uma caixa de suco",
+    ])("does NOT detect: %s", (text) => {
+      expect(detect(text)).toBe(false);
+    });
+  });
+
+  // ══════════════════════════════════════════════════════════════════
+  // R12 — Gas/cleaning benign overrides
+  // ══════════════════════════════════════════════════════════════════
+
+  describe("R12 — gas for cooking must NOT detect", () => {
+    it.each([
+      "liguei o gás pra fazer café",
+      "liguei o gás para cozinhar",
+      "abri o gás e fiz o almoço",
+      "abri o gás para esquentar a comida",
+      "liguei o gás pra ferver água",
+    ])("does NOT detect: %s", (text) => {
+      expect(detect(text)).toBe(false);
+    });
+  });
+
+  describe("R12 — gas without cooking context still detects", () => {
+    it.each([
+      "abri o gás",
+      "liguei o gás",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("R12 — cleaning products in domestic context must NOT detect", () => {
+    it.each([
+      "usei cloro na limpeza",
+      "usei desinfetante no banheiro",
+      "usei água sanitária na cozinha",
+      "comprei cloro pra limpeza",
+      "cloro para limpar o chão",
+      "água sanitária pra lavar roupa",
+      "desinfetante na limpeza do banheiro",
+    ])("does NOT detect: %s", (text) => {
+      expect(detect(text)).toBe(false);
+    });
+  });
+
+  describe("R12 — cleaning products ingestion still detects", () => {
+    it.each([
+      "bebi cloro",
+      "tomei água sanitária",
+      "engoli desinfetante",
+      "quero beber cloro",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  // ══════════════════════════════════════════════════════════════════
+  // R12 — Accidental self-harm benign overrides
+  // ══════════════════════════════════════════════════════════════════
+
+  describe("R12 — accidental self-harm must NOT detect", () => {
+    it.each([
+      "me queimei no forno",
+      "me queimei no fogão",
+      "me queimei com óleo",
+      "me queimei com água quente",
+      "me queimei na panela",
+      "furei o dedo costurando",
+      "furei o dedo com agulha",
+      "me furei costurando",
+      "me furei com espinho",
+      "bati o carro sem querer",
+      "bati o carro no estacionamento",
+      "bati o carro na garagem",
+      "me machuquei cozinhando",
+      "me machuquei treinando",
+      "me machuquei jogando bola",
+      "me machuquei na academia",
+    ])("does NOT detect: %s", (text) => {
+      expect(detect(text)).toBe(false);
+    });
+  });
+
+  describe("R12 — intentional self-harm still detects", () => {
+    it.each([
+      "me queimei",
+      "vou me queimar",
+      "me furei",
+      "vou me furar",
+      "vou bater o carro no poste",
+      "vou me machucar",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  // ══════════════════════════════════════════════════════════════════
+  // R12 — Insomnia with external cause benign overrides
+  // ══════════════════════════════════════════════════════════════════
+
+  describe("R12 — insomnia from external cause must NOT count as bipolar signal", () => {
+    it.each([
+      "não dormi por causa do bebê",
+      "não dormi porque o vizinho fez barulho",
+      "sem dormir por causa do plantão",
+      "não consigo dormir por causa da dor",
+      "não dormi por causa do calor",
+      "acordada por causa do barulho",
+      "não dormi porque tinha prova",
+    ])("does NOT detect alone: %s", (text) => {
+      expect(detect(text)).toBe(false);
+    });
+  });
+
+  describe("R12 — insomnia without external cause still counts", () => {
+    it.each([
+      "não durmo há dias",
+      "sem dormir faz dias",
+      "não consigo dormir há dias",
+    ])("does NOT detect alone (moderate, needs corroboration): %s", (text) => {
+      expect(detectResult(text)).toBe("none");
+      expect(detectMultiResult([text, "estou agitada"])).toBe("decompensation");
+    });
+  });
+
+  // ══════════════════════════════════════════════════════════════════
+  // R12 — 'fora de controle' downgraded from BIPOLAR_SEVERE
+  // ══════════════════════════════════════════════════════════════════
+
+  describe("R12 — 'fora de controle' requires 2+ bipolar hits or harm context", () => {
+    it("alone → none", () => {
+      expect(detectResult("fora de controle")).toBe("none");
+    });
+    it("'fora de controle' + agitado → decompensation", () => {
+      expect(detectResult("fora de controle e agitado")).toBe("decompensation");
+    });
+    it("'fora de controle' + harm context → crisis", () => {
+      expect(detectMultiResult(["fora de controle", "não aguento mais"])).toBe("crisis");
+    });
+    it("'perdi o controle da dieta' alone → none (benign)", () => {
+      expect(detectResult("perdi o controle da dieta")).toBe("none");
+    });
+  });
+
+  // ══════════════════════════════════════════════════════════════════
+  // R13 — Brazilian poisoning synonyms
+  // ══════════════════════════════════════════════════════════════════
+
+  describe("R13 — poisoning synonyms must detect", () => {
+    it.each([
+      "tomei veneno de rato",
+      "bebi veneno de rato",
+      "vou tomar veneno de rato",
+      "bebi qboa",
+      "tomei cândida",
+      "engoli lixívia",
+      "vou beber qboa",
+      "vou tomar candida",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("R13 — gas synonyms must detect", () => {
+    it.each([
+      "abri o gás",
+      "liguei o gás",
+      "gás aberto",
+      "botijão",
+      "glp",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("R13 — gas supply benign overrides", () => {
+    it.each([
+      "botijão acabou",
+      "botijão vazio",
+      "preciso trocar o botijão",
+      "comprar botijão novo",
+    ])("does NOT detect: %s", (text) => {
+      expect(detect(text)).toBe(false);
+    });
+  });
+
+  // ══════════════════════════════════════════════════════════════════
+  // R13 — Vehicle variants (moto, caminhão, ônibus)
+  // ══════════════════════════════════════════════════════════════════
+
+  describe("R13 — vehicle variants must detect", () => {
+    it.each([
+      "vou bater a moto no poste",
+      "vou jogar o caminhão contra o muro",
+      "vou bater o ônibus no rio",
+      "quero meter a moto no muro",
+      "pulei na frente do caminhão",
+      "pular na frente do metrô",
+      "pular na frente da moto",
+      "pulei na frente da carreta",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("R13 — accidental vehicle benign overrides", () => {
+    it.each([
+      "bati a moto sem querer",
+      "bati o caminhão na garagem",
+      "bati o carro acidentalmente",
+    ])("does NOT detect: %s", (text) => {
+      expect(detect(text)).toBe(false);
+    });
+  });
+
+  // ══════════════════════════════════════════════════════════════════
+  // R13 — New psych medications
+  // ══════════════════════════════════════════════════════════════════
+
+  describe("R13 — new psych meds must detect with overdose quantifier", () => {
+    it.each([
+      "tomei muitos olanzapina",
+      "tomei muitos zyprexa",
+      "engoli vários aripiprazol",
+      "tomei muitos abilify",
+      "vou tomar todos os lamotrigina",
+      "tomei muitos valproato",
+      "engoli vários depakote",
+      "tomei muitos depakene",
+      "vou engolir todos os venlafaxina",
+      "tomei muitos desvenlafaxina",
+      "engoli vários topiramato",
+      "tomei muitos oxcarbazepina",
+      "misturei cerveja com olanzapina",
+      "misturei aripiprazol com vinho",
+      "tomei 3 olanzapina",
+      "tomei dois lamotrigina",
+      "engoli vinte depakote",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("R13 — new psych meds therapeutic use must NOT detect", () => {
+    it.each([
+      "tomei olanzapina antes de dormir",
+      "tomei zyprexa",
+      "comecei aripiprazol",
+      "meu médico receitou lamotrigina",
+      "tomo valproato todo dia",
+      "tomei 1 depakote",
+      "tomei venlafaxina de manhã",
+      "tomei desvenlafaxina",
+      "tomo topiramato",
+      "tomei oxcarbazepina",
+    ])("does NOT detect: %s", (text) => {
+      expect(detect(text)).toBe(false);
+    });
+  });
+
+  // ══════════════════════════════════════════════════════════════════
+  // R13 — Legitimate medication dose benign overrides
+  // ══════════════════════════════════════════════════════════════════
+
+  describe("R13 — prescribed dose must NOT detect", () => {
+    it.each([
+      "meu psiquiatra mandou tomar dois clonazepam",
+      "médico receitou tomar 3 comprimidos",
+      "psiquiatra orientou tomar dois rivotril",
+      "por orientação médica tomei 3 clonazepam",
+      "por orientação do psiquiatra",
+      "dobrou a dose do meu remédio",
+      "aumentou a dose",
+      "esqueci a dose e tomei duas",
+      "tomo cinco comprimidos por dia",
+      "tomo 3 remédios de manhã",
+      "tomo dois medicamentos ao dia",
+    ])("does NOT detect: %s", (text) => {
+      expect(detect(text)).toBe(false);
+    });
+  });
+
+  // ══════════════════════════════════════════════════════════════════
+  // R13 — Canonicalization / adversarial tests
+  // ══════════════════════════════════════════════════════════════════
+
+  describe("R13 — uppercase must still detect", () => {
+    it.each([
+      "QUERO ME MATAR",
+      "VOU ME SUICIDAR",
+      "TOMEI TODOS OS REMÉDIOS",
+      "NÃO AGUENTO MAIS VIVER",
+      "ESTOU SANGRANDO",
+    ])("detects uppercase: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("R13 — mixed case must still detect", () => {
+    it.each([
+      "Quero Me Matar",
+      "Vou Me Suicidar",
+      "Tomei Todos Os Remédios",
+    ])("detects mixed case: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("R13 — text with extra whitespace must still detect", () => {
+    it.each([
+      "quero   me   matar",
+      "não  aguento  mais  viver",
+      "tomei  todos  os  remédios",
+    ])("detects with extra spaces: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("R13 — text with emoji context must still detect", () => {
+    it.each([
+      "quero me matar 😢",
+      "vou me suicidar 💔",
+      "não aguento mais viver 😭",
+    ])("detects with emoji: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("R13 — benign text with emoji must NOT detect", () => {
+    it.each([
+      "vou me matar de rir 😂",
+      "me joguei no sofá 😴",
+    ])("does NOT detect: %s", (text) => {
+      expect(detect(text)).toBe(false);
+    });
+  });
+
+  // ══════════════════════════════════════════════════════════════════
+  // R14-audit — P0: benign dose prefix + crisis suffix must DETECT
+  // GPT Pro audit: override must NOT mask explicit crisis in same message
+  // ══════════════════════════════════════════════════════════════════
+
+  describe("R14-audit P0 — benign medical prefix + crisis suffix must detect", () => {
+    it.each([
+      // Medical instruction + "o resto" (taking all remaining meds)
+      "por orientação médica tomei 2 clonazepam, mas agora vou tomar o resto",
+      "por orientação do psiquiatra tomei rivotril, e vou engolir o resto",
+      // Medical instruction + overdose quantity
+      "meu psiquiatra mandou tomar dois, eu tomei vinte",
+      "psiquiatra receitou tomar 1, mas tomei todos os remédios",
+      "médico orientou tomar sertralina, mas tomei muitos comprimidos",
+      // Medical instruction + alcohol mixing
+      "por orientação médica tomei clonazepam e depois misturei com álcool",
+      "por orientação médica tomei clonazepam e misturei cerveja com remédio",
+      "psiquiatra mandou tomar rivotril, misturei remédio com cerveja",
+      // Medical instruction + suicidal intent
+      "meu psiquiatra mandou tomar dois comprimidos, mas quero morrer",
+      "por orientação médica tomei rivotril e agora quero me matar",
+      "dobrou a dose do meu remédio e agora quero acabar comigo",
+      // Medical instruction + container/all pills
+      "aumentou a dose e tomei a cartela inteira",
+      "esqueci a dose e tomei duas, depois engoli a caixa toda",
+      // "Dose adjustment" followed by real crisis
+      "mudou a dose, mas eu tomei todos os medicamentos",
+      "ajustou a dose e eu tomei muitos remédios pra apagar",
+    ])("detects crisis even with medical prefix: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("R14-audit P0 — dose overrides still work when NO escalation present", () => {
+    it.each([
+      "meu psiquiatra mandou tomar dois clonazepam",
+      "médico receitou tomar 3 comprimidos",
+      "psiquiatra orientou tomar dois rivotril",
+      "por orientação médica tomei 3 clonazepam",
+      "por orientação do psiquiatra vou tomar quetiapina",
+      "dobrou a dose do meu remédio",
+      "aumentou a dose",
+      "esqueci a dose e tomei duas",
+      "tomo cinco comprimidos por dia",
+      "tomo 3 remédios de manhã",
+    ])("does NOT detect: %s", (text) => {
+      expect(detect(text)).toBe(false);
+    });
+  });
+
+  describe("R14-audit P1 — 'tomar o resto' with medication context detects", () => {
+    it.each([
+      "vou tomar o resto dos remédios",
+      "quero engolir o resto",
+      "vou engolir o resto agora",
+      "engoli o resto dos comprimidos",
+      // R15: "tomar o resto" + med context → promoted to EXPLICIT
+      "tomei o resto dos medicamentos",
+      "vou tomar o resto do clonazepam",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  // R15 audit: "tomar o resto" without medication context → CONTEXTUAL_HARM (single hit)
+  // Single contextual hit without corroboration should NOT trigger crisis
+  describe("R15 — 'tomar o resto' without medication context → single hit, no detect", () => {
+    it.each([
+      "tomei o resto",
+      "vou tomar o resto agora",
+      "vou tomar o resto do café",
+      "tomei o resto do antibiótico amanhã",
+    ])("does NOT detect standalone: %s", (text) => {
+      expect(detect(text)).toBe(false);
+    });
+  });
+
+  // R15 audit: "tomar o resto" without med context + harm context → crisis
+  describe("R15 — 'tomar o resto' without med + harm context → crisis", () => {
+    it.each([
+      ["tomei o resto", "não aguento mais"],
+      ["vou tomar o resto agora", "estou desesperada"],
+    ])("detects with harm corroboration: %s + %s", (a, b) => {
+      expect(detectMulti([a, b])).toBe(true);
+    });
+  });
+
+  describe("R14-audit P1 — connector-split crisis (mas/só que/depois/e agora)", () => {
+    it.each([
+      "tomo remédio certinho, mas hoje quero me matar",
+      "por orientação médica tomo 2 por dia, só que cansei de viver",
+      "aumentou a dose, depois tomei todos os comprimidos",
+      "médico mandou tomar sertralina, e agora vou me enforcar",
+    ])("detects crisis after connector: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  // ══════════════════════════════════════════════════════════════════
+  // R15-audit — New overdose/alcohol paraphrase patterns
+  // ══════════════════════════════════════════════════════════════════
+
+  describe("R15 — new overdose paraphrases must detect", () => {
+    it.each([
+      // "virar a cartela"
+      "vou virar a cartela",
+      "quero virar a cartela",
+      "virei a cartela inteira",
+      // "de uma vez" — engolir stays EXPLICIT
+      "engoli todos de uma vez",
+      "quero engolir tudo de uma vez",
+      // "bebi junto com o remédio"
+      "bebi junto com o remédio",
+      "bebi com medicamento",
+      // "juntei remédio e cerveja"
+      "juntei remédio e cerveja",
+      "juntei cerveja com remédio",
+      "juntei medicamento com álcool",
+      "juntei vodka e medicamento",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  // ══════════════════════════════════════════════════════════════════
+  // R16-audit — Downgraded patterns: conditional/contextual behavior
+  // ══════════════════════════════════════════════════════════════════
+
+  describe("R16 — 'mandar tudo pra dentro' moved to MEDICATION_CONDITIONAL", () => {
+    it.each([
+      "vou mandar tudo pra dentro",
+      "mandei tudo pra dentro",
+      "quero mandar tudo para dentro",
+    ])("does NOT detect alone: %s", (text) => {
+      expect(detect(text)).toBe(false);
+    });
+
+    it.each([
+      "vou mandar tudo pra dentro, todos os comprimidos",
+      "mandei tudo pra dentro, o rivotril todo",
+      "quero mandar tudo para dentro, os remédios",
+    ])("detects with med context: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+
+    it("detects with harm corroboration", () => {
+      expect(detectMulti(["mandei tudo pra dentro", "não aguento mais"])).toBe(true);
+    });
+  });
+
+  describe("R16 — 'tomar tudo de uma vez' moved to MEDICATION_CONDITIONAL", () => {
+    it.each([
+      "vou tomar tudo de uma vez",
+      "tomei tudo de uma vez",
+    ])("does NOT detect alone: %s", (text) => {
+      expect(detect(text)).toBe(false);
+    });
+
+    it.each([
+      "vou tomar tudo de uma vez, os comprimidos",
+      "tomei tudo de uma vez, os remédios todos",
+    ])("detects with med context: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("R16 — 'quero apagar de vez' moved to CONTEXTUAL_HARM", () => {
+    it("does NOT detect alone: quero apagar de vez", () => {
+      expect(detect("quero apagar de vez")).toBe(false);
+    });
+
+    it("detects with harm context: quero apagar de vez + sofrendo", () => {
+      expect(detectMulti(["quero apagar de vez", "estou sofrendo demais"])).toBe(true);
+    });
+
+    it("detects with 2 contextual: quero apagar de vez + quero sumir", () => {
+      expect(detectMulti(["quero apagar de vez", "quero sumir"])).toBe(true);
+    });
+  });
+
+  describe("R15 — numbers 10-19 by extenso + medication word must detect", () => {
+    it.each([
+      "tomei treze comprimidos",
+      "engoli catorze remédios",
+      "tomei quatorze medicamentos",
+      "engoli dezesseis comprimidos",
+      "tomei dezessete pílulas",
+      "engoli dezoito remédios",
+      "tomei dezenove comprimidos",
+      // Brand meds with 10-19 (threshold ≥2 for brands)
+      "tomei treze clonazepam",
+      "engoli dezesseis sertralina",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("R15 — engoli with high written-out numbers (10+) without med word must detect", () => {
+    it.each([
+      "engoli dez",
+      "engoli onze",
+      "engoli doze",
+      "engoli treze",
+      "engoli quinze",
+      "engoli dezesseis",
+      "engoli dezoito",
+      "engoli dezenove",
+      "engoli vinte",
+      "engoli trinta",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  // ══════════════════════════════════════════════════════════════════
+  // R15-audit — MEDICATION_CONDITIONAL behavior tests
+  // ══════════════════════════════════════════════════════════════════
+
+  describe("R15 — 'misturei com cerveja' + medication context → crisis", () => {
+    it.each([
+      "misturei com cerveja o remédio",
+      "tomei clonazepam e misturei com álcool",
+      "misturei com vodka o medicamento",
+      "misturei com vinho minha medicação",
+    ])("detects with med context: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("R15 — 'misturei com cerveja' WITHOUT medication context → no detect alone", () => {
+    it.each([
+      "misturei com cerveja",
+      "misturei energético com cerveja",
+      "misturei com vodka o suco",
+      "misturei com vinho na festa",
+    ])("does NOT detect standalone: %s", (text) => {
+      expect(detect(text)).toBe(false);
+    });
+  });
+
+  describe("R15 — 'misturei com cerveja' without med + harm context → crisis", () => {
+    it.each([
+      ["misturei com cerveja", "quero morrer"],
+      ["misturei com vodka", "não aguento mais"],
+    ])("detects with harm corroboration: %s + %s", (a, b) => {
+      expect(detectMulti([a, b])).toBe(true);
+    });
+  });
+
+  describe("R15 — 'tomei [10+]' conditional: with med context → crisis", () => {
+    it.each([
+      "tomei 15 comprimidos de clonazepam",
+      "tomei 20 do meu remédio",
+      "tomei 12 medicamentos",
+    ])("detects with med context: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("R15 — 'tomei [10+]' without med context → no detect alone", () => {
+    it.each([
+      "tomei 10 na prova",
+      "tomei 15 no exame",
+      "tomei 20",
+    ])("does NOT detect standalone: %s", (text) => {
+      expect(detect(text)).toBe(false);
+    });
+  });
+
+  describe("R15 — 'tomei [dez-dezenove]' written conditional", () => {
+    it.each([
+      "tomei dez",
+      "tomei quinze",
+      "tomei dezenove",
+    ])("does NOT detect without med context: %s", (text) => {
+      expect(detect(text)).toBe(false);
+    });
+
+    it.each([
+      "tomei dez comprimidos",
+      "tomei quinze remédios",
+      "tomei dezenove clonazepam",
+    ])("detects WITH med context: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  // ══════════════════════════════════════════════════════════════════
+  // R15-audit — Aggressive negative tests (FP guards)
+  // GPT Pro audit: required adversarial negatives for new patterns
+  // ══════════════════════════════════════════════════════════════════
+
+  describe("R15 — aggressive false positive negatives", () => {
+    it.each([
+      // Unit-based FP for numeric patterns
+      "tomei 10 gotas",
+      "tomei 10 ml",
+      "tomei 15 gotas do colírio",
+      "tomei 10 gotinhas",
+      "tomei 30 mg",
+      "tomei 10 doses da vacina",
+      "tomei 2 jatos do spray",
+      "engoli 10 gotas",
+      "engoli 15 ml",
+      // Food/drink FP for "o resto"
+      "vou tomar o resto do café",
+      "tomei o resto do suco",
+      "vou tomar o resto do antibiótico amanhã",
+      // Social FP for "misturei com cerveja"
+      "misturei energético com cerveja",
+      "misturei suco com cerveja",
+      "misturei com cerveja o energético",
+      // General FP
+      "tomei 10 na prova",
+      "tomei 10 minutos pra chegar",
+      "tomei 20 horas de sono",
+      "tomei 15 dias de férias",
+    ])("does NOT detect: %s", (text) => {
+      expect(detect(text)).toBe(false);
+    });
+  });
+
+  // ══════════════════════════════════════════════════════════════════
+  // R15-audit — Dose escalation: "pra potencializar"
+  // ══════════════════════════════════════════════════════════════════
+
+  describe("R15 — 'pra potencializar' as dose escalation invalidates benign override", () => {
+    it.each([
+      "por orientação médica tomei clonazepam, misturei com cerveja pra potencializar",
+      "psiquiatra mandou tomar rivotril, misturei com álcool pra potencializar",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  // ══════════════════════════════════════════════════════════════════
+  // R15-audit — Interval masking: no concatenation artifacts
+  // ══════════════════════════════════════════════════════════════════
+
+  describe("R15 — interval masking prevents false concatenation", () => {
+    it("benign override removal does not create artificial crisis tokens", () => {
+      // "me matar de rir e morrer de calor" — both halves are hyperbole.
+      // Sequential replace could theoretically create artifacts; interval masking should not.
+      expect(detect("me matar de rir e morrer de calor")).toBe(false);
+    });
+
+    it("overlapping benign overrides are handled correctly", () => {
+      // Multiple overlapping benign patterns should not produce unexpected results
+      expect(detect("vou me matar de rir no trabalho")).toBe(false);
+    });
+  });
+
+  // ══════════════════════════════════════════════════════════════════
+  // R16-audit — Gotas/doses + psychiatric medication (FN fix)
+  // ══════════════════════════════════════════════════════════════════
+
+  describe("R16 — gotas/doses + psych med must detect", () => {
+    it.each([
+      "tomei 80 gotas de rivotril",
+      "tomei 50 gotas de clonazepam",
+      "engoli 30 doses de diazepam",
+      "tomei 10 gotas de quetiapina",
+      "vou tomar 20 gotas de clonazepam",
+      "tomei vinte gotas de rivotril",
+      "tomei quinze doses de clonazepam",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("R16 — gotas/doses without psych med still do NOT detect", () => {
+    it.each([
+      "tomei 10 gotas",
+      "tomei 10 gotas do colírio",
+      "tomei 10 gotinhas",
+      "tomei 10 doses da vacina",
+      "tomei 15 gotas de vitamina D",
+    ])("does NOT detect: %s", (text) => {
+      expect(detect(text)).toBe(false);
+    });
+  });
+
+  // ══════════════════════════════════════════════════════════════════
+  // R16-audit — Dose multiplier patterns (FN fix)
+  // ══════════════════════════════════════════════════════════════════
+
+  describe("R16 — dose multiplier patterns must detect", () => {
+    it.each([
+      "foi 10x a dose",
+      "3x a dose",
+      "tomei 10 vezes a dose",
+      "5 vezes o que eu devia",
+      "3 vezes a dose",
+      "10 vezes o que eu deveria",
+    ])("detects: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  // ══════════════════════════════════════════════════════════════════
+  // R16-audit — MED_CONTEXT_STRONG vs WEAK
+  // ══════════════════════════════════════════════════════════════════
+
+  describe("R16 — WEAK med context alone does NOT promote conditional", () => {
+    it.each([
+      "tomei 15 e a dose era diferente",
+      "tomei 10 e a receita mudou",
+    ])("does NOT detect: %s", (text) => {
+      expect(detect(text)).toBe(false);
+    });
+  });
+
+  describe("R16 — STRONG med context promotes conditional", () => {
+    it.each([
+      "tomei 15 comprimidos",
+      "tomei 10 e era clonazepam",
+      "tomei 12, era remédio",
+    ])("detects with STRONG context: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  // ══════════════════════════════════════════════════════════════════
+  // R16-audit — Cross-message medication context promotion
+  // ══════════════════════════════════════════════════════════════════
+
+  describe("R16 — cross-message med context (1-2 turns back) promotes conditional", () => {
+    it("detects: 'o rivotril tá aqui' + 'tomei o resto'", () => {
+      expect(detectMulti(["o rivotril tá aqui", "tomei o resto"])).toBe(true);
+    });
+
+    it("detects: 'peguei a cartela de clonazepam' + 'algo' + 'tomei 14'", () => {
+      expect(detectMulti(["peguei a cartela de clonazepam", "sei lá", "tomei 14"])).toBe(true);
+    });
+
+    it("detects: 'tenho o remédio aqui' + 'misturei com cerveja'", () => {
+      expect(detectMulti(["tenho o remédio aqui", "misturei com cerveja"])).toBe(true);
+    });
+
+    it("does NOT promote if med context is 3+ turns back", () => {
+      expect(detectMulti([
+        "o rivotril tá aqui",
+        "oi",
+        "tudo bem",
+        "tomei o resto",
+      ])).toBe(false);
+    });
+  });
+
+  // ══════════════════════════════════════════════════════════════════
+  // R16-audit — weakMedHits vs harmHits separation
+  // ══════════════════════════════════════════════════════════════════
+
+  describe("R16 — weakMedHit + bipolarHit does NOT trigger crisis", () => {
+    it("'tomei 10 na prova' + 'estou agitada' → none (no false trigger)", () => {
+      expect(detectMultiResult(["tomei 10 na prova", "estou agitada"])).toBe("none");
+    });
+
+    it("'misturei com cerveja' (no med) + 'pensamentos acelerados' → none", () => {
+      expect(detectMultiResult(["misturei com cerveja", "pensamentos acelerados"])).toBe("none");
+    });
+
+    it("'tomei 20' (no med) + 'insônia' → NOT crisis (weakMed + bipolar)", () => {
+      // tomei 20 without med context = weakMedHit
+      // insomnia = bipolarHit
+      // R16: weakMed + bipolar does NOT escalate to crisis
+      expect(detectMultiResult(["tomei 20", "não durmo há dias"])).not.toBe("crisis");
+    });
+  });
+
+  describe("R16 — weakMedHit still works with harm corroboration", () => {
+    it("'tomei 20' (no med) + harm context → crisis", () => {
+      expect(detectMultiResult(["tomei 20", "estou sofrendo demais"])).toBe("crisis");
+    });
+
+    it("2 weak med hits → crisis", () => {
+      expect(detectMultiResult(["tomei 20", "misturei com cerveja"])).toBe("crisis");
+    });
+
+    it("weak med + regular harm → crisis", () => {
+      expect(detectMultiResult(["tomei 15", "tenho um plano"])).toBe("crisis");
     });
   });
 });

@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { describe, it, expect } from "vitest";
+import { z } from "zod/v4";
 
 /**
  * Tests for WhatsApp webhook route logic.
@@ -287,6 +288,114 @@ describe("WhatsApp webhook payload parsing", () => {
       }
 
       expect(count).toBe(0); // statuses only, no messages
+    });
+  });
+
+  describe("Zod schema validation (I1-T3)", () => {
+    // Replicate schemas from route.ts for isolated testing
+    const whatsappTextSchema = z.object({ body: z.string() });
+    const whatsappMessageSchema = z.object({
+      id: z.string().optional(),
+      from: z.string().optional(),
+      text: whatsappTextSchema.optional(),
+      type: z.string().optional(),
+    });
+    const whatsappValueSchema = z.object({
+      messages: z.array(whatsappMessageSchema).optional(),
+      statuses: z.unknown().optional(),
+      metadata: z.unknown().optional(),
+      messaging_product: z.string().optional(),
+    });
+    const whatsappChangeSchema = z.object({
+      value: whatsappValueSchema,
+      field: z.string().optional(),
+    });
+    const whatsappEntrySchema = z.object({
+      id: z.string().optional(),
+      changes: z.array(whatsappChangeSchema).optional(),
+    });
+    const whatsappWebhookSchema = z.object({
+      object: z.string().optional(),
+      entry: z.array(whatsappEntrySchema).optional(),
+    });
+
+    it("accepts a standard Meta text message payload", () => {
+      const payload = {
+        object: "whatsapp_business_account",
+        entry: [{
+          id: "123",
+          changes: [{
+            value: {
+              messaging_product: "whatsapp",
+              messages: [{ id: "wamid.abc", from: "5511999999999", text: { body: "PARAR" }, type: "text" }],
+            },
+            field: "messages",
+          }],
+        }],
+      };
+      const result = whatsappWebhookSchema.safeParse(payload);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.entry?.[0]?.changes?.[0]?.value.messages?.[0]?.text?.body).toBe("PARAR");
+      }
+    });
+
+    it("accepts status-only payload (no messages)", () => {
+      const payload = {
+        object: "whatsapp_business_account",
+        entry: [{
+          changes: [{
+            value: { statuses: [{ id: "1", status: "delivered" }] },
+          }],
+        }],
+      };
+      const result = whatsappWebhookSchema.safeParse(payload);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.entry?.[0]?.changes?.[0]?.value.messages).toBeUndefined();
+      }
+    });
+
+    it("accepts empty entry array", () => {
+      const result = whatsappWebhookSchema.safeParse({ entry: [] });
+      expect(result.success).toBe(true);
+    });
+
+    it("accepts payload with no entry field", () => {
+      const result = whatsappWebhookSchema.safeParse({});
+      expect(result.success).toBe(true);
+    });
+
+    it("rejects entry with non-object changes value", () => {
+      const payload = {
+        entry: [{ changes: [{ value: "not-an-object" }] }],
+      };
+      const result = whatsappWebhookSchema.safeParse(payload);
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects messages with non-string text body", () => {
+      const payload = {
+        entry: [{
+          changes: [{
+            value: {
+              messages: [{ from: "1", text: { body: 12345 } }],
+            },
+          }],
+        }],
+      };
+      const result = whatsappWebhookSchema.safeParse(payload);
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects completely invalid payload shape", () => {
+      const result = whatsappWebhookSchema.safeParse("just a string");
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects entry as non-array", () => {
+      const result = whatsappWebhookSchema.safeParse({ entry: "not-an-array" });
+      expect(result.success).toBe(false);
     });
   });
 

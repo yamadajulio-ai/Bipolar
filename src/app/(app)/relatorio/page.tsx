@@ -6,10 +6,10 @@ import { Alert } from "@/components/Alert";
 import { MonthSelector } from "@/components/relatorio/MonthSelector";
 import { MonthlyReport } from "@/components/relatorio/MonthlyReport";
 import { ContextualFeedbackButtons } from "@/components/feedback/ContextualFeedbackButtons";
+import { localYearMonth } from "@/lib/dateUtils";
 
 export default function RelatorioPage() {
-  const now = new Date();
-  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const currentMonth = localYearMonth();
   const [month, setMonth] = useState(currentMonth);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [data, setData] = useState<null | any>(null);

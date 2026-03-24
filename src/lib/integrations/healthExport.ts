@@ -1,9 +1,16 @@
 import { randomBytes } from "crypto";
+import { trackError } from "@/lib/telemetry";
 
 /** Generate a 64-char hex API key. */
 export function generateApiKey(): string {
   return randomBytes(32).toString("hex");
 }
+
+// ── Typed result for safe date parsing ───────────────────────────
+
+export interface ParseResultOk<T> { ok: true; value: T }
+export interface ParseResultErr { ok: false; error: string; raw?: string }
+export type ParseResult<T> = ParseResultOk<T> | ParseResultErr;
 
 // ── Health Auto Export JSON types ────────────────────────────────
 
@@ -60,17 +67,26 @@ export interface HealthExportResult {
   sleepNights: ProcessedSleepNight[];
   hrvHrData: { hrvByDate: Map<string, number>; hrByDate: Map<string, number> };
   genericMetrics: ProcessedGenericMetric[];
+  skippedCount: number;
+  errorDetails: Array<{ error: string; raw?: string }>;
 }
 
 // ── Parse Health Auto Export date string ─────────────────────────
 
-function parseHAEDate(dateStr: string): Date {
+function parseHAEDate(dateStr: string): ParseResult<Date> {
+  if (!dateStr || typeof dateStr !== 'string') {
+    return { ok: false, error: 'empty_or_invalid_type', raw: String(dateStr) };
+  }
   const cleaned = dateStr.replace(/^(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2}:\d{2})\s+([+-]\d{4})$/, "$1T$2$3");
   const d = new Date(cleaned);
   if (isNaN(d.getTime())) {
-    return new Date(dateStr);
+    const fallback = new Date(dateStr);
+    if (isNaN(fallback.getTime())) {
+      return { ok: false, error: 'unparseable_date', raw: dateStr };
+    }
+    return { ok: true, value: fallback };
   }
-  return d;
+  return { ok: true, value: d };
 }
 
 // All times must be in the user's timezone (America/Sao_Paulo), NOT UTC.
@@ -149,10 +165,14 @@ const HR_METRIC_NAMES = new Set([
 ]);
 
 /** Build a map of date → average value from a HAE metric. */
-function buildDailyAvgMap(metric: HAEMetric | undefined): Map<string, number> {
+function buildDailyAvgMap(
+  metric: HAEMetric | undefined,
+  errorDetails: Array<{ error: string; raw?: string }>,
+): { map: Map<string, number>; skipped: number } {
   const map = new Map<string, number>();
-  if (!metric?.data) return map;
+  if (!metric?.data) return { map, skipped: 0 };
 
+  let skipped = 0;
   const dayValues = new Map<string, number[]>();
 
   for (const entry of metric.data) {
@@ -166,9 +186,13 @@ function buildDailyAvgMap(metric: HAEMetric | undefined): Map<string, number> {
 
     if (val === undefined) continue;
 
-    const d = parseHAEDate(dateStr);
-    if (isNaN(d.getTime())) continue;
-    const ymd = toYMD(d);
+    const parsed = parseHAEDate(dateStr);
+    if (!parsed.ok) {
+      skipped++;
+      errorDetails.push({ error: parsed.error, raw: parsed.raw });
+      continue;
+    }
+    const ymd = toYMD(parsed.value);
 
     const arr = dayValues.get(ymd) ?? [];
     arr.push(val);
@@ -179,7 +203,7 @@ function buildDailyAvgMap(metric: HAEMetric | undefined): Map<string, number> {
     map.set(ymd, Math.round(values.reduce((a, b) => a + b, 0) / values.length));
   }
 
-  return map;
+  return { map, skipped };
 }
 
 // ── Metric detection helpers ────────────────────────────────────
@@ -288,8 +312,13 @@ function matchGenericMetric(m: HAEMetric): GenericMetricDef | null {
   return null;
 }
 
-function extractGenericMetrics(metric: HAEMetric, def: GenericMetricDef): ProcessedGenericMetric[] {
+function extractGenericMetrics(
+  metric: HAEMetric,
+  def: GenericMetricDef,
+  errorDetails: Array<{ error: string; raw?: string }>,
+): { results: ProcessedGenericMetric[]; skipped: number } {
   const dayValues = new Map<string, number[]>();
+  let skipped = 0;
 
   for (const entry of metric.data) {
     const dateStr = entry.date || entry.startDate || entry.endDate;
@@ -308,9 +337,13 @@ function extractGenericMetrics(metric: HAEMetric, def: GenericMetricDef): Proces
 
     if (val === undefined || val < def.minValue || val > def.maxValue) continue;
 
-    const d = parseHAEDate(dateStr);
-    if (isNaN(d.getTime())) continue;
-    const ymd = toYMD(d);
+    const parsed = parseHAEDate(dateStr);
+    if (!parsed.ok) {
+      skipped++;
+      errorDetails.push({ error: parsed.error, raw: parsed.raw });
+      continue;
+    }
+    const ymd = toYMD(parsed.value);
 
     const arr = dayValues.get(ymd) ?? [];
     arr.push(val);
@@ -325,7 +358,7 @@ function extractGenericMetrics(metric: HAEMetric, def: GenericMetricDef): Proces
     results.push({ date: ymd, metric: def.metricKey, value: aggregated, unit: def.canonicalUnit });
   }
 
-  return results;
+  return { results, skipped };
 }
 
 // ── Main parser ─────────────────────────────────────────────────
@@ -335,6 +368,8 @@ export function parseHealthExportPayloadV2(body: unknown): HealthExportResult {
     sleepNights: [],
     hrvHrData: { hrvByDate: new Map(), hrByDate: new Map() },
     genericMetrics: [],
+    skippedCount: 0,
+    errorDetails: [],
   };
 
   if (!body || typeof body !== "object") return empty;
@@ -343,19 +378,32 @@ export function parseHealthExportPayloadV2(body: unknown): HealthExportResult {
   const metrics = payload.data?.metrics ?? payload.metrics;
   if (!metrics || !Array.isArray(metrics)) return empty;
 
+  let skippedCount = 0;
+  const errorDetails: Array<{ error: string; raw?: string }> = [];
+
   // 1. Sleep (existing logic)
   const sleepMetric = metrics.find((m) => looksLikeSleepMetric(m));
   let sleepNights: ProcessedSleepNight[] = [];
   if (sleepMetric && Array.isArray(sleepMetric.data)) {
-    const detailedResult = parseDetailedSegments(sleepMetric.data);
-    sleepNights = detailedResult.length > 0 ? detailedResult : parseSummarizedData(sleepMetric.data);
+    const detailedResult = parseDetailedSegments(sleepMetric.data, errorDetails);
+    skippedCount += detailedResult.skipped;
+    if (detailedResult.nights.length > 0) {
+      sleepNights = detailedResult.nights;
+    } else {
+      const summarized = parseSummarizedData(sleepMetric.data, errorDetails);
+      sleepNights = summarized.nights;
+      skippedCount += summarized.skipped;
+    }
   }
 
   // 2. HRV and HR (always extracted, even without sleep)
   const hrvMetric = metrics.find((m) => looksLikeHRVMetric(m));
   const hrMetric = metrics.find((m) => looksLikeHRMetric(m));
-  const hrvByDate = buildDailyAvgMap(hrvMetric);
-  const hrByDate = buildDailyAvgMap(hrMetric);
+  const hrvResult = buildDailyAvgMap(hrvMetric, errorDetails);
+  const hrResult = buildDailyAvgMap(hrMetric, errorDetails);
+  const hrvByDate = hrvResult.map;
+  const hrByDate = hrResult.map;
+  skippedCount += hrvResult.skipped + hrResult.skipped;
 
   // Enrich sleep nights if both present in same payload
   for (const night of sleepNights) {
@@ -372,11 +420,30 @@ export function parseHealthExportPayloadV2(body: unknown): HealthExportResult {
     if (looksLikeSleepMetric(m) || looksLikeHRVMetric(m) || looksLikeHRMetric(m)) continue;
     const def = matchGenericMetric(m);
     if (def) {
-      genericMetrics.push(...extractGenericMetrics(m, def));
+      const extracted = extractGenericMetrics(m, def, errorDetails);
+      genericMetrics.push(...extracted.results);
+      skippedCount += extracted.skipped;
     }
   }
 
-  return { sleepNights, hrvHrData: { hrvByDate, hrByDate }, genericMetrics };
+  // Structured telemetry for parse errors
+  if (errorDetails.length > 0) {
+    trackError({
+      name: "health_import_parse_errors",
+      errorType: "parse_errors",
+      endpoint: "/api/integrations/health-export",
+      message: `${errorDetails.length} parse error(s) in health export payload`,
+      extra: {
+        errorCount: errorDetails.length,
+        skippedCount,
+        sampleErrors: errorDetails.slice(0, 5),
+        sleepNightsFound: sleepNights.length,
+        genericMetricsFound: genericMetrics.length,
+      },
+    });
+  }
+
+  return { sleepNights, hrvHrData: { hrvByDate, hrByDate }, genericMetrics, skippedCount, errorDetails };
 }
 
 /** Backward-compatible wrapper — returns only sleep nights. */
@@ -384,21 +451,34 @@ export function parseHealthExportPayload(body: unknown): ProcessedSleepNight[] {
   return parseHealthExportPayloadV2(body).sleepNights;
 }
 
-function parseDetailedSegments(data: HAEMetricEntry[]): ProcessedSleepNight[] {
+function parseDetailedSegments(
+  data: HAEMetricEntry[],
+  errorDetails: Array<{ error: string; raw?: string }>,
+): { nights: ProcessedSleepNight[]; skipped: number } {
   const segments: SleepSegment[] = [];
+  let skipped = 0;
   for (const entry of data) {
     if (!entry.startDate || !entry.endDate) continue;
-    const start = parseHAEDate(entry.startDate);
-    const end = parseHAEDate(entry.endDate);
-    if (isNaN(start.getTime()) || isNaN(end.getTime())) continue;
+    const startResult = parseHAEDate(entry.startDate);
+    const endResult = parseHAEDate(entry.endDate);
+    if (!startResult.ok) {
+      skipped++;
+      errorDetails.push({ error: startResult.error, raw: startResult.raw });
+      continue;
+    }
+    if (!endResult.ok) {
+      skipped++;
+      errorDetails.push({ error: endResult.error, raw: endResult.raw });
+      continue;
+    }
 
     const rawValue = entry.value || "Asleep";
     const stage = normalizeStage(rawValue);
 
-    segments.push({ start, end, stage, rawValue, source: entry.source || "unknown" });
+    segments.push({ start: startResult.value, end: endResult.value, stage, rawValue, source: entry.source || "unknown" });
   }
 
-  if (segments.length === 0) return [];
+  if (segments.length === 0) return { nights: [], skipped };
 
   segments.sort((a, b) => a.start.getTime() - b.start.getTime());
 
@@ -439,18 +519,28 @@ function parseDetailedSegments(data: HAEMetricEntry[]): ProcessedSleepNight[] {
     if (subGroup.length > 0) nights.push(subGroup);
   }
 
-  return nights.map((nightSegments) => processNight(nightSegments)).filter(Boolean) as ProcessedSleepNight[];
+  const processedNights = nights.map((nightSegments) => processNight(nightSegments)).filter(Boolean) as ProcessedSleepNight[];
+  return { nights: processedNights, skipped };
 }
 
-function parseSummarizedData(data: HAEMetricEntry[]): ProcessedSleepNight[] {
+function parseSummarizedData(
+  data: HAEMetricEntry[],
+  errorDetails: Array<{ error: string; raw?: string }>,
+): { nights: ProcessedSleepNight[]; skipped: number } {
   const results: ProcessedSleepNight[] = [];
+  let skipped = 0;
 
   for (const entry of data) {
     const dateStr = entry.date || entry.startDate || entry.endDate;
     if (!dateStr) continue;
 
-    const d = parseHAEDate(dateStr);
-    if (isNaN(d.getTime())) continue;
+    const parsed = parseHAEDate(dateStr);
+    if (!parsed.ok) {
+      skipped++;
+      errorDetails.push({ error: parsed.error, raw: parsed.raw });
+      continue;
+    }
+    const d = parsed.value;
 
     let totalHours = 0;
     if (typeof entry.qty === "number" && entry.qty > 0) {
@@ -476,7 +566,7 @@ function parseSummarizedData(data: HAEMetricEntry[]): ProcessedSleepNight[] {
     });
   }
 
-  return results;
+  return { nights: results, skipped };
 }
 
 function processNight(segments: SleepSegment[]): ProcessedSleepNight | null {
@@ -484,19 +574,33 @@ function processNight(segments: SleepSegment[]): ProcessedSleepNight | null {
   // best one to avoid double-counting the same sleep period.
   const sources = new Set(segments.map((s) => s.source));
   if (sources.size > 1) {
+    // Group segments by source using a Map (avoids repeated .filter() over the array)
+    const segmentsBySource = new Map<string, SleepSegment[]>();
+    for (const seg of segments) {
+      let arr = segmentsBySource.get(seg.source);
+      if (!arr) {
+        arr = [];
+        segmentsBySource.set(seg.source, arr);
+      }
+      arr.push(seg);
+    }
+
     // Pick the source with the most detailed stage segments (core/deep/rem)
     let bestSource = "";
     let bestCount = -1;
-    for (const src of sources) {
-      const detailed = segments.filter(
-        (s) => s.source === src && (s.stage === "core" || s.stage === "deep" || s.stage === "rem"),
-      ).length;
+    for (const [src, segs] of segmentsBySource) {
+      let detailed = 0;
+      for (const s of segs) {
+        if (s.stage === "core" || s.stage === "deep" || s.stage === "rem") {
+          detailed++;
+        }
+      }
       if (detailed > bestCount) {
         bestCount = detailed;
         bestSource = src;
       }
     }
-    segments = segments.filter((s) => s.source === bestSource);
+    segments = segmentsBySource.get(bestSource) ?? [];
   }
 
   // All actual sleep stages (exclude "inbed", "awake", "unknown")

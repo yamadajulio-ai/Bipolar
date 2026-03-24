@@ -100,7 +100,7 @@ export function NewsFeed({ initialArticles }: { initialArticles: Article[] }) {
             onClick={() => setActiveTab(tab.key)}
             className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
               activeTab === tab.key
-                ? "bg-white text-foreground shadow-sm"
+                ? "bg-surface text-foreground shadow-sm"
                 : "text-muted hover:text-foreground"
             }`}
           >

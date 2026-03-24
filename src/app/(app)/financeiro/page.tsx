@@ -7,6 +7,7 @@ import { Alert } from "@/components/Alert";
 import { ImportCSV } from "@/components/financeiro/ImportCSV";
 import { TransactionList } from "@/components/financeiro/TransactionList";
 import { CategoryChart, MoodSpendingChart, SpendingTrendChart, YearlyComparisonChart } from "@/components/financeiro/FinanceCharts";
+import { localToday, localYearMonth, shiftMonth } from "@/lib/dateUtils";
 
 type DataConfidence = "alta" | "media" | "baixa";
 
@@ -76,12 +77,6 @@ interface Summary {
   nightTransactions: number;
 }
 
-function shiftMonth(month: string, delta: number): string {
-  const [y, m] = month.split("-").map(Number);
-  const d = new Date(y, m - 1 + delta, 1);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-}
-
 interface Transaction {
   id: string;
   date: string;
@@ -93,8 +88,7 @@ interface Transaction {
 }
 
 export default function FinanceiroPage() {
-  const now = new Date();
-  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const currentMonth = localYearMonth();
   const [month, setMonth] = useState(currentMonth);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -244,7 +238,7 @@ export default function FinanceiroPage() {
       {summary && summary.transactionCount === 0 && (
         <div className="mb-6 rounded-2xl border border-border bg-surface p-6 text-center">
           <p className="text-3xl mb-2">💰</p>
-          <h2 className="text-lg font-semibold mb-1">Nenhuma transação registrada</h2>
+          <h2 className="text-lg font-semibold mb-1">Comece a acompanhar seus gastos</h2>
           <p className="text-sm text-muted mb-4">
             Acompanhar seus gastos ajuda a identificar padrões que podem estar ligados ao humor.
             Importe do Mobills ou adicione manualmente.
@@ -307,14 +301,17 @@ export default function FinanceiroPage() {
         </Card>
       </div>
 
-      {/* Manual entry toggle */}
+      {/* Manual entry — prominent quick-add form */}
       <Card className="mb-6">
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="text-sm font-medium text-primary"
-        >
-          {showForm ? "Fechar" : "+ Adicionar transação manual"}
-        </button>
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold">Adicionar transacao</h2>
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="text-xs font-medium text-primary"
+          >
+            {showForm ? "Fechar" : "+ Nova transacao"}
+          </button>
+        </div>
         {showForm && <ManualEntryForm onCreated={() => { fetchData(); setShowForm(false); }} />}
       </Card>
 
@@ -490,7 +487,7 @@ function CorrelationCard({ label, corr, description }: { label: string; corr: Co
     forte: "Forte",
   };
   const strengthColors = {
-    muito_fraca: "text-gray-500",
+    muito_fraca: "text-muted",
     fraca: "text-amber-600",
     moderada: "text-orange-600",
     forte: "text-red-600",
@@ -546,12 +543,29 @@ function SummaryCard({
   );
 }
 
+const COMMON_CATEGORIES = [
+  "Alimentacao",
+  "Transporte",
+  "Saude",
+  "Farmacia",
+  "Lazer",
+  "Educacao",
+  "Moradia",
+  "Mercado",
+  "Vestuario",
+  "Assinatura",
+  "Delivery",
+  "Presente",
+  "Salario",
+  "Freelance",
+  "Outro",
+];
+
 function ManualEntryForm({ onCreated }: { onCreated: () => void }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const today = new Date();
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  const todayStr = localToday();
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -566,7 +580,7 @@ function ManualEntryForm({ onCreated }: { onCreated: () => void }) {
       date: fd.get("date") as string,
       description: fd.get("description") as string,
       amount: isExpense ? -Math.abs(rawAmount) : Math.abs(rawAmount),
-      category: fd.get("category") as string,
+      category: (fd.get("category") as string).trim() || "Outro",
     };
 
     const res = await fetch("/api/financeiro", {
@@ -587,38 +601,90 @@ function ManualEntryForm({ onCreated }: { onCreated: () => void }) {
 
   return (
     <form onSubmit={handleSubmit} className="mt-3 space-y-3">
+      {/* Row 1: Valor + Tipo (most important fields first) */}
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-xs text-muted">Data</label>
-          <input name="date" type="date" defaultValue={todayStr} required className="w-full rounded border border-border bg-surface px-2 py-1 text-sm" />
+          <label htmlFor="manual-amount" className="text-xs text-muted">Valor (R$)</label>
+          <input
+            id="manual-amount"
+            name="amount"
+            type="number"
+            step="0.01"
+            min="0.01"
+            required
+            placeholder="0,00"
+            className="w-full rounded border border-border bg-surface px-3 py-2 text-sm"
+            autoFocus
+          />
         </div>
         <div>
-          <label className="text-xs text-muted">Tipo</label>
-          <select name="type" className="w-full rounded border border-border bg-surface px-2 py-1 text-sm">
+          <label htmlFor="manual-type" className="text-xs text-muted">Tipo</label>
+          <select
+            id="manual-type"
+            name="type"
+            className="w-full rounded border border-border bg-surface px-3 py-2 text-sm"
+          >
             <option value="despesa">Despesa</option>
             <option value="receita">Receita</option>
           </select>
         </div>
       </div>
-      <div>
-        <label className="text-xs text-muted">Descrição</label>
-        <input name="description" type="text" required maxLength={200} className="w-full rounded border border-border bg-surface px-2 py-1 text-sm" />
-      </div>
+
+      {/* Row 2: Categoria (dropdown with suggestions) + Data */}
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-xs text-muted">Valor (R$)</label>
-          <input name="amount" type="number" step="0.01" min="0.01" required className="w-full rounded border border-border bg-surface px-2 py-1 text-sm" />
+          <label htmlFor="manual-category" className="text-xs text-muted">Categoria</label>
+          <input
+            id="manual-category"
+            name="category"
+            type="text"
+            required
+            maxLength={100}
+            list="category-suggestions"
+            placeholder="Selecione ou digite"
+            className="w-full rounded border border-border bg-surface px-3 py-2 text-sm"
+          />
+          <datalist id="category-suggestions">
+            {COMMON_CATEGORIES.map((cat) => (
+              <option key={cat} value={cat} />
+            ))}
+          </datalist>
         </div>
         <div>
-          <label className="text-xs text-muted">Categoria</label>
-          <input name="category" type="text" required maxLength={100} defaultValue="outro" className="w-full rounded border border-border bg-surface px-2 py-1 text-sm" />
+          <label htmlFor="manual-date" className="text-xs text-muted">Data</label>
+          <input
+            id="manual-date"
+            name="date"
+            type="date"
+            defaultValue={todayStr}
+            required
+            className="w-full rounded border border-border bg-surface px-3 py-2 text-sm"
+          />
         </div>
+      </div>
+
+      {/* Row 3: Descricao (optional context) */}
+      <div>
+        <label htmlFor="manual-description" className="text-xs text-muted">Descricao (opcional)</label>
+        <input
+          id="manual-description"
+          name="description"
+          type="text"
+          required
+          maxLength={200}
+          placeholder="Ex: Supermercado, Uber, etc."
+          className="w-full rounded border border-border bg-surface px-3 py-2 text-sm"
+        />
       </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
-      <button type="submit" disabled={loading} className="rounded bg-primary px-4 py-1 text-sm text-white disabled:opacity-50">
-        {loading ? "Salvando..." : "Salvar"}
+      <button
+        type="submit"
+        disabled={loading}
+        className="w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50 hover:bg-primary-dark transition-colors"
+      >
+        {loading ? "Salvando..." : "Salvar transacao"}
       </button>
     </form>
   );

@@ -3,12 +3,19 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { maskIp } from "@/lib/security";
 
-const CONSENT_VERSION = 1;
-const MANAGEABLE_SCOPES = new Set([
-  "push_notifications", "email_notifications", "whatsapp",
-  "professional_sharing", "ai_narrative",
-  "assessments", "crisis_plan", "sos_chatbot", "clinical_export",
-]);
+/** Per-scope consent version. Bump when the consent text/terms for a scope change. */
+const SCOPE_VERSIONS: Record<string, number> = {
+  push_notifications: 1,
+  email_notifications: 1,
+  whatsapp: 1,
+  professional_sharing: 1,
+  ai_narrative: 1,
+  assessments: 1,
+  crisis_plan: 1,
+  sos_chatbot: 1,
+  clinical_export: 1,
+};
+const MANAGEABLE_SCOPES = new Set(Object.keys(SCOPE_VERSIONS));
 
 // GET — list all current consents
 export async function GET() {
@@ -23,7 +30,14 @@ export async function GET() {
     orderBy: { grantedAt: "asc" },
   });
 
-  return NextResponse.json({ consents });
+  // Attach currentVersion so the frontend can detect stale consents needing re-acceptance
+  const enriched = consents.map((c) => ({
+    ...c,
+    currentVersion: SCOPE_VERSIONS[c.scope] ?? 1,
+    needsReaccept: (SCOPE_VERSIONS[c.scope] ?? 1) > c.version,
+  }));
+
+  return NextResponse.json({ consents: enriched, scopeVersions: SCOPE_VERSIONS });
 }
 
 // POST — grant or revoke a consent
@@ -61,23 +75,31 @@ export async function POST(request: NextRequest) {
     // Check if there's a revoked consent for this scope — re-activate it
     const existing = await prisma.consent.findFirst({
       where: { userId: session.userId, scope },
-      select: { id: true, revokedAt: true },
+      select: { id: true, revokedAt: true, version: true },
       orderBy: { grantedAt: "desc" },
     });
 
+    const scopeVersion = SCOPE_VERSIONS[scope] ?? 1;
+
     if (existing?.revokedAt) {
-      // Re-grant: update existing record
+      // Re-grant: update existing record with current version
       await prisma.consent.update({
         where: { id: existing.id },
-        data: { revokedAt: null, grantedAt: new Date(), version: CONSENT_VERSION, ipAddress: maskedIp },
+        data: { revokedAt: null, grantedAt: new Date(), version: scopeVersion, ipAddress: maskedIp },
+      });
+    } else if (existing && !existing.revokedAt && existing.version < scopeVersion) {
+      // Active but stale version — re-accept bumps version
+      await prisma.consent.update({
+        where: { id: existing.id },
+        data: { grantedAt: new Date(), version: scopeVersion, ipAddress: maskedIp },
       });
     } else if (!existing) {
       // First time granting this scope
       await prisma.consent.create({
-        data: { userId: session.userId, scope, version: CONSENT_VERSION, ipAddress: maskedIp },
+        data: { userId: session.userId, scope, version: scopeVersion, ipAddress: maskedIp },
       });
     }
-    // else: already active, no-op
+    // else: already active at current version, no-op
   } else {
     // Revoke: set revokedAt on active consent
     await prisma.consent.updateMany({

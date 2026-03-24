@@ -3,10 +3,12 @@
 import { useState, useCallback } from "react";
 import { localToday } from "@/lib/dateUtils";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { FormField } from "@/components/FormField";
 import { Alert } from "@/components/Alert";
 import { Card } from "@/components/Card";
 import { SleepRoutineChecklist } from "@/components/SleepRoutineChecklist";
+import { track } from "@/lib/telemetry";
 
 const qualityOptions = [
   { value: 20, label: "Péssima" },
@@ -88,11 +90,12 @@ export default function NovoSonoPage() {
         return;
       }
 
+      track({ name: "sleep_log_create" });
       setSuccess(true);
       setTimeout(() => {
         router.push("/sono");
         router.refresh();
-      }, 2000);
+      }, 3000);
     } catch {
       setError("Erro de conexão. Tente novamente.");
     } finally {
@@ -102,11 +105,23 @@ export default function NovoSonoPage() {
 
   if (success) {
     return (
-      <div className="mx-auto max-w-lg">
-        <Card className="text-center py-8">
-          <p className="text-lg font-semibold text-foreground">Registro de sono salvo!</p>
-          <p className="text-sm text-muted mt-2">Redirecionando...</p>
-        </Card>
+      <div className="mx-auto max-w-lg space-y-4">
+        <div className="rounded-xl bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 p-6 text-center space-y-3">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/50">
+            <svg className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <p className="text-lg font-semibold text-green-700 dark:text-green-300">Registrado!</p>
+          <p className="text-sm text-muted">Que tal fazer um check-in de humor?</p>
+          <Link
+            href="/checkin"
+            className="inline-block text-sm font-medium text-primary hover:text-primary-dark underline"
+          >
+            Fazer check-in
+          </Link>
+        </div>
+        <p className="text-center text-xs text-muted">Redirecionando para o hist\u00f3rico de sono...</p>
       </div>
     );
   }

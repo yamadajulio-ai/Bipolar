@@ -413,9 +413,9 @@ describe("computeInsights — cycling", () => {
 // ── 8. Heatmap ──────────────────────────────────────────────
 
 describe("computeInsights — heatmap", () => {
-  it("returns 90 days of heatmap data", () => {
+  it("returns empty heatmap when no data provided (I4-T3 optimization)", () => {
     const result = computeInsights([], [], [], [], TODAY, TZ);
-    expect(result.heatmap).toHaveLength(90);
+    expect(result.heatmap).toHaveLength(0);
   });
 
   it("fills heatmap with entry and sleep data", () => {
@@ -433,8 +433,13 @@ describe("computeInsights — heatmap", () => {
 
   it("excludes naps from heatmap sleep data", () => {
     const date = daysAgo(3);
-    const sleepLogs = [makeSleep({ date, totalHours: 0.5 })]; // nap
-    const result = computeInsights(sleepLogs, [], [], [], TODAY, TZ, [], sleepLogs);
+    // Need a real entry nearby so heatmap generates days in range (I4-T3 optimization)
+    const sleepLogs = [
+      makeSleep({ date, totalHours: 0.5 }), // nap
+      makeSleep({ date: daysAgo(4), totalHours: 7 }), // real sleep for context
+    ];
+    const entries = [makeEntry({ date: daysAgo(4) })];
+    const result = computeInsights(sleepLogs, entries, [], [], TODAY, TZ, entries, sleepLogs);
     const day = result.heatmap.find((d) => d.date === date);
     expect(day).toBeDefined();
     expect(day!.sleepHours).toBeNull(); // nap filtered out

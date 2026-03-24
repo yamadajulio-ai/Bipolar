@@ -105,6 +105,34 @@ export async function POST(request: NextRequest) {
 
     const { date, asrmScores, phq9Scores, fastScores, notes } = parsed.data;
 
+    // Defense-in-depth: reject sentinel -1 values that bypass Zod min(0) via type coercion
+    if (asrmScores?.some((v) => v < 0)) {
+      return NextResponse.json(
+        { error: "Valores ASRM inválidos: todas as respostas devem ser preenchidas (>= 0)." },
+        { status: 400 },
+      );
+    }
+    if (phq9Scores?.some((v) => v < 0)) {
+      return NextResponse.json(
+        { error: "Valores PHQ-9 inválidos: todas as respostas devem ser preenchidas (>= 0)." },
+        { status: 400 },
+      );
+    }
+    if (fastScores && Object.values(fastScores).some((v) => v < 1)) {
+      return NextResponse.json(
+        { error: "Valores FAST inválidos: todos os domínios devem ser preenchidos (>= 1)." },
+        { status: 400 },
+      );
+    }
+
+    // Require at least one assessment section
+    if (!asrmScores && !phq9Scores && !fastScores) {
+      return NextResponse.json(
+        { error: "Pelo menos uma seção da avaliação deve ser preenchida." },
+        { status: 400 },
+      );
+    }
+
     const asrmTotal = asrmScores ? asrmScores.reduce((a, b) => a + b, 0) : null;
     const phq9Total = phq9Scores ? phq9Scores.reduce((a, b) => a + b, 0) : null;
     const phq9Item9 = phq9Scores ? phq9Scores[8] : null;

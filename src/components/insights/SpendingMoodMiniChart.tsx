@@ -35,7 +35,7 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Toolti
   // Round expense for privacy
   const roundedExp = Math.round(point.expense / 10) * 10;
   return (
-    <div className="rounded-lg bg-gray-900 px-3 py-2 text-xs text-white shadow-lg">
+    <div className="rounded-lg bg-surface px-3 py-2 text-xs text-foreground shadow-lg border border-border">
       <p className="font-medium">{point.date}</p>
       {point.expense > 0 && <p>Gastos: ~R${roundedExp.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ".")}</p>}
       {point.mood != null && <p>Humor: {point.mood}/5</p>}
@@ -164,12 +164,12 @@ export function SpendingMoodMiniChart({ data }: Props) {
               }) as any
             }
           />
-          {/* Halo line: white outline underneath for contrast over bars (1.09:1 → 4.5:1+) */}
+          {/* Halo line: outline underneath for contrast over bars */}
           <Line
             yAxisId="mood"
             dataKey="mood"
             type="monotone"
-            stroke="#ffffff"
+            stroke="var(--halo-stroke, var(--background))"
             strokeWidth={5}
             dot={false}
             connectNulls={false}
@@ -182,7 +182,7 @@ export function SpendingMoodMiniChart({ data }: Props) {
             type="monotone"
             stroke={COLOR_MOOD}
             strokeWidth={2}
-            dot={{ r: 3, fill: COLOR_MOOD, stroke: "#ffffff", strokeWidth: 1.5 }}
+            dot={{ r: 3, fill: COLOR_MOOD, stroke: "var(--background)", strokeWidth: 1.5 }}
             connectNulls={false}
             isAnimationActive={!reducedMotion}
           />

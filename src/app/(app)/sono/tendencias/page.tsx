@@ -101,9 +101,9 @@ export default function TendenciasSonoPage() {
       ) : data && data.totalLogs === 0 ? (
         <Card>
           <p className="text-center text-muted">
-            Nenhum registro de sono neste período.{" "}
+            Registre algumas noites para visualizar suas tendências de sono aqui.{" "}
             <Link href="/sono/novo" className="text-primary hover:underline">
-              Criar registro
+              Registrar sono
             </Link>
           </p>
         </Card>

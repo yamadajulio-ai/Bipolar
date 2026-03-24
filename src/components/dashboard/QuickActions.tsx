@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Card } from "@/components/Card";
 
 const actions = [
-  { title: "Diário", description: "Registre humor e sono", href: "/diario", icon: "📝" },
+  { title: "Hist\u00f3rico de Humor", description: "Veja seus check-ins", href: "/diario", icon: "\ud83d\udcdd" },
   { title: "Sono", description: "Registro de sono", href: "/sono", icon: "🌙" },
   { title: "Exercícios", description: "Respiração e aterramento", href: "/exercicios", icon: "🫁" },
   { title: "Rotina", description: "Ritmo social", href: "/rotina", icon: "🕐" },

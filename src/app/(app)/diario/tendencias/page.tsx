@@ -78,7 +78,7 @@ export default function TendenciasPage() {
           href="/diario"
           className="text-sm text-primary hover:underline"
         >
-          Voltar ao diário
+          Voltar ao hist\u00f3rico
         </Link>
       </div>
 

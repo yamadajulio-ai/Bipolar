@@ -10,6 +10,9 @@ import { parseHealthExportPayloadV2 } from "@/lib/integrations/healthExport";
  */
 export async function POST(request: NextRequest) {
   const session = await getSession();
+  if (!session.isLoggedIn) {
+    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  }
 
   try {
     const body = await request.json();
@@ -109,6 +112,7 @@ export async function POST(request: NextRequest) {
       hrvHrEnriched,
       metricsImported,
       metricTypes: [...new Set(result.genericMetrics.map((m) => m.metric))],
+      skippedCount: result.skippedCount,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erro desconhecido";

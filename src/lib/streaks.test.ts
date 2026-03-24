@@ -237,6 +237,19 @@ describe("computeLongestStreak", () => {
     const dates = ["2024-02-28", "2024-02-29", "2024-03-01"];
     expect(computeLongestStreak(dates)).toBe(3);
   });
+
+  it("returns 1 when all dates are the same (extreme dedup)", () => {
+    const dates = ["2026-03-10", "2026-03-10", "2026-03-10", "2026-03-10"];
+    expect(computeLongestStreak(dates)).toBe(1);
+  });
+
+  it("returns 2 for exactly two consecutive dates", () => {
+    expect(computeLongestStreak(["2026-03-09", "2026-03-10"])).toBe(2);
+  });
+
+  it("returns 1 for exactly two non-consecutive dates", () => {
+    expect(computeLongestStreak(["2026-03-08", "2026-03-10"])).toBe(1);
+  });
 });
 
 // ---------------------------------------------------------------------------

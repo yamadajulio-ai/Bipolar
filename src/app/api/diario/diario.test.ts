@@ -50,22 +50,26 @@ const mockEntryUpdate = vi.fn();
 const mockEntryUpdateMany = vi.fn();
 const mockEntryFindUnique = vi.fn();
 
-vi.mock("@/lib/db", () => ({
-  prisma: {
-    moodSnapshot: {
-      findUnique: mockSnapshotFindUnique,
-      findFirst: mockSnapshotFindFirst,
-      findMany: mockSnapshotFindMany,
-      create: mockSnapshotCreate,
-      update: mockSnapshotUpdate,
-    },
-    diaryEntry: {
-      upsert: mockEntryUpsert,
-      update: mockEntryUpdate,
-      updateMany: mockEntryUpdateMany,
-      findUnique: mockEntryFindUnique,
-    },
+const mockPrisma = {
+  moodSnapshot: {
+    findUnique: mockSnapshotFindUnique,
+    findFirst: mockSnapshotFindFirst,
+    findMany: mockSnapshotFindMany,
+    create: mockSnapshotCreate,
+    update: mockSnapshotUpdate,
   },
+  diaryEntry: {
+    upsert: mockEntryUpsert,
+    update: mockEntryUpdate,
+    updateMany: mockEntryUpdateMany,
+    findUnique: mockEntryFindUnique,
+  },
+  // reprojectEntry uses $transaction — pass the same mock as tx client
+  $transaction: vi.fn((cb: (tx: typeof mockPrisma) => Promise<unknown>) => cb(mockPrisma)),
+};
+
+vi.mock("@/lib/db", () => ({
+  prisma: mockPrisma,
 }));
 
 vi.mock("@/lib/diary/projectSnapshots", () => ({

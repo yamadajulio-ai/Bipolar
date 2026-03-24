@@ -99,7 +99,7 @@ export function EpisodePrediction({ data }: Props) {
 
       {/* Recommendations */}
       {data.recommendations.length > 0 && (
-        <div className="rounded-lg bg-white/60 border border-border p-2.5">
+        <div className="rounded-lg bg-surface/60 border border-border p-2.5">
           <p className="mb-1 text-[10px] font-semibold text-foreground/60">Recomendações</p>
           <ul className="space-y-0.5">
             {data.recommendations.map((r, i) => (

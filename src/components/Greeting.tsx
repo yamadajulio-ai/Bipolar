@@ -27,9 +27,10 @@ export function Greeting() {
         <button
           onClick={toggleTheme}
           aria-label={isDark ? "Mudar para modo claro" : "Mudar para modo escuro"}
-          className="rounded-full p-2 text-xl transition-colors hover:bg-muted/20"
+          className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition-colors hover:bg-muted/20"
         >
-          {isDark ? "☀️" : "🌙"}
+          <span className="text-lg">{isDark ? "☀️" : "🌙"}</span>
+          <span className="text-muted">{isDark ? "Modo claro" : "Modo escuro"}</span>
         </button>
       )}
     </div>

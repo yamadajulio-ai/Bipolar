@@ -23,7 +23,15 @@ export async function GET() {
   }
 
   const allowed = await checkRateLimit(`safety_read:${session.userId}`, 60, 60_000);
-  if (!allowed) return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
+  if (!allowed) {
+    return NextResponse.json({
+      error: "Muitas requisições — tente novamente em breve",
+      emergencyContacts: {
+        samu: { phone: "192", label: "SAMU — emergência médica e psiquiátrica" },
+        cvv: { phone: "188", label: "CVV — apoio emocional 24h" },
+      },
+    }, { status: 429 });
+  }
 
   const latest = await prisma.safetyScreeningSession.findFirst({
     where: { userId: session.userId },
@@ -59,7 +67,16 @@ export async function POST(req: Request) {
   }
 
   const writeAllowed = await checkRateLimit(`safety_write:${session.userId}`, 10, 60_000);
-  if (!writeAllowed) return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
+  if (!writeAllowed) {
+    // Rate-limited but NEVER hide emergency resources — safety endpoint must always provide help
+    return NextResponse.json({
+      error: "Muitas requisições — tente novamente em breve",
+      emergencyContacts: {
+        samu: { phone: "192", label: "SAMU — emergência médica e psiquiátrica" },
+        cvv: { phone: "188", label: "CVV — apoio emocional 24h" },
+      },
+    }, { status: 429 });
+  }
 
   const body: PostBody = await req.json();
 
@@ -82,7 +99,10 @@ export async function POST(req: Request) {
         if (
           b.canStaySafe === "no" ||
           b.thoughtRecency === "now" ||
+          b.intentToAct === "yes" ||
+          b.planTimeline === "today" ||
           (b.hasPlan && b.planIsDetailed && b.hasAccessToMeans) ||
+          (b.hasPlan && b.intentToAct === "unsure" && b.planTimeline === "within_days") ||
           b.pastAttempt === "<3_months" || b.pastAttempt === "<7_days" ||
           b.preparatoryBehavior === "<3_months" || b.preparatoryBehavior === "<7_days"
         ) {
@@ -90,6 +110,8 @@ export async function POST(req: Request) {
           alertLayer = "RED";
         } else if (
           b.hasPlan ||
+          b.intentToAct === "unsure" ||
+          b.planTimeline === "within_days" || b.planTimeline === "within_weeks" ||
           b.canStaySafe === "unsure" ||
           b.pastAttempt === "3_12_months" ||
           b.preparatoryBehavior === "3_12_months" ||

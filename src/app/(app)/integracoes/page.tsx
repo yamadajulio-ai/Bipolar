@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Card } from "@/components/Card";
 import { GoogleCalendarSync } from "@/components/integrations/GoogleCalendarSync";
 
@@ -62,31 +62,56 @@ export default function IntegraçõesPage() {
   const [importing, setImporting] = useState(false);
   const [importProgress, setImportProgress] = useState<{ current: number; total: number } | null>(null);
   const [importResult, setImportResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  const fetchKeys = useCallback(async () => {
-    const res = await fetch("/api/integrations/settings");
+  const fetchKeys = useCallback(async (signal?: AbortSignal) => {
+    const res = await fetch("/api/integrations/settings", { signal });
     if (res.ok) setKeys(await res.json());
   }, []);
 
-  const fetchSyncStatus = useCallback(async () => {
-    const res = await fetch("/api/integrations/health-export/status");
+  const fetchSyncStatus = useCallback(async (signal?: AbortSignal) => {
+    const res = await fetch("/api/integrations/health-export/status", { signal });
     if (res.ok) setSyncStatus(await res.json());
   }, []);
 
+  const loadAll = useCallback(async (signal?: AbortSignal) => {
+    setFetchError(null);
+    try {
+      await Promise.all([
+        fetchKeys(signal),
+        fetchSyncStatus(signal),
+        fetch("/api/google/sync", { signal })
+          .then((r) => r.json())
+          .then((data) => { if (data.connected) setGoogleConnected(true); })
+          .catch(() => {}),
+      ]);
+    } catch (err) {
+      if ((err as Error)?.name === "AbortError") return;
+      setFetchError("Erro ao carregar integrações. Verifique sua conexão.");
+    }
+  }, [fetchKeys, fetchSyncStatus]);
+
   useEffect(() => {
-    fetchKeys();
-    fetchSyncStatus();
-    // Check Google Calendar connection status
-    fetch("/api/google/sync")
-      .then((r) => r.json())
-      .then((data) => { if (data.connected) setGoogleConnected(true); })
-      .catch(() => {});
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    // 30s timeout
+    const timeout = setTimeout(() => controller.abort(), 30000);
+
+    loadAll(controller.signal).finally(() => clearTimeout(timeout));
+
     // Also check via URL param after OAuth callback
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       if (params.get("google") === "connected") setGoogleConnected(true);
     }
-  }, [fetchKeys, fetchSyncStatus]);
+
+    return () => {
+      controller.abort();
+      clearTimeout(timeout);
+    };
+  }, [loadAll]);
 
   const healthKey = keys.find((k) => k.service === "health_auto_export");
   const hcKey = keys.find((k) => k.service === "health_connect");
@@ -244,6 +269,24 @@ export default function IntegraçõesPage() {
         Conecte serviços externos para sincronizar dados automaticamente.
       </p>
 
+      {/* Error banner with retry */}
+      {fetchError && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-center">
+          <p className="text-sm text-red-700">{fetchError}</p>
+          <button
+            onClick={() => {
+              const controller = new AbortController();
+              abortControllerRef.current = controller;
+              const timeout = setTimeout(() => controller.abort(), 30000);
+              loadAll(controller.signal).finally(() => clearTimeout(timeout));
+            }}
+            className="mt-2 text-sm text-red-600 underline hover:text-red-800"
+          >
+            Tentar novamente
+          </button>
+        </div>
+      )}
+
       {/* Wearables Compatíveis */}
       <Card className="mb-6">
         <div className="flex items-center gap-3 mb-2">
@@ -287,7 +330,7 @@ export default function IntegraçõesPage() {
                   <td className="py-1.5 pr-2">Mi Fitness</td>
                   <td className="py-1.5 pr-2 text-green-600">&#10003;</td>
                   <td className="py-1.5 pr-2 text-green-600">&#10003;</td>
-                  <td className="py-1.5 pr-2 text-gray-400">&#8212;</td>
+                  <td className="py-1.5 pr-2 text-muted">&#8212;</td>
                   <td className="py-1.5 text-green-600">&#10003;</td>
                 </tr>
                 <tr className="border-b border-emerald-100 dark:border-emerald-900/50">
@@ -296,7 +339,7 @@ export default function IntegraçõesPage() {
                   <td className="py-1.5 pr-2">Mi Fitness</td>
                   <td className="py-1.5 pr-2 text-green-600">&#10003;</td>
                   <td className="py-1.5 pr-2 text-green-600">&#10003;</td>
-                  <td className="py-1.5 pr-2 text-gray-400">&#8212;</td>
+                  <td className="py-1.5 pr-2 text-muted">&#8212;</td>
                   <td className="py-1.5 text-green-600">&#10003;</td>
                 </tr>
                 <tr className="border-b border-emerald-100 dark:border-emerald-900/50">
@@ -339,7 +382,7 @@ export default function IntegraçõesPage() {
             </table>
           </div>
           <p className="text-xs text-muted">
-            <strong>&#10003;</strong> = confiável &nbsp; <strong className="text-amber-500">~</strong> = cobertura variável (validar antes) &nbsp; <strong className="text-gray-400">&#8212;</strong> = não disponível
+            <strong>&#10003;</strong> = confiável &nbsp; <strong className="text-amber-500">~</strong> = cobertura variável (validar antes) &nbsp; <strong className="text-muted">&#8212;</strong> = não disponível
           </p>
           <p className="text-xs text-muted">
             Preços de referência do varejo brasileiro (mar/2026). Podem variar por loja e promoção.

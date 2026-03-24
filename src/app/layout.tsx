@@ -6,6 +6,7 @@ import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { InAppBrowserBanner } from "@/components/InAppBrowserBanner";
 import { NativeAppShell } from "@/components/capacitor/NativeAppShell";
 import { CsrfProvider } from "@/components/CsrfProvider";
+import { ThemeProvider } from "@/components/ThemeProvider";
 // Marketing analytics (MetaPixel, MicrosoftClarity, GoogleAnalytics) are loaded
 // only in (public) and (auth) layouts — excluded from authenticated (app) area
 // to protect clinical data privacy (LGPD + audit recommendation).
@@ -22,7 +23,10 @@ const geistMono = Geist_Mono({
 });
 
 export const viewport: Viewport = {
-  themeColor: "#527a6e",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#527a6e" },
+    { media: "(prefers-color-scheme: dark)", color: "#171411" },
+  ],
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover", // iPhone notch/Dynamic Island support in PWA
@@ -91,7 +95,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" suppressHydrationWarning>
       <head>
         <script
           type="application/ld+json"
@@ -118,13 +122,15 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <CsrfProvider />
-        <InAppBrowserBanner />
-        <NativeAppShell />
-        <Analytics />
-        <SpeedInsights />
-        <ServiceWorkerRegister />
-        {children}
+        <ThemeProvider>
+          <CsrfProvider />
+          <InAppBrowserBanner />
+          <NativeAppShell />
+          <Analytics />
+          <SpeedInsights />
+          <ServiceWorkerRegister />
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );

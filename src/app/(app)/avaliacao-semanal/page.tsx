@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/Card";
 import { Alert } from "@/components/Alert";
 import { SafetyNudge } from "@/components/insights/SafetyNudge";
+import { LoadingState } from "@/components/ui/StatusStates";
+import { track } from "@/lib/telemetry";
 import {
   ASRM_ITEMS,
   PHQ9_ITEMS,
@@ -50,11 +52,57 @@ export default function AvaliacaoSemanalPage() {
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [stepError, setStepError] = useState("");
   const [safetyFlag, setSafetyFlag] = useState(false);
   const [success, setSuccess] = useState(false);
   const [existing, setExisting] = useState<ExistingAssessment | null>(null);
   const [showExistingWarning, setShowExistingWarning] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  const weekEnd = getWeekEndDate();
+  const DRAFT_KEY = `assessment-draft-${weekEnd}`;
+  const draftRestored = useRef(false);
+  const trackedStart = useRef(false);
+
+  // Track page open
+  useEffect(() => {
+    if (!loading && !trackedStart.current) {
+      trackedStart.current = true;
+      track({ name: "assessment_start" });
+    }
+  }, [loading]);
+
+  // Track abandon on page unload
+  useEffect(() => {
+    function handleBeforeUnload() {
+      if (!success && step !== "review") {
+        track({ name: "assessment_dropoff", step });
+      }
+    }
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [step, success]);
+
+  // Stepper metadata
+  const stepLabels: Record<Step, { label: string; num: number; questions: number }> = {
+    asrm: { label: "ASRM (Mania)", num: 1, questions: 5 },
+    phq9: { label: "PHQ-9 (Depressão)", num: 2, questions: 9 },
+    fast: { label: "FAST (Funcionamento)", num: 3, questions: FAST_SHORT_ITEMS.length },
+    review: { label: "Revisão", num: 4, questions: 0 },
+  };
+  const currentStepMeta = stepLabels[step];
+  const totalQuestions = 5 + 9 + FAST_SHORT_ITEMS.length;
+  const answeredQuestions =
+    asrmScores.filter((s) => s !== -1).length +
+    phq9Scores.filter((s) => s !== -1).length +
+    Object.keys(fastScores).length;
+  const progressPct = Math.round((answeredQuestions / totalQuestions) * 100);
+
+  // Question index within current step
+  const currentStepAnswered =
+    step === "asrm" ? asrmScores.filter((s) => s !== -1).length :
+    step === "phq9" ? phq9Scores.filter((s) => s !== -1).length :
+    step === "fast" ? Object.keys(fastScores).length : 0;
 
   // Check if assessment already exists for current week
   useEffect(() => {
@@ -65,7 +113,6 @@ export default function AvaliacaoSemanalPage() {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
           const latest = data[0];
-          const weekEnd = getWeekEndDate();
           if (latest.date === weekEnd) {
             setExisting(latest);
             setShowExistingWarning(true);
@@ -78,7 +125,38 @@ export default function AvaliacaoSemanalPage() {
       }
     }
     checkExisting();
-  }, []);
+  }, [weekEnd]);
+
+  // Restore draft after loading completes (only if no server data)
+  useEffect(() => {
+    if (loading || draftRestored.current) return;
+    // Only restore draft if there's no existing assessment that triggered the warning
+    if (showExistingWarning) { draftRestored.current = true; return; }
+    draftRestored.current = true;
+    try {
+      const saved = sessionStorage.getItem(DRAFT_KEY);
+      if (!saved) return;
+      const draft = JSON.parse(saved);
+      if (Array.isArray(draft.asrmScores) && draft.asrmScores.length === 5) setAsrmScores(draft.asrmScores);
+      // PHQ-9 scores are never persisted in drafts (contains sensitive suicidal ideation data)
+      if (draft.fastScores && typeof draft.fastScores === "object" && !Array.isArray(draft.fastScores)) setFastScores(draft.fastScores);
+      if (typeof draft.notes === "string") setNotes(draft.notes);
+      if (draft.step && ["asrm", "phq9", "fast", "review"].includes(draft.step)) setStep(draft.step);
+    } catch { /* ignore corrupt draft */ }
+  }, [loading, showExistingWarning, DRAFT_KEY]);
+
+  // Save draft on every change (debounced 500ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      try {
+        sessionStorage.setItem(
+          DRAFT_KEY,
+          JSON.stringify({ asrmScores, fastScores, notes, step }),
+        );
+      } catch { /* storage full — ignore */ }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [asrmScores, fastScores, notes, step, DRAFT_KEY]);
 
   function prefillFromExisting(assessment: ExistingAssessment) {
     if (assessment.asrmScores) {
@@ -117,6 +195,10 @@ export default function AvaliacaoSemanalPage() {
       next[idx] = val;
       return next;
     });
+    // PHQ-9 item 9 (index 8): immediate safety flag
+    if (idx === 8 && val >= 1) {
+      setSafetyFlag(true);
+    }
   }, []);
 
   const setFast = useCallback((key: string, val: number) => {
@@ -146,9 +228,26 @@ export default function AvaliacaoSemanalPage() {
     setSaving(true);
     setError("");
 
+    // Prevent submit with unanswered sentinel -1 values
+    if (asrmScores.some((s) => s === -1)) {
+      setError("Responda todas as perguntas do ASRM antes de enviar.");
+      setSaving(false);
+      return;
+    }
+    if (phq9Scores.some((s) => s === -1)) {
+      setError("Responda todas as perguntas do PHQ-9 antes de enviar.");
+      setSaving(false);
+      return;
+    }
+    if (!FAST_SHORT_ITEMS.every((item) => fastScores[item.key] !== undefined)) {
+      setError("Responda todas as perguntas de Funcionamento antes de enviar.");
+      setSaving(false);
+      return;
+    }
+
     try {
       const body: Record<string, unknown> = {
-        date: getWeekEndDate(),
+        date: weekEnd,
       };
       if (asrmComplete) body.asrmScores = asrmScores;
       if (phq9Complete) body.phq9Scores = phq9Scores;
@@ -171,6 +270,9 @@ export default function AvaliacaoSemanalPage() {
 
       const data = await res.json();
       if (data.safetyFlag) setSafetyFlag(true);
+      // Clear draft on successful submit
+      try { sessionStorage.removeItem(DRAFT_KEY); } catch {}
+      track({ name: "assessment_complete", asrmTotal, phq9Total });
       setSuccess(true);
     } catch {
       setError("Erro de conexão. Tente novamente.");
@@ -210,9 +312,8 @@ export default function AvaliacaoSemanalPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-lg py-12 text-center">
-        <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-        <p className="mt-2 text-sm text-muted">Carregando...</p>
+      <div className="mx-auto max-w-lg">
+        <LoadingState message="Carregando avaliação..." />
       </div>
     );
   }
@@ -272,35 +373,61 @@ export default function AvaliacaoSemanalPage() {
         </Alert>
       )}
 
-      {/* Progress indicator */}
-      {(() => {
-        const steps: Step[] = ["asrm", "phq9", "fast", "review"];
-        const stepLabels: Record<Step, string> = { asrm: "Mania", phq9: "Depressão", fast: "Funcionamento", review: "Revisão" };
-        const currentIdx = steps.indexOf(step) + 1;
-        return (
+      {/* Enhanced stepper */}
+      <div className="mb-6 space-y-2">
+        {/* Step label + estimated time */}
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-medium text-foreground">
+            Etapa {currentStepMeta.num} de 4: {currentStepMeta.label}
+          </p>
+          {currentStepMeta.num === 1 && (
+            <span className="text-xs text-muted">~5 minutos</span>
+          )}
+        </div>
+
+        {/* Question count within step */}
+        {currentStepMeta.questions > 0 && (
+          <p className="text-xs text-muted">
+            Pergunta {Math.min(currentStepAnswered + 1, currentStepMeta.questions)} de {currentStepMeta.questions}
+          </p>
+        )}
+
+        {/* Overall progress bar */}
+        <div
+          className="relative h-2 w-full rounded-full bg-border overflow-hidden"
+          role="progressbar"
+          aria-valuenow={progressPct}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label={`Progresso: ${progressPct}% das perguntas respondidas`}
+        >
           <div
-            className="mb-6 flex gap-1"
-            role="progressbar"
-            aria-valuenow={currentIdx}
-            aria-valuemin={1}
-            aria-valuemax={4}
-            aria-label={`Etapa ${currentIdx} de 4: ${stepLabels[step]}`}
-          >
-            {steps.map((s) => (
-              <div
-                key={s}
-                className={`h-1 flex-1 rounded-full ${
-                  s === step
-                    ? "bg-primary"
-                    : steps.indexOf(s) < steps.indexOf(step)
-                      ? "bg-primary/40"
-                      : "bg-border"
-                }`}
-              />
-            ))}
-          </div>
-        );
-      })()}
+            className="absolute inset-y-0 left-0 rounded-full bg-primary transition-all duration-300"
+            style={{ width: `${progressPct}%` }}
+          />
+        </div>
+
+        {/* Step dots */}
+        {(() => {
+          const allSteps: Step[] = ["asrm", "phq9", "fast", "review"];
+          const currentIdx = allSteps.indexOf(step);
+          return (
+            <div className="flex gap-1" role="list" aria-label="Etapas da avaliação">
+              {allSteps.map((s, i) => (
+                <div
+                  key={s}
+                  role="listitem"
+                  aria-current={i === currentIdx ? "step" : undefined}
+                  aria-label={`Etapa ${i + 1}: ${stepLabels[s].label}${i < currentIdx ? " (concluída)" : i === currentIdx ? " (atual)" : ""}`}
+                  className={`h-1 flex-1 rounded-full ${
+                    i === currentIdx ? "bg-primary" : i < currentIdx ? "bg-primary/40" : "bg-border"
+                  }`}
+                />
+              ))}
+            </div>
+          );
+        })()}
+      </div>
 
       {/* ASRM Step */}
       {step === "asrm" && (
@@ -325,7 +452,9 @@ export default function AvaliacaoSemanalPage() {
                     key={optIdx}
                     type="button"
                     onClick={() => setAsrm(idx, optIdx)}
-                    className={`w-full rounded-lg border px-3 py-2 text-left text-xs transition-colors ${
+                    aria-pressed={asrmScores[idx] === optIdx}
+                    aria-label={`Opção ${optIdx + 1}: ${opt}`}
+                    className={`w-full rounded-lg border px-3 py-2 text-left text-xs transition-colors min-h-[44px] ${
                       asrmScores[idx] === optIdx
                         ? "border-primary bg-primary/10 text-foreground"
                         : "border-border bg-surface text-muted hover:border-primary/50"
@@ -337,11 +466,21 @@ export default function AvaliacaoSemanalPage() {
               </div>
             </Card>
           ))}
+          {stepError && step === "asrm" && (
+            <p className="text-sm text-red-400">{stepError}</p>
+          )}
           <div className="flex justify-between">
             <div />
             <button
-              onClick={() => setStep("phq9")}
-              disabled={!asrmComplete}
+              onClick={() => {
+                if (asrmScores.some((s) => s === -1)) {
+                  setStepError("Responda todas as 5 perguntas antes de avançar.");
+                  return;
+                }
+                setStepError("");
+                track({ name: "assessment_step", step: "phq9" });
+                setStep("phq9");
+              }}
               className="rounded-lg bg-primary px-6 py-2 text-sm font-medium text-white hover:bg-primary-dark disabled:opacity-50"
             >
               Próximo: Depressão
@@ -373,7 +512,9 @@ export default function AvaliacaoSemanalPage() {
                     key={opt.value}
                     type="button"
                     onClick={() => setPhq9(idx, opt.value)}
-                    className={`rounded-lg border px-2 py-2 text-xs transition-colors ${
+                    aria-pressed={phq9Scores[idx] === opt.value}
+                    aria-label={`${opt.label}${"hint" in opt && opt.hint ? ` (${opt.hint})` : ""}`}
+                    className={`rounded-lg border px-2 py-2 text-xs transition-colors min-h-[44px] ${
                       phq9Scores[idx] === opt.value
                         ? "border-primary bg-primary/10 text-foreground"
                         : "border-border bg-surface text-muted hover:border-primary/50"
@@ -392,16 +533,26 @@ export default function AvaliacaoSemanalPage() {
           {/* Safety nudge inline after item 9 */}
           {showSafetyNudge && <SafetyNudge phq9Item9={phq9Item9} compact />}
 
+          {stepError && step === "phq9" && (
+            <p className="text-sm text-red-400">{stepError}</p>
+          )}
           <div className="flex justify-between">
             <button
-              onClick={() => setStep("asrm")}
+              onClick={() => { setStepError(""); setStep("asrm"); }}
               className="rounded-lg border border-border px-4 py-2 text-sm text-muted hover:border-primary/50"
             >
               Voltar
             </button>
             <button
-              onClick={() => setStep("fast")}
-              disabled={!phq9Complete}
+              onClick={() => {
+                if (phq9Scores.some((s) => s === -1)) {
+                  setStepError("Responda todas as 9 perguntas antes de avançar.");
+                  return;
+                }
+                setStepError("");
+                track({ name: "assessment_step", step: "fast" });
+                setStep("fast");
+              }}
               className="rounded-lg bg-primary px-6 py-2 text-sm font-medium text-white hover:bg-primary-dark disabled:opacity-50"
             >
               Próximo: Funcionamento
@@ -433,7 +584,9 @@ export default function AvaliacaoSemanalPage() {
                     key={val}
                     type="button"
                     onClick={() => setFast(item.key, val)}
-                    className={`flex-1 rounded-lg border px-1 py-2 text-center text-xs transition-colors ${
+                    aria-pressed={fastScores[item.key] === val}
+                    aria-label={`${item.label}: ${val} de 5 (${val === 1 ? "Muito difícil" : val === 5 ? "Sem dificuldade" : `Nível ${val}`})`}
+                    className={`flex-1 rounded-lg border px-1 py-2 text-center text-xs transition-colors min-h-[44px] ${
                       fastScores[item.key] === val
                         ? "border-primary bg-primary/10 text-foreground"
                         : "border-border bg-surface text-muted hover:border-primary/50"
@@ -449,16 +602,26 @@ export default function AvaliacaoSemanalPage() {
               </div>
             </Card>
           ))}
+          {stepError && step === "fast" && (
+            <p className="text-sm text-red-400">{stepError}</p>
+          )}
           <div className="flex justify-between">
             <button
-              onClick={() => setStep("phq9")}
+              onClick={() => { setStepError(""); setStep("phq9"); }}
               className="rounded-lg border border-border px-4 py-2 text-sm text-muted hover:border-primary/50"
             >
               Voltar
             </button>
             <button
-              onClick={() => setStep("review")}
-              disabled={!fastComplete}
+              onClick={() => {
+                if (!FAST_SHORT_ITEMS.every((item) => fastScores[item.key] !== undefined)) {
+                  setStepError("Responda todas as perguntas de funcionamento antes de avançar.");
+                  return;
+                }
+                setStepError("");
+                track({ name: "assessment_step", step: "review" });
+                setStep("review");
+              }}
               className="rounded-lg bg-primary px-6 py-2 text-sm font-medium text-white hover:bg-primary-dark disabled:opacity-50"
             >
               Revisar

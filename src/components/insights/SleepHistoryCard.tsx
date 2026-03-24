@@ -54,7 +54,7 @@ export function SleepHistoryCard({ log }: { log: SleepLog }) {
   }
 
   const borderColor = excluded
-    ? "border-gray-200 bg-gray-50/50 opacity-60"
+    ? "border-border bg-surface-alt/50 opacity-60"
     : isNap
       ? "border-purple-200 bg-purple-50/40"
       : isShort
@@ -64,14 +64,14 @@ export function SleepHistoryCard({ log }: { log: SleepLog }) {
           : "border-border bg-surface";
 
   const durationColor = excluded
-    ? "text-gray-400 line-through"
+    ? "text-muted line-through"
     : isNap ? "text-purple-600"
       : isShort ? "text-red-600"
         : isGood ? "text-emerald-700"
           : "text-foreground";
 
   const barColor = excluded
-    ? "bg-gray-300"
+    ? "bg-border"
     : isNap ? "bg-purple-400"
       : isShort ? "bg-red-400"
         : isGood ? "bg-emerald-400"
@@ -89,7 +89,7 @@ export function SleepHistoryCard({ log }: { log: SleepLog }) {
             </span>
           )}
           {excluded && (
-            <span className="rounded-full bg-gray-200 px-2 py-0.5 text-[10px] font-medium text-gray-500">
+            <span className="rounded-full bg-surface-alt px-2 py-0.5 text-[10px] font-medium text-muted">
               excluído
             </span>
           )}
@@ -132,7 +132,7 @@ export function SleepHistoryCard({ log }: { log: SleepLog }) {
           className={`mt-2 w-full rounded-md px-2 py-1 text-[11px] transition-colors ${
             excluded
               ? "bg-primary/10 text-primary hover:bg-primary/20"
-              : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+              : "bg-surface-alt text-muted hover:bg-border"
           } disabled:opacity-50`}
         >
           {toggling

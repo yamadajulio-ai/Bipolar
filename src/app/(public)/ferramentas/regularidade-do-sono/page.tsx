@@ -3,6 +3,8 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { JetLagCalculator } from "./JetLagCalculator";
 
+export const dynamic = "force-static";
+
 export const metadata: Metadata = {
   title: "Regularidade do Sono — Calculadora de Social Jet Lag — Suporte Bipolar",
   description:

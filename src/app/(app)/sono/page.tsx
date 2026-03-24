@@ -213,9 +213,9 @@ export default async function SonoPage() {
       {logsDesc.length === 0 ? (
         <Card>
           <p className="text-center text-muted">
-            Nenhum registro de sono nos últimos 30 dias.{" "}
+            Registre seu sono para acompanhar tendências e receber insights personalizados.{" "}
             <Link href="/sono/novo" className="text-primary hover:underline">
-              Criar primeiro registro
+              Registrar primeira noite
             </Link>
           </p>
         </Card>

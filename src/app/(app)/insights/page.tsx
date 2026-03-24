@@ -21,6 +21,7 @@ import { ContextualFeedbackButtons } from "@/components/feedback/ContextualFeedb
 import { SpendingMoodInsightCard } from "@/components/insights/SpendingMoodInsightCard";
 import Link from "next/link";
 import { Suspense } from "react";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 export const maxDuration = 30;
 
@@ -376,7 +377,11 @@ export default async function InsightsPage({
 
           {/* AI Narrative */}
           <div className="mb-6">
-            <NarrativeSection />
+            <ErrorBoundary name="NarrativeSection">
+              <Suspense fallback={<div className="animate-pulse rounded-xl bg-surface-alt h-32" />}>
+                <NarrativeSection />
+              </Suspense>
+            </ErrorBoundary>
           </div>
 
           {/* ── 4 Summary Cards: estado atual traduzido ─────── */}
@@ -389,7 +394,7 @@ export default async function InsightsPage({
               variant={sleepVariant}
               what={insights.sleep.avgDuration !== null
                 ? `Média de ${formatSleepDuration(insights.sleep.avgDuration)} por noite`
-                : "Sem dados de sono recentes"
+                : "Registre seu sono para ativar insights"
               }
               meaning={sleepDeviation !== null
                 ? sleepDeviation === 0 ? "Dentro do esperado para estabilidade"
@@ -421,7 +426,7 @@ export default async function InsightsPage({
               title="Humor"
               icon="🧠"
               variant={moodVariant}
-              what={insights.mood.moodHeadline ?? (entries.length > 0 ? "Humor registrado" : "Sem dados de humor")}
+              what={insights.mood.moodHeadline ?? (entries.length > 0 ? "Humor registrado" : "Faça check-ins para ativar o monitoramento")}
               meaning={insights.mood.moodAmplitude !== null && insights.mood.moodAmplitude >= 3
                 ? "Oscilação ampla — comum antes de episódios"
                 : insights.mood.moodAmplitude !== null && insights.mood.moodAmplitude >= 2
@@ -451,7 +456,7 @@ export default async function InsightsPage({
               variant={medVariant}
               what={insights.mood.medicationAdherence !== null
                 ? `Adesão: ${insights.mood.medicationAdherence}% nos últimos 30 dias`
-                : "Sem dados de medicação"
+                : "Registre sua medicação para acompanhar a adesão"
               }
               meaning={insights.mood.medicationAdherence !== null
                 ? insights.mood.medicationAdherence >= 90 ? "Boa adesão — fator protetor importante"
@@ -770,8 +775,8 @@ export default async function InsightsPage({
             ) : (
               <Card>
                 <p className="text-sm text-muted">
-                  Nenhum registro de humor nos últimos 30 dias.
-                  Faça check-ins diários para ver tendências e alertas aqui.
+                  Seus check-ins diários vão gerar tendências e alertas aqui.
+                  Comece registrando como você se sente.
                 </p>
                 <Link
                   href="/diario/novo"
@@ -786,7 +791,9 @@ export default async function InsightsPage({
           {/* ── P2: Dynamic ordering — "strong" spending card rises above mood/sleep chart ── */}
           {insights.spendingMood.state === "strong" && (
             <section className="mb-8">
-              <SpendingMoodInsightCard data={insights.spendingMood} />
+              <Suspense fallback={<div className="animate-pulse rounded-xl bg-surface-alt h-24" />}>
+                <SpendingMoodInsightCard data={insights.spendingMood} />
+              </Suspense>
             </section>
           )}
 
@@ -795,7 +802,9 @@ export default async function InsightsPage({
             <section className="mb-8">
               <Card>
                 <h2 className="mb-3 text-lg font-semibold">Humor e Sono — 30 dias</h2>
-                <InsightsCharts data={insights.chart.chartData} />
+                <Suspense fallback={<div className="animate-pulse rounded bg-surface-alt h-48" />}>
+                  <InsightsCharts data={insights.chart.chartData} />
+                </Suspense>
               </Card>
             </section>
           )}
@@ -803,7 +812,9 @@ export default async function InsightsPage({
           {/* ── Humor e Gastos (spending × mood insight) — watch/learning/noSignal stay here ── */}
           {insights.spendingMood.state !== "hidden" && insights.spendingMood.state !== "strong" && (
             <section className="mb-8">
-              <SpendingMoodInsightCard data={insights.spendingMood} />
+              <Suspense fallback={<div className="animate-pulse rounded-xl bg-surface-alt h-24" />}>
+                <SpendingMoodInsightCard data={insights.spendingMood} />
+              </Suspense>
             </section>
           )}
 
@@ -938,7 +949,11 @@ export default async function InsightsPage({
           {/* ── Predição de Episódio ──────────────────── */}
           {insights.prediction && (insights.prediction.maniaRisk > 0 || insights.prediction.depressionRisk > 0) && (
             <section className="mb-8">
-              <EpisodePrediction data={insights.prediction} />
+              <ErrorBoundary name="EpisodePrediction">
+                <Suspense fallback={<div className="animate-pulse rounded-xl bg-surface-alt h-32" />}>
+                  <EpisodePrediction data={insights.prediction} />
+                </Suspense>
+              </ErrorBoundary>
             </section>
           )}
 

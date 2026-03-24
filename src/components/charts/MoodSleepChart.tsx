@@ -30,7 +30,7 @@ export function MoodSleepChart({ entries }: MoodSleepChartProps) {
   if (data.length === 0) {
     return (
       <p className="py-8 text-center text-sm text-muted">
-        Sem dados para exibir neste período.
+        Registre humor e sono para visualizar a relação entre eles aqui.
       </p>
     );
   }
@@ -51,7 +51,7 @@ export function MoodSleepChart({ entries }: MoodSleepChartProps) {
             value: "Humor",
             angle: -90,
             position: "insideLeft",
-            style: { fontSize: 12, fill: "#527a6e" },
+            style: { fontSize: 12, fill: "var(--color-primary, #527a6e)" },
           }}
         />
         <YAxis
@@ -63,7 +63,7 @@ export function MoodSleepChart({ entries }: MoodSleepChartProps) {
             value: "Sono (h)",
             angle: 90,
             position: "insideRight",
-            style: { fontSize: 12, fill: "#7da399" },
+            style: { fontSize: 12, fill: "var(--color-primary-light, #7da399)" },
           }}
         />
         <Tooltip
@@ -78,18 +78,18 @@ export function MoodSleepChart({ entries }: MoodSleepChartProps) {
           yAxisId="mood"
           type="monotone"
           dataKey="humor"
-          stroke="#527a6e"
+          stroke="var(--color-primary, #527a6e)"
           strokeWidth={2}
-          dot={{ r: 3, fill: "#527a6e" }}
+          dot={{ r: 3, fill: "var(--color-primary, #527a6e)" }}
           name="Humor"
         />
         <Line
           yAxisId="sleep"
           type="monotone"
           dataKey="sono"
-          stroke="#7da399"
+          stroke="var(--color-primary-light, #7da399)"
           strokeWidth={2}
-          dot={{ r: 3, fill: "#7da399" }}
+          dot={{ r: 3, fill: "var(--color-primary-light, #7da399)" }}
           name="Sono (h)"
         />
       </LineChart>

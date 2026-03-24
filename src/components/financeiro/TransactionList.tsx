@@ -22,7 +22,7 @@ export function TransactionList({
   const [deleting, setDeleting] = useState<string | null>(null);
 
   if (transactions.length === 0) {
-    return <p className="text-sm text-muted">Nenhuma transação encontrada.</p>;
+    return <p className="text-sm text-muted">Adicione transações para ver como seus gastos se relacionam com seu humor.</p>;
   }
 
   async function handleDelete(id: string) {

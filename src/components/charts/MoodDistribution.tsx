@@ -39,7 +39,7 @@ export function MoodDistribution({ entries }: MoodDistributionProps) {
   if (entries.length === 0) {
     return (
       <p className="py-8 text-center text-sm text-muted">
-        Sem dados para exibir neste período.
+        Alguns check-ins e seus padrões de humor vão aparecer aqui.
       </p>
     );
   }

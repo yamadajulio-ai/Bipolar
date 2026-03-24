@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ComecarViewContent } from "./ComecarViewContent";
 
+export const dynamic = "force-static";
+
 export const metadata: Metadata = {
   title: "Comece agora — Suporte Bipolar",
   description:
@@ -56,7 +58,7 @@ export default function ComecarPage() {
       <ComecarViewContent />
 
       {/* ─── HEADER MINIMAL ──────────────────────────────────── */}
-      <header className="border-b border-border bg-white/80 px-5 py-3 backdrop-blur-sm">
+      <header className="border-b border-border bg-surface/80 px-5 py-3 backdrop-blur-sm">
         <div className="mx-auto flex max-w-3xl items-center justify-between">
           <Link href="/" className="flex items-center gap-2 text-foreground no-underline">
             <svg viewBox="0 0 32 32" className="h-7 w-7 text-primary" fill="currentColor">

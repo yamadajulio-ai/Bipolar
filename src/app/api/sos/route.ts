@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod/v4";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { checkRateLimit } from "@/lib/security";
+import { checkRateLimit, getClientIp, maskIp } from "@/lib/security";
 import * as Sentry from "@sentry/nextjs";
 
 const sosLogSchema = z.object({
@@ -25,12 +25,15 @@ const sosLogSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  // SOS is public — allow anonymous logging for crisis situations
   const session = await getSession();
-  if (!session.isLoggedIn) {
-    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-  }
+  const isAuth = session.isLoggedIn;
 
-  const limited = await checkRateLimit(`sos_write:${session.userId}`, 60, 60_000);
+  // Rate limit: by userId if authenticated, by masked IP if anonymous
+  const rateLimitKey = isAuth
+    ? `sos_write:${session.userId}`
+    : `sos_write_anon:${maskIp(getClientIp(request) || "unknown")}`;
+  const limited = await checkRateLimit(rateLimitKey, 60, 60_000);
   if (limited) {
     return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
   }
@@ -44,7 +47,7 @@ export async function POST(request: NextRequest) {
 
     await prisma.sOSEvent.create({
       data: {
-        userId: session.userId,
+        userId: isAuth ? session.userId : null,
         action: parsed.data.action,
       },
     });

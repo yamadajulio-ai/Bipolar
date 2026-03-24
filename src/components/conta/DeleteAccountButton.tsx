@@ -62,7 +62,7 @@ export function DeleteAccountButton() {
     return (
       <button
         onClick={() => setConfirming(true)}
-        className="rounded-lg border border-danger bg-white px-4 py-2 text-sm font-medium text-danger hover:bg-danger/5"
+        className="rounded-lg border border-danger bg-surface px-4 py-2 text-sm font-medium text-danger hover:bg-danger/5"
       >
         Excluir minha conta
       </button>

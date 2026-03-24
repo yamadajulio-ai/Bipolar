@@ -39,11 +39,14 @@ export function Header({ isLoggedIn }: HeaderProps) {
   async function handleLogout(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     await clearSwCache();
+    // Clear health-data drafts (check-in, assessment, journal) before logout.
+    // Belt-and-suspenders: server also sends Clear-Site-Data header, but not all browsers support it.
+    try { sessionStorage.clear(); } catch { /* ignore */ }
     (e.target as HTMLFormElement).submit();
   }
 
   return (
-    <header className="border-b border-border bg-white/80 backdrop-blur-sm">
+    <header className="border-b border-border bg-surface/80 backdrop-blur-sm">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
         <Link href={isLoggedIn ? "/hoje" : "/"} className="flex items-center gap-2 text-lg font-semibold text-primary-dark no-underline">
           <Image src="/icon-192.png" alt="" width={28} height={28} className="rounded-md" />

@@ -3,6 +3,8 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { ConsultationPrep } from "./ConsultationPrep";
 
+export const dynamic = "force-static";
+
 export const metadata: Metadata = {
   title: "Guia de Preparação para Consulta Psiquiátrica — Suporte Bipolar",
   description:

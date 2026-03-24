@@ -203,9 +203,9 @@ export default function MedicamentosPage() {
         </div>
       ) : !showForm ? (
         <Card className="mb-6 text-center py-8">
-          <p className="text-muted mb-2">Nenhum medicamento cadastrado.</p>
+          <p className="text-muted mb-2">Cadastre seus medicamentos para facilitar o acompanhamento.</p>
           <p className="text-xs text-muted">
-            Adicione seus medicamentos para acompanhar a adesão por dose.
+            Acompanhar a adesão por dose ajuda a manter a estabilidade do tratamento.
           </p>
         </Card>
       ) : null}

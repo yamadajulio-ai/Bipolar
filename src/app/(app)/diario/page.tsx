@@ -63,9 +63,9 @@ export default async function DiarioPage() {
       {entries.length === 0 ? (
         <Card>
           <p className="text-center text-muted">
-            Nenhum registro nos últimos 30 dias.{" "}
+            Seu primeiro check-in vai aparecer aqui. Registrar como você se sente ajuda a identificar padrões ao longo do tempo.{" "}
             <Link href="/diario/novo" className="text-primary hover:underline">
-              Criar primeiro registro
+              Registrar agora
             </Link>
           </p>
         </Card>

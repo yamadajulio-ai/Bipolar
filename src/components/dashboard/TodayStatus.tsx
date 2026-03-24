@@ -15,7 +15,7 @@ export function TodayStatus({ todayEntry }: TodayStatusProps) {
       <Card className="border-l-4 border-l-warning">
         <p className="font-medium text-foreground">Hoje</p>
         <p className="text-sm text-muted mt-1">
-          Você ainda não registrou o dia de hoje.
+          Registre como você se sente para acompanhar seus padrões ao longo do tempo.
         </p>
         <a
           href="/diario/novo"

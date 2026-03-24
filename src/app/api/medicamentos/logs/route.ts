@@ -18,6 +18,8 @@ const batchLogSchema = z.object({
 
 /** POST /api/medicamentos/logs — batch log medication doses */
 export async function POST(request: NextRequest) {
+  const start = performance.now();
+
   const session = await getSession();
   if (!session.isLoggedIn) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
@@ -34,7 +36,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
     }
 
-    // Verify all schedules belong to user's medications
+    // Verify all schedules belong to user's medications (single query)
     const scheduleIds = [...new Set(parsed.data.logs.map((l) => l.scheduleId))];
     const schedules = await prisma.medicationSchedule.findMany({
       where: { id: { in: scheduleIds } },
@@ -49,38 +51,46 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Upsert logs (idempotent by scheduleId + date)
-    const results = await prisma.$transaction(
-      parsed.data.logs.map((log) => {
-        const schedule = scheduleMap.get(log.scheduleId)!;
-        return prisma.medicationLog.upsert({
-          where: { scheduleId_date: { scheduleId: log.scheduleId, date: log.date } },
-          update: {
-            status: log.status,
-            takenAt: log.status === "TAKEN" ? new Date() : null,
-            source: log.source ?? "MEDICATION_PAGE",
-          },
-          create: {
-            userId: session.userId,
-            medicationId: schedule.medication.id,
-            scheduleId: log.scheduleId,
-            date: log.date,
-            status: log.status,
-            scheduledTimeLocal: schedule.timeLocal,
-            takenAt: log.status === "TAKEN" ? new Date() : null,
-            source: log.source ?? "MEDICATION_PAGE",
-          },
-        });
-      }),
-    );
-
-    // Update legacy tookMedication on DiaryEntry for backward compat
+    // Batch all upserts + legacy updates in a single transaction
     const dates = [...new Set(parsed.data.logs.map((l) => l.date))];
-    for (const date of dates) {
-      await updateLegacyMedication(session.userId, date);
-    }
+    const results = await prisma.$transaction(async (tx) => {
+      // Upsert all logs in parallel (idempotent by scheduleId + date)
+      const upserted = await Promise.all(
+        parsed.data.logs.map((log) => {
+          const schedule = scheduleMap.get(log.scheduleId)!;
+          return tx.medicationLog.upsert({
+            where: { scheduleId_date: { scheduleId: log.scheduleId, date: log.date } },
+            update: {
+              status: log.status,
+              takenAt: log.status === "TAKEN" ? new Date() : null,
+              source: log.source ?? "MEDICATION_PAGE",
+            },
+            create: {
+              userId: session.userId,
+              medicationId: schedule.medication.id,
+              scheduleId: log.scheduleId,
+              date: log.date,
+              status: log.status,
+              scheduledTimeLocal: schedule.timeLocal,
+              takenAt: log.status === "TAKEN" ? new Date() : null,
+              source: log.source ?? "MEDICATION_PAGE",
+            },
+          });
+        }),
+      );
 
-    return NextResponse.json({ count: results.length }, { status: 201 });
+      // Update legacy tookMedication on DiaryEntry for backward compat (inside transaction)
+      await Promise.all(
+        dates.map((date) => updateLegacyMedication(tx, session.userId, date)),
+      );
+
+      return upserted;
+    });
+
+    const elapsed = Math.round(performance.now() - start);
+    const res = NextResponse.json({ count: results.length }, { status: 201 });
+    res.headers.set("Server-Timing", `total;dur=${elapsed}`);
+    return res;
   } catch (err) {
     Sentry.captureException(err, { tags: { endpoint: "medicamentos_logs" } });
     return NextResponse.json({ error: "Erro ao salvar registro." }, { status: 500 });
@@ -90,10 +100,13 @@ export async function POST(request: NextRequest) {
 /**
  * Derive legacy tookMedication value from detailed logs.
  * all TAKEN → "sim", all MISSED → "nao", partial/pending → "nao_sei"
+ * Accepts a Prisma transaction client to run inside a batch transaction.
  */
-async function updateLegacyMedication(userId: string, date: string) {
+type TxClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
+
+async function updateLegacyMedication(tx: TxClient, userId: string, date: string) {
   // Get all expected schedules for this date
-  const activeMeds = await prisma.medication.findMany({
+  const activeMeds = await tx.medication.findMany({
     where: {
       userId,
       isActive: true,
@@ -114,7 +127,7 @@ async function updateLegacyMedication(userId: string, date: string) {
   const allScheduleIds = activeMeds.flatMap((m) => m.schedules.map((s) => s.id));
   if (allScheduleIds.length === 0) return;
 
-  const logs = await prisma.medicationLog.findMany({
+  const logs = await tx.medicationLog.findMany({
     where: { userId, date, scheduleId: { in: allScheduleIds } },
   });
 
@@ -131,7 +144,7 @@ async function updateLegacyMedication(userId: string, date: string) {
     legacy = "nao_sei"; // Mixed
   }
 
-  await prisma.diaryEntry.updateMany({
+  await tx.diaryEntry.updateMany({
     where: { userId, date },
     data: { tookMedication: legacy },
   });

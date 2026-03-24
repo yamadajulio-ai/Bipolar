@@ -3,11 +3,11 @@
 import type { StabilityScore } from "@/lib/insights/computeInsights";
 
 const LEVEL_CONFIG = {
-  muito_estavel: { color: "text-emerald-700", bg: "bg-emerald-100", ring: "stroke-emerald-500" },
-  estavel: { color: "text-emerald-600", bg: "bg-emerald-50", ring: "stroke-emerald-400" },
-  moderado: { color: "text-amber-600", bg: "bg-amber-50", ring: "stroke-amber-400" },
-  variavel: { color: "text-orange-600", bg: "bg-orange-50", ring: "stroke-orange-400" },
-  instavel: { color: "text-red-600", bg: "bg-red-50", ring: "stroke-red-400" },
+  muito_estavel: { color: "text-emerald-700 dark:text-emerald-400", bg: "bg-emerald-100 dark:bg-emerald-900/30", ring: "stroke-emerald-500" },
+  estavel: { color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-900/20", ring: "stroke-emerald-400" },
+  moderado: { color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-900/20", ring: "stroke-amber-400" },
+  variavel: { color: "text-orange-600 dark:text-orange-400", bg: "bg-orange-50 dark:bg-orange-900/20", ring: "stroke-orange-400" },
+  instavel: { color: "text-red-600 dark:text-red-400", bg: "bg-red-50 dark:bg-red-900/20", ring: "stroke-red-400" },
 } as const;
 
 const COMPONENT_LABELS: Record<string, string> = {
@@ -98,12 +98,12 @@ export function StabilityScoreWidget({ stability }: { stability: StabilityScore 
               {stability.label}
             </span>
             {stability.provisional && (
-              <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] text-muted dark:bg-gray-800">
+              <span className="rounded-full bg-surface-alt px-1.5 py-0.5 text-[10px] text-muted">
                 provisório
               </span>
             )}
             {stability.riskCapped && (
-              <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] text-red-600 dark:bg-red-900 dark:text-red-300">
+              <span className="rounded-full bg-red-100 dark:bg-red-900/30 px-1.5 py-0.5 text-[10px] text-red-600 dark:text-red-400">
                 limitado por risco
               </span>
             )}

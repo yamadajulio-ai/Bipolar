@@ -50,7 +50,7 @@ export function AdminSOSChart({ data }: Props) {
               fontSize: "12px",
             }}
           />
-          <Bar dataKey="count" fill="#ef4444" radius={[2, 2, 0, 0]} name="Eventos SOS" />
+          <Bar dataKey="count" fill="var(--color-danger, #ef4444)" radius={[2, 2, 0, 0]} name="Eventos SOS" />
         </BarChart>
       </ResponsiveContainer>
     </div>

@@ -145,7 +145,7 @@ export default async function AdminFeedbackPage({
                   fb.category === "bug" ? "bg-red-100 text-red-700" :
                   fb.category === "suggestion" ? "bg-blue-100 text-blue-700" :
                   fb.category === "praise" ? "bg-green-100 text-green-700" :
-                  "bg-gray-100 text-gray-700"
+                  "bg-surface-alt text-muted"
                 }`}>
                   {FEEDBACK_CATEGORY_LABELS[fb.category as keyof typeof FEEDBACK_CATEGORY_LABELS] ?? fb.category}
                 </span>

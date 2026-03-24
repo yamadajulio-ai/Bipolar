@@ -211,9 +211,9 @@ export default function LifeChartPage() {
         <p className="text-center text-sm text-muted">Carregando...</p>
       ) : events.length === 0 ? (
         <Card className="py-8 text-center">
-          <p className="text-muted">Nenhum evento registrado ainda.</p>
+          <p className="text-muted">Seu Life Chart começa aqui.</p>
           <p className="mt-1 text-xs text-muted">
-            Registre mudanças de medicação, eventos estressantes e outros marcos.
+            Registre marcos importantes — mudanças de medicação, eventos estressantes, conquistas — para visualizar sua jornada.
           </p>
         </Card>
       ) : (

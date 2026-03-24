@@ -183,12 +183,16 @@ export default async function AdminSafetyPage() {
                         </span>
                       </td>
                       <td className="py-2 text-xs">
-                        <RevealPII
-                          masked={maskEmail(ev.user.email)}
-                          full={ev.user.name ?? ev.user.email}
-                          entityType="sos_event"
-                          entityId={ev.id}
-                        />
+                        {ev.user ? (
+                          <RevealPII
+                            masked={maskEmail(ev.user.email)}
+                            full={ev.user.name ?? ev.user.email}
+                            entityType="sos_event"
+                            entityId={ev.id}
+                          />
+                        ) : (
+                          <span className="text-gray-400 italic">Anônimo</span>
+                        )}
                       </td>
                     </tr>
                   ))}

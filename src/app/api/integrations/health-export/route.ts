@@ -239,6 +239,7 @@ export async function POST(request: NextRequest) {
       hrvHrEnriched,
       metricsImported,
       metricTypes: [...new Set(result.genericMetrics.map((m) => m.metric))],
+      skippedCount: result.skippedCount,
       message: hasAnyData
         ? `Importado: ${sleepImported} noite(s), ${hrvHrEnriched} enriquecimento(s) HRV/HR, ${metricsImported} metrica(s)`
         : "Nenhum dado reconhecido no payload",

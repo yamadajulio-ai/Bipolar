@@ -56,7 +56,7 @@ export function CategoryChart({ data }: { data: CategoryData[] }) {
           <Tooltip formatter={(v) => `R$ ${Number(v).toFixed(2)}`} />
           <Bar dataKey="valor">
             {chartData.map((entry, i) => (
-              <Cell key={i} fill={entry.isExpense ? "#ef4444" : "#22c55e"} />
+              <Cell key={i} fill={entry.isExpense ? "var(--color-danger, #ef4444)" : "var(--color-success, #22c55e)"} />
             ))}
           </Bar>
         </BarChart>
@@ -89,8 +89,8 @@ export function MoodSpendingChart({ data }: { data: MoodCorrelation[] }) {
           <YAxis yAxisId="left" tick={{ fontSize: 10 }} />
           <YAxis yAxisId="right" orientation="right" domain={[1, 5]} tick={{ fontSize: 10 }} />
           <Tooltip />
-          <Bar yAxisId="left" dataKey="gasto" fill="#ef4444" opacity={0.7} name="Gasto (R$)" />
-          <Bar yAxisId="right" dataKey="humor" fill="#3b82f6" opacity={0.7} name="Humor (1-5)" />
+          <Bar yAxisId="left" dataKey="gasto" fill="var(--color-danger, #ef4444)" opacity={0.7} name="Gasto (R$)" />
+          <Bar yAxisId="right" dataKey="humor" fill="var(--color-info, #3b82f6)" opacity={0.7} name="Humor (1-5)" />
         </BarChart>
       </ResponsiveContainer>
     </div>
@@ -127,8 +127,8 @@ export function YearlyComparisonChart({ data }: { data: MonthlyHistoryData[] }) 
           <YAxis tick={{ fontSize: 10 }} />
           <Tooltip formatter={(v) => `R$ ${Number(v).toFixed(2)}`} />
           <Legend wrapperStyle={{ fontSize: 11 }} />
-          <Bar dataKey="income" fill="#22c55e" name="Receita" />
-          <Bar dataKey="expense" fill="#ef4444" name="Despesa" />
+          <Bar dataKey="income" fill="var(--color-success, #22c55e)" name="Receita" />
+          <Bar dataKey="expense" fill="var(--color-danger, #ef4444)" name="Despesa" />
         </BarChart>
       </ResponsiveContainer>
       </div>
@@ -161,23 +161,23 @@ export function SpendingTrendChart({ data, dailyAverage, dailyMedian }: { data: 
           {dailyMedian != null && dailyMedian > 0 && (
             <ReferenceLine
               y={dailyMedian}
-              stroke="#527a6e"
+              stroke="var(--color-primary, #527a6e)"
               strokeDasharray="5 3"
-              label={{ value: "Mediana", position: "right", fontSize: 10, fill: "#527a6e" }}
+              label={{ value: "Mediana", position: "right", fontSize: 10, fill: "var(--color-primary, #527a6e)" }}
             />
           )}
           {dailyAverage > 0 && (
             <ReferenceLine
               y={dailyAverage}
-              stroke="#f59e0b"
+              stroke="var(--color-warning, #f59e0b)"
               strokeDasharray="5 3"
-              label={{ value: "Média", position: "left", fontSize: 10, fill: "#f59e0b" }}
+              label={{ value: "Média", position: "left", fontSize: 10, fill: "var(--color-warning, #f59e0b)" }}
             />
           )}
           <Line
             type="monotone"
             dataKey="gasto"
-            stroke="#ef4444"
+            stroke="var(--color-danger, #ef4444)"
             strokeWidth={2}
             dot={{ r: 3 }}
             name="Gasto (R$)"

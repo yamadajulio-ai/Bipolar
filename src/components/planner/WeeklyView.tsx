@@ -111,12 +111,17 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
   const weekEnd = addDays(weekStart, 6);
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
-  const fetchData = useCallback(async (start: string) => {
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const fetchAbortRef = useRef<AbortController | null>(null);
+
+  const fetchData = useCallback(async (start: string, signal?: AbortSignal) => {
     setLoading(true);
+    setFetchError(null);
     try {
       const end = addDays(start, 6);
       const res = await fetch(
         `/api/planner/blocks?timeMin=${start}T00:00:00&timeMax=${end}T23:59:59`,
+        { signal },
       );
       if (!res.ok) throw new Error("Fetch failed");
       const data: SerializedBlock[] = await res.json();
@@ -124,15 +129,16 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
       const expanded = expandSerializedBlocks(data, new Date(start + "T00:00:00"), new Date(end + "T23:59:59"));
       setOccurrences(expanded);
 
-      const rulesRes = await fetch("/api/planner/rules");
+      const rulesRes = await fetch("/api/planner/rules", { signal });
       if (rulesRes.ok) {
         const rules = await rulesRes.json();
         const weekOccs = expanded.filter((o) => o.occurrenceDate >= start && o.occurrenceDate <= end);
         const constraintAlerts = checkConstraintsClient(weekOccs, rules);
         setAlerts(constraintAlerts);
       }
-    } catch {
-      // silently fail
+    } catch (err) {
+      if ((err as Error)?.name === "AbortError") return;
+      setFetchError("Erro ao carregar agenda. Verifique sua conexão.");
     } finally {
       setLoading(false);
     }
@@ -141,16 +147,20 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
   // Auto-sync from Google Calendar on mount
   // Strategy: show existing blocks immediately, sync in background, refresh after
   useEffect(() => {
+    const controller = new AbortController();
+    fetchAbortRef.current = controller;
+    const timeout = setTimeout(() => controller.abort(), 30000);
+
     async function autoSync() {
       if (didAutoSync.current) return;
       didAutoSync.current = true;
 
       // 1. Show existing blocks immediately (no waiting for sync)
-      await fetchData(weekStart);
+      await fetchData(weekStart, controller.signal);
 
       // 2. Check if Google is connected and sync in background
       try {
-        const res = await fetch("/api/google/sync");
+        const res = await fetch("/api/google/sync", { signal: controller.signal });
         if (res.ok) {
           const data = await res.json();
           setGoogleConnected(data.connected);
@@ -159,19 +169,19 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
             setSyncing(true);
             setSyncError(null);
             try {
-              const controller = new AbortController();
-              const timeout = setTimeout(() => controller.abort(), 15000);
+              const syncController = new AbortController();
+              const syncTimeout = setTimeout(() => syncController.abort(), 15000);
               const syncRes = await fetch("/api/google/sync", {
                 method: "POST",
-                signal: controller.signal,
+                signal: syncController.signal,
               });
-              clearTimeout(timeout);
+              clearTimeout(syncTimeout);
               if (!syncRes.ok) {
                 const errData = await syncRes.json().catch(() => ({}));
                 setSyncError(errData.error || `Erro ${syncRes.status}`);
               } else {
                 // Refresh blocks after successful sync
-                await fetchData(weekStart);
+                await fetchData(weekStart, controller.signal);
               }
             } catch {
               // sync failure or timeout is non-blocking
@@ -180,11 +190,16 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
             }
           }
         }
-      } catch {
+      } catch (err) {
+        if ((err as Error)?.name === "AbortError") return;
         setGoogleConnected(false);
       }
     }
-    autoSync();
+    autoSync().finally(() => clearTimeout(timeout));
+    return () => {
+      controller.abort();
+      clearTimeout(timeout);
+    };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-refresh: re-sync Google Calendar every 5 minutes while page is open
@@ -355,6 +370,23 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
           {a.message} Este alerta é automático e não substitui avaliação profissional.
         </Alert>
       ))}
+
+      {fetchError && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-center">
+          <p className="text-sm text-red-700">{fetchError}</p>
+          <button
+            onClick={() => {
+              const controller = new AbortController();
+              fetchAbortRef.current = controller;
+              const timeout = setTimeout(() => controller.abort(), 30000);
+              fetchData(weekStart, controller.signal).finally(() => clearTimeout(timeout));
+            }}
+            className="mt-2 text-sm text-red-600 underline hover:text-red-800"
+          >
+            Tentar novamente
+          </button>
+        </div>
+      )}
 
       {loading ? (
         <Card>

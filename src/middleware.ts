@@ -21,13 +21,26 @@ const protectedPaths = [
   "/sono",
   "/exercicios",
   "/rotina",
-
   "/sons",
   "/relatorio",
   "/cursos",
   "/integracoes",
   "/financeiro",
   "/noticias",
+  // Previously missing — all (app) routes that require auth
+  "/avaliacao-semanal",
+  "/meu-diario",
+  "/consentimentos",
+  "/onboarding",
+  "/cognitivo",
+  "/life-chart",
+  "/circadiano",
+  "/como-usar",
+  "/perfil",
+  "/acesso-profissional",
+  "/feedback",
+  "/medicamentos",
+  "/admin",
 ];
 const authPaths = ["/login", "/cadastro"];
 // Paths that should redirect logged-in users to /hoje (landing pages)

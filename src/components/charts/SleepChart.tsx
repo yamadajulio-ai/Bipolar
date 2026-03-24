@@ -35,7 +35,7 @@ export function SleepChart({ data }: SleepChartProps) {
   if (chartData.length === 0) {
     return (
       <p className="text-center text-muted py-8">
-        Sem dados suficientes para gerar o gráfico.
+        Registre seu sono por alguns dias para ver o gráfico de tendências aqui.
       </p>
     );
   }

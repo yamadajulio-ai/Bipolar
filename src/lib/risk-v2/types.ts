@@ -82,6 +82,8 @@ export function asqAcutePositive(asq: AsqResult): boolean {
 export type ThoughtRecency = "now" | "today" | "2_7_days" | "8_30_days" | ">30_days";
 export type ThoughtFrequency = "once" | "occasional" | "daily" | "many_times_day";
 export type PastAttemptRecency = "never" | ">1_year" | "3_12_months" | "<3_months" | "<7_days";
+export type IntentToAct = "yes" | "unsure" | "no";
+export type PlanTimeline = "unspecified" | "vague" | "within_weeks" | "within_days" | "today";
 
 export interface BssaResult {
   thoughtRecency: ThoughtRecency;
@@ -89,6 +91,10 @@ export interface BssaResult {
   hasPlan: boolean;
   planIsDetailed: boolean;
   hasAccessToMeans: boolean;
+  /** Does the person intend to act on the plan? (NIMH BSSA key question) */
+  intentToAct: IntentToAct;
+  /** When does the person intend to act? (temporal specificity) */
+  planTimeline: PlanTimeline;
   pastAttempt: PastAttemptRecency;
   preparatoryBehavior: PastAttemptRecency;
   canStaySafe: "yes" | "unsure" | "no";

@@ -39,7 +39,7 @@ export default async function PlanoDeCrisePage() {
       ) : (
         <Card className="mb-6">
           <p className="mb-3 text-center text-muted">
-            Você ainda não criou seu plano de crise pessoal.
+            Um plano de crise ajuda você e quem está por perto a saber o que fazer em momentos difíceis.
           </p>
           <div className="text-center">
             <Link

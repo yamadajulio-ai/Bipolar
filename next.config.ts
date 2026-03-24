@@ -1,13 +1,22 @@
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
 
+const isDev = process.env.NODE_ENV !== "production";
+
+// unsafe-eval is required in dev for Next.js hot reload / React Fast Refresh.
+// In production, only unsafe-inline remains (needed by third-party scripts like
+// Google Tag Manager and Clarity that inject inline scripts).
+const scriptSrc = isDev
+  ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://connect.facebook.net https://www.clarity.ms https://www.googletagmanager.com"
+  : "script-src 'self' 'unsafe-inline' https://accounts.google.com https://connect.facebook.net https://www.clarity.ms https://www.googletagmanager.com";
+
 const csp = [
   "default-src 'self'",
   "base-uri 'self'",
   "object-src 'none'",
   "frame-ancestors 'none'",
   "form-action 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://connect.facebook.net https://www.clarity.ms https://www.googletagmanager.com",
+  scriptSrc,
   "connect-src 'self' https://*.googleapis.com https://accounts.google.com https://*.sentry.io https://*.ingest.sentry.io https://connect.facebook.net https://www.facebook.com https://www.clarity.ms https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com",
   "img-src 'self' data: blob: https:",
   "style-src 'self' 'unsafe-inline'",

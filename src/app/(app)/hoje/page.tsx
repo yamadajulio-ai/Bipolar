@@ -15,7 +15,6 @@ import Image from "next/image";
 import { SOSButton } from "@/components/SOSButton";
 import { CoachMarks } from "@/components/dashboard/CoachMarks";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { SimpleMode } from "@/components/dashboard/SimpleMode";
 import { evaluateRisk, buildActions } from "@/lib/risk-v2";
 import type { AlertLayer, WeeklyAssessmentInput, MedicationAdherenceInput, SafetyScreeningInput } from "@/lib/risk-v2";
 import { AlertCard } from "@/components/today/AlertCard";

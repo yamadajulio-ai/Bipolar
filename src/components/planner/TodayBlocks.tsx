@@ -86,7 +86,7 @@ export function TodayBlocks({ blocks, today, targetSleepTimeMin }: TodayBlocksPr
           <span className="text-xs font-medium text-muted">Carga de energia do dia</span>
           <span className="text-sm font-bold text-foreground">{totalEnergy}</span>
         </div>
-        <div className="h-2 rounded-full bg-gray-200">
+        <div className="h-2 rounded-full bg-border">
           <div
             className={`h-2 rounded-full transition-all ${
               totalEnergy > 70 ? "bg-red-400" : totalEnergy > 40 ? "bg-amber-400" : "bg-green-400"
@@ -117,7 +117,7 @@ export function TodayBlocks({ blocks, today, targetSleepTimeMin }: TodayBlocksPr
       {displayBlocks.length === 0 ? (
         <Card>
           <p className="text-center text-muted py-2">
-            Nenhum bloco para hoje. Adicione no <a href="/planejador" className="text-primary hover:underline">planejador</a>.
+            Sua agenda de hoje está vazia. Organize seu dia no <a href="/planejador" className="text-primary hover:underline">planejador</a> para manter a rotina.
           </p>
         </Card>
       ) : (

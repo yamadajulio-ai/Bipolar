@@ -209,7 +209,7 @@ export default async function InsightsPage({
   const entries = allEntries.filter((e) => e.date >= cutoff30Str);
 
   const sleepLogsForInsights = allSleepLogs.filter(
-    (l) => l.date >= cutoff30Str && l.totalHours >= 1 && !l.excluded,
+    (l) => l.date >= cutoff30Str && l.totalHours >= 2 && !l.excluded,
   );
 
   const plannerBlocks: PlannerBlockInput[] = rawPlannerBlocks.map((b) => {
@@ -244,7 +244,7 @@ export default async function InsightsPage({
     : "neutral" as const;
 
   // Personal sleep baseline: median of last 30 nights (same window as /sono — 14+ needed), otherwise 8h clinical default
-  const realSleepLogs30 = allSleepLogs.filter((l) => l.date >= cutoff30Str && l.totalHours >= 1 && !l.excluded);
+  const realSleepLogs30 = allSleepLogs.filter((l) => l.date >= cutoff30Str && l.totalHours >= 2 && !l.excluded);
   const personalSleepBaseline = realSleepLogs30.length >= 14
     ? (() => {
         const sorted = realSleepLogs30.map((l) => l.totalHours).sort((a, b) => a - b);

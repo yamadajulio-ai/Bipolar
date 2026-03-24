@@ -223,7 +223,7 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
   ]);
 
   // === Compute Insights (Risk Radar data) ===
-  const sleepLogsForInsights = allSleepLogs30.filter(l => l.totalHours >= 1 && !l.excluded);
+  const sleepLogsForInsights = allSleepLogs30.filter(l => l.totalHours >= 2 && !l.excluded);
   const entries30 = allEntries30.filter(e => e.date >= cutoff30Str);
 
   const plannerBlocks: PlannerBlockInput[] = rawPlannerBlocks30.map(b => {

@@ -28,8 +28,8 @@ export default async function SonoPage() {
     orderBy: { date: "asc" },
   });
 
-  // ── Compute summary stats for real sleep (>= 1h, not excluded) ──
-  const realLogs = logs.filter((l) => l.totalHours >= 1 && !l.excluded);
+  // ── Compute summary stats for real sleep (>= 2h, not excluded) ──
+  const realLogs = logs.filter((l) => l.totalHours >= 2 && !l.excluded);
   const avgDuration = realLogs.length > 0
     ? realLogs.reduce((sum, l) => sum + l.totalHours, 0) / realLogs.length
     : null;

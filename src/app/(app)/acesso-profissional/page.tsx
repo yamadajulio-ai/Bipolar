@@ -8,6 +8,23 @@ interface AccessLog {
   createdAt: string;
 }
 
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      onClick={() => {
+        navigator.clipboard.writeText(text).then(() => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        }).catch(() => {});
+      }}
+      className="mt-3 rounded-lg bg-white/20 px-4 py-2 text-sm font-medium hover:bg-white/30 transition-colors"
+    >
+      {copied ? "Copiado!" : "Copiar link e PIN"}
+    </button>
+  );
+}
+
 interface AccessLink {
   id: string;
   token: string;
@@ -153,15 +170,7 @@ export default function AcessoProfissionalPage() {
               {formatDate(newAccess.expiresAt)}
             </div>
           </div>
-          <button
-            onClick={() => {
-              const text = `Link: ${getAccessUrl(newAccess.token)}\nPIN: ${newAccess.pin}`;
-              navigator.clipboard.writeText(text).catch(() => {});
-            }}
-            className="mt-3 rounded-lg bg-white/20 px-4 py-2 text-sm font-medium hover:bg-white/30"
-          >
-            Copiar link e PIN
-          </button>
+          <CopyButton text={`Link: ${getAccessUrl(newAccess.token)}\nPIN: ${newAccess.pin}`} />
         </Alert>
       )}
 

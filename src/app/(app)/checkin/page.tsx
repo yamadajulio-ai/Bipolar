@@ -331,48 +331,44 @@ export default function CheckinPage() {
           </Card>
         )}
 
-        {/* Medication — per-dose tracking if configured, legacy otherwise */}
-        {isFirstOfDay && (
-          <>
-            <MedicationDoseCheckin
-              date={today}
-              onTrackingStatus={(has) => setHasDoseTracking(has)}
-              onComplete={(legacyValue) => setMedication(legacyValue)}
-            />
+        {/* Medication — per-dose tracking always visible; legacy only on first check-in */}
+        <MedicationDoseCheckin
+          date={today}
+          onTrackingStatus={(has) => setHasDoseTracking(has)}
+          onComplete={(legacyValue) => setMedication(legacyValue)}
+        />
 
-            {!hasDoseTracking ? (
-              <Card>
-                <div role="group" aria-label="Medicação de hoje">
-                  <label className="block text-sm font-medium text-foreground mb-1">Tomou a medicação hoje?</label>
-                  <p className="text-xs text-muted mb-3">Refere-se ao dia de hoje ({new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "short" })}). Se ainda não tomou, marque &quot;Ainda não&quot;.</p>
-                  <div className="flex gap-2">
-                    {MEDICATION_OPTIONS.map((opt) => (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() => setMedication(opt.value)}
-                        aria-pressed={medication === opt.value}
-                        className={`flex-1 rounded-lg border px-2 py-2 text-xs font-medium transition-colors ${
-                          medication === opt.value
-                            ? "border-primary bg-primary text-white"
-                            : "border-border bg-surface text-muted hover:border-primary/50"
-                        }`}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                  <a
-                    href="/medicamentos"
-                    className="block mt-3 rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-center text-primary hover:bg-primary/10 transition-colors"
+        {isFirstOfDay && !hasDoseTracking ? (
+          <Card>
+            <div role="group" aria-label="Medicação de hoje">
+              <label className="block text-sm font-medium text-foreground mb-1">Tomou a medicação hoje?</label>
+              <p className="text-xs text-muted mb-3">Refere-se ao dia de hoje ({new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "short" })}). Se ainda não tomou, marque &quot;Ainda não&quot;.</p>
+              <div className="flex gap-2">
+                {MEDICATION_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setMedication(opt.value)}
+                    aria-pressed={medication === opt.value}
+                    className={`flex-1 rounded-lg border px-2 py-2 text-xs font-medium transition-colors ${
+                      medication === opt.value
+                        ? "border-primary bg-primary text-white"
+                        : "border-border bg-surface text-muted hover:border-primary/50"
+                    }`}
                   >
-                    Toma mais de um medicamento? Cadastre seus horários para controle por dose
-                  </a>
-                </div>
-              </Card>
-            ) : null}
-          </>
-        )}
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              <a
+                href="/medicamentos"
+                className="block mt-3 rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-center text-primary hover:bg-primary/10 transition-colors"
+              >
+                Toma mais de um medicamento? Cadastre seus horários para controle por dose
+              </a>
+            </div>
+          </Card>
+        ) : null}
 
         {/* Warning signs (collapsible) */}
         <Card>
@@ -418,7 +414,7 @@ export default function CheckinPage() {
               <a href="/diario/novo" className="text-primary hover:underline">diário completo</a>.
             </>
           ) : (
-            <>Este registro captura como você está agora. Sono e medicação ficam no primeiro check-in do dia.</>
+            <>Este registro captura como você está agora. Sono fica no primeiro check-in do dia.</>
           )}
         </p>
       </div>

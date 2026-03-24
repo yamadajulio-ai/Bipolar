@@ -119,8 +119,12 @@ export function useNarrative() {
           const body = JSON.parse(text);
           if (body.error) errorMsg = body.error;
         } catch {
-          // Response is not JSON (possibly Cloudflare WAF page)
-          errorMsg = `Erro ${res.status}: ${res.statusText || "resposta inesperada"}`;
+          // Response is not JSON (possibly Cloudflare WAF page or Vercel timeout)
+          if (res.status === 504) {
+            errorMsg = "O servidor demorou para responder. Tente novamente em alguns segundos.";
+          } else {
+            errorMsg = `Erro ${res.status}: ${res.statusText || "resposta inesperada"}`;
+          }
         }
         throw new Error(errorMsg);
       }

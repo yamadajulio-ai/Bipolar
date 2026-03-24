@@ -243,11 +243,11 @@ export default async function InsightsPage({
       : "danger" as const
     : "neutral" as const;
 
-  // Personal sleep baseline: median of last 90 nights (14+ needed), otherwise 8h clinical default
-  const realSleepLogs = allSleepLogs.filter((l) => l.totalHours >= 1 && !l.excluded);
-  const personalSleepBaseline = realSleepLogs.length >= 14
+  // Personal sleep baseline: median of last 30 nights (same window as /sono — 14+ needed), otherwise 8h clinical default
+  const realSleepLogs30 = allSleepLogs.filter((l) => l.date >= cutoff30Str && l.totalHours >= 1 && !l.excluded);
+  const personalSleepBaseline = realSleepLogs30.length >= 14
     ? (() => {
-        const sorted = realSleepLogs.map((l) => l.totalHours).sort((a, b) => a - b);
+        const sorted = realSleepLogs30.map((l) => l.totalHours).sort((a, b) => a - b);
         const mid = Math.floor(sorted.length / 2);
         return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
       })()
@@ -397,9 +397,24 @@ export default async function InsightsPage({
                 : "Registre seu sono para ativar insights"
               }
               meaning={sleepDeviation !== null
-                ? sleepDeviation === 0 ? "Dentro do esperado para estabilidade"
-                  : sleepDeviation > 0 ? `${Math.abs(sleepDeviation)}min acima do ideal — observe se há sinais de depressão`
-                  : `${Math.abs(sleepDeviation)}min abaixo do ideal — sono curto pode preceder episódios`
+                ? (() => {
+                    const avgH = insights.sleep.avgDuration!;
+                    const belowClinical = avgH < 7;
+                    if (sleepDeviation === 0 && !belowClinical) {
+                      return "Dentro do esperado para estabilidade";
+                    }
+                    const parts: string[] = [];
+                    if (sleepDeviation !== 0) {
+                      parts.push(sleepDeviation > 0
+                        ? `${Math.abs(sleepDeviation)}min acima do seu padrão — observe se há sinais de depressão`
+                        : `${Math.abs(sleepDeviation)}min abaixo do seu padrão — sono curto pode preceder episódios`);
+                    }
+                    if (belowClinical) {
+                      const deficit = Math.round((7 - avgH) * 60);
+                      parts.push(`Média abaixo das 7h recomendadas (faltam ${deficit}min)`);
+                    }
+                    return parts.join(". ");
+                  })()
                 : undefined
               }
               action={insights.sleep.avgDuration === null

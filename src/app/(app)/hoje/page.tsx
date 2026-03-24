@@ -203,7 +203,7 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
     prisma.alertEpisode.findFirst({
       where: { userId: session.userId, resolvedAt: null },
       orderBy: { lastTriggeredAt: "desc" },
-      select: { layer: true, lastTriggeredAt: true, minHoldUntil: true, modalCooldownUntil: true, resolvedAt: true },
+      select: { id: true, layer: true, lastTriggeredAt: true, minHoldUntil: true, modalCooldownUntil: true, resolvedAt: true },
     }),
     // Risk v2: medication adherence (last 7 days for critical meds)
     prisma.medication.findMany({
@@ -471,6 +471,74 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
 
   const alertLayer = riskV2.alertLayer;
   const alertActions = buildActions(alertLayer, riskV2.rails.safety, riskV2.rails.syndrome, riskV2.rails.prodrome);
+
+  // ── Persist risk snapshot + alert episode ──────────────────────
+  try {
+      // 1) Save daily snapshot
+      await prisma.dailyRiskSnapshot.upsert({
+        where: { userId_localDate: { userId: session.userId, localDate: today } },
+        create: {
+          userId: session.userId,
+          localDate: today,
+          alertLayer,
+          uiMode: riskV2.uiMode,
+          safety: JSON.stringify(riskV2.rails.safety),
+          syndrome: JSON.stringify(riskV2.rails.syndrome),
+          prodrome: JSON.stringify(riskV2.rails.prodrome),
+          reasons: JSON.stringify(riskV2.reasons),
+        },
+        update: {
+          alertLayer,
+          uiMode: riskV2.uiMode,
+          safety: JSON.stringify(riskV2.rails.safety),
+          syndrome: JSON.stringify(riskV2.rails.syndrome),
+          prodrome: JSON.stringify(riskV2.rails.prodrome),
+          reasons: JSON.stringify(riskV2.reasons),
+        },
+      });
+
+      // 2) Manage alert episode for hysteresis
+      if (alertLayer !== "CLEAR") {
+        const holdHours = alertLayer === "RED" ? 12 : alertLayer === "ORANGE" ? 72 : 48;
+        const minHoldUntil = new Date(now.getTime() + holdHours * 3600000);
+        const modalCooldownUntil = new Date(now.getTime() + 24 * 3600000);
+
+        if (openAlertEpisode) {
+          // Update existing episode
+          await prisma.alertEpisode.update({
+            where: { id: openAlertEpisode.id },
+            data: {
+              layer: alertLayer,
+              lastTriggeredAt: now,
+              minHoldUntil,
+              modalCooldownUntil,
+              reasons: JSON.stringify(riskV2.reasons),
+            },
+          });
+        } else {
+          // Create new episode
+          await prisma.alertEpisode.create({
+            data: {
+              userId: session.userId,
+              layer: alertLayer,
+              startedAt: now,
+              lastTriggeredAt: now,
+              minHoldUntil,
+              modalCooldownUntil,
+              reasons: JSON.stringify(riskV2.reasons),
+            },
+          });
+        }
+      } else if (openAlertEpisode) {
+        // Resolve episode when CLEAR
+        await prisma.alertEpisode.update({
+          where: { id: openAlertEpisode.id },
+          data: { resolvedAt: now },
+        });
+      }
+  } catch {
+    // Non-blocking — don't fail page render for persistence errors
+  }
 
   // === NEW USER MODE: simplified dashboard for users with < 3 diary entries ===
   const isNewUser = allEntries30.length < 3;

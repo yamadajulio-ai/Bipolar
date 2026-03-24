@@ -10,6 +10,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { checkRateLimit } from "@/lib/security";
 import type { AsqResult, BssaResult } from "@/lib/risk-v2/types";
 import { asqPositive, asqAcutePositive } from "@/lib/risk-v2/types";
 
@@ -20,6 +21,9 @@ export async function GET() {
   if (!session.isLoggedIn) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
+
+  const allowed = await checkRateLimit(`safety_read:${session.userId}`, 60, 60_000);
+  if (!allowed) return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
 
   const latest = await prisma.safetyScreeningSession.findFirst({
     where: { userId: session.userId },
@@ -53,6 +57,9 @@ export async function POST(req: Request) {
   if (!session.isLoggedIn) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
+
+  const writeAllowed = await checkRateLimit(`safety_write:${session.userId}`, 10, 60_000);
+  if (!writeAllowed) return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
 
   const body: PostBody = await req.json();
 

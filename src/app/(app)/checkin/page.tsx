@@ -1,13 +1,17 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { localToday } from "@/lib/dateUtils";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Card } from "@/components/Card";
 import { Alert } from "@/components/Alert";
 import { ScaleSelector } from "@/components/ScaleSelector";
 import { MOOD_LABELS, ENERGY_LABELS, ANXIETY_LABELS, IRRITABILITY_LABELS, MEDICATION_OPTIONS, WARNING_SIGNS } from "@/lib/constants";
 import { MedicationDoseCheckin } from "@/components/MedicationDoseCheckin";
+import { track } from "@/lib/telemetry";
+
+type CheckinMode = "minimal" | "complete";
 
 interface SnapshotEntry {
   id: string;
@@ -20,6 +24,7 @@ interface SnapshotEntry {
 
 export default function CheckinPage() {
   const router = useRouter();
+  const [mode, setMode] = useState<CheckinMode>("minimal");
   const [mood, setMood] = useState(3);
   const [energy, setEnergy] = useState(3);
   const [anxiety, setAnxiety] = useState<number | null>(null);
@@ -32,6 +37,7 @@ export default function CheckinPage() {
   const [hasDoseTracking, setHasDoseTracking] = useState<boolean | null>(null);
   const [showSigns, setShowSigns] = useState(false);
   const [selectedSigns, setSelectedSigns] = useState<string[]>([]);
+  const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -41,7 +47,61 @@ export default function CheckinPage() {
   const [todaySnapshots, setTodaySnapshots] = useState<SnapshotEntry[]>([]);
   const [snapshotsLoading, setSnapshotsLoading] = useState(true);
 
+  // Adaptive check-in: suggest complete mode after 3 consecutive minimal check-ins
+  const [minimalStreak, setMinimalStreak] = useState(0);
+  const [streakBannerDismissed, setStreakBannerDismissed] = useState(false);
+
   const today = localToday();
+  const DRAFT_KEY = `checkin-draft-${today}`;
+  const draftRestored = useRef(false);
+
+  // Track page open
+  useEffect(() => {
+    track({ name: "checkin_open" });
+  }, []);
+
+  // Restore draft on mount
+  useEffect(() => {
+    if (draftRestored.current) return;
+    draftRestored.current = true;
+    try {
+      const saved = sessionStorage.getItem(DRAFT_KEY);
+      if (saved) {
+        const draft = JSON.parse(saved);
+        if (typeof draft.mood === "number") setMood(draft.mood);
+        if (typeof draft.energy === "number") setEnergy(draft.energy);
+        if (typeof draft.anxiety === "number") setAnxiety(draft.anxiety);
+        if (typeof draft.irritability === "number") setIrritability(draft.irritability);
+        if (Array.isArray(draft.warningSigns) && draft.warningSigns.length > 0) {
+          setSelectedSigns(draft.warningSigns);
+          setShowSigns(true);
+        }
+        if (typeof draft.note === "string" && draft.note) setNote(draft.note);
+        if (draft.mode === "complete") setMode("complete");
+      }
+    } catch { /* ignore corrupt draft */ }
+  }, [DRAFT_KEY]);
+
+  // Load minimal check-in streak on mount
+  useEffect(() => {
+    try {
+      const streak = parseInt(sessionStorage.getItem("checkin_minimal_streak") || "0", 10);
+      if (Number.isFinite(streak) && streak > 0) setMinimalStreak(streak);
+    } catch { /* ignore */ }
+  }, []);
+
+  // Save draft on changes (debounced 500ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      try {
+        sessionStorage.setItem(
+          DRAFT_KEY,
+          JSON.stringify({ mood, energy, anxiety, irritability, warningSigns: selectedSigns, note, mode }),
+        );
+      } catch { /* storage full — ignore */ }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [mood, energy, anxiety, irritability, selectedSigns, note, mode, DRAFT_KEY]);
 
   // Load today's existing snapshots
   useEffect(() => {
@@ -85,7 +145,7 @@ export default function CheckinPage() {
     setSaving(true);
     setError("");
 
-    if (anxiety === null || irritability === null) {
+    if (mode === "complete" && (anxiety === null || irritability === null)) {
       setError("Selecione um nível para ansiedade e irritabilidade.");
       setSaving(false);
       return;
@@ -113,8 +173,11 @@ export default function CheckinPage() {
           return;
         }
 
+        // Clear draft on success
+        try { sessionStorage.removeItem(DRAFT_KEY); } catch {}
+        track({ name: "checkin_complete", mode, snapshotCount: todaySnapshots.length });
         setSuccess(true);
-        setTimeout(() => router.push("/hoje"), 2500);
+        setTimeout(() => router.push("/hoje"), 3000);
       } else {
         // Create new snapshot
         const clientRequestId = `${today}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -126,8 +189,8 @@ export default function CheckinPage() {
           body: JSON.stringify({
             mood,
             energy,
-            anxiety,
-            irritability,
+            ...(anxiety !== null ? { anxiety } : {}),
+            ...(irritability !== null ? { irritability } : {}),
             warningSignsNow: selectedSigns.length > 0 ? JSON.stringify(selectedSigns) : undefined,
             clientRequestId,
             ...(isFirst ? {
@@ -143,8 +206,22 @@ export default function CheckinPage() {
           return;
         }
 
+        // Update minimal check-in streak
+        try {
+          if (mode === "minimal") {
+            const prev = parseInt(sessionStorage.getItem("checkin_minimal_streak") || "0", 10);
+            const next = (Number.isFinite(prev) ? prev : 0) + 1;
+            sessionStorage.setItem("checkin_minimal_streak", String(next));
+          } else {
+            sessionStorage.setItem("checkin_minimal_streak", "0");
+          }
+        } catch { /* ignore */ }
+
+        // Clear draft on success
+        try { sessionStorage.removeItem(DRAFT_KEY); } catch {}
+        track({ name: "checkin_complete", mode, snapshotCount: todaySnapshots.length + 1 });
         setSuccess(true);
-        setTimeout(() => router.push("/hoje"), 2500);
+        setTimeout(() => router.push("/hoje"), 3000);
       }
     } catch {
       setError("Erro de conexão. Tente novamente.");
@@ -155,11 +232,28 @@ export default function CheckinPage() {
 
   if (success) {
     return (
-      <div className="mx-auto max-w-lg">
-        <Card className="text-center py-8">
-          <p className="text-lg font-semibold text-foreground">Check-in salvo!</p>
-          <p className="text-sm text-muted mt-2">Redirecionando...</p>
-        </Card>
+      <div className="mx-auto max-w-lg space-y-4">
+        <div className="rounded-xl bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 p-6 text-center space-y-3">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/50">
+            <svg className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <p className="text-lg font-semibold text-green-700 dark:text-green-300">Registrado!</p>
+          {todaySnapshots.length > 0 && (
+            <p className="text-sm text-green-600 dark:text-green-400">
+              {todaySnapshots.length + (editingSnapshotId ? 0 : 1)} registro{todaySnapshots.length + (editingSnapshotId ? 0 : 1) !== 1 ? "s" : ""} hoje
+            </p>
+          )}
+          <p className="text-sm text-muted">Que tal registrar seu sono tamb\u00e9m?</p>
+          <Link
+            href="/sono/novo"
+            className="inline-block text-sm font-medium text-primary hover:text-primary-dark underline"
+          >
+            Registrar sono
+          </Link>
+        </div>
+        <p className="text-center text-xs text-muted">Redirecionando para a tela inicial...</p>
       </div>
     );
   }
@@ -229,6 +323,31 @@ export default function CheckinPage() {
         </Card>
       )}
 
+      {/* Adaptive suggestion: after 3+ consecutive minimal check-ins */}
+      {minimalStreak >= 3 && mode === "minimal" && !streakBannerDismissed && (
+        <div className="mb-4 rounded-xl border border-primary/30 bg-primary/5 p-4 text-sm" role="status">
+          <p className="text-foreground mb-2">
+            Você fez {minimalStreak} check-ins rápidos seguidos. Que tal um check-in completo hoje? Detalhes extras ajudam a identificar padrões.
+          </p>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => { setMode("complete"); track({ name: "checkin_start", mode: "complete" }); }}
+              className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-dark transition-colors"
+            >
+              Fazer completo
+            </button>
+            <button
+              type="button"
+              onClick={() => setStreakBannerDismissed(true)}
+              className="text-xs text-muted hover:text-foreground transition-colors"
+            >
+              Agora não
+            </button>
+          </div>
+        </div>
+      )}
+
       {error && (
         <Alert variant="danger" className="mb-4">{error}</Alert>
       )}
@@ -254,25 +373,48 @@ export default function CheckinPage() {
           />
         </Card>
 
-        {/* Anxiety */}
-        <Card>
-          <ScaleSelector
-            label="Ansiedade"
-            value={anxiety}
-            onChange={setAnxiety}
-            labels={ANXIETY_LABELS}
-          />
-        </Card>
+        {/* Mode toggle */}
+        {mode === "minimal" ? (
+          <button
+            type="button"
+            onClick={() => { setMode("complete"); track({ name: "checkin_start", mode: "complete" }); }}
+            className="w-full text-center text-sm text-primary hover:text-primary-dark transition-colors py-1"
+          >
+            Registrar mais detalhes &rarr;
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => { setMode("minimal"); track({ name: "checkin_start", mode: "minimal" }); }}
+            className="w-full text-center text-sm text-muted hover:text-foreground transition-colors py-1"
+          >
+            &larr; Modo rápido
+          </button>
+        )}
 
-        {/* Irritability */}
-        <Card>
-          <ScaleSelector
-            label="Irritabilidade"
-            value={irritability}
-            onChange={setIrritability}
-            labels={IRRITABILITY_LABELS}
-          />
-        </Card>
+        {/* Anxiety — only in complete mode */}
+        {mode === "complete" && (
+          <Card>
+            <ScaleSelector
+              label="Ansiedade"
+              value={anxiety}
+              onChange={setAnxiety}
+              labels={ANXIETY_LABELS}
+            />
+          </Card>
+        )}
+
+        {/* Irritability — only in complete mode */}
+        {mode === "complete" && (
+          <Card>
+            <ScaleSelector
+              label="Irritabilidade"
+              value={irritability}
+              onChange={setIrritability}
+              labels={IRRITABILITY_LABELS}
+            />
+          </Card>
+        )}
 
         {/* Sleep — only on first check-in of the day */}
         {isFirstOfDay && (
@@ -370,40 +512,60 @@ export default function CheckinPage() {
           </Card>
         ) : null}
 
-        {/* Warning signs (collapsible) */}
-        <Card>
-          <button
-            type="button"
-            onClick={() => setShowSigns(!showSigns)}
-            className="flex w-full items-center justify-between text-sm font-medium text-foreground"
-            aria-expanded={showSigns}
-            aria-controls="warning-signs-panel"
-          >
-            <span>Sinais de alerta {selectedSigns.length > 0 && `(${selectedSigns.length})`}</span>
-            <span className="text-muted" aria-hidden="true">{showSigns ? "▲" : "▼"}</span>
-          </button>
-          {showSigns && (
-            <div id="warning-signs-panel" className="mt-3 space-y-2">
-              {WARNING_SIGNS.map((sign) => (
-                <label key={sign.key} className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={selectedSigns.includes(sign.key)}
-                    onChange={() => toggleSign(sign.key)}
-                    className="rounded border-border"
-                  />
-                  <span className="text-foreground">{sign.label}</span>
-                </label>
-              ))}
-            </div>
-          )}
-        </Card>
+        {/* Warning signs (collapsible) — only in complete mode */}
+        {mode === "complete" && (
+          <Card>
+            <button
+              type="button"
+              onClick={() => setShowSigns(!showSigns)}
+              className="flex w-full items-center justify-between text-sm font-medium text-foreground"
+              aria-expanded={showSigns}
+              aria-controls="warning-signs-panel"
+            >
+              <span>Sinais de alerta {selectedSigns.length > 0 && `(${selectedSigns.length})`}</span>
+              <span className="text-muted" aria-hidden="true">{showSigns ? "▲" : "▼"}</span>
+            </button>
+            {showSigns && (
+              <div id="warning-signs-panel" className="mt-3 space-y-2">
+                {WARNING_SIGNS.map((sign) => (
+                  <label key={sign.key} className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={selectedSigns.includes(sign.key)}
+                      onChange={() => toggleSign(sign.key)}
+                      className="rounded border-border"
+                    />
+                    <span className="text-foreground">{sign.label}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </Card>
+        )}
+
+        {/* Notes — only in complete mode */}
+        {mode === "complete" && (
+          <Card>
+            <label className="block text-sm font-medium text-foreground mb-1">
+              Observações (opcional)
+            </label>
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              maxLength={280}
+              rows={2}
+              className="block w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
+              placeholder="Algo que queira registrar..."
+            />
+          </Card>
+        )}
 
         {/* Submit */}
         <button
           onClick={handleSubmit}
           disabled={saving}
-          className="w-full rounded-lg bg-primary px-4 py-3 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
+          aria-label={saving ? "Salvando check-in" : editingSnapshotId ? "Salvar edição do check-in" : isFirstOfDay ? "Salvar check-in" : "Registrar momento atual"}
+          className="w-full rounded-lg bg-primary px-4 py-3 min-h-[44px] font-medium text-white hover:bg-primary-dark disabled:opacity-50"
         >
           {saving ? "Salvando..." : editingSnapshotId ? "Salvar edição" : isFirstOfDay ? "Salvar check-in" : "Registrar momento"}
         </button>

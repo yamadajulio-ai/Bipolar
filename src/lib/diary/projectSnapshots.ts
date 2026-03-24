@@ -10,8 +10,8 @@ interface SnapshotInput {
   capturedAt: Date;
   mood: number;
   energy: number;
-  anxiety: number;
-  irritability: number;
+  anxiety: number | null;
+  irritability: number | null;
   warningSignsNow: string | null;
   note: string | null;
 }
@@ -20,8 +20,8 @@ interface ProjectionResult {
   // Latest values (for DiaryEntry fields)
   mood: number;
   energyLevel: number;
-  anxietyLevel: number;
-  irritability: number;
+  anxietyLevel: number | null;
+  irritability: number | null;
   warningSigns: string | null;
   note: string | null;
 
@@ -31,8 +31,8 @@ interface ProjectionResult {
   lastSnapshotAt: Date;
   moodRange: number;
   moodInstability: number | null;
-  anxietyPeak: number;
-  irritabilityPeak: number;
+  anxietyPeak: number | null;
+  irritabilityPeak: number | null;
   morningEveningDelta: number | null;
   abruptShifts: number;
   aggregationVersion: number;
@@ -57,13 +57,13 @@ function snapshotRisk(s: SnapshotInput): number {
   let r = 0;
   if (s.mood >= 5) r += 2;       // extreme high (mania indicator)
   if (s.mood <= 1) r += 2;       // extreme low (depression indicator)
-  if (s.anxiety >= 4) r += 1;
-  if (s.irritability >= 4) r += 1;
+  if ((s.anxiety ?? 0) >= 4) r += 1;
+  if ((s.irritability ?? 0) >= 4) r += 1;
   if (s.energy >= 5) r += 1;     // manic energy
   if (s.energy <= 1) r += 1;     // lethargy
 
   // Mixed state indicator: high energy + extreme mood on either end
-  if (s.energy >= 4 && (s.mood <= 2 || s.irritability >= 4)) r += 1;
+  if (s.energy >= 4 && (s.mood <= 2 || (s.irritability ?? 0) >= 4)) r += 1;
 
   if (s.warningSignsNow) {
     try {
@@ -81,8 +81,25 @@ function snapshotRisk(s: SnapshotInput): number {
 export function projectSnapshots(snapshots: SnapshotInput[]): ProjectionResult | null {
   if (snapshots.length === 0) return null;
 
+  // Filter out corrupted entries: each snapshot must have a valid capturedAt
+  // and numeric fields. One bad entry must not break the whole projection.
+  const safe: SnapshotInput[] = [];
+  for (const s of snapshots) {
+    try {
+      // Validate capturedAt is a real Date
+      if (!(s.capturedAt instanceof Date) || isNaN(s.capturedAt.getTime())) continue;
+      // Validate numeric fields exist
+      if (typeof s.mood !== "number" || typeof s.energy !== "number") continue;
+      // anxiety/irritability are optional in quick check-in mode
+      safe.push(s);
+    } catch {
+      // Skip corrupted entry
+    }
+  }
+  if (safe.length === 0) return null;
+
   // Sort by capturedAt ascending
-  const sorted = [...snapshots].sort(
+  const sorted = [...safe].sort(
     (a, b) => a.capturedAt.getTime() - b.capturedAt.getTime(),
   );
 
@@ -115,8 +132,10 @@ export function projectSnapshots(snapshots: SnapshotInput[]): ProjectionResult |
   }
 
   // Peaks
-  const anxietyPeak = Math.max(...sorted.map((s) => s.anxiety));
-  const irritabilityPeak = Math.max(...sorted.map((s) => s.irritability));
+  const anxietyValues = sorted.map((s) => s.anxiety).filter((v): v is number => v !== null);
+  const irritabilityValues = sorted.map((s) => s.irritability).filter((v): v is number => v !== null);
+  const anxietyPeak = anxietyValues.length > 0 ? Math.max(...anxietyValues) : null;
+  const irritabilityPeak = irritabilityValues.length > 0 ? Math.max(...irritabilityValues) : null;
 
   // Warning signs: union of all unique signs
   const allSigns = new Set<string>();
@@ -143,8 +162,8 @@ export function projectSnapshots(snapshots: SnapshotInput[]): ProjectionResult |
   return {
     mood: latest.mood,
     energyLevel: latest.energy,
-    anxietyLevel: latest.anxiety,
-    irritability: latest.irritability,
+    anxietyLevel: latest.anxiety ?? null,
+    irritability: latest.irritability ?? null,
     warningSigns,
     note,
     snapshotCount: sorted.length,
@@ -152,8 +171,8 @@ export function projectSnapshots(snapshots: SnapshotInput[]): ProjectionResult |
     lastSnapshotAt: latest.capturedAt,
     moodRange,
     moodInstability,
-    anxietyPeak,
-    irritabilityPeak,
+    anxietyPeak: anxietyPeak ?? null,
+    irritabilityPeak: irritabilityPeak ?? null,
     morningEveningDelta,
     abruptShifts,
     aggregationVersion: AGGREGATION_VERSION,

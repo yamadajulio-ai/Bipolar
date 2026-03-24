@@ -229,10 +229,10 @@ export function MedicationDoseCheckin({ date, onComplete, onTrackingStatus }: Pr
                   onClick={() =>
                     setEditing((prev) => new Set(prev).add(dose.scheduleId))
                   }
-                  className={`flex items-center gap-2 text-xs rounded-md px-2.5 py-1.5 w-full text-left ${
+                  className={`flex items-center gap-2 text-xs rounded-md px-2.5 py-1.5 w-full text-left transition-colors ${
                     dose.status === "TAKEN"
-                      ? "bg-emerald-50 text-emerald-700"
-                      : "bg-red-50 text-red-700"
+                      ? "bg-emerald-50 text-emerald-700 active:bg-emerald-100"
+                      : "bg-red-50 text-red-700 active:bg-red-100"
                   }`}
                 >
                   <span>{dose.status === "TAKEN" ? "✓" : "✗"}</span>
@@ -240,7 +240,10 @@ export function MedicationDoseCheckin({ date, onComplete, onTrackingStatus }: Pr
                   {dose.dosageText && (
                     <span className="text-muted">({dose.dosageText})</span>
                   )}
-                  <span className="ml-auto">{dose.timeLocal}</span>
+                  <span className="ml-auto flex items-center gap-1.5">
+                    {dose.timeLocal}
+                    <span className="text-[10px] opacity-60 underline">corrigir</span>
+                  </span>
                 </button>
               ),
             )}

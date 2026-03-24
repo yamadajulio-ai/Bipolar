@@ -40,6 +40,11 @@
 ## Modo de Trabalho
 - **Sempre começar pela ordem que faz mais sentido lógico** — não perguntar ao usuário por onde começar. Priorizar: P0 (bugs/segurança) → P1 (UX/copy críticos) → P2 (melhorias) → P3 (polimento).
 - Fazer direto, não pedir permissão nem dar instruções.
+- **Relatório de bug fix obrigatório**: Quando o usuário relatar um problema do site e o Claude identificar e corrigir, SEMPRE encerrar com um resumo estruturado no formato:
+  1. **Problema**: o que o usuário reportou
+  2. **Causa**: onde estava o erro no código (arquivo, linha, lógica errada)
+  3. **Correção**: o que foi alterado e por quê
+  - Um bloco por problema. Usar linguagem direta, sem enrolação.
 - **NUNCA implementar features novas sem auditoria do GPT Pro antes.** Toda feature nova deve ser planejada, auditada e aprovada pelo GPT Pro antes de qualquer código ser escrito. Isso garante qualidade e alinhamento com o padrão do projeto.
 - **NUNCA dar sugestão/opinião própria pura.** Sempre consultar o modelo mais avançado disponível (o3 da OpenAI via API) para análise e recomendação. O usuário quer a melhor qualidade possível e confia na análise de modelos especializados.
 - **Prompts de auditoria GPT Pro**: Sempre exibir o conteúdo completo do prompt diretamente na conversa (output de texto), para o usuário copiar e colar manualmente no GPT Pro. NÃO salvar apenas em arquivo — sempre printar aqui.
@@ -56,6 +61,9 @@
 - **Cochilo**: registro < 1h → exibido no histórico (tag "cochilo", roxo) mas **excluído** das métricas
 - **Sono real**: registro >= 1h → incluído em todas as métricas (média, regularidade, variabilidade, alertas, correlações)
 - **Registro incompleto**: campo `excluded: true` no SleepLog → excluído de métricas/heatmap, visível no histórico (dimmed, tag "excluído"). Toggle via `PATCH /api/sono/excluir`. Registros 1-4.5h mostram tag "incompleto?" como sugestão.
+- **totalHours**: span completo bed→wake (inclui tempo acordado). **Não** subtrai awakenings.
+- **awakeMinutes**: campo separado com minutos acordados durante o sono (detectados pelo wearable). Exibido no card: "Xmin acordado (relógio)".
+- **Faixas de cor do histórico**: <1h roxo (cochilo) | <5h vermelho (crítico) | 5-6h âmbar (abaixo do ideal) | 6-7h neutro | >=7h verde (ideal)
 - Todos os registros aparecem no histórico para revisão clínica
 - Histórico configurável pelo usuário: 7, 15, 30 noites ou 3 meses (via `?noites=N`)
 

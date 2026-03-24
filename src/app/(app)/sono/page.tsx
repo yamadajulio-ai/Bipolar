@@ -3,7 +3,7 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { Card } from "@/components/Card";
 import { localDateStr } from "@/lib/dateUtils";
-import { SleepHistoryCard } from "@/components/insights/SleepHistoryCard";
+import { SleepDayGroup } from "@/components/insights/SleepHistoryCard";
 import { Sparkline } from "@/components/insights/Sparkline";
 
 function formatSleepDuration(hours: number): string {
@@ -30,21 +30,41 @@ export default async function SonoPage() {
 
   // ── Compute summary stats for real sleep (>= 2h, not excluded) ──
   const realLogs = logs.filter((l) => l.totalHours >= 2 && !l.excluded);
-  const avgDuration = realLogs.length > 0
-    ? realLogs.reduce((sum, l) => sum + l.totalHours, 0) / realLogs.length
+
+  // Aggregate multiple cycles per day into daily totals
+  function aggregateByDay(logsArr: typeof realLogs): { date: string; totalHours: number; bedtime: string }[] {
+    const byDate = new Map<string, { totalHours: number; bedtime: string }>();
+    for (const l of logsArr) {
+      const existing = byDate.get(l.date);
+      if (existing) {
+        existing.totalHours += l.totalHours;
+        // Keep earliest bedtime for regularity calc
+        if (l.bedtime < existing.bedtime) existing.bedtime = l.bedtime;
+      } else {
+        byDate.set(l.date, { totalHours: l.totalHours, bedtime: l.bedtime });
+      }
+    }
+    return Array.from(byDate.entries())
+      .map(([date, v]) => ({ date, ...v }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }
+
+  const dailyTotals = aggregateByDay(realLogs);
+  const avgDuration = dailyTotals.length > 0
+    ? dailyTotals.reduce((sum, d) => sum + d.totalHours, 0) / dailyTotals.length
     : null;
 
-  // Personal baseline: median of last 30 nights (14+ needed), otherwise 8h clinical default
-  const personalBaseline = realLogs.length >= 14
+  // Personal baseline: median of daily totals (14+ days needed), otherwise 8h clinical default
+  const personalBaseline = dailyTotals.length >= 14
     ? (() => {
-        const sorted = realLogs.map((l) => l.totalHours).sort((a, b) => a - b);
+        const sorted = dailyTotals.map((d) => d.totalHours).sort((a, b) => a - b);
         const mid = Math.floor(sorted.length / 2);
         return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
       })()
     : 8;
   const deviationMin = avgDuration !== null ? Math.round((avgDuration - personalBaseline) * 60) : null;
 
-  // Bedtime regularity (std dev of bedtime in minutes)
+  // Bedtime regularity (std dev of earliest bedtime per day)
   function timeToMinutes(t: string): number | null {
     const [h, m] = t.split(":").map(Number);
     if (isNaN(h) || isNaN(m)) return null;
@@ -53,8 +73,8 @@ export default async function SonoPage() {
     return mins;
   }
 
-  const bedtimeMinutes = realLogs
-    .map((l) => timeToMinutes(l.bedtime))
+  const bedtimeMinutes = dailyTotals
+    .map((d) => timeToMinutes(d.bedtime))
     .filter((v): v is number => v !== null);
 
   let bedtimeVariance: number | null = null;
@@ -64,19 +84,19 @@ export default async function SonoPage() {
     bedtimeVariance = Math.round(Math.sqrt(variance));
   }
 
-  // Last 7 days trend
-  const last7 = realLogs.slice(-7);
-  const prev7 = realLogs.slice(-14, -7);
+  // Last 7 days trend (by daily totals)
+  const last7 = dailyTotals.slice(-7);
+  const prev7 = dailyTotals.slice(-14, -7);
   let trend: "up" | "down" | "stable" | null = null;
   if (last7.length >= 3 && prev7.length >= 3) {
-    const avgLast = last7.reduce((s, l) => s + l.totalHours, 0) / last7.length;
-    const avgPrev = prev7.reduce((s, l) => s + l.totalHours, 0) / prev7.length;
+    const avgLast = last7.reduce((s, d) => s + d.totalHours, 0) / last7.length;
+    const avgPrev = prev7.reduce((s, d) => s + d.totalHours, 0) / prev7.length;
     const diff = avgLast - avgPrev;
     trend = diff > 0.5 ? "up" : diff < -0.5 ? "down" : "stable";
   }
 
-  // Sparkline data (last 14 nights)
-  const sparklineData = realLogs.slice(-14).map((l) => l.totalHours);
+  // Sparkline data (last 14 days, daily totals)
+  const sparklineData = dailyTotals.slice(-14).map((d) => d.totalHours);
 
   // Average quality
   const qualityLogs = realLogs.filter((l) => l.quality > 0);
@@ -220,11 +240,7 @@ export default async function SonoPage() {
           </p>
         </Card>
       ) : (
-        <div className="space-y-2">
-          {logsDesc.map((log) => (
-            <SleepHistoryCard key={log.id} log={log} />
-          ))}
-        </div>
+        <SleepDayGroup logs={logsDesc} />
       )}
     </div>
   );

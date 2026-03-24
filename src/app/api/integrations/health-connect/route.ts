@@ -176,7 +176,7 @@ export async function POST(request: NextRequest) {
       txOps.push(
         prisma.sleepLog.upsert({
           where: {
-            userId_date: { userId: integration.userId, date: night.date },
+            userId_date_bedtime: { userId: integration.userId, date: night.date, bedtime: night.bedtime },
           },
           update: updateData,
           create: { userId: integration.userId, date: night.date, ...createData },

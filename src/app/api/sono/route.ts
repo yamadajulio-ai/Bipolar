@@ -101,9 +101,10 @@ export async function POST(request: NextRequest) {
 
     const log = await prisma.sleepLog.upsert({
       where: {
-        userId_date: {
+        userId_date_bedtime: {
           userId: session.userId,
           date: parsed.data.date,
+          bedtime: parsed.data.bedtime,
         },
       },
       update: data,

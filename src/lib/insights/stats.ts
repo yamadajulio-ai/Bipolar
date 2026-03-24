@@ -104,6 +104,50 @@ export function dayOffset(base: Date, offset: number, tz: string): string {
   return dateStr(d, tz);
 }
 
+/** Aggregate multiple sleep cycles per day into one record per day.
+ *  Sums totalHours/awakenings, averages quality/HRV/HR, keeps earliest bedtime + latest wakeTime. */
+export function aggregateSleepByDay<T extends { date: string; bedtime: string; wakeTime: string; totalHours: number; quality: number; awakenings: number; hrv?: number | null; heartRate?: number | null }>(logs: T[]): T[] {
+  const byDate = new Map<string, T[]>();
+  for (const l of logs) {
+    const arr = byDate.get(l.date) ?? [];
+    arr.push(l);
+    byDate.set(l.date, arr);
+  }
+  const result: T[] = [];
+  for (const [, dayLogs] of byDate) {
+    if (dayLogs.length === 1) {
+      result.push(dayLogs[0]);
+      continue;
+    }
+    // Merge: sum durations, earliest bedtime, latest wakeTime
+    const merged = { ...dayLogs[0] };
+    merged.totalHours = dayLogs.reduce((s, l) => s + l.totalHours, 0);
+    merged.awakenings = dayLogs.reduce((s, l) => s + l.awakenings, 0);
+    // Earliest bedtime (normalized for midnight crossing)
+    merged.bedtime = dayLogs.reduce((best, l) => {
+      const bMin = timeToMinutes(l.bedtime);
+      const bestMin = timeToMinutes(best);
+      if (bMin === null) return best;
+      if (bestMin === null) return l.bedtime;
+      return normalizeBedtime(bMin) < normalizeBedtime(bestMin) ? l.bedtime : best;
+    }, dayLogs[0].bedtime);
+    // Latest wakeTime
+    merged.wakeTime = dayLogs.reduce((best, l) => l.wakeTime > best ? l.wakeTime : best, dayLogs[0].wakeTime);
+    // Average quality (weighted by duration)
+    const totalDur = dayLogs.reduce((s, l) => s + l.totalHours, 0);
+    merged.quality = totalDur > 0
+      ? Math.round(dayLogs.reduce((s, l) => s + l.quality * l.totalHours, 0) / totalDur)
+      : dayLogs[0].quality;
+    // Average HRV/HR from non-null values
+    const hrvs = dayLogs.map((l) => l.hrv).filter((v): v is number => v != null);
+    (merged as Record<string, unknown>).hrv = hrvs.length > 0 ? Math.round(hrvs.reduce((a, b) => a + b, 0) / hrvs.length) : null;
+    const hrs = dayLogs.map((l) => l.heartRate).filter((v): v is number => v != null);
+    (merged as Record<string, unknown>).heartRate = hrs.length > 0 ? Math.round(hrs.reduce((a, b) => a + b, 0) / hrs.length) : null;
+    result.push(merged);
+  }
+  return result.sort((a, b) => a.date.localeCompare(b.date));
+}
+
 /** MAD-based sigma calculation (used by risk score and spending-mood). */
 export function computeMADSigma(values: number[]): { median: number; sigma: number } {
   const sorted = [...values].sort((a, b) => a - b);

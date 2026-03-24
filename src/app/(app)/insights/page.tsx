@@ -5,7 +5,8 @@ import { Alert } from "@/components/Alert";
 import { InsightsCharts } from "@/components/planner/InsightsCharts";
 import { NightHistorySelector } from "@/components/insights/NightHistorySelector";
 import { computeInsights, formatSleepDuration } from "@/lib/insights/computeInsights";
-import { SleepHistoryCard } from "@/components/insights/SleepHistoryCard";
+import { SleepDayGroup } from "@/components/insights/SleepHistoryCard";
+import { aggregateSleepByDay } from "@/lib/insights/stats";
 import { MoodThermometer } from "@/components/insights/MoodThermometer";
 import type { ClinicalAlert, PlannerBlockInput, CombinedPattern, RiskScore, DataConfidence, CorrelationResult, EpisodePrediction as EpisodePredictionType, CyclingAnalysis as CyclingAnalysisType, SeasonalityAnalysis as SeasonalityAnalysisType, HeatmapDay } from "@/lib/insights/computeInsights";
 import { MetricLabel } from "@/components/insights/MetricLabel";
@@ -208,8 +209,8 @@ export default async function InsightsPage({
 
   const entries = allEntries.filter((e) => e.date >= cutoff30Str);
 
-  const sleepLogsForInsights = allSleepLogs.filter(
-    (l) => l.date >= cutoff30Str && l.totalHours >= 2 && !l.excluded,
+  const sleepLogsForInsights = aggregateSleepByDay(
+    allSleepLogs.filter((l) => l.date >= cutoff30Str && l.totalHours >= 2 && !l.excluded),
   );
 
   const plannerBlocks: PlannerBlockInput[] = rawPlannerBlocks.map((b) => {
@@ -221,7 +222,7 @@ export default async function InsightsPage({
     };
   });
 
-  const allSleepLogsFiltered = allSleepLogs.filter((l) => !l.excluded);
+  const allSleepLogsFiltered = aggregateSleepByDay(allSleepLogs.filter((l) => !l.excluded));
   const insights = computeInsights(sleepLogsForInsights, entries, [], plannerBlocks, now, TZ, allEntries, allSleepLogsFiltered, financialTxs);
 
   const lastNights = allSleepLogs.filter((l) => l.totalHours > 0).slice(-nightsToShow).reverse();
@@ -875,11 +876,7 @@ export default async function InsightsPage({
                   <NightHistorySelector />
                 </Suspense>
               </div>
-              <div className="space-y-2">
-                {lastNights.map((log) => (
-                  <SleepHistoryCard key={log.id} log={log} />
-                ))}
-              </div>
+              <SleepDayGroup logs={lastNights} />
             </section>
           )}
 

@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
       txOps.push(
         prisma.sleepLog.upsert({
           where: {
-            userId_date: { userId: integration.userId, date: night.date },
+            userId_date_bedtime: { userId: integration.userId, date: night.date, bedtime: night.bedtime },
           },
           update: data,
           create: { userId: integration.userId, date: night.date, ...data },
@@ -217,8 +217,8 @@ export async function POST(request: NextRequest) {
           if (hr !== undefined && hr >= 20 && hr <= 250) updateData.heartRate = hr;
           if (Object.keys(updateData).length > 0) {
             enrichOps.push(
-              prisma.sleepLog.update({
-                where: { userId_date: { userId: integration.userId, date } },
+              prisma.sleepLog.updateMany({
+                where: { userId: integration.userId, date },
                 data: updateData,
               }),
             );

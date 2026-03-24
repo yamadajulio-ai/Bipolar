@@ -9,6 +9,7 @@ import { computeDisplayStreak, computeLongestStreak, computeAchievements } from 
 import { GamificationWrapper } from "@/components/GamificationWrapper";
 import { computeInsights } from "@/lib/insights/computeInsights";
 import type { PlannerBlockInput } from "@/lib/insights/computeInsights";
+import { aggregateSleepByDay } from "@/lib/insights/stats";
 import { StabilityScoreWidget } from "@/components/dashboard/StabilityScoreWidget";
 import Link from "next/link";
 import Image from "next/image";
@@ -223,7 +224,7 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
   ]);
 
   // === Compute Insights (Risk Radar data) ===
-  const sleepLogsForInsights = allSleepLogs30.filter(l => l.totalHours >= 2 && !l.excluded);
+  const sleepLogsForInsights = aggregateSleepByDay(allSleepLogs30.filter(l => l.totalHours >= 2 && !l.excluded));
   const entries30 = allEntries30.filter(e => e.date >= cutoff30Str);
 
   const plannerBlocks: PlannerBlockInput[] = rawPlannerBlocks30.map(b => {

@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
       };
       await prisma.sleepLog.upsert({
         where: {
-          userId_date: { userId: session.userId, date: night.date },
+          userId_date_bedtime: { userId: session.userId, date: night.date, bedtime: night.bedtime },
         },
         update: data,
         create: { userId: session.userId, date: night.date, ...data },
@@ -65,21 +65,15 @@ export async function POST(request: NextRequest) {
         const hrv = hrvByDate.get(date);
         const hr = hrByDate.get(date);
         if (hrv === undefined && hr === undefined) continue;
-        const existing = await prisma.sleepLog.findUnique({
-          where: { userId_date: { userId: session.userId, date } },
-          select: { id: true },
-        });
-        if (!existing) continue;
         const updateData: Record<string, number> = {};
         if (hrv !== undefined && hrv >= 1 && hrv <= 300) updateData.hrv = hrv;
         if (hr !== undefined && hr >= 20 && hr <= 250) updateData.heartRate = hr;
         if (Object.keys(updateData).length > 0) {
-          await prisma.sleepLog.update({
-            where: { userId_date: { userId: session.userId, date } },
+          const updated = await prisma.sleepLog.updateMany({
+            where: { userId: session.userId, date },
             data: updateData,
-            select: { id: true },
           });
-          hrvHrEnriched++;
+          if (updated.count > 0) hrvHrEnriched++;
         }
       }
     }

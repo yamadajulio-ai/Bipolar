@@ -145,7 +145,9 @@ export function CrisisPlanForm({ initialData }: CrisisPlanFormProps) {
       if (res.ok) {
         setMessage("Plano de crise salvo com sucesso.");
       } else {
-        setError("Erro ao salvar. Tente novamente.");
+        const body = await res.json().catch(() => null);
+        const apiError = body?.error || body?.errors?.geral?.[0];
+        setError(apiError || "Erro ao salvar. Tente novamente.");
       }
     } catch {
       setError("Erro de conexão. Tente novamente.");

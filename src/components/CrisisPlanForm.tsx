@@ -187,21 +187,27 @@ export function CrisisPlanForm({ initialData }: CrisisPlanFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {hasConsent === false && (
-        <Card className="border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30">
+      {hasConsent !== null && (
+        <Card className={hasConsent
+          ? "border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-950/30"
+          : "border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30"
+        }>
           <div className="flex items-start gap-3">
             <input
               type="checkbox"
               id="consent-crisis-plan"
-              checked={false}
-              onChange={grantConsent}
-              disabled={consentLoading}
+              checked={hasConsent}
+              onChange={hasConsent ? undefined : grantConsent}
+              disabled={consentLoading || hasConsent}
               className="mt-1 h-4 w-4 rounded border-border text-primary focus:ring-primary"
             />
             <label htmlFor="consent-crisis-plan" className="text-sm text-foreground">
-              <strong>Autorizo o armazenamento do meu plano de crise</strong>
+              <strong>{hasConsent ? "Armazenamento autorizado" : "Autorizo o armazenamento do meu plano de crise"}</strong>
               <span className="block mt-1 text-xs text-muted">
-                Seus dados ficam protegidos e criptografados. Você pode revogar essa autorização a qualquer momento em Privacidade.
+                {hasConsent
+                  ? "Seus dados estão protegidos. Você pode revogar em Privacidade."
+                  : "Seus dados ficam protegidos e criptografados. Você pode revogar essa autorização a qualquer momento em Privacidade."
+                }
               </span>
             </label>
           </div>

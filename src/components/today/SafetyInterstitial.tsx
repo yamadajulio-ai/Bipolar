@@ -13,7 +13,7 @@
 "use client";
 
 import { useState } from "react";
-import type { AsqResult, BssaResult, ThoughtRecency, ThoughtFrequency, PastAttemptRecency } from "@/lib/risk-v2/types";
+import type { AsqResult, BssaResult, ThoughtRecency, ThoughtFrequency, PastAttemptRecency, IntentToAct, PlanTimeline } from "@/lib/risk-v2/types";
 
 interface Props {
   source: "phq9_item9" | "warning_sign" | "manual_help_now";
@@ -413,6 +413,8 @@ function BssaFlow({
         hasPlan: next.hasPlan === true,
         planIsDetailed: next.planIsDetailed === true,
         hasAccessToMeans: next.hasAccessToMeans === true,
+        intentToAct: (next.intentToAct || "no") as IntentToAct,
+        planTimeline: (next.planTimeline || "unspecified") as PlanTimeline,
         pastAttempt: (next.pastAttempt || "never") as PastAttemptRecency,
         preparatoryBehavior: (next.preparatoryBehavior || "never") as PastAttemptRecency,
         canStaySafe: (next.canStaySafe || "yes") as "yes" | "unsure" | "no",

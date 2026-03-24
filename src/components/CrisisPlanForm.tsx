@@ -25,6 +25,7 @@ interface CrisisPlanFormProps {
 
 export function CrisisPlanForm({ initialData }: CrisisPlanFormProps) {
   const [hasConsent, setHasConsent] = useState<boolean | null>(null);
+  const [justGranted, setJustGranted] = useState(false);
   const [consentLoading, setConsentLoading] = useState(false);
 
   // Check consent on mount
@@ -49,7 +50,10 @@ export function CrisisPlanForm({ initialData }: CrisisPlanFormProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ scope: "crisis_plan", action: "grant" }),
       });
-      if (res.ok) setHasConsent(true);
+      if (res.ok) {
+        setHasConsent(true);
+        setJustGranted(true);
+      }
     } catch { /* ignore */ }
     finally { setConsentLoading(false); }
   }
@@ -202,13 +206,29 @@ export function CrisisPlanForm({ initialData }: CrisisPlanFormProps) {
               className="mt-1 h-4 w-4 rounded border-border text-primary focus:ring-primary"
             />
             <label htmlFor="consent-crisis-plan" className="text-sm text-foreground">
-              <strong>{hasConsent ? "Armazenamento autorizado" : "Autorizo o armazenamento do meu plano de crise"}</strong>
-              <span className="block mt-1 text-xs text-muted">
-                {hasConsent
-                  ? "Seus dados estão protegidos. Você pode revogar em Privacidade."
-                  : "Seus dados ficam protegidos e criptografados. Você pode revogar essa autorização a qualquer momento em Privacidade."
-                }
-              </span>
+              {hasConsent ? (
+                <>
+                  <strong className="flex items-center gap-1.5">
+                    <svg className="h-4 w-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    {justGranted ? "Autorização concedida!" : "Armazenamento autorizado"}
+                  </strong>
+                  <span className="block mt-1 text-xs text-muted">
+                    {justGranted
+                      ? "Você autorizou o armazenamento do seu plano de crise. Agora pode preencher e salvar. Pode revogar a qualquer momento em Privacidade."
+                      : "Seus dados estão protegidos. Você pode revogar em Privacidade."
+                    }
+                  </span>
+                </>
+              ) : (
+                <>
+                  <strong>Autorizo o armazenamento do meu plano de crise</strong>
+                  <span className="block mt-1 text-xs text-muted">
+                    Seus dados ficam protegidos e criptografados. Você pode revogar essa autorização a qualquer momento em Privacidade.
+                  </span>
+                </>
+              )}
             </label>
           </div>
         </Card>

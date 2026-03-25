@@ -191,9 +191,13 @@ function SleepCycleRow({ log, index }: { log: SleepLog; index: number }) {
       <div className="flex items-center justify-between text-[10px] text-muted">
         <div className="flex flex-col">
           <span>{log.bedtime} → {log.wakeTime}</span>
-          {awakeMinutes >= 2 && (
+          {awakeMinutes >= 30 && inBedHours !== null ? (
+            <span className="text-[9px] text-muted/70">
+              Na cama: {formatSleepDuration(inBedHours)} · Dormiu: {formatSleepDuration(log.totalHours)} · {awakeMinutes}min acordado
+            </span>
+          ) : awakeMinutes >= 2 ? (
             <span className="text-[9px] text-muted/70">{awakeMinutes}min acordado (relógio)</span>
-          )}
+          ) : null}
         </div>
         <div className="flex items-center gap-2">
           {log.hrv != null && <span>HRV <strong className="text-foreground">{log.hrv}</strong>ms</span>}
@@ -282,9 +286,13 @@ export function SleepHistoryCard({ log }: { log: SleepLog }) {
       <div className="flex items-center justify-between text-[11px] text-muted">
         <div className="flex flex-col">
           <span>{log.bedtime} → {log.wakeTime}</span>
-          {awakeMinutes >= 2 && (
+          {awakeMinutes >= 30 && inBedHours !== null ? (
+            <span className="text-[10px] text-muted/70">
+              Na cama: {formatSleepDuration(inBedHours)} · Dormiu: {formatSleepDuration(log.totalHours)} · {awakeMinutes}min acordado
+            </span>
+          ) : awakeMinutes >= 2 ? (
             <span className="text-[10px] text-muted/70">{awakeMinutes}min acordado (relógio)</span>
-          )}
+          ) : null}
         </div>
         <div className="flex items-center gap-3">
           {log.hrv != null && <span>HRV <strong className="text-foreground">{log.hrv}</strong>ms</span>}

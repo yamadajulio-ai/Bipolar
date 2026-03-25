@@ -125,9 +125,9 @@ export default async function SonoPage() {
           {/* Média + sparkline */}
           <Card className={`border-l-4 ${
             avgDuration !== null
-              ? avgDuration >= 7 && avgDuration <= 9 ? "border-l-green-500"
-                : avgDuration >= 5 ? "border-l-amber-500"
-                : "border-l-red-500"
+              ? avgDuration >= 7 && avgDuration <= 9 ? "border-l-green-500 dark:border-l-green-400"
+                : avgDuration >= 5 ? "border-l-amber-500 dark:border-l-amber-400"
+                : "border-l-red-500 dark:border-l-red-400"
               : "border-l-border"
           }`}>
             <p className="text-[11px] text-muted">Média</p>
@@ -157,9 +157,9 @@ export default async function SonoPage() {
           {/* Regularidade */}
           <Card className={`border-l-4 ${
             bedtimeVariance !== null
-              ? bedtimeVariance <= 30 ? "border-l-green-500"
-                : bedtimeVariance <= 60 ? "border-l-amber-500"
-                : "border-l-red-500"
+              ? bedtimeVariance <= 30 ? "border-l-green-500 dark:border-l-green-400"
+                : bedtimeVariance <= 60 ? "border-l-amber-500 dark:border-l-amber-400"
+                : "border-l-red-500 dark:border-l-red-400"
               : "border-l-border"
           }`}>
             <p className="text-[11px] text-muted">Regularidade</p>
@@ -206,7 +206,7 @@ export default async function SonoPage() {
 
       {/* Clinical tip based on data */}
       {avgDuration !== null && (avgDuration < 6 || avgDuration > 10) && (
-        <Card className="mb-4 border-l-4 border-l-amber-500">
+        <Card className="mb-4 border-l-4 border-l-amber-500 dark:border-l-amber-400">
           <p className="text-sm font-medium">
             {avgDuration < 6
               ? "Sono curto persistente pode preceder episódios de mania"

@@ -459,7 +459,7 @@ export default function CheckinPage() {
                   <span className="text-muted ml-1">(total de ontem)</span>
                 </div>
               ) : (
-                <p className="text-sm text-amber-600">
+                <p className="text-sm text-amber-600 dark:text-amber-400">
                   Nenhum registro de sono recente encontrado. Verifique se a integração com o Health Auto Export está ativa na{" "}
                   <a href="/sono" className="text-primary hover:underline">página de sono</a>{" "}
                   ou preencha manualmente abaixo.

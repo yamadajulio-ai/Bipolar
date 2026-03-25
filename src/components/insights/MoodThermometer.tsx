@@ -11,17 +11,17 @@ interface Props {
 }
 
 const ZONE_COLORS: Record<string, { bg: string; text: string }> = {
-  depressao: { bg: "bg-blue-50 border border-blue-200", text: "text-blue-700" },
-  depressao_leve: { bg: "bg-sky-50 border border-sky-200", text: "text-sky-700" },
-  eutimia: { bg: "bg-emerald-50 border border-emerald-200", text: "text-emerald-700" },
-  hipomania: { bg: "bg-amber-50 border border-amber-200", text: "text-amber-700" },
-  mania: { bg: "bg-red-50 border border-red-200", text: "text-red-700" },
+  depressao: { bg: "bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800", text: "text-blue-700 dark:text-blue-300" },
+  depressao_leve: { bg: "bg-sky-50 dark:bg-sky-950/50 border border-sky-200 dark:border-sky-800", text: "text-sky-700 dark:text-sky-300" },
+  eutimia: { bg: "bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800", text: "text-emerald-700 dark:text-emerald-300" },
+  hipomania: { bg: "bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800", text: "text-amber-700 dark:text-amber-300" },
+  mania: { bg: "bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800", text: "text-red-700 dark:text-red-300" },
 };
 
 const INSTABILITY_LABELS: Record<string, { label: string; color: string }> = {
-  baixa: { label: "Baixa", color: "text-emerald-600" },
-  moderada: { label: "Moderada", color: "text-amber-600" },
-  alta: { label: "Alta", color: "text-red-600" },
+  baixa: { label: "Baixa", color: "text-emerald-600 dark:text-emerald-400" },
+  moderada: { label: "Moderada", color: "text-amber-600 dark:text-amber-400" },
+  alta: { label: "Alta", color: "text-red-600 dark:text-red-400" },
 };
 
 export function MoodThermometer({ data }: Props) {
@@ -52,7 +52,7 @@ export function MoodThermometer({ data }: Props) {
             onClick={() => setShowMixedInfo(!showMixedInfo)}
             aria-expanded={showMixedInfo}
             aria-controls={mixedId}
-            className="ml-2 rounded-full bg-purple-100 px-2 py-0.5 text-xs text-purple-700 hover:bg-purple-200"
+            className="ml-2 rounded-full bg-purple-100 dark:bg-purple-900/60 px-2 py-0.5 text-xs text-purple-700 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-800/60"
           >
             {data.mixedStrength === "forte" ? "Sinais mistos" : "Possíveis sinais mistos"} ⓘ
           </button>
@@ -61,7 +61,7 @@ export function MoodThermometer({ data }: Props) {
 
       {/* Mixed features explanation */}
       {data.mixedFeatures && showMixedInfo && (
-        <div id={mixedId} className="mb-4 rounded-lg bg-purple-50 border border-purple-200 p-3 text-xs text-purple-800">
+        <div id={mixedId} className="mb-4 rounded-lg bg-purple-50 dark:bg-purple-950/50 border border-purple-200 dark:border-purple-800 p-3 text-xs text-purple-800 dark:text-purple-200">
           {data.mixedStrength === "forte" ? (
             <>
               <strong>Sinais mistos detectados:</strong> indicadores de rebaixamento e ativação
@@ -93,7 +93,7 @@ export function MoodThermometer({ data }: Props) {
           className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2"
           style={{ left: `${data.position}%` }}
         >
-          <div className="h-6 w-6 rounded-full border-[3px] border-white bg-foreground shadow-lg" />
+          <div className="h-6 w-6 rounded-full border-[3px] border-white dark:border-gray-800 bg-foreground shadow-lg" />
         </div>
       </div>
       <div className="mb-4 flex justify-between text-[10px] text-foreground/50">
@@ -114,7 +114,7 @@ export function MoodThermometer({ data }: Props) {
 
       {/* Contributing factors */}
       {data.factors.length > 0 && (
-        <div className="rounded-lg bg-black/5 p-3">
+        <div className="rounded-lg bg-black/5 dark:bg-white/5 p-3">
           <div className="mb-1 text-xs font-medium text-foreground/60">
             Fatores recentes:
           </div>
@@ -122,7 +122,7 @@ export function MoodThermometer({ data }: Props) {
             {data.factors.map((f, i) => (
               <span
                 key={`${f}-${i}`}
-                className="rounded-full bg-white/70 border border-border px-2 py-0.5 text-xs text-foreground/80"
+                className="rounded-full bg-white/70 dark:bg-white/10 border border-border px-2 py-0.5 text-xs text-foreground/80"
               >
                 {f}
               </span>
@@ -135,7 +135,7 @@ export function MoodThermometer({ data }: Props) {
         Indicador baseado nos seus registros recentes. Não substitui avaliação profissional.
       </p>
       {!data.baselineAvailable && (
-        <p className="mt-1 text-center text-[10px] text-amber-600">
+        <p className="mt-1 text-center text-[10px] text-amber-600 dark:text-amber-400">
           Usando referências gerais de sono. Com mais registros, o cálculo se ajustará ao seu padrão pessoal.
         </p>
       )}

@@ -41,21 +41,21 @@ function getColorClasses(totalHours: number, excluded: boolean) {
   const borderColor = excluded
     ? "border-border bg-surface-alt/50 opacity-60"
     : isNap
-      ? "border-purple-200 bg-purple-50/40"
+      ? "border-purple-200 dark:border-purple-800 bg-purple-50/40 dark:bg-purple-950/40"
       : isCritical
-        ? "border-red-200 bg-red-50/50"
+        ? "border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-950/40"
         : isShort
-          ? "border-amber-200 bg-amber-50/40"
+          ? "border-amber-200 dark:border-amber-800 bg-amber-50/40 dark:bg-amber-950/40"
           : isGood
-            ? "border-emerald-200/50 bg-emerald-50/30"
+            ? "border-emerald-200/50 dark:border-emerald-800/50 bg-emerald-50/30 dark:bg-emerald-950/30"
             : "border-border bg-surface";
 
   const durationColor = excluded
     ? "text-muted line-through"
-    : isNap ? "text-purple-600"
-      : isCritical ? "text-red-600"
-        : isShort ? "text-amber-600"
-          : isGood ? "text-emerald-700"
+    : isNap ? "text-purple-600 dark:text-purple-400"
+      : isCritical ? "text-red-600 dark:text-red-400"
+        : isShort ? "text-amber-600 dark:text-amber-400"
+          : isGood ? "text-emerald-700 dark:text-emerald-400"
             : "text-foreground";
 
   const barColor = excluded
@@ -170,13 +170,13 @@ function SleepCycleRow({ log, index }: { log: SleepLog; index: number }) {
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-[11px] font-medium text-muted">Ciclo {index}</span>
           {isNap && !excluded && (
-            <span className="rounded-full bg-purple-100 px-1.5 py-0.5 text-[9px] font-medium text-purple-700">cochilo</span>
+            <span className="rounded-full bg-purple-100 dark:bg-purple-900/60 px-1.5 py-0.5 text-[9px] font-medium text-purple-700 dark:text-purple-300">cochilo</span>
           )}
           {excluded && (
             <span className="rounded-full bg-surface-alt px-1.5 py-0.5 text-[9px] font-medium text-muted">excluído</span>
           )}
           {isSuspect && !excluded && (
-            <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-medium text-amber-700">incompleto?</span>
+            <span className="rounded-full bg-amber-100 dark:bg-amber-900/60 px-1.5 py-0.5 text-[9px] font-medium text-amber-700 dark:text-amber-300">incompleto?</span>
           )}
         </div>
         <span className={`text-xs font-bold tabular-nums ${durationColor}`}>
@@ -184,7 +184,7 @@ function SleepCycleRow({ log, index }: { log: SleepLog; index: number }) {
         </span>
       </div>
 
-      <div className="h-1 w-full rounded-full bg-black/10 mb-1">
+      <div className="h-1 w-full rounded-full bg-black/10 dark:bg-white/10 mb-1">
         <div className={`h-1 rounded-full ${barColor}`} style={{ width: `${durationPct}%` }} />
       </div>
 
@@ -193,7 +193,7 @@ function SleepCycleRow({ log, index }: { log: SleepLog; index: number }) {
           <span>{log.bedtime} → {log.wakeTime}</span>
           {awakeMinutes >= 30 && inBedHours !== null ? (
             <span className="text-[9px] text-muted/70">
-              Na cama: {formatSleepDuration(inBedHours)} · Dormiu: {formatSleepDuration(log.totalHours)} · {awakeMinutes}min acordado
+              Na cama: {formatSleepDuration(inBedHours)} · Dormiu: {formatSleepDuration(Math.max(0, log.totalHours - awakeMinutes / 60))} · {awakeMinutes}min acordado
             </span>
           ) : awakeMinutes >= 2 ? (
             <span className="text-[9px] text-muted/70">{awakeMinutes}min acordado (relógio)</span>
@@ -265,13 +265,13 @@ export function SleepHistoryCard({ log }: { log: SleepLog }) {
           <span className="text-xs font-medium capitalize">{weekday}</span>
           <span className="text-xs text-muted">{dateLabel}</span>
           {isNap && !excluded && (
-            <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-medium text-purple-700">cochilo</span>
+            <span className="rounded-full bg-purple-100 dark:bg-purple-900/60 px-2 py-0.5 text-[10px] font-medium text-purple-700 dark:text-purple-300">cochilo</span>
           )}
           {excluded && (
             <span className="rounded-full bg-surface-alt px-2 py-0.5 text-[10px] font-medium text-muted">excluído</span>
           )}
           {isSuspect && !excluded && (
-            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">incompleto?</span>
+            <span className="rounded-full bg-amber-100 dark:bg-amber-900/60 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300">incompleto?</span>
           )}
         </div>
         <span className={`text-sm font-bold tabular-nums ${durationColor}`}>
@@ -279,7 +279,7 @@ export function SleepHistoryCard({ log }: { log: SleepLog }) {
         </span>
       </div>
 
-      <div className="h-1.5 w-full rounded-full bg-black/10 mb-1.5">
+      <div className="h-1.5 w-full rounded-full bg-black/10 dark:bg-white/10 mb-1.5">
         <div className={`h-1.5 rounded-full transition-all ${barColor}`} style={{ width: `${durationPct}%` }} />
       </div>
 
@@ -288,7 +288,7 @@ export function SleepHistoryCard({ log }: { log: SleepLog }) {
           <span>{log.bedtime} → {log.wakeTime}</span>
           {awakeMinutes >= 30 && inBedHours !== null ? (
             <span className="text-[10px] text-muted/70">
-              Na cama: {formatSleepDuration(inBedHours)} · Dormiu: {formatSleepDuration(log.totalHours)} · {awakeMinutes}min acordado
+              Na cama: {formatSleepDuration(inBedHours)} · Dormiu: {formatSleepDuration(Math.max(0, log.totalHours - awakeMinutes / 60))} · {awakeMinutes}min acordado
             </span>
           ) : awakeMinutes >= 2 ? (
             <span className="text-[10px] text-muted/70">{awakeMinutes}min acordado (relógio)</span>

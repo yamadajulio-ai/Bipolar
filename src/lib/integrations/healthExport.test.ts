@@ -89,10 +89,10 @@ describe("parseHealthExportPayload", () => {
 
     const result = parseHealthExportPayload(payload);
     expect(result).toHaveLength(1);
-    // Total sleep: 1.5h Core + 1h Deep + 1h REM + 2h Core + 1h REM + 1h Core = 7.5h
-    expect(result[0].totalHours).toBe(7.5);
-    // Deep+REM: 1h Deep + 1h REM + 1h REM = 3h out of 7.5h = 40%
-    // score = min(100, 0.4 * 280) = 100, + 5 bonus (≥7h) = 100, - 5 (1 awakening) = 95 → capped 100
+    // totalHours = bed→wake span: 23:00→07:00 = 8h (includes 30min awake)
+    expect(result[0].totalHours).toBe(8);
+    // Deep+REM: 1h Deep + 1h REM + 1h REM = 3h out of 8h = 37.5%
+    // score = min(100, 0.375 * 280) = 100, + 5 bonus (≥7h) = 100, - 5 (1 awakening) = 95 → capped 100
     expect(result[0].quality).toBeGreaterThanOrEqual(90);
     expect(result[0].quality).toBeLessThanOrEqual(100);
     expect(result[0].awakenings).toBe(1);

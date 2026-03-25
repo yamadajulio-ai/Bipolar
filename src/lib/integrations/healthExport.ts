@@ -637,14 +637,11 @@ function processNight(segments: SleepSegment[]): ProcessedSleepNight | null {
     }, 0);
   const awakeMinutes = Math.round(awakeMs / (1000 * 60));
 
-  // For totalHours: use full span when we have proper boundaries,
-  // otherwise sum segments directly (fallback for sparse data)
-  let totalMs: number;
-  if (hasStageBreakdown && allSleepSegments.some((s) => s.stage === "asleep")) {
-    totalMs = spanMs; // Full bed-to-wake span
-  } else {
-    totalMs = sleepSegments.reduce((sum, s) => sum + (s.end.getTime() - s.start.getTime()), 0);
-  }
+  // totalHours = full bed-to-wake span (includes awake time).
+  // Always use spanMs when we have ≥2 sleep segments with clear boundaries.
+  // Only fall back to summing individual segments for very sparse data
+  // (single segment with no boundaries).
+  const totalMs = allSleepSegments.length >= 2 ? spanMs : sleepSegments.reduce((sum, s) => sum + (s.end.getTime() - s.start.getTime()), 0);
   const totalHours = Math.round((totalMs / (1000 * 60 * 60)) * 100) / 100;
 
   // Deep + REM time (from selected source only)

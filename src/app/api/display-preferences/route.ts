@@ -1,12 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/security";
 
 // GET — Return current display preferences (auto-create if missing)
 export async function GET() {
   const session = await getSession();
   if (!session.isLoggedIn) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  }
+
+  const allowed = await checkRateLimit(`display-pref-read:${session.userId}`, 60, 60_000);
+  if (!allowed) {
+    return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
   }
 
   const prefs = await prisma.displayPreferences.upsert({
@@ -24,6 +30,11 @@ export async function PUT(request: NextRequest) {
   const session = await getSession();
   if (!session.isLoggedIn) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  }
+
+  const allowed = await checkRateLimit(`display-pref-write:${session.userId}`, 30, 60_000);
+  if (!allowed) {
+    return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
   }
 
   let body: { hideStreaks?: boolean; hideAchievements?: boolean };

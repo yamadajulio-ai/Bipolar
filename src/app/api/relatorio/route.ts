@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/security";
+import { localToday } from "@/lib/dateUtils";
 import * as Sentry from "@sentry/nextjs";
 
 export async function GET(request: NextRequest) {
@@ -24,7 +25,7 @@ export async function GET(request: NextRequest) {
   const [year, mon] = month.split("-").map(Number);
 
   // Reject unreasonable year ranges to prevent inefficient queries
-  const currentYear = new Date().getFullYear();
+  const currentYear = parseInt(localToday().slice(0, 4), 10);
   if (year < 2020 || year > currentYear + 1) {
     return NextResponse.json({ error: "Ano fora do intervalo permitido" }, { status: 400 });
   }

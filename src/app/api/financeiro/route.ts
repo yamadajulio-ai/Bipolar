@@ -3,6 +3,7 @@ import { z } from "zod/v4";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/security";
+import { localDateStr } from "@/lib/dateUtils";
 import * as Sentry from "@sentry/nextjs";
 
 const transactionSchema = z.object({
@@ -39,7 +40,7 @@ export async function GET(request: NextRequest) {
     const days = parseInt(searchParams.get("days") || "30");
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - days);
-    dateFilter = { gte: `${cutoff.getFullYear()}-${String(cutoff.getMonth() + 1).padStart(2, "0")}-${String(cutoff.getDate()).padStart(2, "0")}` };
+    dateFilter = { gte: localDateStr(cutoff) };
   }
 
   try {

@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
 
     // Filter excluded + naps (<1h) from sleep logs — match /hoje behavior
     const filterSleep = <T extends { totalHours: number; excluded?: boolean }>(logs: T[]) =>
-      logs.filter(l => !l.excluded && l.totalHours >= 1);
+      logs.filter(l => !l.excluded && l.totalHours >= 2);
     const filteredSleep30 = filterSleep(sleepLogs30);
     const filteredSleep90 = filterSleep(sleepLogs90);
 

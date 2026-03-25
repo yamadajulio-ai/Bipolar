@@ -3,6 +3,7 @@ import { z } from "zod/v4";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/security";
+import { localDateStr } from "@/lib/dateUtils";
 import * as Sentry from "@sentry/nextjs";
 
 const eventSchema = z.object({
@@ -36,7 +37,7 @@ export async function GET(request: NextRequest) {
     const days = Math.min(parseInt(searchParams.get("days") || "90", 10), 365);
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - days);
-    const cutoffStr = cutoff.toISOString().slice(0, 10);
+    const cutoffStr = localDateStr(cutoff);
 
     const events = await prisma.lifeChartEvent.findMany({
       where: { userId: session.userId, date: { gte: cutoffStr } },

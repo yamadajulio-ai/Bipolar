@@ -83,12 +83,12 @@ export default async function AdminClinicalPage() {
 
   // ---- SLEEP (30d) ----
   const sleepLogs = await prisma.sleepLog.findMany({
-    where: { createdAt: { gte: thirtyDaysAgo }, excluded: false, totalHours: { gte: 1 } },
+    where: { createdAt: { gte: thirtyDaysAgo }, excluded: false, totalHours: { gte: 2 } },
     select: { totalHours: true, quality: true, awakenings: true, bedtime: true, wakeTime: true },
   });
 
   const distinctSleepUsers = new Set(
-    (await prisma.sleepLog.groupBy({ by: ["userId"], where: { createdAt: { gte: thirtyDaysAgo }, excluded: false, totalHours: { gte: 1 } } })).map((r) => r.userId)
+    (await prisma.sleepLog.groupBy({ by: ["userId"], where: { createdAt: { gte: thirtyDaysAgo }, excluded: false, totalHours: { gte: 2 } } })).map((r) => r.userId)
   ).size;
 
   let sleepHoursSum = 0, qualitySum = 0, qualityCount = 0, awakeningsSum = 0, awakeningsCount = 0;

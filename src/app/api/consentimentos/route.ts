@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { maskIp } from "@/lib/security";
+import { maskIp, checkRateLimit } from "@/lib/security";
 
 /** Per-scope consent version. Bump when the consent text/terms for a scope change. */
 const SCOPE_VERSIONS: Record<string, number> = {
@@ -22,6 +22,11 @@ export async function GET() {
   const session = await getSession();
   if (!session.isLoggedIn) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  }
+
+  const allowed = await checkRateLimit(`consent-read:${session.userId}`, 60, 60_000);
+  if (!allowed) {
+    return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
   }
 
   const consents = await prisma.consent.findMany({
@@ -45,6 +50,11 @@ export async function POST(request: NextRequest) {
   const session = await getSession();
   if (!session.isLoggedIn) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  }
+
+  const allowed = await checkRateLimit(`consent-write:${session.userId}`, 30, 60_000);
+  if (!allowed) {
+    return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
   }
 
   let scope: string;

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/security";
-import { localDateStr } from "@/lib/dateUtils";
+import { localDateStr, shiftMonth } from "@/lib/dateUtils";
 
 // ── Helpers ─────────────────────────────────────────────────
 
@@ -13,9 +13,7 @@ function getMonthRange(month: string): { gte: string; lte: string } {
 }
 
 function getPrevMonth(month: string): string {
-  const [year, mon] = month.split("-").map(Number);
-  const d = new Date(year, mon - 2, 1);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  return shiftMonth(month, -1);
 }
 
 function round2(n: number): number {

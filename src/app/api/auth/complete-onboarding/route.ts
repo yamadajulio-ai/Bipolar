@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { maskIp } from "@/lib/security";
+import { maskIp, checkRateLimit } from "@/lib/security";
 
 const VALID_GOALS = new Set(["sleep", "detect", "consult", "routine", "learn"]);
 const VALID_PROFILES = new Set(["recent", "veteran", "caregiver"]);
@@ -17,6 +17,11 @@ export async function POST(request: Request) {
   const session = await getSession();
   if (!session.isLoggedIn) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  }
+
+  const allowed = await checkRateLimit(`onboarding:${session.userId}`, 15, 3_600_000);
+  if (!allowed) {
+    return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
   }
 
   let goal: string | undefined;

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/security";
+import { localYearMonth, shiftMonth } from "@/lib/dateUtils";
 import * as Sentry from "@sentry/nextjs";
 
 const HEADERS = { "Cache-Control": "no-store" };
@@ -17,14 +18,12 @@ export async function GET() {
     return NextResponse.json({ error: "Muitas requisições" }, { status: 429, headers: HEADERS });
   }
 
-  // Last 12 months including current
-  const now = new Date();
+  // Last 12 months including current (timezone-aware)
+  const currentMonth = localYearMonth(); // YYYY-MM in America/Sao_Paulo
   const months: { month: string; gte: string; lte: string }[] = [];
   for (let i = 11; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const y = d.getFullYear();
-    const m = d.getMonth() + 1;
-    const ms = `${y}-${String(m).padStart(2, "0")}`;
+    const ms = shiftMonth(currentMonth, -i);
+    const [y, m] = ms.split("-").map(Number);
     const lastDay = new Date(y, m, 0).getDate();
     months.push({
       month: ms,

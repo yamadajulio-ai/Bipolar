@@ -45,7 +45,7 @@ function getUrgencyLevel(
   if (phq9Item9 !== null && phq9Item9 !== undefined && phq9Item9 >= 1) return "atencao";
   if (riskLevel === "atencao_alta") return "atencao";
   if (bipolarContext?.mixedFeatures) return "atencao";
-  if (bipolarContext?.consecutiveShortSleep && bipolarContext.consecutiveShortSleep >= 4) return "atencao";
+  if (bipolarContext?.consecutiveShortSleep && bipolarContext.consecutiveShortSleep >= 3) return "atencao";
   if (bipolarContext?.maniaSignsActive && bipolarContext.maniaSignsActive.length >= 2) return "atencao";
 
   return "cuidado";
@@ -55,7 +55,7 @@ function getHeadline(urgency: UrgencyLevel, bipolarContext: Props["bipolarContex
   if (bipolarContext?.mixedFeatures) {
     return "Seus registros mostram sinais mistos que merecem atenção";
   }
-  if (bipolarContext?.consecutiveShortSleep && bipolarContext.consecutiveShortSleep >= 4) {
+  if (bipolarContext?.consecutiveShortSleep && bipolarContext.consecutiveShortSleep >= 3) {
     return `${bipolarContext.consecutiveShortSleep} noites curtas seguidas — atenção ao seu padrão de sono`;
   }
   if (bipolarContext?.maniaSignsActive && bipolarContext.maniaSignsActive.length >= 2) {
@@ -80,7 +80,7 @@ function getDescription(
   if (bipolarContext?.mixedFeatures) {
     return "Quando sinais de ativação e rebaixamento aparecem juntos, o desconforto pode ser intenso. Conversar com seu profissional pode ajudar a entender o que está acontecendo.";
   }
-  if (bipolarContext?.consecutiveShortSleep && bipolarContext.consecutiveShortSleep >= 4) {
+  if (bipolarContext?.consecutiveShortSleep && bipolarContext.consecutiveShortSleep >= 3) {
     return "Privação de sono pode afetar significativamente o humor e a estabilidade. Converse com seu profissional sobre seu padrão de sono.";
   }
   if (bipolarContext?.maniaSignsActive && bipolarContext.maniaSignsActive.length >= 2) {
@@ -95,7 +95,7 @@ export function SafetyNudge({ phq9Item9, riskLevel, compact, bipolarContext }: P
   const showForRisk = riskLevel === "atencao_alta";
   const showForBipolar = !!(
     bipolarContext?.mixedFeatures ||
-    (bipolarContext?.consecutiveShortSleep && bipolarContext.consecutiveShortSleep >= 4) ||
+    (bipolarContext?.consecutiveShortSleep && bipolarContext.consecutiveShortSleep >= 3) ||
     (bipolarContext?.maniaSignsActive && bipolarContext.maniaSignsActive.length >= 2)
   );
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Capacitor } from "@capacitor/core";
 
 const DISMISS_KEY = "install-banner-dismissed";
 const VISIT_KEY = "install-banner-visits";
@@ -11,6 +12,8 @@ export function InstallBanner() {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
+    // Never show PWA install banner inside native Capacitor app
+    if (Capacitor.isNativePlatform()) return;
     // Only show on iOS Safari, not already installed
     if (!isIOSSafari() || isStandalone()) return;
 

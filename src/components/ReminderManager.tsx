@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { Capacitor } from "@capacitor/core";
 
 interface ReminderSettings {
   wakeReminder: string | null;
@@ -94,8 +95,9 @@ export function ReminderManager() {
     fetchSettings();
   }, []);
 
-  // Try to register Web Push subscription
+  // Try to register Web Push subscription (skip in native — APNs handles push)
   useEffect(() => {
+    if (Capacitor.isNativePlatform()) return;
     if (typeof window === "undefined" || !("Notification" in window)) return;
 
     // If already granted, register the push subscription silently
@@ -136,7 +138,9 @@ export function ReminderManager() {
   }, []);
 
   // Polling fallback — only fires local notifications if push is NOT registered
+  // Skip in native — Capacitor LocalNotifications handles this
   useEffect(() => {
+    if (Capacitor.isNativePlatform()) return;
     if (typeof window === "undefined" || !("Notification" in window)) return;
 
     const interval = setInterval(() => {

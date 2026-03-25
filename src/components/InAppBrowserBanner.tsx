@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Capacitor } from "@capacitor/core";
 
 const DISMISS_KEY = "inapp-browser-dismissed";
 
@@ -13,6 +14,8 @@ export function InAppBrowserBanner() {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
+    // Capacitor IS a webview — don't show this banner inside the native app
+    if (Capacitor.isNativePlatform()) return;
     if (!isInAppBrowser()) return;
 
     // Check if user already dismissed

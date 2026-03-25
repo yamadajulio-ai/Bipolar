@@ -56,6 +56,10 @@ IDEIAS REDE BIPOLAR.txt
 .env*.local
 .env.vercel
 
+# Capacitor native projects (generated, not committed)
+/ios/
+/android/
+
 # temporary/generated scripts (keep only backup-db.sh)
 scripts/*.js
 tmp_*.txt

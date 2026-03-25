@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Capacitor } from "@capacitor/core";
 
 export function ServiceWorkerRegister() {
   const [updateAvailable, setUpdateAvailable] = useState(false);
 
   useEffect(() => {
+    // Skip SW in native Capacitor — the native container handles caching/offline
+    if (Capacitor.isNativePlatform()) return;
     if (!("serviceWorker" in navigator)) return;
 
     navigator.serviceWorker

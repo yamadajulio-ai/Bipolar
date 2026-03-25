@@ -10,7 +10,11 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "cap:init": "mkdir -p out && echo '<html><body>Loading...</body></html>' > out/index.html && npx cap sync",
+    "cap:ios": "npx cap open ios",
+    "cap:sync": "npx cap sync ios",
+    "cap:build": "mkdir -p out && echo '<html><body>Loading...</body></html>' > out/index.html && npx cap sync ios && npx cap open ios"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",

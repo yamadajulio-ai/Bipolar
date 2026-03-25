@@ -48,6 +48,7 @@ export async function GET(request: NextRequest) {
       bedtime: true,
       wakeTime: true,
       totalHours: true,
+      awakeMinutes: true,
       quality: true,
       awakenings: true,
       hrv: true,

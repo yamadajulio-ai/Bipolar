@@ -117,16 +117,32 @@ export default function CheckinPage() {
     setAutoSleepLoading(true);
     fetch(`/api/sono?days=3`)
       .then((r) => r.ok ? r.json() : [])
-      .then((logs: { date: string; totalHours: number; excluded: boolean }[]) => {
-        const yesterday = new Date();
+      .then((logs: { date: string; totalHours: number; awakeMinutes: number; excluded: boolean }[]) => {
+        // The night of "yesterday" is logged under TODAY's date (wake date).
+        // E.g., night 24→25 has date=25/03. So check today first, then yesterday.
+        const now = new Date();
+        const todayStr = now.toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
+        const yesterday = new Date(now);
         yesterday.setDate(yesterday.getDate() - 1);
         const yesterdayStr = yesterday.toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
 
-        const yesterdayLogs = logs.filter((l) => l.date === yesterdayStr && !l.excluded);
-        if (yesterdayLogs.length > 0) {
-          const total = Math.round(yesterdayLogs.reduce((sum, l) => sum + l.totalHours, 0) * 10) / 10;
-          setAutoSleepHours(total);
-          setSleepHours(String(total));
+        // Filter real sleep (>= 2h, not excluded) for today or yesterday
+        const realLogs = logs.filter((l) => !l.excluded && l.totalHours >= 2);
+        const todayLogs = realLogs.filter((l) => l.date === todayStr);
+        const yesterdayLogs = realLogs.filter((l) => l.date === yesterdayStr);
+
+        // Prefer today's logs (last night's sleep), fallback to yesterday
+        const chosen = todayLogs.length > 0 ? todayLogs : yesterdayLogs;
+
+        if (chosen.length > 0) {
+          // Sum actual sleep: totalHours - awakeMinutes for each log
+          const actualSleep = chosen.reduce((sum, l) => {
+            const awakeHrs = (l.awakeMinutes || 0) / 60;
+            return sum + Math.max(0, l.totalHours - awakeHrs);
+          }, 0);
+          const rounded = Math.round(actualSleep * 10) / 10;
+          setAutoSleepHours(rounded);
+          setSleepHours(String(rounded));
         } else {
           setAutoSleepHours(null);
         }
@@ -456,7 +472,7 @@ export default function CheckinPage() {
               ) : autoSleepHours !== null ? (
                 <div className="rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-sm text-foreground">
                   <span className="font-medium">{autoSleepHours}h</span>
-                  <span className="text-muted ml-1">(total de ontem)</span>
+                  <span className="text-muted ml-1">(sono da última noite)</span>
                 </div>
               ) : (
                 <p className="text-sm text-amber-600 dark:text-amber-400">

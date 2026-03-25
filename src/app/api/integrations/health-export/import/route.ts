@@ -32,28 +32,35 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 1. Upsert sleep nights
+    // 1. Delete stale records for affected dates, then create fresh ones.
+    //    Wrapped in a transaction to prevent orphaned records.
     let sleepImported = 0;
-    for (const night of result.sleepNights) {
-      const data = {
-        bedtime: night.bedtime,
-        wakeTime: night.wakeTime,
-        totalHours: night.totalHours,
-        quality: night.quality,
-        awakenings: night.awakenings,
-        awakeMinutes: night.awakeMinutes,
-        hrv: night.hrv ?? null,
-        heartRate: night.heartRate ?? null,
-      };
-      await prisma.sleepLog.upsert({
-        where: {
-          userId_date_bedtime: { userId: session.userId, date: night.date, bedtime: night.bedtime },
-        },
-        update: data,
-        create: { userId: session.userId, date: night.date, ...data },
-        select: { id: true },
-      });
-      sleepImported++;
+    if (result.sleepNights.length > 0) {
+      const affectedDates = [...new Set(result.sleepNights.map((n) => n.date))];
+      const sleepOps = [
+        prisma.sleepLog.deleteMany({
+          where: { userId: session.userId, date: { in: affectedDates } },
+        }),
+        ...result.sleepNights.map((night) =>
+          prisma.sleepLog.create({
+            data: {
+              userId: session.userId,
+              date: night.date,
+              bedtime: night.bedtime,
+              wakeTime: night.wakeTime,
+              totalHours: night.totalHours,
+              quality: night.quality,
+              awakenings: night.awakenings,
+              awakeMinutes: night.awakeMinutes,
+              hrv: night.hrv ?? null,
+              heartRate: night.heartRate ?? null,
+            },
+            select: { id: true },
+          }),
+        ),
+      ];
+      await prisma.$transaction(sleepOps);
+      sleepImported = result.sleepNights.length;
     }
 
     // 2. Enrich existing SleepLogs with standalone HRV/HR

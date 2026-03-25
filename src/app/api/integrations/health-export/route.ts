@@ -138,7 +138,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 2. Upsert sleep nights
+    // 2. Sleep nights: delete stale records then upsert fresh ones.
+    //    When re-importing, old records (from pre-multi-cycle schema) may have
+    //    different bedtimes than the new parsed cycles. Delete all existing
+    //    records for each affected date first, then insert the new ones.
+    if (result.sleepNights.length > 0) {
+      const affectedDates = [...new Set(result.sleepNights.map((n) => n.date))];
+      txOps.push(
+        prisma.sleepLog.deleteMany({
+          where: { userId: integration.userId, date: { in: affectedDates } },
+        }),
+      );
+    }
     for (const night of result.sleepNights) {
       const data = {
         bedtime: night.bedtime,
@@ -151,12 +162,8 @@ export async function POST(request: NextRequest) {
         heartRate: night.heartRate ?? null,
       };
       txOps.push(
-        prisma.sleepLog.upsert({
-          where: {
-            userId_date_bedtime: { userId: integration.userId, date: night.date, bedtime: night.bedtime },
-          },
-          update: data,
-          create: { userId: integration.userId, date: night.date, ...data },
+        prisma.sleepLog.create({
+          data: { userId: integration.userId, date: night.date, ...data },
         }),
       );
     }

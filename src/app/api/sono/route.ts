@@ -99,6 +99,34 @@ export async function POST(request: NextRequest) {
       notes: parsed.data.notes || null,
     };
 
+    // Check if there's already a record for this day with a similar bedtime
+    // (within 30min). This prevents duplicates when HAE says 22:58 and user
+    // manually enters 23:00 for the same sleep session.
+    const existing = await prisma.sleepLog.findMany({
+      where: { userId: session.userId, date: parsed.data.date },
+      select: { id: true, bedtime: true },
+    });
+
+    // Parse bedtime to minutes for proximity check
+    const [bH, bM] = parsed.data.bedtime.split(":").map(Number);
+    const newBedMin = bH * 60 + bM;
+
+    const overlapping = existing.filter((e) => {
+      const [eH, eM] = e.bedtime.split(":").map(Number);
+      let eMin = eH * 60 + eM;
+      let diff = Math.abs(newBedMin - eMin);
+      // Handle midnight crossing (e.g., 23:50 vs 00:10 = 20min apart)
+      if (diff > 720) diff = 1440 - diff;
+      return diff <= 30 && e.bedtime !== parsed.data.bedtime;
+    });
+
+    // Delete near-duplicate records (same night, slightly different bedtime)
+    if (overlapping.length > 0) {
+      await prisma.sleepLog.deleteMany({
+        where: { id: { in: overlapping.map((e) => e.id) } },
+      });
+    }
+
     const log = await prisma.sleepLog.upsert({
       where: {
         userId_date_bedtime: {

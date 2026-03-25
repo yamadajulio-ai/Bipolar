@@ -140,9 +140,10 @@ export default function CheckinPage() {
             const awakeHrs = (l.awakeMinutes || 0) / 60;
             return sum + Math.max(0, l.totalHours - awakeHrs);
           }, 0);
-          const rounded = Math.round(actualSleep * 10) / 10;
+          // Keep 2 decimal places for precision (5.95h = 5h57min, not 6h00)
+          const rounded = Math.round(actualSleep * 100) / 100;
           setAutoSleepHours(rounded);
-          setSleepHours(String(rounded));
+          setSleepHours(String(Math.round(actualSleep * 10) / 10));
         } else {
           setAutoSleepHours(null);
         }

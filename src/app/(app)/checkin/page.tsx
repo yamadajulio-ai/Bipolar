@@ -471,7 +471,9 @@ export default function CheckinPage() {
                 <p className="text-sm text-muted">Buscando registro de sono...</p>
               ) : autoSleepHours !== null ? (
                 <div className="rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-sm text-foreground">
-                  <span className="font-medium">{autoSleepHours}h</span>
+                  <span className="font-medium">
+                    {Math.floor(autoSleepHours)}h {String(Math.round((autoSleepHours - Math.floor(autoSleepHours)) * 60)).padStart(2, "0")}min
+                  </span>
                   <span className="text-muted ml-1">(sono da última noite)</span>
                 </div>
               ) : (

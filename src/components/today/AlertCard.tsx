@@ -27,12 +27,12 @@ export function AlertCard({ layer, reasons, actions, safety, syndrome }: Props) 
   const headline = getHeadline(layer, safety, syndrome);
   const description = getDescription(layer, safety, syndrome);
 
-  const borderColor = isOrange ? "border-orange-400" : "border-amber-300";
-  const bgColor = isOrange ? "bg-orange-50" : "bg-amber-50";
-  const headlineColor = isOrange ? "text-orange-900" : "text-amber-900";
-  const textColor = isOrange ? "text-orange-800" : "text-amber-800";
-  const reasonBg = isOrange ? "bg-orange-100/50" : "bg-amber-100/50";
-  const reasonText = isOrange ? "text-orange-700" : "text-amber-700";
+  const borderColor = isOrange ? "border-orange-400 dark:border-orange-700" : "border-amber-300 dark:border-amber-700";
+  const bgColor = isOrange ? "bg-orange-50 dark:bg-orange-950/50" : "bg-amber-50 dark:bg-amber-950/50";
+  const headlineColor = isOrange ? "text-orange-900 dark:text-orange-200" : "text-amber-900 dark:text-amber-200";
+  const textColor = isOrange ? "text-orange-800 dark:text-orange-200" : "text-amber-800 dark:text-amber-200";
+  const reasonBg = isOrange ? "bg-orange-100/50 dark:bg-orange-900/30" : "bg-amber-100/50 dark:bg-amber-900/30";
+  const reasonText = isOrange ? "text-orange-700 dark:text-orange-300" : "text-amber-700 dark:text-amber-300";
 
   // ORANGE = clinical urgency (role="alert"), YELLOW = monitoring (role="status")
   const semanticRole = isOrange ? "alert" : "status";
@@ -80,7 +80,7 @@ export function AlertCard({ layer, reasons, actions, safety, syndrome }: Props) 
               className={`block w-full rounded-lg px-4 py-2.5 text-sm font-medium text-center transition-colors ${
                 action.variant === "warning"
                   ? "bg-orange-600 text-white hover:bg-orange-700"
-                  : "bg-white/60 text-foreground hover:bg-white"
+                  : "bg-white/60 dark:bg-white/10 text-foreground hover:bg-white dark:hover:bg-white/20"
               }`}
             >
               {action.label}
@@ -92,8 +92,8 @@ export function AlertCard({ layer, reasons, actions, safety, syndrome }: Props) 
               aria-label={action.label}
               className={`block w-full rounded-lg px-4 py-2.5 text-sm font-medium text-center transition-colors ${
                 action.variant === "warning"
-                  ? "border border-orange-300 bg-white text-orange-800 hover:bg-orange-50"
-                  : "border border-border bg-white text-foreground hover:bg-surface"
+                  ? "border border-orange-300 dark:border-orange-700 bg-white dark:bg-orange-950/40 text-orange-800 dark:text-orange-200 hover:bg-orange-50 dark:hover:bg-orange-900/40"
+                  : "border border-border bg-white dark:bg-surface text-foreground hover:bg-surface dark:hover:bg-surface-alt"
               }`}
             >
               {action.label}

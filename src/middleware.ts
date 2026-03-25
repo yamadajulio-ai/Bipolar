@@ -79,6 +79,10 @@ function checkCsrf(request: NextRequest): NextResponse | null {
   // Allow WhatsApp webhook (Meta verifies via verify_token)
   if (pathname === "/api/whatsapp/webhook") return null;
 
+  // Allow logout via native form POST (no X-CSRF-Token header).
+  // Protected by Sec-Fetch-Site same-origin check + session cookie.
+  if (pathname === "/api/auth/logout") return null;
+
   // Allow professional access — token must match exact format (auth'd via token+PIN)
   if (isProfessionalAccessCsrfExempt(pathname)) return null;
 

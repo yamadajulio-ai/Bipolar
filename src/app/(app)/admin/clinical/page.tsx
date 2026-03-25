@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { headers } from "next/headers";
 import { maskIp } from "@/lib/security";
+import { localDateStr } from "@/lib/dateUtils";
 import { Card } from "@/components/Card";
 import { Alert } from "@/components/Alert";
 import { AdminMoodChart } from "@/components/admin/AdminMoodChart";
@@ -68,7 +69,7 @@ export default async function AdminClinicalPage() {
   // Mood by day (for chart)
   const moodByDay: Record<string, { sum: number; count: number }> = {};
   for (const e of moodEntries) {
-    const date = new Date(e.date).toISOString().slice(0, 10);
+    const date = e.date;
     if (!moodByDay[date]) moodByDay[date] = { sum: 0, count: 0 };
     moodByDay[date].sum += e.mood;
     moodByDay[date].count++;
@@ -146,7 +147,7 @@ export default async function AdminClinicalPage() {
 
   // ---- HEALTH METRICS (wearables) ----
   const healthMetrics = await prisma.healthMetric.findMany({
-    where: { date: { gte: thirtyDaysAgo.toISOString().slice(0, 10) } },
+    where: { date: { gte: localDateStr(thirtyDaysAgo) } },
     select: { metric: true, value: true },
   });
 

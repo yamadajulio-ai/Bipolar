@@ -56,7 +56,7 @@ export async function GET() {
 
     const data = months.map((m) => ({
       month: m.month,
-      label: new Date(m.month + "-15").toLocaleDateString("pt-BR", { month: "short" }),
+      label: new Date(m.month + "-15T12:00:00Z").toLocaleDateString("pt-BR", { month: "short", timeZone: "America/Sao_Paulo" }),
       income: Math.round(byMonth[m.month].income * 100) / 100,
       expense: Math.round(byMonth[m.month].expense * 100) / 100,
     }));

@@ -157,11 +157,16 @@ export async function POST(request: NextRequest) {
       manualInput,
       existingRecord,
       parsed.data.date,
+      undefined,
+      matchResult?.overlapScore,
     );
+
+    // finalBedtime may differ from parsed.data.bedtime when wearable timing is preserved
+    const finalBedtime = result.data.bedtime as string;
 
     // Execute operations inside a transaction
     const log = await prisma.$transaction(async (tx) => {
-      // Delete old record if bedtime changed
+      // Delete old record if bedtime changed (only when not wearable overlay)
       for (const op of result.operations) {
         if (op.type === "delete") {
           await (tx as typeof prisma).sleepLog.delete({ where: { id: op.id } });
@@ -171,7 +176,7 @@ export async function POST(request: NextRequest) {
       // Also delete any other overlapping records with different bedtime
       const overlapping = existing.filter((e) =>
         e.id !== existingRecord?.id &&
-        e.bedtime !== parsed.data.bedtime &&
+        e.bedtime !== finalBedtime &&
         findBestMatch(
           { bedtime: parsed.data.bedtime, bedtimeAt, wakeTimeAt },
           [e],
@@ -183,13 +188,13 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      // Upsert the reconciled record
+      // Upsert the reconciled record using final bedtime (wearable-preserved or manual)
       return (tx as typeof prisma).sleepLog.upsert({
         where: {
           userId_date_bedtime: {
             userId: session.userId,
             date: parsed.data.date,
-            bedtime: parsed.data.bedtime,
+            bedtime: finalBedtime,
           },
         },
         update: result.data as any, // eslint-disable-line @typescript-eslint/no-explicit-any

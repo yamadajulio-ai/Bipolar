@@ -27,7 +27,7 @@
 import { createHash } from "crypto";
 
 // ── Algorithm versioning ──────────────────────────────────────────
-export const MERGE_ALGORITHM_VERSION = "2.0.0";
+export const MERGE_ALGORITHM_VERSION = "2.1.0";
 
 // ── Time utilities ────────────────────────────────────────────────
 
@@ -50,9 +50,11 @@ export function clockDistance(a: string, b: string): number {
  * Timezone: America/Sao_Paulo (project contract).
  *
  * Logic:
- *   - bedtime hour >= 12 → night before (date - 1 day)
- *   - bedtime hour < 12 → same date (e.g., 01:00 AM)
+ *   - bedtime minutes > wakeTime minutes → overnight (bedtime on date - 1 day)
+ *   - bedtime minutes <= wakeTime minutes → same day (nap, early morning)
  *   - wakeTime is always on the morning date
+ *
+ * This handles both overnight sleep (23:00→07:00) and daytime naps (14:00→15:00).
  */
 export function computeAbsoluteTimestamps(
   date: string,
@@ -65,12 +67,17 @@ export function computeAbsoluteTimestamps(
   // Parse the morning date
   const [year, month, day] = date.split("-").map(Number);
 
-  // Bedtime: if PM (>=12), it's the previous day; if AM (<12), same day
+  // Determine if overnight by comparing bedtime vs wakeTime in minutes
+  const bedMin = bH * 60 + bM;
+  const wakeMin = wH * 60 + wM;
+  const isOvernight = bedMin > wakeMin;
+
+  // Bedtime: if overnight, it's the previous day; otherwise same day
   const bedDate = new Date(Date.UTC(year, month - 1, day));
-  if (bH >= 12) {
+  if (isOvernight) {
     bedDate.setUTCDate(bedDate.getUTCDate() - 1);
   }
-  // America/Sao_Paulo is UTC-3 (ignoring DST edge — acceptable for ±30min matching)
+  // America/Sao_Paulo is UTC-3 (no DST since 2019 — acceptable for matching)
   const bedtimeAt = new Date(Date.UTC(bedDate.getUTCFullYear(), bedDate.getUTCMonth(), bedDate.getUTCDate(), bH + 3, bM));
 
   const wakeTimeAt = new Date(Date.UTC(year, month - 1, day, wH + 3, wM));
@@ -159,9 +166,20 @@ export function findBestMatch<T extends {
 
 // ── Provider identity ─────────────────────────────────────────────
 
-/** Generate a stable hash from raw payload data for dedup */
+/** Recursively sort object keys for canonical serialization */
+function deepSortKeys(obj: unknown): unknown {
+  if (obj === null || typeof obj !== "object") return obj;
+  if (Array.isArray(obj)) return obj.map(deepSortKeys);
+  const sorted: Record<string, unknown> = {};
+  for (const key of Object.keys(obj as Record<string, unknown>).sort()) {
+    sorted[key] = deepSortKeys((obj as Record<string, unknown>)[key]);
+  }
+  return sorted;
+}
+
+/** Generate a stable hash from raw payload data for dedup (deep-canonicalized) */
 export function computeRawHash(data: Record<string, unknown>): string {
-  const canonical = JSON.stringify(data, Object.keys(data).sort());
+  const canonical = JSON.stringify(deepSortKeys(data));
   return createHash("sha256").update(canonical).digest("hex").slice(0, 16);
 }
 
@@ -298,79 +316,110 @@ export interface ReconcileResult {
 /**
  * Reconcile a MANUAL entry against an existing (possibly wearable) record.
  *
- * Contract: manual ALWAYS wins on subjective fields, wearable ALWAYS wins on
- * biometrics and timing. HRV/HR: wearable wins unconditionally.
+ * Contract: manual is a subjective overlay — it NEVER overwrites wearable timing
+ * or biometrics. When the existing record has a wearable base:
+ *   - Timing (bedtime, wakeTime, totalHours, bedtimeAt, wakeTimeAt): WEARABLE kept
+ *   - Biometrics (awakeMinutes, hrv, heartRate, awakenings): WEARABLE kept
+ *   - Quality: WEARABLE-derived kept, manual stored as perceivedQuality
+ *   - Source: stays as wearable (manual is overlay, not ownership transfer)
+ *   - Subjective (perceivedQuality, preRoutine, notes): MANUAL wins
+ *   - Provider identity (providerRecordId, rawHash): preserved from wearable
  */
 export function reconcileManualIntoExisting(
   manual: IncomingManual,
   existing: ExistingRecord | null,
   date: string,
   importBatchId?: string,
+  overlapScore?: number,
 ): ReconcileResult {
-  const { bedtimeAt, wakeTimeAt } = computeAbsoluteTimestamps(date, manual.bedtime, manual.wakeTime);
-  const isWearableExisting = existing && existing.source !== "manual" && existing.source !== "unknown_legacy";
+  const isWearableBase = existing != null && hasWearableBase(existing);
 
-  const provenance: FieldProvenance = {
-    bedtime: "manual",
-    wakeTime: "manual",
-    totalHours: "manual",
-    quality: "manual",
-    perceivedQuality: "manual",
-    awakenings: "manual",
-    awakeMinutes: isWearableExisting ? existing.source as FieldSource : "manual",
-    hrv: isWearableExisting && existing.hrv != null ? existing.source as FieldSource : (manual.hrv != null ? "manual" : undefined),
-    heartRate: isWearableExisting && existing.heartRate != null ? existing.source as FieldSource : (manual.heartRate != null ? "manual" : undefined),
-    preRoutine: manual.preRoutine != null ? "manual" : undefined,
-    notes: manual.notes != null ? "manual" : undefined,
-  };
-
-  const data: Record<string, unknown> = {
-    bedtime: manual.bedtime,
-    wakeTime: manual.wakeTime,
-    bedtimeAt,
-    wakeTimeAt,
-    totalHours: manual.totalHours,
-    perceivedQuality: manual.quality,
-    awakenings: manual.awakenings,
-    preRoutine: manual.preRoutine ?? null,
-    notes: manual.notes ?? null,
-    source: "manual",
-  };
+  // Timing: wearable wins when wearable base exists
+  const finalBedtime = isWearableBase ? existing!.bedtime : manual.bedtime;
+  const finalWakeTime = isWearableBase ? existing!.wakeTime : manual.wakeTime;
+  const { bedtimeAt, wakeTimeAt } = isWearableBase && existing!.bedtimeAt && existing!.wakeTimeAt
+    ? { bedtimeAt: existing!.bedtimeAt, wakeTimeAt: existing!.wakeTimeAt }
+    : computeAbsoluteTimestamps(date, finalBedtime, finalWakeTime);
 
   const fieldsKept: string[] = [];
-  const fieldsOverwritten: string[] = ["bedtime", "wakeTime", "totalHours", "perceivedQuality", "preRoutine", "notes"];
+  const fieldsOverwritten: string[] = ["perceivedQuality", "preRoutine", "notes"];
 
-  if (isWearableExisting) {
-    // Wearable ALWAYS wins on biometrics
-    data.awakeMinutes = existing.awakeMinutes;
-    data.hrv = existing.hrv;
-    data.heartRate = existing.heartRate;
-    fieldsKept.push("awakeMinutes", "hrv", "heartRate");
+  const data: Record<string, unknown> = {
+    bedtime: finalBedtime,
+    wakeTime: finalWakeTime,
+    bedtimeAt,
+    wakeTimeAt,
+    perceivedQuality: manual.quality,
+    preRoutine: manual.preRoutine ?? null,
+    notes: manual.notes ?? null,
+  };
 
-    // Quality: wearable-derived quality is canonical, manual goes to perceivedQuality
-    if (existing.source !== "unknown_legacy") {
-      data.quality = existing.quality; // preserve wearable-derived quality
-      provenance.quality = existing.source as FieldSource;
-      fieldsKept.push("quality");
-    } else {
-      data.quality = manual.quality;
-    }
+  let provenance: FieldProvenance;
 
-    // Preserve excluded (user decision)
-    data.excluded = existing.excluded;
-    fieldsKept.push("excluded");
+  if (isWearableBase) {
+    const wSrc = existing!.source as FieldSource;
 
-    // Preserve awakenings from wearable
-    data.awakenings = existing.awakenings;
-    provenance.awakenings = existing.source as FieldSource;
-    fieldsKept.push("awakenings");
+    // Wearable timing + biometrics preserved entirely
+    data.totalHours = existing!.totalHours;
+    data.awakeMinutes = existing!.awakeMinutes;
+    data.awakenings = existing!.awakenings;
+    data.hrv = existing!.hrv;
+    data.heartRate = existing!.heartRate;
+    data.quality = existing!.quality;
+    data.excluded = existing!.excluded;
+    data.providerRecordId = existing!.providerRecordId;
+    data.rawHash = existing!.rawHash;
+    // Source stays as wearable — manual is overlay, not ownership transfer
+    data.source = existing!.source;
+    fieldsKept.push(
+      "bedtime", "wakeTime", "totalHours", "awakeMinutes", "awakenings",
+      "hrv", "heartRate", "quality", "excluded", "providerRecordId", "rawHash", "source",
+    );
+
+    provenance = {
+      bedtime: wSrc,
+      wakeTime: wSrc,
+      totalHours: wSrc,
+      quality: wSrc,
+      perceivedQuality: "manual",
+      awakenings: wSrc,
+      awakeMinutes: wSrc,
+      hrv: existing!.hrv != null ? wSrc : undefined,
+      heartRate: existing!.heartRate != null ? wSrc : undefined,
+      preRoutine: manual.preRoutine != null ? "manual" : undefined,
+      notes: manual.notes != null ? "manual" : undefined,
+    };
   } else {
-    // Pure manual: no wearable data to preserve
+    // Pure manual or legacy — manual owns everything
+    data.totalHours = manual.totalHours;
     data.awakeMinutes = 0;
+    data.awakenings = manual.awakenings;
     data.hrv = manual.hrv ?? null;
     data.heartRate = manual.heartRate ?? null;
     data.quality = manual.quality;
-    fieldsOverwritten.push("quality", "hrv", "heartRate", "awakeMinutes");
+    data.source = "manual";
+    fieldsOverwritten.push(
+      "bedtime", "wakeTime", "totalHours", "awakeMinutes", "awakenings",
+      "hrv", "heartRate", "quality",
+    );
+    if (existing) {
+      data.excluded = existing.excluded;
+      fieldsKept.push("excluded");
+    }
+
+    provenance = {
+      bedtime: "manual",
+      wakeTime: "manual",
+      totalHours: "manual",
+      quality: "manual",
+      perceivedQuality: "manual",
+      awakenings: "manual",
+      awakeMinutes: "manual",
+      hrv: manual.hrv != null ? "manual" : undefined,
+      heartRate: manual.heartRate != null ? "manual" : undefined,
+      preRoutine: manual.preRoutine != null ? "manual" : undefined,
+      notes: manual.notes != null ? "manual" : undefined,
+    };
   }
 
   data.fieldProvenance = JSON.stringify(provenance);
@@ -378,23 +427,24 @@ export function reconcileManualIntoExisting(
   // Build merge log
   const existingLog = existing?.mergeLog ? safeParseMergeLog(existing.mergeLog) : [];
   const entry = createMergeLogEntry(
-    isWearableExisting ? "merge_manual_into_wearable" : (existing ? "update_manual" : "create"),
+    isWearableBase ? "merge_manual_into_wearable" : (existing ? "update_manual" : "create"),
     "manual",
     existing?.source as FieldSource | undefined,
-    undefined,
+    overlapScore,
     fieldsKept,
     fieldsOverwritten,
-    isWearableExisting
-      ? `Manual entry merged into existing ${existing.source} record; wearable biometrics preserved`
+    isWearableBase
+      ? `Manual subjective overlay on ${existing!.source} record; wearable timing/biometrics preserved`
       : existing ? "Manual update of existing manual record" : "New manual sleep record",
     importBatchId,
   );
   const mergeLog = [...existingLog, entry];
   data.mergeLog = JSON.stringify(mergeLog);
 
-  // Operations: if existing has different bedtime, delete old + create new
+  // Operations: only delete if existing bedtime differs from FINAL bedtime
+  // (When wearable base, finalBedtime === existing.bedtime → no delete)
   const operations: ReconcileResult["operations"] = [];
-  if (existing && existing.bedtime !== manual.bedtime) {
+  if (existing && existing.bedtime !== finalBedtime) {
     operations.push({ type: "delete", id: existing.id });
   }
   operations.push({ type: "upsert" });
@@ -414,6 +464,7 @@ export function reconcileWearableIntoExisting(
   date: string,
   wearableSource: "hae" | "health_connect",
   importBatchId?: string,
+  overlapScore?: number,
 ): ReconcileResult {
   const { bedtimeAt, wakeTimeAt } = computeAbsoluteTimestamps(date, wearable.bedtime, wearable.wakeTime);
   const hasManualSubjective = existing && hasManualFieldProvenance(existing);
@@ -440,8 +491,8 @@ export function reconcileWearableIntoExisting(
     hrv: wearable.hrv ?? null,
     heartRate: wearable.heartRate ?? null,
     source: wearableSource,
-    providerRecordId: wearable.providerRecordId ?? null,
-    rawHash: wearable.rawHash ?? null,
+    providerRecordId: wearable.providerRecordId ?? existing?.providerRecordId ?? null,
+    rawHash: wearable.rawHash ?? existing?.rawHash ?? null,
   };
 
   const fieldsKept: string[] = [];
@@ -487,7 +538,7 @@ export function reconcileWearableIntoExisting(
     hasManualSubjective ? "merge_wearable_into_manual" : (existing ? "update_wearable" : "create"),
     wearableSource,
     existing?.source as FieldSource | undefined,
-    undefined,
+    overlapScore,
     fieldsKept,
     fieldsOverwritten,
     hasManualSubjective
@@ -509,6 +560,26 @@ export function reconcileWearableIntoExisting(
 }
 
 // ── Helpers ───────────────────────────────────────────────────────
+
+/**
+ * Check if an existing record has a wearable-owned base (timing/biometrics).
+ * Uses fieldProvenance first, then falls back to source.
+ * This determines whether manual edits are overlays (wearable base)
+ * or full replacements (manual/legacy base).
+ */
+function hasWearableBase(existing: ExistingRecord): boolean {
+  // Check fieldProvenance for wearable-owned timing
+  if (existing.fieldProvenance) {
+    try {
+      const fp = JSON.parse(existing.fieldProvenance) as Partial<FieldProvenance>;
+      if (fp.bedtime && fp.bedtime !== "manual" && fp.bedtime !== "unknown_legacy") {
+        return true;
+      }
+    } catch { /* fall through */ }
+  }
+  // Fallback: check source
+  return existing.source !== "manual" && existing.source !== "unknown_legacy";
+}
 
 /**
  * Check if an existing record has manual-sourced subjective fields,

@@ -199,6 +199,7 @@ export async function POST(request: NextRequest) {
           night.date,
           "hae",
           importBatchId,
+          matchResult?.overlapScore,
         );
 
         for (const op of reconciled.operations) {

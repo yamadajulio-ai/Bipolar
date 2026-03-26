@@ -33,8 +33,8 @@ function makeExistingRecord(overrides: Partial<ExistingRecord> = {}): ExistingRe
     excluded: false,
     source: "hae",
     fieldProvenance: null,
-    providerRecordId: null,
-    rawHash: null,
+    providerRecordId: "hae:2026-03-25:23:00:Apple Watch",
+    rawHash: "abc123def456",
     preRoutine: null,
     notes: null,
     mergeLog: null,
@@ -86,12 +86,10 @@ describe("clockDistance", () => {
   });
 
   it("large difference doesn't wrap wrong", () => {
-    // 10:00 vs 22:00 = 12h = 720min, which is the boundary
     expect(clockDistance("10:00", "22:00")).toBe(720);
   });
 
   it("13h apart wraps to 11h", () => {
-    // 10:00 vs 23:00 = 13h → wraps to 11h = 660min
     expect(clockDistance("10:00", "23:00")).toBe(660);
   });
 });
@@ -132,25 +130,48 @@ describe("bedtimesOverlap", () => {
 // ── computeAbsoluteTimestamps ────────────────────────────────────
 
 describe("computeAbsoluteTimestamps", () => {
-  it("PM bedtime is previous day", () => {
+  it("PM bedtime is previous day (overnight)", () => {
     const { bedtimeAt, wakeTimeAt } = computeAbsoluteTimestamps("2026-03-25", "23:00", "07:00");
-    // bedtime 23:00 on March 24, wake 07:00 on March 25
-    expect(bedtimeAt.getUTCDate()).toBe(25); // 23:00 -03:00 = 02:00 UTC on 25th
-    expect(wakeTimeAt.getUTCDate()).toBe(25); // 07:00 -03:00 = 10:00 UTC on 25th
+    // bedtime 23:00 on March 24 → +3h = 02:00 UTC on 25th
+    expect(bedtimeAt.getUTCDate()).toBe(25);
+    expect(wakeTimeAt.getUTCDate()).toBe(25);
     expect(bedtimeAt < wakeTimeAt).toBe(true);
   });
 
   it("AM bedtime (e.g., 01:00) is same day", () => {
     const { bedtimeAt, wakeTimeAt } = computeAbsoluteTimestamps("2026-03-25", "01:00", "09:00");
-    // bedtime 01:00 on March 25
     expect(bedtimeAt.getUTCHours()).toBe(4); // 01:00 + 3 = 04:00 UTC
     expect(wakeTimeAt.getUTCHours()).toBe(12); // 09:00 + 3 = 12:00 UTC
     expect(bedtimeAt < wakeTimeAt).toBe(true);
   });
 
-  it("bedtime always < wakeTime", () => {
+  it("bedtime always < wakeTime for overnight", () => {
     const { bedtimeAt, wakeTimeAt } = computeAbsoluteTimestamps("2026-03-25", "22:00", "06:00");
     expect(bedtimeAt.getTime()).toBeLessThan(wakeTimeAt.getTime());
+  });
+
+  it("daytime nap: 14:00→15:00 is same day (NOT previous day)", () => {
+    const { bedtimeAt, wakeTimeAt } = computeAbsoluteTimestamps("2026-03-25", "14:00", "15:00");
+    // Both on March 25. 14:00 + 3 = 17:00 UTC, 15:00 + 3 = 18:00 UTC
+    expect(bedtimeAt.getUTCDate()).toBe(25);
+    expect(wakeTimeAt.getUTCDate()).toBe(25);
+    expect(bedtimeAt.getUTCHours()).toBe(17);
+    expect(wakeTimeAt.getUTCHours()).toBe(18);
+    expect(bedtimeAt < wakeTimeAt).toBe(true);
+  });
+
+  it("noon bedtime to afternoon: 12:00→14:00 is same day", () => {
+    const { bedtimeAt, wakeTimeAt } = computeAbsoluteTimestamps("2026-03-25", "12:00", "14:00");
+    expect(bedtimeAt.getUTCDate()).toBe(25);
+    expect(wakeTimeAt.getUTCDate()).toBe(25);
+    expect(bedtimeAt < wakeTimeAt).toBe(true);
+  });
+
+  it("midnight bedtime: 00:00→08:00 is same day", () => {
+    const { bedtimeAt, wakeTimeAt } = computeAbsoluteTimestamps("2026-03-25", "00:00", "08:00");
+    expect(bedtimeAt.getUTCDate()).toBe(25);
+    expect(wakeTimeAt.getUTCDate()).toBe(25);
+    expect(bedtimeAt < wakeTimeAt).toBe(true);
   });
 });
 
@@ -172,12 +193,11 @@ describe("intervalOverlap", () => {
   it("partial overlap", () => {
     const a = { bedtimeAt: new Date("2026-03-24T23:00Z"), wakeTimeAt: new Date("2026-03-25T07:00Z") };
     const b = { bedtimeAt: new Date("2026-03-25T02:00Z"), wakeTimeAt: new Date("2026-03-25T10:00Z") };
-    // overlap = 5h (02:00-07:00), union = 11h (23:00-10:00)
     const score = intervalOverlap(a, b);
     expect(score).toBeCloseTo(5 / 11, 2);
   });
 
-  it("nap vs full night = low overlap", () => {
+  it("nap vs full night = no overlap", () => {
     const night = { bedtimeAt: new Date("2026-03-24T23:00Z"), wakeTimeAt: new Date("2026-03-25T07:00Z") };
     const nap = { bedtimeAt: new Date("2026-03-25T13:00Z"), wakeTimeAt: new Date("2026-03-25T14:00Z") };
     expect(intervalOverlap(night, nap)).toBe(0);
@@ -237,7 +257,22 @@ describe("findBestMatch", () => {
       [a, b],
     );
     expect(result).not.toBeNull();
-    expect(result!.match.bedtime).toBe("23:10"); // closer interval overlap
+    expect(result!.match.bedtime).toBe("23:10");
+  });
+
+  it("matches within 26 min boundary (clock-based, score > 0.1)", () => {
+    // 26 min → score = 1 - (26/30) ≈ 0.133 — above the 0.1 minimum threshold
+    const candidates = [{ bedtime: "22:34", bedtimeAt: null, wakeTimeAt: null }];
+    const result = findBestMatch({ bedtime: "23:00" }, candidates);
+    expect(result).not.toBeNull();
+    expect(result!.match.bedtime).toBe("22:34");
+  });
+
+  it("rejects 28+ min distance (clock-based, score < 0.1)", () => {
+    // 28 min → score = 1 - (28/30) = 0.067 — below 0.1 threshold
+    const candidates = [{ bedtime: "22:32", bedtimeAt: null, wakeTimeAt: null }];
+    const result = findBestMatch({ bedtime: "23:00" }, candidates);
+    expect(result).toBeNull();
   });
 });
 
@@ -258,6 +293,24 @@ describe("computeRawHash", () => {
   it("returns 16-char hex string", () => {
     const hash = computeRawHash({ test: true });
     expect(hash).toMatch(/^[0-9a-f]{16}$/);
+  });
+
+  it("key order does not affect hash", () => {
+    const a = { z: 1, a: 2 };
+    const b = { a: 2, z: 1 };
+    expect(computeRawHash(a)).toBe(computeRawHash(b));
+  });
+
+  it("nested objects are deep-canonicalized", () => {
+    const a = { outer: { z: 1, a: 2 } };
+    const b = { outer: { a: 2, z: 1 } };
+    expect(computeRawHash(a)).toBe(computeRawHash(b));
+  });
+
+  it("different nested content produces different hash", () => {
+    const a = { outer: { x: 1 } };
+    const b = { outer: { x: 2 } };
+    expect(computeRawHash(a)).not.toBe(computeRawHash(b));
   });
 });
 
@@ -302,36 +355,41 @@ describe("reconcileManualIntoExisting", () => {
     expect(result.mergeLogEntry.action).toBe("create");
   });
 
-  it("manual into wearable — wearable wins biometrics (HRV/HR/awakeMinutes), manual wins subjective", () => {
+  it("manual into wearable — wearable timing+biometrics preserved, source stays wearable", () => {
     const existing = makeExistingRecord({
       source: "hae",
+      bedtime: "22:58",
+      wakeTime: "06:45",
+      totalHours: 7.78,
       awakeMinutes: 25,
       hrv: 48,
       heartRate: 55,
-      quality: 65, // wearable-derived quality
+      quality: 65,
     });
 
     const result = reconcileManualIntoExisting(manualInput, existing, "2026-03-25");
 
-    // Wearable ALWAYS wins biometrics
+    // Wearable timing preserved (manual bedtime 23:00 is NOT used)
+    expect(result.data.bedtime).toBe("22:58");
+    expect(result.data.wakeTime).toBe("06:45");
+    expect(result.data.totalHours).toBe(7.78);
+
+    // Wearable biometrics preserved
     expect(result.data.awakeMinutes).toBe(25);
     expect(result.data.hrv).toBe(48);
     expect(result.data.heartRate).toBe(55);
 
-    // Manual wins subjective
+    // Wearable quality preserved
+    expect(result.data.quality).toBe(65);
+
+    // Manual subjective wins
     expect(result.data.perceivedQuality).toBe(80);
     expect(result.data.preRoutine).toBe('["meditation"]');
     expect(result.data.notes).toBe("Dormi bem");
 
-    // Quality: preserved from wearable (derived)
-    expect(result.data.quality).toBe(65);
-
-    // Source = manual (user initiated)
-    expect(result.data.source).toBe("manual");
+    // Source stays as wearable — manual is overlay, not ownership transfer
+    expect(result.data.source).toBe("hae");
     expect(result.mergeLogEntry.action).toBe("merge_manual_into_wearable");
-    expect(result.mergeLogEntry.fieldsKept).toContain("hrv");
-    expect(result.mergeLogEntry.fieldsKept).toContain("heartRate");
-    expect(result.mergeLogEntry.fieldsKept).toContain("awakeMinutes");
   });
 
   it("manual HRV/HR NEVER overrides wearable HRV/HR even if provided", () => {
@@ -344,33 +402,104 @@ describe("reconcileManualIntoExisting", () => {
     const manualWithHrv = { ...manualInput, hrv: 99, heartRate: 99 };
     const result = reconcileManualIntoExisting(manualWithHrv, existing, "2026-03-25");
 
-    // Wearable ALWAYS wins — manual HRV/HR is ignored
     expect(result.data.hrv).toBe(48);
     expect(result.data.heartRate).toBe(55);
   });
 
-  it("manual into unknown_legacy — treated as pure manual (no wearable data to preserve)", () => {
+  it("P0-2 FIX: wearable → manual → manual preserves biometrics (no state machine bug)", () => {
+    // Step 1: Wearable record exists
+    const wearableRecord = makeExistingRecord({
+      source: "hae",
+      bedtime: "22:58",
+      wakeTime: "06:45",
+      totalHours: 7.78,
+      awakeMinutes: 25,
+      hrv: 48,
+      heartRate: 55,
+      quality: 65,
+    });
+
+    // Step 2: First manual overlay
+    const firstOverlay = reconcileManualIntoExisting(manualInput, wearableRecord, "2026-03-25");
+    expect(firstOverlay.data.source).toBe("hae"); // source stays wearable
+
+    // Step 3: Second manual edit on the already-overlaid record
+    const overlaidRecord = makeExistingRecord({
+      ...wearableRecord,
+      source: firstOverlay.data.source as string, // "hae" — NOT "manual"
+      perceivedQuality: firstOverlay.data.perceivedQuality as number,
+      preRoutine: firstOverlay.data.preRoutine as string,
+      notes: firstOverlay.data.notes as string,
+      fieldProvenance: firstOverlay.data.fieldProvenance as string,
+      mergeLog: firstOverlay.data.mergeLog as string,
+    });
+
+    const secondEdit = reconcileManualIntoExisting(
+      { ...manualInput, quality: 90, notes: "Editei de novo" },
+      overlaidRecord,
+      "2026-03-25",
+    );
+
+    // Biometrics STILL preserved after second edit
+    expect(secondEdit.data.awakeMinutes).toBe(25);
+    expect(secondEdit.data.hrv).toBe(48);
+    expect(secondEdit.data.heartRate).toBe(55);
+    expect(secondEdit.data.quality).toBe(65); // wearable quality preserved
+    expect(secondEdit.data.perceivedQuality).toBe(90); // new manual quality
+    expect(secondEdit.data.notes).toBe("Editei de novo");
+    expect(secondEdit.data.source).toBe("hae"); // still wearable
+  });
+
+  it("manual into unknown_legacy — treated as pure manual", () => {
     const existing = makeExistingRecord({
       source: "unknown_legacy",
       hrv: null,
       heartRate: null,
       awakeMinutes: 0,
+      providerRecordId: null,
+      rawHash: null,
     });
 
     const result = reconcileManualIntoExisting(manualInput, existing, "2026-03-25");
     expect(result.data.quality).toBe(80);
+    expect(result.data.source).toBe("manual");
     expect(result.data.awakeMinutes).toBe(0);
   });
 
-  it("preserves excluded flag from existing record", () => {
+  it("preserves excluded flag from wearable record", () => {
     const existing = makeExistingRecord({ source: "hae", excluded: true });
     const result = reconcileManualIntoExisting(manualInput, existing, "2026-03-25");
     expect(result.data.excluded).toBe(true);
   });
 
-  it("generates delete operation when bedtime changes", () => {
+  it("preserves providerRecordId and rawHash from wearable record", () => {
+    const existing = makeExistingRecord({
+      source: "hae",
+      providerRecordId: "hae:2026-03-25:22:58:Apple Watch",
+      rawHash: "deadbeef12345678",
+    });
+    const result = reconcileManualIntoExisting(manualInput, existing, "2026-03-25");
+    expect(result.data.providerRecordId).toBe("hae:2026-03-25:22:58:Apple Watch");
+    expect(result.data.rawHash).toBe("deadbeef12345678");
+  });
+
+  it("wearable base — no delete even when manual bedtime differs (timing preserved)", () => {
     const existing = makeExistingRecord({ bedtime: "22:30" });
     const result = reconcileManualIntoExisting(manualInput, existing, "2026-03-25");
+    // Wearable timing preserved → existing.bedtime is final → no delete
+    expect(result.data.bedtime).toBe("22:30");
+    expect(result.operations).toEqual([{ type: "upsert" }]);
+  });
+
+  it("pure manual — generates delete when bedtime changes", () => {
+    const existing = makeExistingRecord({
+      source: "manual",
+      bedtime: "22:30",
+      providerRecordId: null,
+      rawHash: null,
+    });
+    const result = reconcileManualIntoExisting(manualInput, existing, "2026-03-25");
+    expect(result.data.bedtime).toBe("23:00"); // manual bedtime used
     expect(result.operations).toContainEqual({ type: "delete", id: "existing-1" });
     expect(result.operations).toContainEqual({ type: "upsert" });
   });
@@ -381,19 +510,44 @@ describe("reconcileManualIntoExisting", () => {
     expect(result.operations).toEqual([{ type: "upsert" }]);
   });
 
-  it("generates fieldProvenance JSON", () => {
+  it("generates correct fieldProvenance for wearable overlay", () => {
     const existing = makeExistingRecord({ source: "hae" });
     const result = reconcileManualIntoExisting(manualInput, existing, "2026-03-25");
     const fp = JSON.parse(result.data.fieldProvenance as string);
+    expect(fp.bedtime).toBe("hae");
+    expect(fp.wakeTime).toBe("hae");
+    expect(fp.totalHours).toBe("hae");
+    expect(fp.quality).toBe("hae");
     expect(fp.hrv).toBe("hae");
     expect(fp.heartRate).toBe("hae");
+    expect(fp.awakenings).toBe("hae");
+    expect(fp.awakeMinutes).toBe("hae");
     expect(fp.perceivedQuality).toBe("manual");
     expect(fp.preRoutine).toBe("manual");
+    expect(fp.notes).toBe("manual");
+  });
+
+  it("fieldProvenance: null HRV/HR from wearable → provenance undefined (not lying)", () => {
+    const existing = makeExistingRecord({ source: "hae", hrv: null, heartRate: null });
+    const manualWithHrv = { ...manualInput, hrv: 50, heartRate: 60 };
+    const result = reconcileManualIntoExisting(manualWithHrv, existing, "2026-03-25");
+    const fp = JSON.parse(result.data.fieldProvenance as string);
+    // Value is null (wearable wins), so provenance should be undefined
+    expect(fp.hrv).toBeUndefined();
+    expect(fp.heartRate).toBeUndefined();
+    expect(result.data.hrv).toBeNull();
+    expect(result.data.heartRate).toBeNull();
   });
 
   it("includes algorithmVersion in mergeLog", () => {
     const result = reconcileManualIntoExisting(manualInput, null, "2026-03-25");
     expect(result.mergeLogEntry.algorithmVersion).toBe(MERGE_ALGORITHM_VERSION);
+  });
+
+  it("passes overlapScore to merge log", () => {
+    const existing = makeExistingRecord({ source: "hae" });
+    const result = reconcileManualIntoExisting(manualInput, existing, "2026-03-25", undefined, 0.85);
+    expect(result.mergeLogEntry.overlapScore).toBe(0.85);
   });
 
   it("accumulates merge history", () => {
@@ -456,6 +610,8 @@ describe("reconcileWearableIntoExisting", () => {
       preRoutine: '["reading"]',
       notes: "Noite tranquila",
       excluded: true,
+      providerRecordId: null,
+      rawHash: null,
       fieldProvenance: JSON.stringify({ perceivedQuality: "manual", preRoutine: "manual" }),
     });
 
@@ -486,19 +642,19 @@ describe("reconcileWearableIntoExisting", () => {
       source: "manual",
       quality: 80,
       perceivedQuality: 80,
+      providerRecordId: null,
+      rawHash: null,
       fieldProvenance: JSON.stringify({ perceivedQuality: "manual" }),
     });
 
     const noStages = { ...wearableInput, hasStages: false, quality: 50 };
     const result = reconcileWearableIntoExisting(noStages, existing, "2026-03-25", "health_connect");
 
-    // Quality = manual's perceivedQuality (wearable has no stage data)
     expect(result.data.quality).toBe(80);
     expect(result.data.perceivedQuality).toBe(80);
   });
 
   it("reimport — preserves merged manual data from previous merge", () => {
-    // Existing record was already merged (source=hae but has manual fieldProvenance)
     const existing = makeExistingRecord({
       source: "hae",
       quality: 72,
@@ -512,8 +668,6 @@ describe("reconcileWearableIntoExisting", () => {
     });
 
     const result = reconcileWearableIntoExisting(wearableInput, existing, "2026-03-25", "hae");
-
-    // Manual subjective preserved from PREVIOUS merge
     expect(result.data.perceivedQuality).toBe(85);
     expect(result.data.preRoutine).toBe('["shower"]');
     expect(result.data.notes).toBe("Boa noite");
@@ -532,9 +686,26 @@ describe("reconcileWearableIntoExisting", () => {
     expect(result.data.rawHash).toBe("abc123");
   });
 
+  it("preserves providerRecordId from existing when incoming has none", () => {
+    const existing = makeExistingRecord({
+      providerRecordId: "hae:2026-03-25:23:00:Apple Watch",
+      rawHash: "existinghash123",
+    });
+    const noProvider = { ...wearableInput, providerRecordId: undefined, rawHash: undefined };
+    const result = reconcileWearableIntoExisting(noProvider, existing, "2026-03-25", "hae");
+    expect(result.data.providerRecordId).toBe("hae:2026-03-25:23:00:Apple Watch");
+    expect(result.data.rawHash).toBe("existinghash123");
+  });
+
   it("includes importBatchId in merge log", () => {
     const result = reconcileWearableIntoExisting(wearableInput, null, "2026-03-25", "hae", "batch_123");
     expect(result.mergeLogEntry.importBatchId).toBe("batch_123");
+  });
+
+  it("passes overlapScore to merge log", () => {
+    const existing = makeExistingRecord();
+    const result = reconcileWearableIntoExisting(wearableInput, existing, "2026-03-25", "hae", undefined, 0.92);
+    expect(result.mergeLogEntry.overlapScore).toBe(0.92);
   });
 
   it("fieldProvenance tracks per-field source", () => {
@@ -542,6 +713,8 @@ describe("reconcileWearableIntoExisting", () => {
       source: "manual",
       perceivedQuality: 80,
       preRoutine: '["tea"]',
+      providerRecordId: null,
+      rawHash: null,
       fieldProvenance: JSON.stringify({ perceivedQuality: "manual", preRoutine: "manual" }),
     });
 
@@ -561,7 +734,7 @@ describe("reconcileWearableIntoExisting", () => {
 // ── Edge cases: nap + night same day ─────────────────────────────
 
 describe("nap + night same day", () => {
-  it("nap and night have different bedtimes — no match", () => {
+  it("nap and night have different bedtimes — no false match", () => {
     const night = { bedtime: "23:00", bedtimeAt: null, wakeTimeAt: null };
     const nap = { bedtime: "14:00", bedtimeAt: null, wakeTimeAt: null };
     const result = findBestMatch({ bedtime: "23:00" }, [nap, night]);
@@ -584,7 +757,7 @@ describe("nap + night same day", () => {
       [napAt, nightAt],
     );
     expect(result).not.toBeNull();
-    expect(result!.match.bedtime).toBe("23:00"); // matches night, not nap
+    expect(result!.match.bedtime).toBe("23:00");
   });
 });
 
@@ -606,7 +779,8 @@ describe("nullability edge cases", () => {
   it("wearable with no HRV into manual with no HRV", () => {
     const existing = makeExistingRecord({
       source: "manual", hrv: null, heartRate: null,
-      perceivedQuality: 70, fieldProvenance: JSON.stringify({ perceivedQuality: "manual" }),
+      perceivedQuality: 70, providerRecordId: null, rawHash: null,
+      fieldProvenance: JSON.stringify({ perceivedQuality: "manual" }),
     });
     const wearable = {
       bedtime: "23:00", wakeTime: "07:00", totalHours: 8,
@@ -629,6 +803,8 @@ describe("legacy records (source=unknown_legacy)", () => {
       notes: null,
       perceivedQuality: null,
       fieldProvenance: null,
+      providerRecordId: null,
+      rawHash: null,
     });
     const wearable = {
       bedtime: "23:00", wakeTime: "07:00", totalHours: 8,
@@ -645,6 +821,7 @@ describe("legacy records (source=unknown_legacy)", () => {
     const existing = makeExistingRecord({
       source: "unknown_legacy",
       hrv: null, heartRate: null, awakeMinutes: 0,
+      providerRecordId: null, rawHash: null,
     });
     const manual = {
       bedtime: "23:00", wakeTime: "07:00", totalHours: 8,
@@ -653,6 +830,68 @@ describe("legacy records (source=unknown_legacy)", () => {
     };
     const result = reconcileManualIntoExisting(manual, existing, "2026-03-25");
     expect(result.data.quality).toBe(80);
+    expect(result.data.source).toBe("manual");
     expect(result.mergeLogEntry.action).toBe("update_manual");
+  });
+});
+
+// ── Full lifecycle: wearable → manual overlay → wearable reimport ──
+
+describe("full lifecycle", () => {
+  it("wearable → manual overlay → wearable reimport preserves all data", () => {
+    // Step 1: Initial wearable import
+    const wearable1 = reconcileWearableIntoExisting(
+      {
+        bedtime: "22:58", wakeTime: "06:45", totalHours: 7.78,
+        quality: 72, awakenings: 3, awakeMinutes: 18,
+        hrv: 45, heartRate: 56, hasStages: true,
+        providerRecordId: "hae:2026-03-25:22:58", rawHash: "hash1",
+      },
+      null, "2026-03-25", "hae", "batch1",
+    );
+    expect(wearable1.data.source).toBe("hae");
+
+    // Step 2: Manual overlay
+    const afterWearable = makeExistingRecord({
+      ...wearable1.data as Partial<ExistingRecord>,
+      id: "rec-1",
+      bedtimeAt: wearable1.data.bedtimeAt as Date,
+      wakeTimeAt: wearable1.data.wakeTimeAt as Date,
+    });
+    const manualOverlay = reconcileManualIntoExisting(
+      { bedtime: "23:00", wakeTime: "07:00", totalHours: 8, quality: 85, awakenings: 1, preRoutine: '["tea"]', notes: "Boa noite" },
+      afterWearable, "2026-03-25",
+    );
+    expect(manualOverlay.data.source).toBe("hae"); // stays wearable
+    expect(manualOverlay.data.perceivedQuality).toBe(85);
+    expect(manualOverlay.data.hrv).toBe(45); // preserved
+
+    // Step 3: Wearable reimport (same night, updated data)
+    const afterOverlay = makeExistingRecord({
+      ...manualOverlay.data as Partial<ExistingRecord>,
+      id: "rec-1",
+      bedtimeAt: manualOverlay.data.bedtimeAt as Date,
+      wakeTimeAt: manualOverlay.data.wakeTimeAt as Date,
+    });
+    const reimport = reconcileWearableIntoExisting(
+      {
+        bedtime: "22:58", wakeTime: "06:50", totalHours: 7.87,
+        quality: 74, awakenings: 2, awakeMinutes: 15,
+        hrv: 47, heartRate: 55, hasStages: true,
+        providerRecordId: "hae:2026-03-25:22:58", rawHash: "hash2",
+      },
+      afterOverlay, "2026-03-25", "hae", "batch2",
+    );
+
+    // Wearable data updated
+    expect(reimport.data.totalHours).toBe(7.87);
+    expect(reimport.data.hrv).toBe(47);
+    expect(reimport.data.quality).toBe(74);
+    // Manual subjective preserved from previous overlay
+    expect(reimport.data.perceivedQuality).toBe(85);
+    expect(reimport.data.preRoutine).toBe('["tea"]');
+    expect(reimport.data.notes).toBe("Boa noite");
+    // Merge log accumulated
+    expect(reimport.mergeLog.length).toBe(3);
   });
 });

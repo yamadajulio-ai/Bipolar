@@ -151,14 +151,21 @@ model SleepLog {
   date       String // YYYY-MM-DD (morning date)
   bedtime    String // HH:MM
   wakeTime   String // HH:MM
+  bedtimeAt  DateTime? // Absolute UTC timestamp for interval matching
+  wakeTimeAt DateTime? // Absolute UTC timestamp for interval matching
   totalHours Float
-  quality    Int // 0..100
+  quality    Int // 0..100 — canonical quality used in metrics (wearable-derived when available)
+  perceivedQuality Int? // 0..100 — subjective quality from manual registration only
   awakenings   Int      @default(0)
   awakeMinutes Int      @default(0) // Minutes spent awake during sleep period (from wearable)
   hrv          Int? // Heart Rate Variability (ms) — ex: RMSSD from wearable
   heartRate  Int? // Resting heart rate (bpm) during sleep
   excluded   Boolean  @default(false) // Incomplete/unreliable record — excluded from metrics
-  source     String   @default("manual") // "manual" | "hae" | "health_connect"
+  source     String   @default("unknown_legacy") // "manual" | "hae" | "health_connect" | "unknown_legacy"
+  fieldProvenance String? // JSONB: {"bedtime":"hae","quality":"manual",...} — tracks which source set each field
+  providerRecordId String? // External UUID/ID from wearable platform (HealthKit UUID, HC record ID)
+  rawHash    String? // SHA-256 of raw provider payload for reimport dedup
+  mergeLog   String? // JSONB audit trail: [{ts, action, fieldsKept, fieldsOverwritten, reason}]
   preRoutine String? // JSON array of routine keys
   notes      String? // max 280 chars
   createdAt  DateTime @default(now())
@@ -167,6 +174,7 @@ model SleepLog {
   @@unique([userId, date, bedtime])
   @@index([userId])
   @@index([userId, date])
+  @@index([userId, source, date])
 }
 
 model ExerciseSession {

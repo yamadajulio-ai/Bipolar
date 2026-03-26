@@ -341,5 +341,6 @@ function parseSleepSession(
     hasStages,
     ...(hrv !== undefined && { hrv }),
     ...(heartRate !== undefined && { heartRate }),
+    providerRecordId: `hc:${wakeDate}:${bedtime}`,
   };
 }

@@ -4,7 +4,13 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { checkRateLimit } from "@/lib/security";
 import { parseHealthExportPayloadV2 } from "@/lib/integrations/healthExport";
-import { bedtimesOverlap } from "@/lib/sleepMerge";
+import {
+  findBestMatch,
+  computeAbsoluteTimestamps,
+  computeRawHash,
+  reconcileWearableIntoExisting,
+  type ExistingRecord,
+} from "@/lib/sleepMerge";
 
 type PrismaPromise = Prisma.PrismaPromise<unknown>;
 
@@ -139,53 +145,73 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 2. Sleep nights: smart merge preserving manual subjective data.
-    //    Pre-fetch existing manual records to merge quality/preRoutine/notes.
+    // 2. Sleep nights: smart merge via reconciliation system.
     if (result.sleepNights.length > 0) {
+      const importBatchId = `hae_worker_${Date.now()}`;
       const affectedDates = [...new Set(result.sleepNights.map((n) => n.date))];
 
       const existingRecords = await prisma.sleepLog.findMany({
         where: { userId: integration.userId, date: { in: affectedDates } },
-        select: { id: true, date: true, bedtime: true, source: true, quality: true, preRoutine: true, notes: true, excluded: true },
+        select: {
+          id: true, bedtime: true, wakeTime: true, bedtimeAt: true, wakeTimeAt: true,
+          totalHours: true, quality: true, perceivedQuality: true, awakenings: true,
+          awakeMinutes: true, hrv: true, heartRate: true, excluded: true, source: true,
+          fieldProvenance: true, providerRecordId: true, rawHash: true, preRoutine: true,
+          notes: true, mergeLog: true, date: true,
+        },
       });
 
       const consumedIds = new Set<string>();
+      const existingByDate = new Map<string, typeof existingRecords>();
+      for (const rec of existingRecords) {
+        const list = existingByDate.get(rec.date) || [];
+        list.push(rec);
+        existingByDate.set(rec.date, list);
+      }
 
       for (const night of result.sleepNights) {
-        // Find manual record with overlapping bedtime to preserve subjective data
-        const manualMatch = existingRecords.find(
-          (r) => r.date === night.date && r.source === "manual" && !consumedIds.has(r.id) && bedtimesOverlap(night.bedtime, r.bedtime),
+        const dateRecords = (existingByDate.get(night.date) || []).filter((r) => !consumedIds.has(r.id));
+        const { bedtimeAt, wakeTimeAt } = computeAbsoluteTimestamps(night.date, night.bedtime, night.wakeTime);
+
+        const matchResult = findBestMatch(
+          { bedtime: night.bedtime, bedtimeAt, wakeTimeAt },
+          dateRecords,
         );
 
-        const wearableData: Record<string, unknown> = {
-          bedtime: night.bedtime,
-          wakeTime: night.wakeTime,
-          totalHours: night.totalHours,
-          quality: night.quality,
-          awakenings: night.awakenings,
-          awakeMinutes: night.awakeMinutes,
-          hrv: night.hrv ?? null,
-          heartRate: night.heartRate ?? null,
-          source: "hae",
-        };
+        const existingRecord = matchResult?.match as ExistingRecord | undefined ?? null;
+        if (existingRecord) consumedIds.add(existingRecord.id);
 
-        if (manualMatch) {
-          consumedIds.add(manualMatch.id);
-          // Preserve manual subjective data
-          wearableData.quality = manualMatch.quality;
-          wearableData.preRoutine = manualMatch.preRoutine;
-          wearableData.notes = manualMatch.notes;
-          wearableData.excluded = manualMatch.excluded;
+        const rawHash = computeRawHash({
+          date: night.date, bedtime: night.bedtime, wakeTime: night.wakeTime,
+          totalHours: night.totalHours, quality: night.quality,
+        });
 
-          // Delete old manual record if bedtime differs (will be recreated with wearable timing)
-          if (manualMatch.bedtime !== night.bedtime) {
-            txOps.push(prisma.sleepLog.delete({ where: { id: manualMatch.id } }));
+        const reconciled = reconcileWearableIntoExisting(
+          {
+            bedtime: night.bedtime, wakeTime: night.wakeTime,
+            totalHours: night.totalHours, quality: night.quality,
+            awakenings: night.awakenings, awakeMinutes: night.awakeMinutes,
+            hrv: night.hrv, heartRate: night.heartRate,
+            hasStages: night.hasStages ?? true,
+            providerRecordId: night.providerRecordId, rawHash,
+          },
+          existingRecord,
+          night.date,
+          "hae",
+          importBatchId,
+        );
+
+        for (const op of reconciled.operations) {
+          if (op.type === "delete") {
+            txOps.push(prisma.sleepLog.delete({ where: { id: op.id } }));
           }
         }
 
-        // Delete stale wearable records with overlapping bedtime
-        const staleWearable = existingRecords.filter(
-          (r) => r.date === night.date && r.source !== "manual" && !consumedIds.has(r.id) && bedtimesOverlap(night.bedtime, r.bedtime),
+        // Delete stale wearable records
+        const staleWearable = dateRecords.filter(
+          (r) => r.id !== existingRecord?.id && !consumedIds.has(r.id) &&
+            r.source !== "manual" && r.source !== "unknown_legacy" &&
+            findBestMatch({ bedtime: night.bedtime, bedtimeAt, wakeTimeAt }, [r]) !== null,
         );
         for (const stale of staleWearable) {
           consumedIds.add(stale.id);
@@ -197,8 +223,8 @@ export async function POST(request: NextRequest) {
             where: {
               userId_date_bedtime: { userId: integration.userId, date: night.date, bedtime: night.bedtime },
             },
-            update: wearableData as any, // eslint-disable-line @typescript-eslint/no-explicit-any
-            create: { userId: integration.userId, date: night.date, ...wearableData } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+            update: reconciled.data as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+            create: { userId: integration.userId, date: night.date, ...reconciled.data } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
           }),
         );
       }

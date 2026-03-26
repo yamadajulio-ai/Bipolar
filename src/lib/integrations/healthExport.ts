@@ -55,6 +55,9 @@ export interface ProcessedSleepNight {
   hrv?: number;       // Heart Rate Variability SDNN (ms)
   heartRate?: number; // Resting heart rate (bpm)
   hasStages?: boolean; // Whether quality was derived from real stage data
+  providerRecordId?: string; // Stable external ID for dedup
+  rawHash?: string;   // SHA-256 of raw payload data
+  sourceApp?: string; // Source app name (e.g., "Apple Watch", "Fitbit")
 }
 
 export interface ProcessedGenericMetric {
@@ -656,15 +659,23 @@ function processNight(segments: SleepSegment[]): ProcessedSleepNight | null {
   const awakenings = segments.filter((s) => s.stage === "awake").length;
 
   const date = toYMD(wakeTime);
+  const bedtimeStr = formatHHMM(bedtime);
+  const wakeTimeStr = formatHHMM(wakeTime);
+
+  // Source app from the best-source segments
+  const sourceApp = segments[0]?.source || undefined;
 
   return {
     date,
-    bedtime: formatHHMM(bedtime),
-    wakeTime: formatHHMM(wakeTime),
+    bedtime: bedtimeStr,
+    wakeTime: wakeTimeStr,
     totalHours,
     quality,
     awakenings,
     awakeMinutes,
+    hasStages: hasStageBreakdown,
+    sourceApp,
+    providerRecordId: `hae:${date}:${bedtimeStr}${sourceApp ? `:${sourceApp}` : ""}`,
   };
 }
 

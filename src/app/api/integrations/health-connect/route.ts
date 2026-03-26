@@ -4,7 +4,13 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { checkRateLimit } from "@/lib/security";
 import { parseHealthConnectPayload } from "@/lib/integrations/healthConnect";
-import { bedtimesOverlap } from "@/lib/sleepMerge";
+import {
+  findBestMatch,
+  computeAbsoluteTimestamps,
+  computeRawHash,
+  reconcileWearableIntoExisting,
+  type ExistingRecord,
+} from "@/lib/sleepMerge";
 
 type PrismaPromise = Prisma.PrismaPromise<unknown>;
 
@@ -146,81 +152,77 @@ export async function POST(request: NextRequest) {
       }),
     );
 
-    // Pre-fetch existing manual records for affected dates to preserve subjective data
+    // Pre-fetch ALL existing records for affected dates (not just manual — check fieldProvenance)
     const affectedDates = [...new Set(result.sleepNights.map((n) => n.date))];
-    const existingManual = affectedDates.length > 0
+    const existingRecords = affectedDates.length > 0
       ? await prisma.sleepLog.findMany({
-          where: { userId: integration.userId, date: { in: affectedDates }, source: "manual" },
-          select: { id: true, date: true, bedtime: true, quality: true, preRoutine: true, notes: true, excluded: true },
+          where: { userId: integration.userId, date: { in: affectedDates } },
+          select: {
+            id: true, bedtime: true, wakeTime: true, bedtimeAt: true, wakeTimeAt: true,
+            totalHours: true, quality: true, perceivedQuality: true, awakenings: true,
+            awakeMinutes: true, hrv: true, heartRate: true, excluded: true, source: true,
+            fieldProvenance: true, providerRecordId: true, rawHash: true, preRoutine: true,
+            notes: true, mergeLog: true, date: true,
+          },
         })
       : [];
 
-    // Upsert sleep nights (preserving manual subjective data)
+    const importBatchId = `hc_${Date.now()}`;
+    const consumedIds = new Set<string>();
+    const existingByDate = new Map<string, typeof existingRecords>();
+    for (const rec of existingRecords) {
+      const list = existingByDate.get(rec.date) || [];
+      list.push(rec);
+      existingByDate.set(rec.date, list);
+    }
+
+    // Reconcile sleep nights using v2 merge system
     for (const night of result.sleepNights) {
-      // Check if there's a manual record for this night that we should merge with
-      const manualMatch = existingManual.find(
-        (r) => r.date === night.date && bedtimesOverlap(night.bedtime, r.bedtime),
+      const dateRecords = (existingByDate.get(night.date) || []).filter((r) => !consumedIds.has(r.id));
+      const { bedtimeAt, wakeTimeAt } = computeAbsoluteTimestamps(night.date, night.bedtime, night.wakeTime);
+
+      const matchResult = findBestMatch(
+        { bedtime: night.bedtime, bedtimeAt, wakeTimeAt },
+        dateRecords,
       );
 
-      const createData: Record<string, unknown> = {
-        bedtime: night.bedtime,
-        wakeTime: night.wakeTime,
-        totalHours: night.totalHours,
-        quality: night.quality,
-        awakenings: night.awakenings,
-        awakeMinutes: night.awakeMinutes,
-        hrv: night.hrv ?? null,
-        heartRate: night.heartRate ?? null,
-        source: "health_connect",
-      };
-      // For updates, only overwrite fields that have actual values
-      // This prevents a partial payload from nullifying rich data
-      const updateData: Record<string, unknown> = {
-        bedtime: night.bedtime,
-        wakeTime: night.wakeTime,
-        totalHours: night.totalHours,
-        awakeMinutes: night.awakeMinutes,
-        source: "health_connect",
-      };
-      // Only overwrite quality/awakenings if derived from real stage data
-      if (night.hasStages) {
-        updateData.quality = night.quality;
-        updateData.awakenings = night.awakenings;
-      }
-      if (night.hrv !== undefined) updateData.hrv = night.hrv;
-      if (night.heartRate !== undefined) updateData.heartRate = night.heartRate;
+      const existingRecord = matchResult?.match as ExistingRecord | undefined ?? null;
+      if (existingRecord) consumedIds.add(existingRecord.id);
 
-      // Preserve manual subjective fields when merging
-      if (manualMatch) {
-        if (!night.hasStages) {
-          createData.quality = manualMatch.quality;
-          // updateData already doesn't overwrite quality when !hasStages
-        }
-        createData.preRoutine = manualMatch.preRoutine;
-        createData.notes = manualMatch.notes;
-        createData.excluded = manualMatch.excluded;
-        // Don't overwrite these on update either
-        updateData.preRoutine = undefined; // keep existing
-        updateData.notes = undefined;
+      const rawHash = computeRawHash({
+        date: night.date, bedtime: night.bedtime, wakeTime: night.wakeTime,
+        totalHours: night.totalHours, quality: night.quality,
+      });
 
-        // Delete the old manual record if bedtime differs (recreated with wearable timing)
-        if (manualMatch.bedtime !== night.bedtime) {
-          txOps.push(prisma.sleepLog.delete({ where: { id: manualMatch.id } }));
-        }
-      }
-
-      // Remove undefined keys from updateData (Prisma would set them to null)
-      const cleanUpdate = Object.fromEntries(
-        Object.entries(updateData).filter(([, v]) => v !== undefined),
+      const reconciled = reconcileWearableIntoExisting(
+        {
+          bedtime: night.bedtime, wakeTime: night.wakeTime,
+          totalHours: night.totalHours, quality: night.quality,
+          awakenings: night.awakenings,
+          awakeMinutes: Math.round((night as { awakeMinutes?: number }).awakeMinutes ?? 0),
+          hrv: night.hrv, heartRate: night.heartRate,
+          hasStages: night.hasStages ?? false,
+          providerRecordId: night.providerRecordId, rawHash,
+        },
+        existingRecord,
+        night.date,
+        "health_connect",
+        importBatchId,
       );
+
+      for (const op of reconciled.operations) {
+        if (op.type === "delete") {
+          txOps.push(prisma.sleepLog.delete({ where: { id: op.id } }));
+        }
+      }
 
       txOps.push(
         prisma.sleepLog.upsert({
           where: {
             userId_date_bedtime: { userId: integration.userId, date: night.date, bedtime: night.bedtime },
           },
-          update: cleanUpdate as any, // eslint-disable-line @typescript-eslint/no-explicit-any
-          create: { userId: integration.userId, date: night.date, ...createData } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+          update: reconciled.data as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+          create: { userId: integration.userId, date: night.date, ...reconciled.data } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
         }),
       );
     }

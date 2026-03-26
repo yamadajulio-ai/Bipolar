@@ -4,7 +4,12 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/security";
 import { localDateStr } from "@/lib/dateUtils";
-import { bedtimesOverlap, mergeManualIntoWearable } from "@/lib/sleepMerge";
+import {
+  findBestMatch,
+  computeAbsoluteTimestamps,
+  reconcileManualIntoExisting,
+  type ExistingRecord,
+} from "@/lib/sleepMerge";
 import * as Sentry from "@sentry/nextjs";
 
 const sleepLogSchema = z.object({
@@ -19,6 +24,30 @@ const sleepLogSchema = z.object({
   preRoutine: z.string().optional(),
   notes: z.string().max(280).optional(),
 });
+
+// Fields to select for merge comparison
+const MERGE_SELECT = {
+  id: true,
+  bedtime: true,
+  wakeTime: true,
+  bedtimeAt: true,
+  wakeTimeAt: true,
+  totalHours: true,
+  quality: true,
+  perceivedQuality: true,
+  awakenings: true,
+  awakeMinutes: true,
+  hrv: true,
+  heartRate: true,
+  excluded: true,
+  source: true,
+  fieldProvenance: true,
+  providerRecordId: true,
+  rawHash: true,
+  preRoutine: true,
+  notes: true,
+  mergeLog: true,
+} as const;
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -51,11 +80,13 @@ export async function GET(request: NextRequest) {
       totalHours: true,
       awakeMinutes: true,
       quality: true,
+      perceivedQuality: true,
       awakenings: true,
       hrv: true,
       heartRate: true,
       excluded: true,
       source: true,
+      fieldProvenance: true,
       preRoutine: true,
       notes: true,
       createdAt: true,
@@ -90,7 +121,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ errors: fieldErrors }, { status: 400 });
     }
 
-    const manualData: Record<string, unknown> = {
+    // Server-side stripping: only use declared fields (never trust hrv/heartRate
+    // from client to overwrite wearable data — reconciler handles this)
+    const manualInput = {
       bedtime: parsed.data.bedtime,
       wakeTime: parsed.data.wakeTime,
       totalHours: parsed.data.totalHours,
@@ -100,75 +133,87 @@ export async function POST(request: NextRequest) {
       heartRate: parsed.data.heartRate ?? null,
       preRoutine: parsed.data.preRoutine || null,
       notes: parsed.data.notes || null,
-      source: "manual",
     };
 
-    // Find existing records for this date to check for wearable overlap
+    // Find existing records for this date
     const existing = await prisma.sleepLog.findMany({
       where: { userId: session.userId, date: parsed.data.date },
-      select: {
-        id: true,
-        bedtime: true,
-        source: true,
-        awakeMinutes: true,
-        hrv: true,
-        heartRate: true,
-      },
+      select: MERGE_SELECT,
     });
 
-    // Find overlapping records (±30min bedtime, different exact bedtime)
-    const overlapping = existing.filter((e) =>
-      bedtimesOverlap(parsed.data.bedtime, e.bedtime) && e.bedtime !== parsed.data.bedtime,
+    // Find best matching record using interval overlap
+    const { bedtimeAt, wakeTimeAt } = computeAbsoluteTimestamps(
+      parsed.data.date, parsed.data.bedtime, parsed.data.wakeTime,
+    );
+    const matchResult = findBestMatch(
+      { bedtime: parsed.data.bedtime, bedtimeAt, wakeTimeAt },
+      existing,
     );
 
-    // If any overlapping record came from a wearable, preserve its objective data
-    const wearableMatch = overlapping.find((e) => e.source !== "manual")
-      ?? existing.find((e) => e.bedtime === parsed.data.bedtime && e.source !== "manual");
+    const existingRecord = matchResult?.match as ExistingRecord | undefined ?? null;
 
-    let finalData = manualData;
-    if (wearableMatch) {
-      finalData = mergeManualIntoWearable(manualData, {
-        awakeMinutes: wearableMatch.awakeMinutes,
-        hrv: wearableMatch.hrv,
-        heartRate: wearableMatch.heartRate,
-      });
-      finalData.source = "manual"; // user intentionally registered
-    }
+    // Reconcile: manual into existing (may be wearable)
+    const result = reconcileManualIntoExisting(
+      manualInput,
+      existingRecord,
+      parsed.data.date,
+    );
 
-    // Delete near-duplicate records (same night, slightly different bedtime)
-    if (overlapping.length > 0) {
-      await prisma.sleepLog.deleteMany({
-        where: { id: { in: overlapping.map((e) => e.id) } },
-      });
-    }
+    // Execute operations inside a transaction
+    const log = await prisma.$transaction(async (tx) => {
+      // Delete old record if bedtime changed
+      for (const op of result.operations) {
+        if (op.type === "delete") {
+          await (tx as typeof prisma).sleepLog.delete({ where: { id: op.id } });
+        }
+      }
 
-    const log = await prisma.sleepLog.upsert({
-      where: {
-        userId_date_bedtime: {
-          userId: session.userId,
-          date: parsed.data.date,
-          bedtime: parsed.data.bedtime,
+      // Also delete any other overlapping records with different bedtime
+      const overlapping = existing.filter((e) =>
+        e.id !== existingRecord?.id &&
+        e.bedtime !== parsed.data.bedtime &&
+        findBestMatch(
+          { bedtime: parsed.data.bedtime, bedtimeAt, wakeTimeAt },
+          [e],
+        ) !== null,
+      );
+      if (overlapping.length > 0) {
+        await (tx as typeof prisma).sleepLog.deleteMany({
+          where: { id: { in: overlapping.map((e) => e.id) } },
+        });
+      }
+
+      // Upsert the reconciled record
+      return (tx as typeof prisma).sleepLog.upsert({
+        where: {
+          userId_date_bedtime: {
+            userId: session.userId,
+            date: parsed.data.date,
+            bedtime: parsed.data.bedtime,
+          },
         },
-      },
-      update: finalData as any, // eslint-disable-line @typescript-eslint/no-explicit-any
-      create: { userId: session.userId, date: parsed.data.date, ...finalData } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
-      select: {
-        id: true,
-        date: true,
-        bedtime: true,
-        wakeTime: true,
-        totalHours: true,
-        awakeMinutes: true,
-        quality: true,
-        awakenings: true,
-        hrv: true,
-        heartRate: true,
-        excluded: true,
-        source: true,
-        preRoutine: true,
-        notes: true,
-        createdAt: true,
-      },
+        update: result.data as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+        create: { userId: session.userId, date: parsed.data.date, ...result.data } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+        select: {
+          id: true,
+          date: true,
+          bedtime: true,
+          wakeTime: true,
+          totalHours: true,
+          awakeMinutes: true,
+          quality: true,
+          perceivedQuality: true,
+          awakenings: true,
+          hrv: true,
+          heartRate: true,
+          excluded: true,
+          source: true,
+          fieldProvenance: true,
+          preRoutine: true,
+          notes: true,
+          createdAt: true,
+        },
+      });
     });
 
     return NextResponse.json(log, { status: 201 });

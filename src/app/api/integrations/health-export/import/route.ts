@@ -2,12 +2,42 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { parseHealthExportPayloadV2 } from "@/lib/integrations/healthExport";
-import { bedtimesOverlap, mergeWearableIntoManual } from "@/lib/sleepMerge";
+import {
+  findBestMatch,
+  computeAbsoluteTimestamps,
+  computeRawHash,
+  reconcileWearableIntoExisting,
+  type ExistingRecord,
+} from "@/lib/sleepMerge";
+
+// Fields to select for merge comparison
+const MERGE_SELECT = {
+  id: true,
+  date: true,
+  bedtime: true,
+  wakeTime: true,
+  bedtimeAt: true,
+  wakeTimeAt: true,
+  totalHours: true,
+  quality: true,
+  perceivedQuality: true,
+  awakenings: true,
+  awakeMinutes: true,
+  hrv: true,
+  heartRate: true,
+  excluded: true,
+  source: true,
+  fieldProvenance: true,
+  providerRecordId: true,
+  rawHash: true,
+  preRoutine: true,
+  notes: true,
+  mergeLog: true,
+} as const;
 
 /**
  * POST — Manual JSON import (session auth, from browser).
  * Accepts the same payload format as Health Auto Export.
- * The frontend chunks large payloads and sends multiple requests.
  */
 export async function POST(request: NextRequest) {
   const session = await getSession();
@@ -17,7 +47,6 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-
     const result = parseHealthExportPayloadV2(body);
 
     const hasAnyData =
@@ -33,27 +62,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 1. Smart merge: preserve manual subjective data instead of delete-all
+    // 1. Smart merge sleep nights
     let sleepImported = 0;
     if (result.sleepNights.length > 0) {
+      const importBatchId = `hae_browser_${Date.now()}`;
       const affectedDates = [...new Set(result.sleepNights.map((n) => n.date))];
 
-      // Fetch all existing records for affected dates
+      // Fetch ALL existing records for affected dates (not just manual)
       const existingRecords = await prisma.sleepLog.findMany({
         where: { userId: session.userId, date: { in: affectedDates } },
-        select: {
-          id: true,
-          date: true,
-          bedtime: true,
-          source: true,
-          quality: true,
-          preRoutine: true,
-          notes: true,
-          excluded: true,
-        },
+        select: MERGE_SELECT,
       });
 
-      // Build a lookup: date → records[]
+      // Group by date
       const existingByDate = new Map<string, typeof existingRecords>();
       for (const rec of existingRecords) {
         const list = existingByDate.get(rec.date) || [];
@@ -61,64 +82,66 @@ export async function POST(request: NextRequest) {
         existingByDate.set(rec.date, list);
       }
 
-      // Track which existing record IDs are consumed by a merge
       const consumedIds = new Set<string>();
-
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const txOps: any[] = [];
 
       for (const night of result.sleepNights) {
-        const dateRecords = existingByDate.get(night.date) || [];
+        const dateRecords = (existingByDate.get(night.date) || []).filter((r) => !consumedIds.has(r.id));
+        const { bedtimeAt, wakeTimeAt } = computeAbsoluteTimestamps(night.date, night.bedtime, night.wakeTime);
 
-        // Find a manual record with overlapping bedtime (±30min)
-        const manualMatch = dateRecords.find(
-          (r) => r.source === "manual" && !consumedIds.has(r.id) && bedtimesOverlap(night.bedtime, r.bedtime),
+        // Find best match (checks fieldProvenance, not just source)
+        const matchResult = findBestMatch(
+          { bedtime: night.bedtime, bedtimeAt, wakeTimeAt },
+          dateRecords,
         );
 
-        let wearableData: Record<string, unknown> = {
-          bedtime: night.bedtime,
-          wakeTime: night.wakeTime,
-          totalHours: night.totalHours,
-          quality: night.quality,
-          awakenings: night.awakenings,
-          awakeMinutes: night.awakeMinutes,
-          hrv: night.hrv ?? null,
-          heartRate: night.heartRate ?? null,
-          source: "hae",
-        };
+        const existingRecord = matchResult?.match as ExistingRecord | undefined ?? null;
+        if (existingRecord) consumedIds.add(existingRecord.id);
 
-        if (manualMatch) {
-          // Merge: wearable objective + manual subjective
-          consumedIds.add(manualMatch.id);
-          wearableData = mergeWearableIntoManual(
-            wearableData,
-            {
-              quality: manualMatch.quality,
-              preRoutine: manualMatch.preRoutine,
-              notes: manualMatch.notes,
-              excluded: manualMatch.excluded,
-            },
-            true, // HAE always has real timing data
-          );
+        const rawHash = computeRawHash({
+          date: night.date, bedtime: night.bedtime, wakeTime: night.wakeTime,
+          totalHours: night.totalHours, quality: night.quality,
+        });
 
-          // Delete the old manual record if bedtime differs (will be recreated with wearable timing)
-          if (manualMatch.bedtime !== night.bedtime) {
-            txOps.push(
-              prisma.sleepLog.delete({ where: { id: manualMatch.id } }),
-            );
+        const reconciled = reconcileWearableIntoExisting(
+          {
+            bedtime: night.bedtime,
+            wakeTime: night.wakeTime,
+            totalHours: night.totalHours,
+            quality: night.quality,
+            awakenings: night.awakenings,
+            awakeMinutes: night.awakeMinutes,
+            hrv: night.hrv,
+            heartRate: night.heartRate,
+            hasStages: night.hasStages ?? true,
+            providerRecordId: night.providerRecordId,
+            rawHash,
+          },
+          existingRecord,
+          night.date,
+          "hae",
+          importBatchId,
+        );
+
+        // Execute operations
+        for (const op of reconciled.operations) {
+          if (op.type === "delete") {
+            txOps.push(prisma.sleepLog.delete({ where: { id: op.id } }));
           }
         }
 
-        // Also delete any stale wearable records for this date+bedtime overlap
+        // Delete stale wearable records overlapping this night
         const staleWearable = dateRecords.filter(
-          (r) => r.source !== "manual" && !consumedIds.has(r.id) && bedtimesOverlap(night.bedtime, r.bedtime),
+          (r) => r.id !== existingRecord?.id && !consumedIds.has(r.id) &&
+            r.source !== "manual" && r.source !== "unknown_legacy" &&
+            findBestMatch({ bedtime: night.bedtime, bedtimeAt, wakeTimeAt }, [r]) !== null,
         );
         for (const stale of staleWearable) {
           consumedIds.add(stale.id);
           txOps.push(prisma.sleepLog.delete({ where: { id: stale.id } }));
         }
 
-        // Upsert the merged record
         txOps.push(
           prisma.sleepLog.upsert({
             where: {
@@ -128,8 +151,8 @@ export async function POST(request: NextRequest) {
                 bedtime: night.bedtime,
               },
             },
-            update: wearableData as any, // eslint-disable-line @typescript-eslint/no-explicit-any
-            create: { userId: session.userId, date: night.date, ...wearableData } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+            update: reconciled.data as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+            create: { userId: session.userId, date: night.date, ...reconciled.data } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
             select: { id: true },
           }),
         );
@@ -193,7 +216,6 @@ export async function POST(request: NextRequest) {
       skippedCount: result.skippedCount,
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Erro desconhecido";
     return NextResponse.json(
       { error: "Erro ao processar dados importados" },
       { status: 500 },

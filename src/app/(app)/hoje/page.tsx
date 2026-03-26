@@ -203,7 +203,7 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
     prisma.alertEpisode.findFirst({
       where: { userId: session.userId, resolvedAt: null },
       orderBy: { lastTriggeredAt: "desc" },
-      select: { id: true, layer: true, lastTriggeredAt: true, minHoldUntil: true, modalCooldownUntil: true, resolvedAt: true },
+      select: { id: true, layer: true, startedAt: true, lastTriggeredAt: true, minHoldUntil: true, modalCooldownUntil: true, resolvedAt: true },
     }),
     // Risk v2: medication adherence (last 7 days for critical meds)
     prisma.medication.findMany({
@@ -462,6 +462,7 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
     tz: TZ,
     prevEpisode: openAlertEpisode ? {
       layer: openAlertEpisode.layer as AlertLayer,
+      startedAt: openAlertEpisode.startedAt,
       lastTriggeredAt: openAlertEpisode.lastTriggeredAt,
       minHoldUntil: openAlertEpisode.minHoldUntil,
       modalCooldownUntil: openAlertEpisode.modalCooldownUntil,
@@ -499,7 +500,7 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
 
       // 2) Manage alert episode for hysteresis
       if (alertLayer !== "CLEAR") {
-        const holdHours = alertLayer === "RED" ? 12 : alertLayer === "ORANGE" ? 72 : 48;
+        const holdHours = alertLayer === "RED" ? 12 : alertLayer === "ORANGE" ? 24 : 48;
         const minHoldUntil = new Date(now.getTime() + holdHours * 3600000);
         const modalCooldownUntil = new Date(now.getTime() + 24 * 3600000);
 

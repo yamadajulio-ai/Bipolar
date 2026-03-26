@@ -154,6 +154,12 @@ export interface DerivedFeatures {
   severeManiaAcute: boolean;
 
   // Prodrome derived
+  /** Sleep as single prodrome major (sleepDropMajor OR shortSleepStreak, max 1) */
+  sleepProdromeMajor: boolean;
+  /** Mania cluster for prodrome rail (excludes acute signs + sono_reduzido/gastos_impulsivos overlap, requires persistence) */
+  prodromeManiaCluster: boolean;
+  /** Depression cluster for prodrome rail (excludes pensamentos_suicidas, requires persistence) */
+  prodromeDepressionCluster: boolean;
   prodromeMajorCount: number;
   prodromeMinorCount: number;
   prodromeOrange: boolean;

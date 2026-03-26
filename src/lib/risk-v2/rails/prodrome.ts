@@ -19,13 +19,16 @@ export function evaluateProdromeRail(f: DerivedFeatures): RailResult {
     return { layer: "CLEAR", reasons: [], confidence: "low" };
   }
 
-  // ── ORANGE: Persistent cross-domain prodromes ──────────────────
+  // ── ORANGE: Persistent cross-domain prodromes (≥2 independent families) ──
   if (f.prodromeOrange) {
     const reasons: string[] = [];
-    if (f.sleepDropMajor) reasons.push("queda_sono_significativa");
-    if (f.shortSleepStreak) reasons.push("noites_curtas_consecutivas");
-    if (f.maniaWarningCluster) reasons.push("sinais_ativacao_agrupados");
-    if (f.depressionWarningCluster) reasons.push("sinais_rebaixamento_agrupados");
+    if (f.sleepProdromeMajor) {
+      // Show most specific sleep reason
+      if (f.sleepDropMajor) reasons.push("queda_sono_significativa");
+      else if (f.shortSleepStreak) reasons.push("noites_curtas_consecutivas");
+    }
+    if (f.prodromeManiaCluster) reasons.push("sinais_ativacao_agrupados");
+    if (f.prodromeDepressionCluster) reasons.push("sinais_rebaixamento_agrupados");
     if (f.spendingMateriality) reasons.push("gasto_atipico_material");
     if (f.medNonAdherenceMajor) reasons.push("nao_adesao_medicacao_critica");
     return { layer: "ORANGE", reasons, confidence: "medium" };
@@ -37,8 +40,8 @@ export function evaluateProdromeRail(f: DerivedFeatures): RailResult {
     if (f.sleepDropMajor) reasons.push("queda_sono_significativa");
     if (f.shortSleepStreak) reasons.push("noites_curtas_consecutivas");
     if (f.bedtimeDrift) reasons.push("mudanca_horario_sono");
-    if (f.maniaWarningCluster) reasons.push("sinais_ativacao_agrupados");
-    if (f.depressionWarningCluster) reasons.push("sinais_rebaixamento_agrupados");
+    if (f.prodromeManiaCluster || f.maniaWarningCluster) reasons.push("sinais_ativacao_agrupados");
+    if (f.prodromeDepressionCluster || f.depressionWarningCluster) reasons.push("sinais_rebaixamento_agrupados");
     if (f.spendingMateriality || f.spendingCandidate) reasons.push("gasto_acima_padrao");
     if (f.medNonAdherenceMajor) reasons.push("nao_adesao_medicacao_critica");
     if (f.highEnergyRecent) reasons.push("energia_elevada_recente");

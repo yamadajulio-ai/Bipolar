@@ -18,11 +18,13 @@ import { maxLayer } from "./types";
 import {
   YELLOW_CLEAR_HOURS,
   ORANGE_CLEAR_HOURS,
+  ORANGE_HARD_CAP_HOURS,
   RED_MIN_HOLD_HOURS,
 } from "./constants";
 
 export interface AlertEpisodeState {
   layer: AlertLayer;
+  startedAt: Date;
   lastTriggeredAt: Date;
   minHoldUntil: Date | null;
   modalCooldownUntil: Date | null;
@@ -52,11 +54,21 @@ export function applyHysteresis(
     return candidate === "CLEAR" ? "ORANGE" : maxLayer("ORANGE", candidate);
   }
 
-  // ORANGE → candidate
-  if (candidate === "ORANGE") return "ORANGE";
+  // ORANGE → candidate (but respect hard cap from episode start)
+  if (candidate === "ORANGE") {
+    // Hard cap: after ORANGE_HARD_CAP_HOURS from episode start, allow step-down
+    if (hoursSince(prevEpisode.startedAt) >= ORANGE_HARD_CAP_HOURS) {
+      return "YELLOW";
+    }
+    return "ORANGE";
+  }
 
   // ORANGE → need sustained period below before clearing
   if (prevEpisode.layer === "ORANGE") {
+    // Hard cap: if episode has been active ≥ ORANGE_HARD_CAP_HOURS, allow clearing
+    if (hoursSince(prevEpisode.startedAt) >= ORANGE_HARD_CAP_HOURS) {
+      return candidate; // accept whatever the candidate is (YELLOW or CLEAR)
+    }
     if (hoursSince(prevEpisode.lastTriggeredAt) < ORANGE_CLEAR_HOURS) {
       // Still within hold period — don't drop below ORANGE if candidate is YELLOW
       if (candidate === "YELLOW") return "ORANGE";

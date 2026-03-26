@@ -74,6 +74,9 @@ function makeFeatures(overrides: Partial<DerivedFeatures> = {}): DerivedFeatures
     depressionOrange: false,
     depressionYellow: false,
     severeManiaAcute: false,
+    sleepProdromeMajor: false,
+    prodromeManiaCluster: false,
+    prodromeDepressionCluster: false,
     prodromeMajorCount: 0,
     prodromeMinorCount: 0,
     prodromeOrange: false,
@@ -122,9 +125,11 @@ function makeRailResult(overrides: Partial<RailResult> = {}): RailResult {
 }
 
 function makeEpisode(overrides: Partial<AlertEpisodeState> = {}): AlertEpisodeState {
+  const lastTriggered = overrides.lastTriggeredAt ?? new Date("2026-03-20T10:00:00Z");
   return {
     layer: "CLEAR",
-    lastTriggeredAt: new Date("2026-03-20T10:00:00Z"),
+    startedAt: lastTriggered, // default startedAt = lastTriggeredAt unless overridden
+    lastTriggeredAt: lastTriggered,
     minHoldUntil: null,
     modalCooldownUntil: null,
     resolvedAt: null,
@@ -588,11 +593,12 @@ describe("Syndrome Rail", () => {
 // ═══════════════════════════════════════════════════════════════════
 
 describe("Prodrome Rail", () => {
-  it("2+ major prodromes + cross-domain → ORANGE", () => {
+  it("2+ major prodromes from independent families + cross-domain → ORANGE", () => {
     const f = makeFeatures({
       prodromeOrange: true,
       sleepDropMajor: true,
-      maniaWarningCluster: true,
+      sleepProdromeMajor: true,
+      prodromeManiaCluster: true,
       prodromeMajorCount: 2,
     });
     const result = evaluateProdromeRail(f);
@@ -604,6 +610,7 @@ describe("Prodrome Rail", () => {
     const f = makeFeatures({
       prodromeOrange: true,
       sleepDropMajor: true,
+      sleepProdromeMajor: true,
       spendingMateriality: true,
       medNonAdherenceMajor: true,
       prodromeMajorCount: 3,
@@ -1113,42 +1120,54 @@ describe("Hysteresis / State Machine", () => {
     expect(result).toBe("ORANGE");
   });
 
-  it("ORANGE doesn't clear until 72h below", () => {
-    // ORANGE triggered 48h ago, candidate is YELLOW → should hold at ORANGE
+  it("ORANGE doesn't clear until 24h below", () => {
+    // ORANGE triggered 12h ago, candidate is YELLOW → should hold at ORANGE
     const orangeEpisode = makeEpisode({
       layer: "ORANGE",
-      lastTriggeredAt: new Date(now.getTime() - 48 * 3600000),
+      lastTriggeredAt: new Date(now.getTime() - 12 * 3600000),
     });
     const result = applyHysteresis("YELLOW", clearRail, orangeEpisode, now);
     expect(result).toBe("ORANGE");
   });
 
-  it("ORANGE with CLEAR candidate within 72h → YELLOW (gradual step-down)", () => {
+  it("ORANGE with CLEAR candidate within 24h → YELLOW (gradual step-down)", () => {
     const orangeEpisode = makeEpisode({
       layer: "ORANGE",
-      lastTriggeredAt: new Date(now.getTime() - 48 * 3600000),
+      lastTriggeredAt: new Date(now.getTime() - 12 * 3600000),
     });
     const result = applyHysteresis("CLEAR", clearRail, orangeEpisode, now);
     expect(result).toBe("YELLOW");
   });
 
-  it("ORANGE clears after 72h with CLEAR candidate → CLEAR", () => {
+  it("ORANGE clears after 24h with CLEAR candidate → CLEAR", () => {
     const orangeEpisode = makeEpisode({
       layer: "ORANGE",
-      lastTriggeredAt: new Date(now.getTime() - 73 * 3600000),
+      lastTriggeredAt: new Date(now.getTime() - 25 * 3600000),
     });
     const result = applyHysteresis("CLEAR", clearRail, orangeEpisode, now);
     expect(result).toBe("CLEAR");
   });
 
-  it("ORANGE with ORANGE candidate → stays ORANGE (regardless of time)", () => {
+  it("ORANGE with ORANGE candidate → stays ORANGE within hard cap", () => {
     const orangeEpisode = makeEpisode({
       layer: "ORANGE",
-      lastTriggeredAt: new Date(now.getTime() - 100 * 3600000),
+      startedAt: new Date(now.getTime() - 30 * 3600000),
+      lastTriggeredAt: new Date(now.getTime() - 1 * 3600000),
     });
     const orangeRail = makeRailResult({ layer: "CLEAR" });
     const result = applyHysteresis("ORANGE", orangeRail, orangeEpisode, now);
     expect(result).toBe("ORANGE");
+  });
+
+  it("ORANGE with ORANGE candidate after 48h hard cap → YELLOW (step-down)", () => {
+    const orangeEpisode = makeEpisode({
+      layer: "ORANGE",
+      startedAt: new Date(now.getTime() - 49 * 3600000),
+      lastTriggeredAt: new Date(now.getTime() - 1 * 3600000),
+    });
+    const orangeRail = makeRailResult({ layer: "CLEAR" });
+    const result = applyHysteresis("ORANGE", orangeRail, orangeEpisode, now);
+    expect(result).toBe("YELLOW");
   });
 
   it("YELLOW doesn't clear until 48h below", () => {
@@ -1836,21 +1855,37 @@ describe("Hysteresis — Temporal Edge Cases", () => {
     expect(applyHysteresis("CLEAR", makeRailResult(), ep, at12h)).toBe("ORANGE");
   });
 
-  it("ORANGE holds within 72h, then allows clear to YELLOW", () => {
-    const triggeredAt = new Date("2026-03-20T10:00:00Z");
+  it("ORANGE holds within 24h, then allows clear", () => {
+    const triggeredAt = new Date("2026-03-22T10:00:00Z");
     const ep = makeEpisode({ layer: "ORANGE", lastTriggeredAt: triggeredAt });
 
-    // At 48h → still ORANGE for YELLOW candidate
-    const at48h = new Date("2026-03-22T10:00:00Z");
-    expect(applyHysteresis("YELLOW", makeRailResult(), ep, at48h)).toBe("ORANGE");
+    // At 12h → still ORANGE for YELLOW candidate
+    const at12h = new Date("2026-03-22T22:00:00Z");
+    expect(applyHysteresis("YELLOW", makeRailResult(), ep, at12h)).toBe("ORANGE");
 
-    // At 71h → still within hold
-    const at71h = new Date("2026-03-23T09:00:00Z");
-    expect(applyHysteresis("CLEAR", makeRailResult(), ep, at71h)).toBe("YELLOW");
+    // At 23h → CLEAR candidate downgrades to YELLOW (still within hold)
+    const at23h = new Date("2026-03-23T09:00:00Z");
+    expect(applyHysteresis("CLEAR", makeRailResult(), ep, at23h)).toBe("YELLOW");
 
-    // At 73h → allows full clear
-    const at73h = new Date("2026-03-23T11:00:00Z");
-    expect(applyHysteresis("CLEAR", makeRailResult(), ep, at73h)).toBe("CLEAR");
+    // At 25h → allows full clear
+    const at25h = new Date("2026-03-23T11:00:00Z");
+    expect(applyHysteresis("CLEAR", makeRailResult(), ep, at25h)).toBe("CLEAR");
+  });
+
+  it("ORANGE hard cap at 48h forces step-down even if candidate is ORANGE", () => {
+    const startedAt = new Date("2026-03-20T10:00:00Z");
+    const ep = makeEpisode({
+      layer: "ORANGE",
+      startedAt,
+      lastTriggeredAt: new Date("2026-03-22T10:00:00Z"), // re-triggered 48h after start
+    });
+
+    // At 49h from start → hard cap reached, ORANGE candidate → YELLOW
+    const at49h = new Date("2026-03-22T11:00:00Z");
+    expect(applyHysteresis("ORANGE", makeRailResult(), ep, at49h)).toBe("YELLOW");
+
+    // CLEAR candidate after hard cap → accepted as-is
+    expect(applyHysteresis("CLEAR", makeRailResult(), ep, at49h)).toBe("CLEAR");
   });
 
   it("YELLOW holds within 48h, then clears", () => {

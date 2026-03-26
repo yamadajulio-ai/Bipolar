@@ -1,8 +1,10 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTheme } from "next-themes";
 
 interface HeaderProps {
   isLoggedIn?: boolean;
@@ -31,6 +33,24 @@ async function clearSwCache() {
       if (sw) sw.postMessage({ type: "CLEAR_AUTH_CACHES" });
     } catch { /* SW not available */ }
   }
+}
+
+function ThemeButton() {
+  const [mounted, setMounted] = useState(false);
+  const { resolvedTheme, setTheme } = useTheme();
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return <div className="w-8 h-8" />; // placeholder to avoid layout shift
+  const isDark = resolvedTheme === "dark";
+  return (
+    <button
+      onClick={() => setTheme(isDark ? "light" : "dark")}
+      aria-label={isDark ? "Mudar para modo claro" : "Mudar para modo escuro"}
+      title={isDark ? "Modo claro" : "Modo escuro"}
+      className="rounded-full p-1.5 text-lg transition-colors hover:bg-muted/20"
+    >
+      {isDark ? "☀️" : "🌙"}
+    </button>
+  );
 }
 
 export function Header({ isLoggedIn }: HeaderProps) {
@@ -70,6 +90,7 @@ export function Header({ isLoggedIn }: HeaderProps) {
                   </Link>
                 );
               })}
+              <ThemeButton />
               <Link
                 href="/sos"
                 className="ml-1 rounded-lg bg-red-600 px-3 py-1 text-sm font-semibold text-white no-underline hover:bg-red-700"
@@ -86,8 +107,9 @@ export function Header({ isLoggedIn }: HeaderProps) {
               </form>
             </nav>
 
-            {/* Mobile: only SOS button, nav handled by BottomNav */}
-            <div className="flex items-center gap-2 lg:hidden">
+            {/* Mobile: theme + SOS + logout, nav handled by BottomNav */}
+            <div className="flex items-center gap-1 lg:hidden">
+              <ThemeButton />
               <Link
                 href="/sos"
                 className="rounded-lg bg-red-600 px-3 py-1 text-sm font-semibold text-white no-underline hover:bg-red-700"

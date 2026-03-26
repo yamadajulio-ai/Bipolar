@@ -40,8 +40,10 @@ export const PERSIST_DEN = 3;
 // ── Hysteresis / cooldown ────────────────────────────────────────
 /** Hours YELLOW must stay below threshold before clearing */
 export const YELLOW_CLEAR_HOURS = 48;
-/** Hours ORANGE must stay below threshold before clearing */
-export const ORANGE_CLEAR_HOURS = 72;
+/** Hours ORANGE must stay below threshold before clearing (min hold) */
+export const ORANGE_CLEAR_HOURS = 24;
+/** Absolute max hours ORANGE persists from episode start (hard cap) */
+export const ORANGE_HARD_CAP_HOURS = 48;
 /** Minimum hours RED stays latched (even if safety reassessed) */
 export const RED_MIN_HOLD_HOURS = 12;
 /** Hours before a modal can re-appear (except RED escalation) */
@@ -75,7 +77,7 @@ export const PRODROME_MAJOR_ORANGE_MIN = 2;
 // ── Warning sign salience weights ────────────────────────────────
 export const SALIENCE_WEIGHTS = { 1: 1, 2: 1.5, 3: 2 } as const;
 /** Weighted count threshold for warning sign cluster */
-export const WARNING_CLUSTER_THRESHOLD = 3;
+export const WARNING_CLUSTER_THRESHOLD = 4;
 
 // ── Essential spending categories (excluded from discretionary) ──
 export const ESSENTIAL_CATEGORIES = new Set([

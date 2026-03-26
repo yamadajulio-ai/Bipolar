@@ -41,7 +41,7 @@ export function buildActions(
       { id: "call_188", label: "Ligar CVV 188", phone: "188", priority: 2, variant: "warning" },
       { id: "contact_caps", label: "Procurar CAPS / serviço de referência", href: "/perfil", priority: 3, variant: "warning" },
       { id: "notify_support_contact", label: "Avisar contato de apoio", href: "/plano-de-crise", priority: 4, variant: "warning" },
-      { id: "repeat_checkin", label: "Registrar novo check-in", href: "/checkin", priority: 5, variant: "neutral" },
+      { id: "repeat_checkin", label: "Registrar novo check-in", href: "/checkin", priority: 5, variant: "warning" },
     );
 
     return actions;

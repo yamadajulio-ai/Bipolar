@@ -129,6 +129,20 @@ const DEFAULT_DEPRESSION_SIGNS = new Set([
   "culpa",
 ]);
 
+// ── Prodrome-excluded signs ──────────────────────────────────────
+// Acute/syndromal signs don't belong in prodrome cluster (handled by Safety/Syndrome rails)
+const PRODROME_ACUTE_MANIA_SIGNS = new Set([
+  "psicose",
+  "alucinacoes",
+  "delirios",
+  "incapacidade_autocuidado",
+]);
+
+// pensamentos_suicidas is handled by Safety rail, not prodrome
+const PRODROME_EXCLUDED_DEPRESSION_SIGNS = new Set([
+  "pensamentos_suicidas",
+]);
+
 // ── Main derivation function ─────────────────────────────────────
 
 export interface DeriveFeaturesInput {
@@ -224,12 +238,12 @@ export function deriveFeatures(input: DeriveFeaturesInput): DerivedFeatures {
   const highIrritabilityRecent = last3Entries.filter((e) => e.irritability !== null && e.irritability >= 4).length >= 2;
 
   // ── Warning sign clusters (last 3 days, weighted) ─────────────
+  // Full clusters (for Syndrome rail — all signs count)
   let maniaWeightedSum = 0;
   let depressionWeightedSum = 0;
   for (const e of last3Entries) {
     const signs = parseStringArray(e.warningSigns);
     for (const s of signs) {
-      // Default salience = 1 for all signs (user personalization would override)
       const salience = 1 as keyof typeof SALIENCE_WEIGHTS;
       const weight = SALIENCE_WEIGHTS[salience];
       if (DEFAULT_MANIA_SIGNS.has(s)) maniaWeightedSum += weight;
@@ -238,6 +252,11 @@ export function deriveFeatures(input: DeriveFeaturesInput): DerivedFeatures {
   }
   const maniaWarningCluster = maniaWeightedSum >= WARNING_CLUSTER_THRESHOLD;
   const depressionWarningCluster = depressionWeightedSum >= WARNING_CLUSTER_THRESHOLD;
+
+  // ── Prodrome-specific clusters ─────────────────────────────────
+  // Stricter: excludes acute signs, removes sono_reduzido/gastos_impulsivos overlap,
+  // requires persistence (signs on ≥2 days AND density/repetition).
+  // NOTE: spendingMateriality not yet computed here; we do a 2-pass approach below.
 
   // ── Medication adherence ──────────────────────────────────────
   const criticalMeds = medications.filter(
@@ -340,12 +359,71 @@ export function deriveFeatures(input: DeriveFeaturesInput): DerivedFeatures {
     lowMoodRecent
   );
 
+  // ── Prodrome-specific cluster computation (after spending) ────
+  // Compute prodrome mania cluster: excludes acute signs + double-counting
+  const prodromeManiaSignsByDay: Map<string, Set<string>> = new Map();
+  let prodromeManiaWeightedSum = 0;
+  for (const e of last3Entries) {
+    const signs = parseStringArray(e.warningSigns);
+    for (const s of signs) {
+      if (!DEFAULT_MANIA_SIGNS.has(s)) continue;
+      // Exclude acute/syndromal signs from prodrome
+      if (PRODROME_ACUTE_MANIA_SIGNS.has(s)) continue;
+      // No double-counting: sono_reduzido excluded when sleep major active
+      if (s === "sono_reduzido" && (sleepDropMajor || shortSleepStreak)) continue;
+      // No double-counting: gastos_impulsivos excluded when spending major active
+      if (s === "gastos_impulsivos" && spendingMateriality) continue;
+
+      const weight = SALIENCE_WEIGHTS[1 as keyof typeof SALIENCE_WEIGHTS];
+      prodromeManiaWeightedSum += weight;
+      if (!prodromeManiaSignsByDay.has(e.date)) prodromeManiaSignsByDay.set(e.date, new Set());
+      prodromeManiaSignsByDay.get(e.date)!.add(s);
+    }
+  }
+
+  // Compute prodrome depression cluster: excludes pensamentos_suicidas (Safety rail)
+  const prodromeDepSignsByDay: Map<string, Set<string>> = new Map();
+  let prodromeDepWeightedSum = 0;
+  for (const e of last3Entries) {
+    const signs = parseStringArray(e.warningSigns);
+    for (const s of signs) {
+      if (!DEFAULT_DEPRESSION_SIGNS.has(s)) continue;
+      if (PRODROME_EXCLUDED_DEPRESSION_SIGNS.has(s)) continue;
+
+      const weight = SALIENCE_WEIGHTS[1 as keyof typeof SALIENCE_WEIGHTS];
+      prodromeDepWeightedSum += weight;
+      if (!prodromeDepSignsByDay.has(e.date)) prodromeDepSignsByDay.set(e.date, new Set());
+      prodromeDepSignsByDay.get(e.date)!.add(s);
+    }
+  }
+
+  // Persistence check: signs on ≥2 days AND (≥2 signs on 1 day OR same sign on ≥2 days)
+  function clusterIsPersistent(signsByDay: Map<string, Set<string>>): boolean {
+    if (signsByDay.size < 2) return false; // need signs on ≥2 distinct days
+    // Density: ≥2 signs on at least 1 day
+    const maxSignsInOneDay = Math.max(0, ...[...signsByDay.values()].map((s) => s.size));
+    if (maxSignsInOneDay >= 2) return true;
+    // Repetition: same sign on ≥2 days
+    const signDayCounts: Record<string, number> = {};
+    for (const daySet of signsByDay.values()) {
+      for (const s of daySet) signDayCounts[s] = (signDayCounts[s] || 0) + 1;
+    }
+    return Object.values(signDayCounts).some((c) => c >= 2);
+  }
+
+  const prodromeManiaCluster = prodromeManiaWeightedSum >= WARNING_CLUSTER_THRESHOLD &&
+    clusterIsPersistent(prodromeManiaSignsByDay);
+  const prodromeDepressionCluster = prodromeDepWeightedSum >= WARNING_CLUSTER_THRESHOLD &&
+    clusterIsPersistent(prodromeDepSignsByDay);
+
   // ── Prodrome ──────────────────────────────────────────────────
+  // Sleep counts as max 1 major (sleepDropMajor OR shortSleepStreak)
+  const sleepProdromeMajor = sleepDropMajor || shortSleepStreak;
+
   const prodromeMajorCount = [
-    sleepDropMajor,
-    shortSleepStreak,
-    maniaWarningCluster,
-    depressionWarningCluster,
+    sleepProdromeMajor,
+    prodromeManiaCluster,
+    prodromeDepressionCluster,
     spendingMateriality,
     medNonAdherenceMajor,
   ].filter(Boolean).length;
@@ -358,8 +436,16 @@ export function deriveFeatures(input: DeriveFeaturesInput): DerivedFeatures {
     highAnxietyRecent,
   ].filter(Boolean).length;
 
-  const prodromeHasCrossDomain = (sleepDropMajor || shortSleepStreak || lowMoodRecent || highEnergyRecent) &&
-    (maniaWarningCluster || depressionWarningCluster || spendingMateriality || medNonAdherenceMajor);
+  // Cross-domain: ≥2 independent clinical families must have a major signal
+  const prodromeFamiliesWithMajor = [
+    sleepProdromeMajor,             // sleep/circadian family
+    prodromeManiaCluster,           // activation-cognition family
+    spendingMateriality,            // behavioral risk family
+    medNonAdherenceMajor,           // medication family
+    prodromeDepressionCluster,      // depressive family
+  ].filter(Boolean).length;
+
+  const prodromeHasCrossDomain = prodromeFamiliesWithMajor >= 2;
 
   const prodromeOrange = prodromeMajorCount >= 2 && prodromeHasCrossDomain;
   const prodromeYellow = !prodromeOrange && (prodromeMajorCount >= 1 || prodromeMinorCount >= 2);
@@ -396,6 +482,9 @@ export function deriveFeatures(input: DeriveFeaturesInput): DerivedFeatures {
     depressionOrange,
     depressionYellow,
     severeManiaAcute,
+    sleepProdromeMajor,
+    prodromeManiaCluster,
+    prodromeDepressionCluster,
     prodromeMajorCount,
     prodromeMinorCount,
     prodromeOrange,

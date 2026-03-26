@@ -76,14 +76,17 @@ export function computeRiskScore(
   for (const e of last7Entries) {
     for (const s of parseStringArray(e.warningSigns)) recentSigns.add(s);
   }
+  // Warning signs — require 3+ different types to trigger (avoids false positives
+  // from personality traits like habitual spending desire)
   const riskSigns = ["pensamentos_acelerados", "gastos_impulsivos", "energia_excessiva", "planos_grandiosos"];
   const matchedSigns = riskSigns.filter((s) => recentSigns.has(s));
-  if (matchedSigns.length >= 2) {
+  if (matchedSigns.length >= 3) {
     score += 1;
     factors.push("Sinais de alerta ativos");
   }
 
   // Financial spending spikes (DSM: "unrestrained buying sprees")
+  // Weight reduced: habitual spenders shouldn't trigger high-risk alone
   if (financialTxs && financialTxs.length > 0) {
     const dailyExp: Record<string, number> = {};
     for (const tx of financialTxs) {
@@ -101,18 +104,8 @@ export function computeRiskScore(
         .filter(([date, val]) => date >= str7 && sigma > 0 && (val - med) / sigma >= 2 && (val - med) >= 50);
 
       if (recentSpikes.length > 0) {
-        score += 2;
+        score += 1;
         factors.push(`Gasto atípico em ${recentSpikes.length} dia(s) recente(s)`);
-
-        const spikeWithContext = recentSpikes.some(([date]) => {
-          const sleepDay = sortedSleep.find((s) => s.date === date);
-          const entryDay = sortedEntries.find((e) => e.date === date);
-          return (sleepDay && sleepDay.totalHours < 6) || (entryDay && entryDay.energyLevel !== null && entryDay.energyLevel >= 4);
-        });
-        if (spikeWithContext) {
-          score += 1;
-          factors.push("Gasto atípico + sono curto ou energia alta");
-        }
       }
     }
   }

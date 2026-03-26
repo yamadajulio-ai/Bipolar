@@ -379,7 +379,7 @@ export default async function InsightsPage({
           {/* AI Narrative */}
           <div className="mb-6">
             <ErrorBoundary name="NarrativeSection">
-              <Suspense fallback={<div className="animate-pulse rounded-xl bg-surface-alt h-32" />}>
+              <Suspense fallback={<div className="animate-pulse rounded-[var(--radius-card)] bg-surface-alt h-32" />}>
                 <NarrativeSection />
               </Suspense>
             </ErrorBoundary>
@@ -807,7 +807,7 @@ export default async function InsightsPage({
           {/* ── P2: Dynamic ordering — "strong" spending card rises above mood/sleep chart ── */}
           {insights.spendingMood.state === "strong" && (
             <section className="mb-8">
-              <Suspense fallback={<div className="animate-pulse rounded-xl bg-surface-alt h-24" />}>
+              <Suspense fallback={<div className="animate-pulse rounded-[var(--radius-card)] bg-surface-alt h-24" />}>
                 <SpendingMoodInsightCard data={insights.spendingMood} />
               </Suspense>
             </section>
@@ -828,7 +828,7 @@ export default async function InsightsPage({
           {/* ── Humor e Gastos (spending × mood insight) — watch/learning/noSignal stay here ── */}
           {insights.spendingMood.state !== "hidden" && insights.spendingMood.state !== "strong" && (
             <section className="mb-8">
-              <Suspense fallback={<div className="animate-pulse rounded-xl bg-surface-alt h-24" />}>
+              <Suspense fallback={<div className="animate-pulse rounded-[var(--radius-card)] bg-surface-alt h-24" />}>
                 <SpendingMoodInsightCard data={insights.spendingMood} />
               </Suspense>
             </section>
@@ -962,7 +962,7 @@ export default async function InsightsPage({
           {insights.prediction && (insights.prediction.maniaRisk > 0 || insights.prediction.depressionRisk > 0) && (
             <section className="mb-8">
               <ErrorBoundary name="EpisodePrediction">
-                <Suspense fallback={<div className="animate-pulse rounded-xl bg-surface-alt h-32" />}>
+                <Suspense fallback={<div className="animate-pulse rounded-[var(--radius-card)] bg-surface-alt h-32" />}>
                   <EpisodePrediction data={insights.prediction} />
                 </Suspense>
               </ErrorBoundary>

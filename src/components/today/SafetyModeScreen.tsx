@@ -23,7 +23,7 @@ export function SafetyModeScreen({ actions, onDismiss }: Props) {
   return (
     <div className="space-y-4" role="region" aria-label="Alerta de segurança — risco agudo detectado">
       {/* Hero */}
-      <div className="rounded-xl border border-red-700 bg-red-950/50 p-6" role="alert" aria-live="assertive">
+      <div className="rounded-[var(--radius-card)] border border-red-700 bg-red-950/50 p-6" role="alert" aria-live="assertive">
         <h2 className="text-lg font-bold text-red-300 mb-2">
           Sua segurança vem primeiro
         </h2>
@@ -84,7 +84,7 @@ export function SafetyModeScreen({ actions, onDismiss }: Props) {
       {/* Quick access cards */}
       <div className="space-y-3">
         <Link href="/plano-de-crise" className="block no-underline" aria-label="Revisar plano de crise — seu plano de segurança personalizado">
-          <div className="rounded-xl border border-red-200 bg-red-50/30 hover:bg-red-50 transition-colors p-5">
+          <div className="rounded-[var(--radius-card)] border border-red-200 bg-red-50/30 hover:bg-red-50 transition-colors p-5">
             <div className="flex items-center gap-4">
               <span className="text-2xl" aria-hidden="true">&#128737;</span>
               <div>
@@ -96,7 +96,7 @@ export function SafetyModeScreen({ actions, onDismiss }: Props) {
         </Link>
 
         <Link href="/sos" className="block no-underline" aria-label="SOS — preciso de ajuda agora — grounding e contatos de emergência">
-          <div className="rounded-xl border border-red-300 bg-red-100/50 hover:bg-red-100 transition-colors p-5">
+          <div className="rounded-[var(--radius-card)] border border-red-300 bg-red-100/50 hover:bg-red-100 transition-colors p-5">
             <div className="flex items-center gap-4">
               <span className="text-2xl" aria-hidden="true">&#127384;</span>
               <div>

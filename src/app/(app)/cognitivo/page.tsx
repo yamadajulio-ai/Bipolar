@@ -535,7 +535,7 @@ function ReactionTimeTask({ onComplete, onBack }: { onComplete: (ms: number) => 
         type="button"
         onPointerDown={handleTap}
         aria-label="Área do teste de tempo de reação. Toque quando mudar para verde."
-        className={`flex h-64 w-full cursor-pointer items-center justify-center rounded-xl text-center transition-colors ${
+        className={`flex h-64 w-full cursor-pointer items-center justify-center rounded-[var(--radius-card)] text-center transition-colors ${
           phase === "ready"
             ? "bg-red-900/50"
             : phase === "go"
@@ -659,7 +659,7 @@ function DigitSpanTask({ onComplete, onBack }: { onComplete: (span: number) => v
       </div>
 
       {/* Display area */}
-      <div className="flex h-48 items-center justify-center rounded-xl bg-gray-800">
+      <div className="flex h-48 items-center justify-center rounded-[var(--radius-card)] bg-gray-800">
         {phase === "showing" && showingIndex < currentSequence.length && (
           <span className="text-6xl font-bold text-white tabular-nums">
             {currentSequence[showingIndex]}

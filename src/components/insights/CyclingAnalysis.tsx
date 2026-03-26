@@ -16,7 +16,7 @@ export function CyclingAnalysis({ data }: Props) {
   if (data.episodes.length === 0) return null;
 
   return (
-    <div className="rounded-xl bg-surface border border-border p-5">
+    <div className="rounded-[var(--radius-card)] bg-surface border border-border-soft dark:border-border-strong p-5">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-sm font-semibold uppercase tracking-wide text-foreground/60">
           Análise de Ciclagem

@@ -23,7 +23,7 @@ export function EpisodePrediction({ data }: Props) {
   const depressionRisk = Math.max(0, Math.min(100, data.depressionRisk));
 
   return (
-    <div className={`rounded-xl p-5 ${config.bg}`}>
+    <div className={`rounded-[var(--radius-card)] p-5 ${config.bg}`}>
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-sm font-semibold uppercase tracking-wide text-foreground/60">
           Predição de Episódio

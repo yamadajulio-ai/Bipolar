@@ -3,14 +3,15 @@
 export function SkeletonBlock({ className = "" }: { className?: string }) {
   return (
     <div
-      className={`animate-pulse rounded-lg bg-border/40 ${className}`}
+      aria-hidden
+      className={`animate-pulse rounded-lg bg-border/30 dark:bg-border/20 ${className}`}
     />
   );
 }
 
 export function SkeletonCard({ children, className = "" }: { children?: React.ReactNode; className?: string }) {
   return (
-    <div className={`rounded-xl border border-border bg-surface p-4 shadow-sm ${className}`}>
+    <div className={`rounded-[var(--radius-card)] border border-border-soft bg-surface p-4 shadow-[var(--shadow-card)] dark:border-border-strong ${className}`}>
       {children}
     </div>
   );

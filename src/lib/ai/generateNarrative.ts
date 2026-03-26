@@ -16,7 +16,7 @@ import type {
 
 export type { NarrativeResultV2, NarrativeGenerationResult, NarrativePersistenceData };
 
-export const PROMPT_VERSION = "v2";
+export const PROMPT_VERSION = "v2.1";
 export const SCHEMA_VERSION = "narrative_v2";
 export const ANALYTICS_VERSION = "insights_v1";
 export const GUARDRAIL_VERSION = "forbidden_v1";
@@ -480,7 +480,7 @@ export function prepareNarrativeInput(insights: InsightsResult, extra: Narrative
   const hasAlerts = sleepEv.some((e) => e.kind === "alert") || moodEv.some((e) => e.kind === "alert") || trendEv.some((e) => e.kind === "alert");
 
   return {
-    riskLevel, bypassLlm: riskLevel === "high" || s.recordCount < 7,
+    riskLevel, bypassLlm: s.recordCount < 7,
     shareWithProfessional: riskLevel !== "low" || hasAlerts,
     locale: "pt-BR", timezone: tz,
     period: { currentLabel: `${fmt(d30)} a ${fmt(now)}`, comparisonLabel: `${fmt(d14)} a ${fmt(d7)} vs ${fmt(d7)} a ${fmt(now)}` },
@@ -717,32 +717,25 @@ export async function generateNarrative(
     inputTokens: null, cachedInputTokens: null, outputTokens: null, reasoningTokens: null, latencyMs: null,
   };
 
-  if (input.riskLevel === "high") {
-    Sentry.addBreadcrumb({ message: "AI narrative V2: high-risk template (bypassed LLM)", level: "info", data: { riskScore: insights.risk?.score } });
-    const tmpl = getHighRiskTemplateV2(insights, input);
-    // Defense-in-depth: verify template output is also clean
-    const allTexts: string[] = [tmpl.overview.headline, tmpl.overview.summary];
-    for (const sec of Object.values(tmpl.sections)) {
-      allTexts.push(sec.summary, ...sec.keyPoints, ...sec.metrics);
-    }
-    allTexts.push(...tmpl.actions.practicalSuggestions, tmpl.closing.text);
-    const tmplText = allTexts.join(" ");
-    if (containsForbiddenContent(tmplText)) {
-      Sentry.captureMessage("High-risk template contained forbidden content after sanitization", { level: "error", tags: { feature: "ai-narrative-v2" } });
-      trackError({ name: "narrative_error", errorType: "template_forbidden_content", message: "High-risk template contained forbidden content", extra: { riskScore: insights.risk?.score } });
-      return { narrative: getSafeFallbackV2(), persistence: { ...basePersistence, bypassLlm: true, bypassReason: "high_risk", guardrailPassed: false, guardrailViolations: ["template_forbidden_content"] } };
-    }
-    trackError({ name: "narrative_bypass", errorType: "high_risk", message: "LLM bypassed: high-risk template used", extra: { riskScore: insights.risk?.score } });
-    return { narrative: tmpl, persistence: { ...basePersistence, bypassLlm: true, bypassReason: "high_risk" } };
-  }
+  // High-risk: LLM with extra safety instructions, template as fallback
+  const isHighRisk = input.riskLevel === "high";
 
   if (insights.sleep.recordCount < 7 || insights.mood.recordCount < 3) {
     trackError({ name: "narrative_bypass", errorType: "insufficient_data", message: `LLM bypassed: insufficient data (sleep=${insights.sleep.recordCount}, mood=${insights.mood.recordCount})`, extra: {} });
     return { narrative: getInsufficientDataTemplateV2(), persistence: { ...basePersistence, bypassLlm: true, bypassReason: "insufficient_data" } };
   }
 
-  const userPrompt = `Verbalize as seguintes evidências estruturadas por domínio em uma narrativa para o paciente. Use APENAS as evidências listadas — não interprete, não infira, apenas descreva de forma acolhedora:\n\n${JSON.stringify(input, null, 2)}`;
+  const highRiskPrefix = isHighRisk
+    ? `ATENÇÃO: Este paciente apresenta indicadores de risco elevado. Seja EXTRA cuidadoso:\n- Linguagem acolhedora e calma, sem alarmismo\n- NUNCA minimize os dados, mas também não dramatize\n- Foque nos fatos numéricos concretos — o que mudou e quanto\n- shareWithProfessional DEVE ser true\n- Inclua "Se perceber piora rápida, procure ajuda — CVV 188, SAMU 192" nas sugestões\n\n`
+    : "";
+  const userPrompt = `${highRiskPrefix}Verbalize as seguintes evidências estruturadas por domínio em uma narrativa para o paciente. Use APENAS as evidências listadas — não interprete, não infira, apenas descreva de forma acolhedora:\n\n${JSON.stringify(input, null, 2)}`;
   const startMs = Date.now();
+
+  // For high-risk: if LLM fails, use enriched template instead of generic fallback
+  function getFailureFallback(): NarrativeResultV2 {
+    if (isHighRisk) return getHighRiskTemplateV2(insights, input);
+    return getSafeFallbackV2();
+  }
 
   // Mark llmAttempted BEFORE the call — even if it fails, data was sent to OpenAI
   basePersistence.llmAttempted = true;
@@ -771,46 +764,46 @@ export async function generateNarrative(
     if (response.status !== "completed") {
       Sentry.captureMessage(`AI narrative V2 response status: ${response.status}`, { level: "warning", tags: { feature: "ai-narrative-v2", reason: response.status, model } });
       trackError({ name: "narrative_error", errorType: "incomplete_status", message: `Status: ${response.status}`, extra: { model } });
-      return { narrative: getSafeFallbackV2(), persistence: { ...basePersistence, guardrailPassed: false, guardrailViolations: [`status:${response.status}`] } };
+      return { narrative: getFailureFallback(), persistence: { ...basePersistence, guardrailPassed: false, guardrailViolations: [`status:${response.status}`] } };
     }
 
     const refusal = response.output.find((item) => item.type === "message" && item.content?.some((c: { type: string }) => c.type === "refusal"));
     if (refusal) {
       Sentry.captureMessage("AI narrative V2 refused", { level: "warning", tags: { feature: "ai-narrative-v2", reason: "refusal", model } });
       trackError({ name: "narrative_error", errorType: "refusal", message: "Model refused to generate narrative", extra: { model } });
-      return { narrative: getSafeFallbackV2(), persistence: { ...basePersistence, guardrailPassed: false, guardrailViolations: ["refusal"] } };
+      return { narrative: getFailureFallback(), persistence: { ...basePersistence, guardrailPassed: false, guardrailViolations: ["refusal"] } };
     }
 
     const content = response.output_text;
     if (!content) {
       trackError({ name: "narrative_error", errorType: "empty_content", message: "LLM returned empty content", extra: { model } });
-      return { narrative: getSafeFallbackV2(), persistence: { ...basePersistence, guardrailPassed: false, guardrailViolations: ["empty_content"] } };
+      return { narrative: getFailureFallback(), persistence: { ...basePersistence, guardrailPassed: false, guardrailViolations: ["empty_content"] } };
     }
     if (content.length > 20_000) {
       Sentry.captureMessage("AI narrative V2 oversized", { level: "warning", tags: { feature: "ai-narrative-v2", reason: "oversized", model } });
       trackError({ name: "narrative_error", errorType: "oversized", message: `LLM output too large: ${content.length} chars`, extra: { model, contentLength: content.length } });
-      return { narrative: getSafeFallbackV2(), persistence: { ...basePersistence, guardrailPassed: false, guardrailViolations: ["oversized"] } };
+      return { narrative: getFailureFallback(), persistence: { ...basePersistence, guardrailPassed: false, guardrailViolations: ["oversized"] } };
     }
 
     let raw: unknown;
     try { raw = JSON.parse(content); } catch {
       Sentry.captureMessage("AI narrative V2 JSON parse failed", { level: "warning", tags: { feature: "ai-narrative-v2", reason: "json-parse", model } });
       trackError({ name: "narrative_error", errorType: "json_parse", message: "Failed to parse LLM output as JSON", extra: { model, contentLength: content.length } });
-      return { narrative: getSafeFallbackV2(), persistence: { ...basePersistence, guardrailPassed: false, guardrailViolations: ["json_parse_failed"] } };
+      return { narrative: getFailureFallback(), persistence: { ...basePersistence, guardrailPassed: false, guardrailViolations: ["json_parse_failed"] } };
     }
 
     const parsed = narrativeV2Schema.safeParse(raw);
     if (!parsed.success) {
       Sentry.captureMessage("AI narrative V2 Zod failed", { level: "warning", tags: { feature: "ai-narrative-v2", reason: "zod-validation", model }, extra: { errors: parsed.error.issues.slice(0, 5) } });
       trackError({ name: "narrative_error", errorType: "zod_validation", message: "LLM output failed schema validation", extra: { model, issueCount: parsed.error.issues.length } });
-      return { narrative: getSafeFallbackV2(), persistence: { ...basePersistence, guardrailPassed: false, guardrailViolations: ["zod_validation_failed"] } };
+      return { narrative: getFailureFallback(), persistence: { ...basePersistence, guardrailPassed: false, guardrailViolations: ["zod_validation_failed"] } };
     }
 
     const allText = extractAllText(raw as RawOutput);
     if (containsForbiddenContent(allText)) {
       Sentry.captureMessage("AI narrative V2 forbidden content", { level: "warning", tags: { feature: "ai-narrative-v2", reason: "forbidden-content", model } });
       trackError({ name: "narrative_error", errorType: "forbidden_content", message: "LLM output contained forbidden clinical content", extra: { model } });
-      return { narrative: getSafeFallbackV2(), persistence: { ...basePersistence, guardrailPassed: false, guardrailViolations: ["forbidden_content"] } };
+      return { narrative: getFailureFallback(), persistence: { ...basePersistence, guardrailPassed: false, guardrailViolations: ["forbidden_content"] } };
     }
 
     // Layer 4: Evidence grounding check — every evidenceId referenced in the output
@@ -861,8 +854,8 @@ export async function generateNarrative(
 
     return { narrative: { ...parsed.data, source: "llm" as const, generatedAt: new Date().toISOString() }, persistence: basePersistence };
   } catch (err) {
-    Sentry.captureException(err, { tags: { feature: "ai-narrative-v2" }, extra: { note: "Returned safe fallback V2" } });
-    trackError({ name: "narrative_error", errorType: "exception", message: err instanceof Error ? err.message.slice(0, 200) : "unknown", extra: { model } });
-    return { narrative: getSafeFallbackV2(), persistence: { ...basePersistence, latencyMs: Date.now() - startMs, guardrailPassed: false, guardrailViolations: [`exception:${err instanceof Error ? err.message.slice(0, 100) : "unknown"}`] } };
+    Sentry.captureException(err, { tags: { feature: "ai-narrative-v2" }, extra: { note: isHighRisk ? "High-risk LLM failed, using template fallback" : "Returned safe fallback V2" } });
+    trackError({ name: "narrative_error", errorType: "exception", message: err instanceof Error ? err.message.slice(0, 200) : "unknown", extra: { model, isHighRisk } });
+    return { narrative: getFailureFallback(), persistence: { ...basePersistence, latencyMs: Date.now() - startMs, guardrailPassed: false, guardrailViolations: [`exception:${err instanceof Error ? err.message.slice(0, 100) : "unknown"}`] } };
   }
 }

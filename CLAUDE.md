@@ -47,7 +47,7 @@
   - Um bloco por problema. Usar linguagem direta, sem enrolação.
 - **NUNCA implementar features novas sem auditoria do GPT Pro antes.** Toda feature nova deve ser planejada, auditada e aprovada pelo GPT Pro antes de qualquer código ser escrito. Isso garante qualidade e alinhamento com o padrão do projeto.
 - **NUNCA dar sugestão/opinião própria pura.** Sempre consultar o modelo mais avançado disponível (o3 da OpenAI via API) para análise e recomendação. O usuário quer a melhor qualidade possível e confia na análise de modelos especializados.
-- **Prompts de auditoria GPT Pro**: Sempre exibir o conteúdo completo do prompt diretamente na conversa (output de texto), para o usuário copiar e colar manualmente no GPT Pro. NÃO salvar apenas em arquivo — sempre printar aqui.
+- **Prompts de auditoria GPT Pro**: Prompts DEVEM ser **self-contained** — o GPT Pro deve conseguir auditar SEM pedir mais contexto. Isso significa: incluir TODO o código-fonte dos arquivos relevantes (completo, não truncado), testes, e contexto de mudanças. Salvar em arquivo `.txt` na Desktop para o usuário copiar (Ctrl+A, Ctrl+C) e colar no GPT Pro. Nunca gerar prompt que dependa de follow-up — cada ida ao GPT Pro é cara em tempo.
 - **Auto-revisão antes do GPT Pro**: Antes de montar o prompt de auditoria para o GPT Pro, o Claude DEVE fazer uma auto-análise crítica do próprio código implementado — revisar edge cases, segurança, cobertura de testes, robustez e possíveis lacunas. Corrigir o que encontrar ANTES de gerar o prompt. Isso otimiza tempo evitando que o GPT Pro aponte problemas que o Claude poderia ter pego sozinho.
 
 ## Clipboard (Windows)
@@ -80,7 +80,7 @@
 ## AI Narrative — Modelo
 - **Modelo atual**: GPT-5.4 via OpenAI Responses API (migrado de Claude Sonnet 4)
 - **Structured Outputs**: JSON Schema nativo + Zod pós-parse + forbidden patterns (17 regras)
-- **High-risk bypass**: riskLevel "atencao_alta" → template fixo, sem LLM
+- **High-risk (v2.1)**: riskLevel "atencao_alta" → LLM com safety prefix extra + template como fallback se guardrails falharem
 - **store: false** (LGPD: sem persistência na OpenAI)
 - **Env var**: `OPENAI_NARRATIVE_MODEL` (default: gpt-5.4, permite canário com gpt-5.2)
 

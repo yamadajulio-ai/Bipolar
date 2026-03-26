@@ -231,8 +231,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Check OPENAI_API_KEY only when LLM path is needed
+    // High-risk now uses LLM too (v2.1) — only insufficient data bypasses
     const hasEnoughData = sleepLogs30.length >= 7 && entries30.length >= 3;
-    const willCallLlm = insights.risk?.level !== "atencao_alta" && hasEnoughData;
+    const willCallLlm = hasEnoughData;
     if (!process.env.OPENAI_API_KEY && willCallLlm) {
       return NextResponse.json({ error: "AI não configurada" }, { status: 503 });
     }

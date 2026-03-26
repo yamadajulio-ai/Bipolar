@@ -135,6 +135,8 @@ describe("generateNarrative — deterministic paths", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    // Default: mock returns a valid V2 response (tests can override)
+    mockResponsesCreate.mockResolvedValue(makeValidResponse(makeValidV2Narrative()));
     process.env.OPENAI_API_KEY = "test-key";
     delete process.env.OPENAI_NARRATIVE_MODEL;
     vi.resetModules();
@@ -163,7 +165,8 @@ describe("generateNarrative — deterministic paths", () => {
       // Summary is built from actual evidence, not risk factor phrases
       expect(overview.summary).toBeTruthy();
       expect(overview.summary.length).toBeGreaterThan(10);
-      expect(mockResponsesCreate).not.toHaveBeenCalled();
+      // v2.1: high-risk now uses LLM (with template as fallback)
+      expect(mockResponsesCreate).toHaveBeenCalled();
 
       // Sections should be populated from evidence, not all absent
       const sections = narrative.sections as Record<string, Record<string, unknown>>;
@@ -212,41 +215,44 @@ describe("generateNarrative — deterministic paths", () => {
       expect(new Date(narrative.generatedAt).toISOString()).toBe(narrative.generatedAt);
     });
 
-    it("includes professional contact suggestion", async () => {
+    it("sends high-risk safety prefix in prompt", async () => {
       const insights = makeInsights({
         risk: { level: "atencao_alta", score: 85, factors: ["x"] },
       });
 
-      const result = await generateNarrative(insights, makeExtra());
-      const narrative = result.narrative as Record<string, unknown>;
-      const actions = narrative.actions as Record<string, unknown>;
-      const suggestions = actions.practicalSuggestions as string[];
-      expect(suggestions.some((s) => s.includes("profissional"))).toBe(true);
+      await generateNarrative(insights, makeExtra());
+      // Verify the LLM was called with the high-risk safety prefix
+      const callArgs = mockResponsesCreate.mock.calls[0];
+      const input = callArgs[0].input as { role: string; content: string }[];
+      const userMsg = input[input.length - 1].content;
+      expect(userMsg).toContain("indicadores de risco elevado");
+      expect(userMsg).toContain("CVV 188, SAMU 192");
     });
 
-    it("sets bypassLlm=true and bypassReason in persistence", async () => {
+    it("calls LLM for high-risk with template fallback (v2.1)", async () => {
       const insights = makeInsights({
         risk: { level: "atencao_alta", score: 85, factors: ["x"] },
       });
 
       const result = await generateNarrative(insights, makeExtra());
       const persistence = result.persistence as Record<string, unknown>;
-      expect(persistence.bypassLlm).toBe(true);
-      expect(persistence.bypassReason).toBe("high_risk");
+      // v2.1: high-risk uses LLM, bypassLlm is false
+      expect(persistence.bypassLlm).toBe(false);
+      expect(persistence.llmAttempted).toBe(true);
     });
 
-    it("sets shareWithProfessional=true for high risk", async () => {
+    it("uses LLM output (source='llm') for high-risk on success", async () => {
       const insights = makeInsights({
         risk: { level: "atencao_alta", score: 85, factors: ["x"] },
       });
 
       const result = await generateNarrative(insights, makeExtra());
       const narrative = result.narrative as Record<string, unknown>;
-      const actions = narrative.actions as Record<string, unknown>;
-      expect(actions.shareWithProfessional).toBe(true);
+      expect(narrative.source).toBe("llm");
     });
 
-    it("sets source='template_high_risk' for high risk", async () => {
+    it("falls back to template when LLM fails for high-risk", async () => {
+      mockResponsesCreate.mockRejectedValue(new Error("API timeout"));
       const insights = makeInsights({
         risk: { level: "atencao_alta", score: 85, factors: ["x"] },
       });
@@ -254,6 +260,10 @@ describe("generateNarrative — deterministic paths", () => {
       const result = await generateNarrative(insights, makeExtra());
       const narrative = result.narrative as Record<string, unknown>;
       expect(narrative.source).toBe("template_high_risk");
+      const actions = narrative.actions as Record<string, unknown>;
+      expect(actions.shareWithProfessional).toBe(true);
+      const suggestions = actions.practicalSuggestions as string[];
+      expect(suggestions.some((s) => s.includes("profissional") || s.includes("CVV"))).toBe(true);
     });
   });
 
@@ -537,7 +547,7 @@ describe("generateNarrative — deterministic paths", () => {
       expect(persistence.guardrailPassed).toBe(true);
       expect(persistence.bypassLlm).toBe(false);
       expect(persistence.sourceFingerprint).toBeDefined();
-      expect(persistence.promptVersion).toBe("v2");
+      expect(persistence.promptVersion).toBe("v2.1");
       expect(persistence.schemaVersion).toBe("narrative_v2");
     });
 

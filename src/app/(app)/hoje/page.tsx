@@ -224,6 +224,13 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
     }),
   ]);
 
+  // === Compute today's medication status from dose-level data ===
+  const todayMedExpected = activeMedications.reduce((sum, med) => sum + med.schedules.length, 0);
+  const todayMedLogs = activeMedications.flatMap((med) => med.logs.filter((l) => l.date === today));
+  const todayMedTaken = todayMedLogs.filter((l) => l.status === "TAKEN").length;
+  const todayMedMissed = todayMedLogs.filter((l) => l.status === "MISSED").length;
+  const todayMedPending = todayMedExpected - todayMedTaken - todayMedMissed;
+
   // === Compute Insights (Risk Radar data) ===
   const sleepLogsForInsights = aggregateSleepByDay(allSleepLogs30.filter(l => l.totalHours >= 2 && !l.excluded));
   const entries30 = allEntries30.filter(e => e.date >= cutoff30Str);
@@ -316,8 +323,16 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
     tasks.push({ label: "Revisar plano de crise", href: "/plano-de-crise", done: false, priority: 0 });
   }
 
-  // Medication
-  if (todayEntry?.tookMedication === "nao" || todayEntry?.tookMedication === "nao_sei") {
+  // Medication (use dose-level data when available, fallback to legacy)
+  if (todayMedExpected > 0) {
+    if (todayMedTaken === todayMedExpected) {
+      tasks.push({ label: "Medicação tomada", href: "/checkin", done: true, priority: 1 });
+    } else if (todayMedTaken > 0) {
+      tasks.push({ label: `Medicação: ${todayMedTaken} de ${todayMedExpected}`, href: "/checkin", done: false, priority: 1 });
+    } else {
+      tasks.push({ label: "Tomar medicação", href: "/checkin", done: false, priority: 1 });
+    }
+  } else if (todayEntry?.tookMedication === "nao" || todayEntry?.tookMedication === "nao_sei") {
     tasks.push({ label: "Tomar medicação", href: "/checkin", done: false, priority: 1 });
   } else if (todayEntry?.tookMedication === "sim") {
     tasks.push({ label: "Medicação tomada", href: "/checkin", done: true, priority: 1 });
@@ -802,13 +817,36 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
             {/* Medicação */}
             <div className="rounded-lg bg-surface-alt p-3">
               <p className="text-[10px] text-muted uppercase tracking-wide">Medicação</p>
-              <p className={`text-sm font-semibold mt-0.5 ${
-                todayEntry.tookMedication === "sim" ? "text-emerald-700" :
-                todayEntry.tookMedication === "nao" ? "text-red-600" : "text-amber-600"
-              }`}>
-                {todayEntry.tookMedication === "sim" ? "Já tomou" :
-                 todayEntry.tookMedication === "nao" ? "Não tomou" : "Ainda não"}
-              </p>
+              {todayMedExpected > 0 ? (
+                <>
+                  <p className={`text-sm font-semibold mt-0.5 ${
+                    todayMedTaken === todayMedExpected ? "text-emerald-700" :
+                    todayMedTaken > 0 ? "text-amber-600" :
+                    todayMedMissed > 0 ? "text-red-600" : "text-muted"
+                  }`}>
+                    {todayMedTaken === todayMedExpected
+                      ? "Todas tomadas"
+                      : todayMedTaken > 0
+                        ? `${todayMedTaken} de ${todayMedExpected}`
+                        : todayMedMissed > 0
+                          ? "Não tomou"
+                          : "Ainda não"}
+                  </p>
+                  {todayMedTaken > 0 && todayMedTaken < todayMedExpected && todayMedPending > 0 && (
+                    <p className="text-[10px] text-muted">
+                      {todayMedPending === 1 ? "1 pendente" : `${todayMedPending} pendentes`}
+                    </p>
+                  )}
+                </>
+              ) : (
+                <p className={`text-sm font-semibold mt-0.5 ${
+                  todayEntry.tookMedication === "sim" ? "text-emerald-700" :
+                  todayEntry.tookMedication === "nao" ? "text-red-600" : "text-amber-600"
+                }`}>
+                  {todayEntry.tookMedication === "sim" ? "Já tomou" :
+                   todayEntry.tookMedication === "nao" ? "Não tomou" : "Ainda não"}
+                </p>
+              )}
             </div>
           </div>
           {/* Snapshot info + register again */}

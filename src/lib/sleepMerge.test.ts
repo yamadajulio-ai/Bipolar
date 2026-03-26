@@ -450,6 +450,68 @@ describe("reconcileManualIntoExisting", () => {
     expect(secondEdit.data.source).toBe("hae"); // still wearable
   });
 
+  it("P1-PROV-01 FIX: manual preserves wearable-enriched HRV/HR from standalone import", () => {
+    // Scenario: manual record was enriched with HRV/HR from standalone HAE import
+    // (fieldProvenance tracks the wearable source, but source is still "manual")
+    const existing = makeExistingRecord({
+      source: "manual",
+      hrv: 45,
+      heartRate: 62,
+      awakeMinutes: 0,
+      providerRecordId: null,
+      rawHash: null,
+      fieldProvenance: JSON.stringify({
+        bedtime: "manual",
+        wakeTime: "manual",
+        totalHours: "manual",
+        quality: "manual",
+        awakenings: "manual",
+        awakeMinutes: "manual",
+        hrv: "hae",        // enriched by standalone HAE import
+        heartRate: "hae",   // enriched by standalone HAE import
+      }),
+    });
+
+    // Manual edit with no HRV/HR (typical from browser form)
+    const manualNoHrv = { ...manualInput, hrv: null, heartRate: null };
+    const result = reconcileManualIntoExisting(manualNoHrv, existing, "2026-03-25");
+
+    // Wearable-enriched biometrics PRESERVED (not nulled out)
+    expect(result.data.hrv).toBe(45);
+    expect(result.data.heartRate).toBe(62);
+    // Source stays manual (it's still a manual record, just enriched)
+    expect(result.data.source).toBe("manual");
+    // Provenance tracks the wearable source for biometrics
+    expect(result.fieldProvenance.hrv).toBe("hae");
+    expect(result.fieldProvenance.heartRate).toBe("hae");
+    // fieldsKept includes the preserved biometrics
+    expect(result.mergeLogEntry.fieldsKept).toContain("hrv");
+    expect(result.mergeLogEntry.fieldsKept).toContain("heartRate");
+  });
+
+  it("P1-PROV-01: manual HRV/HR explicitly provided DOES override enriched values", () => {
+    const existing = makeExistingRecord({
+      source: "manual",
+      hrv: 45,
+      heartRate: 62,
+      fieldProvenance: JSON.stringify({
+        bedtime: "manual", wakeTime: "manual", totalHours: "manual",
+        quality: "manual", awakenings: "manual", awakeMinutes: "manual",
+        hrv: "hae", heartRate: "hae",
+      }),
+    });
+
+    // Manual edit WITH explicit HRV/HR values
+    const manualWithHrv = { ...manualInput, hrv: 55, heartRate: 70 };
+    const result = reconcileManualIntoExisting(manualWithHrv, existing, "2026-03-25");
+
+    // Manual values win when explicitly provided
+    expect(result.data.hrv).toBe(55);
+    expect(result.data.heartRate).toBe(70);
+    expect(result.fieldProvenance.hrv).toBe("manual");
+    expect(result.fieldProvenance.heartRate).toBe("manual");
+  });
+
   it("manual into unknown_legacy — treated as pure manual", () => {
     const existing = makeExistingRecord({
       source: "unknown_legacy",

@@ -215,6 +215,17 @@ export async function POST(request: NextRequest) {
             }
           }
 
+          // Delete stale wearable records overlapping this night
+          const staleWearable = dateRecords.filter(
+            (r) => r.id !== existingRecord?.id && !consumedIds.has(r.id) &&
+              r.source !== "manual" && r.source !== "unknown_legacy" &&
+              findBestMatch({ bedtime: night.bedtime, bedtimeAt, wakeTimeAt }, [r]) !== null,
+          );
+          for (const stale of staleWearable) {
+            consumedIds.add(stale.id);
+            await txPrisma.sleepLog.delete({ where: { id: stale.id } });
+          }
+
           await txPrisma.sleepLog.upsert({
             where: {
               userId_date_bedtime: { userId: integration.userId, date: night.date, bedtime: night.bedtime },

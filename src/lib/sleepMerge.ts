@@ -390,18 +390,34 @@ export function reconcileManualIntoExisting(
       notes: manual.notes != null ? "manual" : undefined,
     };
   } else {
-    // Pure manual or legacy — manual owns everything
+    // Pure manual or legacy — manual owns everything (except wearable-enriched biometrics)
     data.totalHours = manual.totalHours;
     data.awakeMinutes = 0;
     data.awakenings = manual.awakenings;
-    data.hrv = manual.hrv ?? null;
-    data.heartRate = manual.heartRate ?? null;
     data.quality = manual.quality;
     data.source = "manual";
-    fieldsOverwritten.push(
-      "bedtime", "wakeTime", "totalHours", "awakeMinutes", "awakenings",
-      "hrv", "heartRate", "quality",
-    );
+
+    // Check if existing record has wearable-enriched biometrics (from standalone HRV/HR import)
+    const existingFp = existing?.fieldProvenance ? safeParseProvenance(existing.fieldProvenance) : null;
+    const hrvWearableEnriched = existingFp?.hrv != null && existingFp.hrv !== "manual" && existingFp.hrv !== "unknown_legacy";
+    const hrWearableEnriched = existingFp?.heartRate != null && existingFp.heartRate !== "manual" && existingFp.heartRate !== "unknown_legacy";
+
+    // Preserve wearable-enriched biometrics when manual doesn't provide values
+    data.hrv = manual.hrv ?? (hrvWearableEnriched && existing!.hrv != null ? existing!.hrv : null);
+    data.heartRate = manual.heartRate ?? (hrWearableEnriched && existing!.heartRate != null ? existing!.heartRate : null);
+
+    fieldsOverwritten.push("bedtime", "wakeTime", "totalHours", "awakeMinutes", "awakenings", "quality");
+    if (manual.hrv != null || !hrvWearableEnriched) {
+      fieldsOverwritten.push("hrv");
+    } else {
+      fieldsKept.push("hrv");
+    }
+    if (manual.heartRate != null || !hrWearableEnriched) {
+      fieldsOverwritten.push("heartRate");
+    } else {
+      fieldsKept.push("heartRate");
+    }
+
     if (existing) {
       data.excluded = existing.excluded;
       fieldsKept.push("excluded");
@@ -415,8 +431,8 @@ export function reconcileManualIntoExisting(
       perceivedQuality: "manual",
       awakenings: "manual",
       awakeMinutes: "manual",
-      hrv: manual.hrv != null ? "manual" : undefined,
-      heartRate: manual.heartRate != null ? "manual" : undefined,
+      hrv: manual.hrv != null ? "manual" : (hrvWearableEnriched ? existingFp!.hrv : undefined),
+      heartRate: manual.heartRate != null ? "manual" : (hrWearableEnriched ? existingFp!.heartRate : undefined),
       preRoutine: manual.preRoutine != null ? "manual" : undefined,
       notes: manual.notes != null ? "manual" : undefined,
     };
@@ -604,6 +620,16 @@ function hasManualFieldProvenance(existing: ExistingRecord): boolean {
   return false;
 }
 
+/** Safely parse fieldProvenance JSON string */
+export function safeParseProvenance(raw: string | null): Partial<FieldProvenance> {
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw) as Partial<FieldProvenance>;
+  } catch {
+    return {};
+  }
+}
+
 /** Safely parse merge log JSON, returning empty array on failure */
 function safeParseMergeLog(raw: string): MergeLogEntry[] {
   try {
@@ -616,12 +642,14 @@ function safeParseMergeLog(raw: string): MergeLogEntry[] {
 
 // ── Serializable transaction helper ───────────────────────────────
 
-const MAX_RETRIES = 3;
+/** Max number of retries after the initial attempt (total attempts = MAX_RETRIES + 1) */
+const MAX_RETRIES = 2;
 const RETRY_BASE_MS = 100;
 
 /**
  * Execute a Prisma interactive transaction with Serializable isolation
  * and automatic retry on P2034 (write conflict / serialization failure).
+ * Total attempts: 3 (1 initial + 2 retries).
  *
  * This prevents the prefetch-outside-tx race condition flagged in audit.
  */

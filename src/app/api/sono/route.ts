@@ -123,8 +123,26 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
   }
 
+  // Body size limit: reject payloads > 100KB (manual form data is tiny)
+  const contentLength = request.headers.get("content-length");
+  if (contentLength && parseInt(contentLength, 10) > 100_000) {
+    return NextResponse.json(
+      { error: "Payload muito grande" },
+      { status: 413 },
+    );
+  }
+
+  let body: unknown;
   try {
-    const body = await request.json();
+    body = await request.json();
+  } catch {
+    return NextResponse.json(
+      { error: "JSON inválido" },
+      { status: 400 },
+    );
+  }
+
+  try {
     const parsed = sleepLogSchema.safeParse(body);
 
     if (!parsed.success) {
@@ -192,11 +210,14 @@ export async function POST(request: NextRequest) {
       }
 
       // Also delete any other overlapping records with different bedtime
+      // Use final reconciled interval (not raw user input) for correct overlap detection
+      const finalBedtimeAt = result.data.bedtimeAt as Date;
+      const finalWakeTimeAt = result.data.wakeTimeAt as Date;
       const overlapping = existing.filter((e) =>
         e.id !== existingRecord?.id &&
         e.bedtime !== finalBedtime &&
         findBestMatch(
-          { bedtime: parsed.data.bedtime, bedtimeAt, wakeTimeAt },
+          { bedtime: finalBedtime, bedtimeAt: finalBedtimeAt, wakeTimeAt: finalWakeTimeAt },
           [e],
         ) !== null,
       );

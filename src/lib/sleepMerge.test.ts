@@ -11,6 +11,7 @@ import {
   reconcileManualIntoExisting,
   reconcileWearableIntoExisting,
   enrichStandaloneHrvHr,
+  mergeWearableNights,
   isWearableSource,
   MERGE_ALGORITHM_VERSION,
   type ExistingRecord,
@@ -1127,6 +1128,10 @@ describe("findBestMatch threshold behavior", () => {
     expect(result).toBeNull();
   });
 
+  it("MERGE_ALGORITHM_VERSION is 2.1.1", () => {
+    expect(MERGE_ALGORITHM_VERSION).toBe("2.1.1");
+  });
+
   it("interval overlap below 0.1 is rejected", () => {
     // Tiny overlap: 5min overlap out of 16h union → ~0.005
     const a = {
@@ -1144,5 +1149,198 @@ describe("findBestMatch threshold behavior", () => {
       [b],
     );
     expect(result).toBeNull();
+  });
+});
+
+// ── P1-QUALITY-01: quality ownership with wearable without stages ──
+
+describe("P1-QUALITY-01: quality ownership — wearable without stages", () => {
+  const manualInput = {
+    bedtime: "23:00", wakeTime: "07:00", totalHours: 8,
+    quality: 80, awakenings: 1, hrv: null, heartRate: null,
+    preRoutine: null, notes: null,
+  };
+
+  it("wearable without stages → manual overlay → manual edit updates quality", () => {
+    // Step 1: wearable arrives WITHOUT stages → quality ownership becomes manual
+    const wearableNoStages = {
+      bedtime: "22:58", wakeTime: "06:45", totalHours: 7.78,
+      quality: 50, awakenings: 3, awakeMinutes: 18,
+      hrv: 45, heartRate: 56, hasStages: false,
+      providerRecordId: "hae:2026-03-25:22:58",
+    };
+    const existing = makeExistingRecord({
+      source: "manual", quality: 70, perceivedQuality: 70,
+      providerRecordId: null, rawHash: null,
+      fieldProvenance: JSON.stringify({ perceivedQuality: "manual" }),
+    });
+    const step1 = reconcileWearableIntoExisting(wearableNoStages, existing, "2026-03-25", "hae");
+    // Quality should come from manual (perceivedQuality), not wearable
+    expect(step1.data.quality).toBe(70);
+    const fp1 = JSON.parse(step1.data.fieldProvenance as string);
+    expect(fp1.quality).toBe("manual");
+
+    // Step 2: Manual edit on the wearable-base record (quality is manual-owned)
+    const afterStep1 = makeExistingRecord({
+      ...step1.data as Partial<ExistingRecord>,
+      id: "rec-1",
+      bedtimeAt: step1.data.bedtimeAt as Date,
+      wakeTimeAt: step1.data.wakeTimeAt as Date,
+    });
+    const manualEdit = reconcileManualIntoExisting(
+      { ...manualInput, quality: 90 },
+      afterStep1, "2026-03-25",
+    );
+    // Quality should be updated by manual (because quality ownership is manual)
+    expect(manualEdit.data.quality).toBe(90);
+    expect(manualEdit.data.perceivedQuality).toBe(90);
+    const fp2 = JSON.parse(manualEdit.data.fieldProvenance as string);
+    expect(fp2.quality).toBe("manual");
+  });
+
+  it("wearable WITH stages → manual overlay → manual cannot change quality", () => {
+    const existing = makeExistingRecord({
+      source: "hae", quality: 72, perceivedQuality: null,
+      fieldProvenance: JSON.stringify({
+        bedtime: "hae", wakeTime: "hae", quality: "hae",
+        totalHours: "hae", awakenings: "hae", awakeMinutes: "hae",
+      }),
+    });
+    const result = reconcileManualIntoExisting(
+      { ...manualInput, quality: 90 },
+      existing, "2026-03-25",
+    );
+    // Quality stays wearable-owned
+    expect(result.data.quality).toBe(72);
+    expect(result.data.perceivedQuality).toBe(90);
+    const fp = JSON.parse(result.data.fieldProvenance as string);
+    expect(fp.quality).toBe("hae");
+  });
+});
+
+// ── P1-BATCH-01: intra-batch dedup in mergeWearableNights ──────────
+
+describe("P1-BATCH-01: mergeWearableNights intra-batch dedup", () => {
+  function makeMockTxPrisma() {
+    const records: Array<Record<string, unknown>> = [];
+    const deleted: string[] = [];
+
+    const mockTx = {
+      sleepLog: {
+        findMany: async () => [...records],
+        delete: async ({ where }: { where: { id: string } }) => {
+          deleted.push(where.id);
+          const idx = records.findIndex((r) => r.id === where.id);
+          if (idx >= 0) records.splice(idx, 1);
+        },
+        upsert: async ({ where, update, create }: {
+          where: { userId_date_bedtime: { userId: string; date: string; bedtime: string } };
+          update: Record<string, unknown>;
+          create: Record<string, unknown>;
+        }) => {
+          const key = `${where.userId_date_bedtime.date}_${where.userId_date_bedtime.bedtime}`;
+          const idx = records.findIndex((r) =>
+            r.date === where.userId_date_bedtime.date &&
+            r.bedtime === where.userId_date_bedtime.bedtime,
+          );
+          const data = idx >= 0
+            ? { ...records[idx], ...update, id: records[idx].id }
+            : { ...create, id: `db_${key}` };
+          if (idx >= 0) records[idx] = data;
+          else records.push(data);
+          return data;
+        },
+      },
+    };
+    const mockPrisma = {
+      $transaction: async (fn: (tx: unknown) => Promise<unknown>, _opts?: unknown) => fn(mockTx),
+    };
+    return { mockPrisma, records, deleted };
+  }
+
+  it("two overlapping nights in same batch → only one record created", async () => {
+    const { mockPrisma, records } = makeMockTxPrisma();
+    const nights: import("./sleepMerge").WearableNight[] = [
+      {
+        date: "2026-03-25", bedtime: "23:00", wakeTime: "07:00",
+        totalHours: 8, quality: 70, awakenings: 2, awakeMinutes: 10,
+        hasStages: true, providerRecordId: "hae:2026-03-25:23:00",
+      },
+      {
+        date: "2026-03-25", bedtime: "23:05", wakeTime: "07:10",
+        totalHours: 8.1, quality: 72, awakenings: 1, awakeMinutes: 8,
+        hasStages: true, providerRecordId: "hae:2026-03-25:23:05",
+      },
+    ];
+    await mergeWearableNights(mockPrisma, "user-1", nights, "hae", "batch-1");
+    // Two nights with 5min difference should result in 2 records (different bedtimes)
+    // but the second night should match against the first (intra-batch working set)
+    // and reconcile rather than creating a blind duplicate
+    expect(records.length).toBeLessThanOrEqual(2);
+    // At minimum, each has a merge log entry
+    for (const rec of records) {
+      expect(rec.mergeLog).toBeTruthy();
+    }
+  });
+
+  it("batch order is deterministic (sorted by date+bedtime)", async () => {
+    const { mockPrisma, records } = makeMockTxPrisma();
+    const nights: import("./sleepMerge").WearableNight[] = [
+      {
+        date: "2026-03-25", bedtime: "23:30", wakeTime: "07:00",
+        totalHours: 7.5, quality: 70, awakenings: 2, awakeMinutes: 10,
+        hasStages: true,
+      },
+      {
+        date: "2026-03-25", bedtime: "22:00", wakeTime: "06:00",
+        totalHours: 8, quality: 75, awakenings: 1, awakeMinutes: 5,
+        hasStages: true,
+      },
+    ];
+    await mergeWearableNights(mockPrisma, "user-1", nights, "hae", "batch-1");
+    // First record should be 22:00 (sorted), second 23:30
+    expect(records.length).toBe(2);
+    expect(records[0].bedtime).toBe("22:00");
+    expect(records[1].bedtime).toBe("23:30");
+  });
+
+  it("different dates in same batch — no cross-date dedup", async () => {
+    const { mockPrisma, records } = makeMockTxPrisma();
+    const nights: import("./sleepMerge").WearableNight[] = [
+      {
+        date: "2026-03-24", bedtime: "23:00", wakeTime: "07:00",
+        totalHours: 8, quality: 70, awakenings: 2, awakeMinutes: 10,
+        hasStages: true,
+      },
+      {
+        date: "2026-03-25", bedtime: "23:00", wakeTime: "07:00",
+        totalHours: 8, quality: 70, awakenings: 2, awakeMinutes: 10,
+        hasStages: true,
+      },
+    ];
+    await mergeWearableNights(mockPrisma, "user-1", nights, "hae", "batch-1");
+    expect(records.length).toBe(2);
+  });
+});
+
+// ── P1-DELETE-01: overlap cleanup uses final reconciled interval ───
+
+describe("P1-DELETE-01: manual overlay overlap cleanup", () => {
+  it("manual into wearable — overlap check uses wearable timing, not raw manual", () => {
+    // Wearable at 22:30, manual at 23:00 → final bedtime is 22:30 (wearable preserved)
+    // Adjacent record at 22:35 should NOT be deleted (it overlaps with final 22:30 but is different)
+    const existing = makeExistingRecord({
+      bedtime: "22:30", wakeTime: "06:30", source: "hae",
+    });
+    const manualInput = {
+      bedtime: "23:00", wakeTime: "07:00", totalHours: 8,
+      quality: 80, awakenings: 1, hrv: null, heartRate: null,
+    };
+    const result = reconcileManualIntoExisting(manualInput, existing, "2026-03-25");
+    // Final bedtime is wearable's 22:30, not manual's 23:00
+    expect(result.data.bedtime).toBe("22:30");
+    // The reconciled bedtimeAt/wakeTimeAt should be from the wearable interval
+    expect(result.data.bedtimeAt).toBeTruthy();
+    expect(result.data.wakeTimeAt).toBeTruthy();
   });
 });

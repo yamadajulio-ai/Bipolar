@@ -27,7 +27,7 @@
 import { createHash } from "crypto";
 
 // ── Algorithm versioning ──────────────────────────────────────────
-export const MERGE_ALGORITHM_VERSION = "2.1.0";
+export const MERGE_ALGORITHM_VERSION = "2.1.1";
 
 // ── Time utilities ────────────────────────────────────────────────
 
@@ -366,13 +366,18 @@ export function reconcileManualIntoExisting(
   if (isWearableBase) {
     const wSrc = existing!.source as FieldSource;
 
+    // Check if quality ownership is manual (wearable without stages set quality to manual)
+    const existingFpW = existing!.fieldProvenance ? safeParseProvenance(existing!.fieldProvenance) : {};
+    const qualityIsManualOwned = existingFpW.quality === "manual";
+
     // Wearable timing + biometrics preserved entirely
     data.totalHours = existing!.totalHours;
     data.awakeMinutes = existing!.awakeMinutes;
     data.awakenings = existing!.awakenings;
     data.hrv = existing!.hrv;
     data.heartRate = existing!.heartRate;
-    data.quality = existing!.quality;
+    // Quality: if owned by manual (wearable had no stages), manual can update it
+    data.quality = qualityIsManualOwned ? manual.quality : existing!.quality;
     data.excluded = existing!.excluded;
     data.providerRecordId = existing!.providerRecordId;
     data.rawHash = existing!.rawHash;
@@ -380,14 +385,19 @@ export function reconcileManualIntoExisting(
     data.source = existing!.source;
     fieldsKept.push(
       "bedtime", "wakeTime", "totalHours", "awakeMinutes", "awakenings",
-      "hrv", "heartRate", "quality", "excluded", "providerRecordId", "rawHash", "source",
+      "hrv", "heartRate", "excluded", "providerRecordId", "rawHash", "source",
     );
+    if (qualityIsManualOwned) {
+      fieldsOverwritten.push("quality");
+    } else {
+      fieldsKept.push("quality");
+    }
 
     provenance = {
       bedtime: wSrc,
       wakeTime: wSrc,
       totalHours: wSrc,
-      quality: wSrc,
+      quality: qualityIsManualOwned ? "manual" : wSrc,
       perceivedQuality: "manual",
       awakenings: wSrc,
       awakeMinutes: wSrc,
@@ -738,7 +748,12 @@ export async function mergeWearableNights(
 ): Promise<void> {
   if (nights.length === 0) return;
 
-  const affectedDates = [...new Set(nights.map((n) => n.date))];
+  // Deterministic sort: date asc, bedtime asc (prevents order-dependent results)
+  const sortedNights = [...nights].sort((a, b) =>
+    a.date.localeCompare(b.date) || a.bedtime.localeCompare(b.bedtime),
+  );
+
+  const affectedDates = [...new Set(sortedNights.map((n) => n.date))];
 
   await withSerializableTransaction(prisma, async (tx) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -750,15 +765,16 @@ export async function mergeWearableNights(
     });
 
     const consumedIds = new Set<string>();
-    const existingByDate = new Map<string, ExistingRecord[]>();
+    // Mutable working set — updated after each upsert for intra-batch dedup
+    const workingByDate = new Map<string, ExistingRecord[]>();
     for (const rec of existingRecords) {
-      const list = existingByDate.get(rec.date) || [];
+      const list = workingByDate.get(rec.date) || [];
       list.push(rec as ExistingRecord);
-      existingByDate.set(rec.date, list);
+      workingByDate.set(rec.date, list);
     }
 
-    for (const night of nights) {
-      const dateRecords = (existingByDate.get(night.date) || []).filter((r) => !consumedIds.has(r.id));
+    for (const night of sortedNights) {
+      const dateRecords = (workingByDate.get(night.date) || []).filter((r) => !consumedIds.has(r.id));
       const { bedtimeAt, wakeTimeAt } = computeAbsoluteTimestamps(night.date, night.bedtime, night.wakeTime);
 
       const matchResult = findBestMatch(
@@ -817,6 +833,35 @@ export async function mergeWearableNights(
         update: reconciled.data as any, // eslint-disable-line @typescript-eslint/no-explicit-any
         create: { userId, date: night.date, ...reconciled.data } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
       });
+
+      // Add to working set so subsequent nights in same batch can match against it
+      const syntheticId = `batch_${night.date}_${night.bedtime}`;
+      consumedIds.add(syntheticId);
+      const syntheticRecord: ExistingRecord = {
+        id: syntheticId,
+        bedtime: night.bedtime,
+        wakeTime: night.wakeTime,
+        bedtimeAt,
+        wakeTimeAt,
+        totalHours: night.totalHours,
+        quality: night.quality,
+        perceivedQuality: (reconciled.data.perceivedQuality as number | null) ?? null,
+        awakenings: night.awakenings,
+        awakeMinutes: night.awakeMinutes,
+        hrv: night.hrv ?? null,
+        heartRate: night.heartRate ?? null,
+        excluded: false,
+        source: wearableSource,
+        fieldProvenance: (reconciled.data.fieldProvenance as string) ?? null,
+        providerRecordId: night.providerRecordId ?? null,
+        rawHash,
+        preRoutine: (reconciled.data.preRoutine as string | null) ?? null,
+        notes: (reconciled.data.notes as string | null) ?? null,
+        mergeLog: (reconciled.data.mergeLog as string) ?? null,
+      };
+      const dateList = workingByDate.get(night.date) || [];
+      dateList.push(syntheticRecord);
+      workingByDate.set(night.date, dateList);
     }
   });
 }

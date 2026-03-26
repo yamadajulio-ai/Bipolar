@@ -81,7 +81,7 @@ export default async function CursoPage({
               href={`/cursos/${cursoSlug}/${lesson.slug}`}
               className="no-underline block"
             >
-              <Card className={`transition-shadow hover:shadow-md ${done ? "border-l-4 border-l-success" : ""}`}>
+              <Card className={`transition-shadow hover:shadow-[var(--shadow-raised)] ${done ? "border-l-4 border-l-success" : ""}`}>
                 <div className="flex items-center gap-3">
                   <span className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${
                     done

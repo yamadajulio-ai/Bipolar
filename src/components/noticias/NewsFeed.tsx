@@ -49,7 +49,7 @@ function SourceBadge({ source }: { source: string }) {
 
 function NewsCard({ article }: { article: Article }) {
   return (
-    <Card className="transition-shadow hover:shadow-md">
+    <Card className="transition-shadow hover:shadow-[var(--shadow-raised)]">
       <a
         href={article.url}
         target="_blank"
@@ -100,7 +100,7 @@ export function NewsFeed({ initialArticles }: { initialArticles: Article[] }) {
             onClick={() => setActiveTab(tab.key)}
             className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
               activeTab === tab.key
-                ? "bg-surface text-foreground shadow-sm"
+                ? "bg-surface text-foreground shadow-[var(--shadow-card)]"
                 : "text-muted hover:text-foreground"
             }`}
           >

@@ -64,8 +64,8 @@ export function SafetyInterstitial({ source, sourceAssessmentId, onComplete, onD
   // ── Step: Intro ──────────────────────────────────────────────
   if (step === "intro") {
     return (
-      <div className="rounded-xl border border-orange-400 bg-orange-50 p-6 shadow-sm">
-        <h3 className="text-base font-bold text-orange-900 mb-2">
+      <div className="rounded-[var(--radius-card)] border border-orange-400 bg-orange-50 p-6 shadow-[var(--shadow-card)] dark:bg-orange-950/50 dark:border-orange-700">
+        <h3 className="text-base font-bold text-orange-900 dark:text-orange-200 mb-2">
           Triagem de segurança
         </h3>
         <p className="text-sm text-orange-800 mb-4">
@@ -96,8 +96,8 @@ export function SafetyInterstitial({ source, sourceAssessmentId, onComplete, onD
   // ── Step: ASQ Questions (1-4) ────────────────────────────────
   if (step === "asq") {
     return (
-      <div className="rounded-xl border border-orange-400 bg-orange-50 p-6 shadow-sm">
-        <h3 className="text-base font-bold text-orange-900 mb-4">
+      <div className="rounded-[var(--radius-card)] border border-orange-400 bg-orange-50 p-6 shadow-[var(--shadow-card)] dark:bg-orange-950/50 dark:border-orange-700">
+        <h3 className="text-base font-bold text-orange-900 dark:text-orange-200 mb-4">
           Triagem rápida
         </h3>
         <div className="space-y-4">
@@ -160,8 +160,8 @@ export function SafetyInterstitial({ source, sourceAssessmentId, onComplete, onD
   // ── Step: ASQ Q5 (acuity) ────────────────────────────────────
   if (step === "asq_q5") {
     return (
-      <div className="rounded-xl border border-red-400 bg-red-50 p-6 shadow-sm">
-        <h3 className="text-base font-bold text-red-900 mb-2">
+      <div className="rounded-[var(--radius-card)] border border-red-400 bg-red-50 p-6 shadow-[var(--shadow-card)] dark:bg-red-950/50 dark:border-red-700">
+        <h3 className="text-base font-bold text-red-900 dark:text-red-200 mb-2">
           Mais uma pergunta importante
         </h3>
         <p className="text-sm text-red-800 mb-4">
@@ -224,7 +224,7 @@ export function SafetyInterstitial({ source, sourceAssessmentId, onComplete, onD
   // ── Result: Clear ────────────────────────────────────────────
   if (step === "result_clear") {
     return (
-      <div className="rounded-xl border border-emerald-300 bg-emerald-50 p-6 shadow-sm">
+      <div className="rounded-[var(--radius-card)] border border-emerald-300 bg-emerald-50 p-6 shadow-[var(--shadow-card)] dark:bg-emerald-950/50 dark:border-emerald-700">
         <h3 className="text-base font-bold text-emerald-900 mb-2">
           Obrigado por responder
         </h3>
@@ -241,7 +241,7 @@ export function SafetyInterstitial({ source, sourceAssessmentId, onComplete, onD
 
   // ── Result: Concern ──────────────────────────────────────────
   return (
-    <div className="rounded-xl border border-red-400 bg-red-50 p-6 shadow-sm" role="alert">
+    <div className="rounded-[var(--radius-card)] border border-red-400 bg-red-50 p-6 shadow-[var(--shadow-card)] dark:bg-red-950/50 dark:border-red-700" role="alert">
       <h3 className="text-base font-bold text-red-900 mb-2">
         Queremos garantir que você está seguro
       </h3>
@@ -424,8 +424,8 @@ function BssaFlow({
   }
 
   return (
-    <div className="rounded-xl border border-orange-400 bg-orange-50 p-6 shadow-sm">
-      <p className="text-xs text-orange-600 mb-1">
+    <div className="rounded-[var(--radius-card)] border border-orange-400 bg-orange-50 p-6 shadow-[var(--shadow-card)] dark:bg-orange-950/50 dark:border-orange-700">
+      <p className="text-xs text-orange-600 dark:text-orange-400 mb-1">
         Pergunta {currentVisibleIndex + 1} de {visibleQuestions.length}
       </p>
       <h3 className="text-sm font-semibold text-orange-900 mb-4">

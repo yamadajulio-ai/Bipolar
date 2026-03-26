@@ -184,7 +184,7 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
             onClick={() => { draft.setTab("DIARY"); }}
             className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
               draft.tab === "DIARY"
-                ? "bg-primary text-white shadow-sm"
+                ? "bg-primary text-white shadow-[var(--shadow-card)]"
                 : "text-muted hover:text-foreground"
             }`}
           >
@@ -194,7 +194,7 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
             onClick={() => { draft.setTab("QUICK_INSIGHT"); draft.setContent((c) => c.slice(0, INSIGHT_MAX)); }}
             className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
               draft.tab === "QUICK_INSIGHT"
-                ? "bg-primary text-white shadow-sm"
+                ? "bg-primary text-white shadow-[var(--shadow-card)]"
                 : "text-muted hover:text-foreground"
             }`}
           >

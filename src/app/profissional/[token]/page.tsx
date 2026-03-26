@@ -215,7 +215,7 @@ export default function ProfessionalDashboard() {
     <div className="min-h-screen bg-surface-alt p-4 dark:bg-gray-950">
       <div className="mx-auto max-w-4xl">
         {/* Header */}
-        <div className="mb-6 rounded-xl bg-surface p-6 shadow-sm dark:bg-gray-900">
+        <div className="mb-6 rounded-[var(--radius-card)] bg-surface p-6 shadow-[var(--shadow-card)] dark:bg-surface-raised">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-xl font-bold">

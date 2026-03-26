@@ -41,7 +41,7 @@ export default async function CursosPage() {
             const isComplete = completed >= course.totalLessons;
             return (
               <Link key={course.slug} href={`/cursos/${course.slug}`} className="no-underline block">
-                <Card className={`transition-shadow hover:shadow-md ${isComplete ? "border-l-4 border-l-green-500" : ""}`}>
+                <Card className={`transition-shadow hover:shadow-[var(--shadow-raised)] ${isComplete ? "border-l-4 border-l-green-500" : ""}`}>
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1">
                       <h2 className="font-semibold text-foreground">{course.title}</h2>

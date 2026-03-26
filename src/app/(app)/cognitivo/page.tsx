@@ -47,7 +47,7 @@ export default function CognitivoPage() {
         <div className="space-y-3">
           <button
             type="button"
-            className="w-full text-left cursor-pointer rounded-lg border border-border bg-surface p-4 shadow-sm hover:border-primary/50 transition-colors"
+            className="w-full text-left cursor-pointer rounded-[var(--radius-card)] border border-border-soft bg-surface p-4 shadow-[var(--shadow-card)] hover:border-primary/50 transition-colors dark:border-border-strong"
             onClick={() => setTask("reaction")}
           >
             <h2 className="text-sm font-semibold">Tempo de Reação</h2>
@@ -57,7 +57,7 @@ export default function CognitivoPage() {
           </button>
           <button
             type="button"
-            className="w-full text-left cursor-pointer rounded-lg border border-border bg-surface p-4 shadow-sm hover:border-primary/50 transition-colors"
+            className="w-full text-left cursor-pointer rounded-[var(--radius-card)] border border-border-soft bg-surface p-4 shadow-[var(--shadow-card)] hover:border-primary/50 transition-colors dark:border-border-strong"
             onClick={() => setTask("digits")}
           >
             <h2 className="text-sm font-semibold">Span de Dígitos</h2>

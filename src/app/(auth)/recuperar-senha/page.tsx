@@ -14,7 +14,7 @@ export default function RecuperarSenhaPage() {
           <p className="mt-2 text-sm text-muted">Recuperar senha</p>
         </div>
 
-        <div className="rounded-lg border border-border bg-surface p-6 shadow-sm">
+        <div className="rounded-[var(--radius-card)] border border-border-soft bg-surface p-6 shadow-[var(--shadow-card)] dark:border-border-strong">
           <h1 className="mb-4 text-lg font-semibold text-foreground">
             Esqueceu sua senha?
           </h1>
@@ -47,7 +47,7 @@ export default function RecuperarSenhaPage() {
           <div className="mt-6 flex flex-col gap-3">
             <a
               href="/api/auth/google-login"
-              className="flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium text-foreground hover:bg-surface-alt"
+              className="flex w-full items-center justify-center gap-2 rounded-[var(--radius-card)] border border-border-soft bg-surface px-4 py-2 text-sm font-medium text-foreground hover:bg-surface-alt dark:border-border-strong"
             >
               <svg className="h-5 w-5" viewBox="0 0 24 24">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />

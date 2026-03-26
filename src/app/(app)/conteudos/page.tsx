@@ -20,7 +20,7 @@ export default function ConteudosPage() {
             href={`/conteudos/${item.slug}`}
             className="block no-underline"
           >
-            <Card className="transition-shadow hover:shadow-md">
+            <Card className="transition-shadow hover:shadow-[var(--shadow-raised)]">
               <h2 className="font-semibold text-foreground">{item.title}</h2>
               <p className="mt-1 text-sm text-muted">{item.description}</p>
               <p className="mt-2 text-xs text-muted">{item.readingTime}</p>

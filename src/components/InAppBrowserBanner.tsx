@@ -33,7 +33,7 @@ export function InAppBrowserBanner() {
   if (!show) return null;
 
   return (
-    <div className="fixed inset-x-0 top-0 z-50 bg-amber-50 border-b border-amber-200 px-4 py-3 shadow-md safe-top">
+    <div className="fixed inset-x-0 top-0 z-50 bg-amber-50 border-b border-amber-200 px-4 py-3 shadow-[var(--shadow-raised)] safe-top dark:bg-amber-950/90 dark:border-amber-700">
       <div className="mx-auto flex max-w-lg items-start gap-3">
         <span className="mt-0.5 text-xl shrink-0" aria-hidden="true">⚠️</span>
         <div className="flex-1 text-sm text-amber-900">

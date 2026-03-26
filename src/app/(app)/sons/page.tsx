@@ -49,7 +49,7 @@ export default function SonsPage() {
               className={`transition-all cursor-pointer ${
                 activeSound === sound.id
                   ? "ring-2 ring-primary border-primary"
-                  : "hover:shadow-md"
+                  : "hover:shadow-[var(--shadow-raised)]"
               }`}
             >
               <div className="text-2xl mb-1">{sound.icon}</div>

@@ -106,10 +106,14 @@ function computeMoodInsights(entries: DiaryEntryInput[], today: Date, tz: string
       : "Alta";
   }
 
-  const withMed = entries.filter((e) => e.tookMedication !== null);
-  const medicationAdherence = withMed.length > 0
-    ? Math.round((withMed.filter((e) => e.tookMedication === "sim").length / withMed.length) * 100)
+  // Only count definitive answers ("sim"/"nao") for adherence.
+  // "nao_sei" (partial/pending doses) is excluded from the denominator
+  // to avoid penalizing late-night medications not yet logged.
+  const definiteMed = entries.filter((e) => e.tookMedication === "sim" || e.tookMedication === "nao");
+  const medicationAdherence = definiteMed.length > 0
+    ? Math.round((definiteMed.filter((e) => e.tookMedication === "sim").length / definiteMed.length) * 100)
     : null;
+  const withMed = entries.filter((e) => e.tookMedication !== null);
   const medicationResponseRate = entries.length > 0 ? `${withMed.length}/30 dias` : null;
 
   const signCounts: Record<string, number> = {};

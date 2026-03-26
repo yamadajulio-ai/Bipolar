@@ -242,7 +242,7 @@ export default function NovoSonoPage() {
           />
 
           <FormField
-            label="Observacoes (opcional)"
+            label="Observações (opcional)"
             name="notes"
             textarea
             rows={3}

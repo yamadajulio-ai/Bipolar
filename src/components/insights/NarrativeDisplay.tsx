@@ -19,11 +19,14 @@ const APP_DISCLAIMER =
 interface NarrativeDisplayProps {
   narrative: NarrativeResultV2;
   data: NarrativeResponse;
+  onRefresh?: () => void;
+  refreshLoading?: boolean;
+  refreshCooldown?: boolean;
 }
 
 export { APP_DISCLAIMER };
 
-export function NarrativeDisplay({ narrative, data }: NarrativeDisplayProps) {
+export function NarrativeDisplay({ narrative, data, onRefresh, refreshLoading, refreshCooldown }: NarrativeDisplayProps) {
   const [expanded, setExpanded] = useState(true);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
     new Set(),
@@ -66,12 +69,12 @@ export function NarrativeDisplay({ narrative, data }: NarrativeDisplayProps) {
       aria-live="polite"
     >
       {/* Header */}
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="flex w-full items-center justify-between p-5"
-        aria-expanded={expanded}
-      >
-        <div className="flex items-center gap-2">
+      <div className="flex w-full items-center justify-between p-5">
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="flex items-center gap-2 flex-1 min-w-0"
+          aria-expanded={expanded}
+        >
           <h3 className="text-sm font-semibold text-foreground">
             Resumo inteligente
           </h3>
@@ -80,21 +83,30 @@ export function NarrativeDisplay({ narrative, data }: NarrativeDisplayProps) {
               versão anterior
             </span>
           )}
-        </div>
-        <svg
-          className={`h-4 w-4 text-muted transition-transform ${expanded ? "rotate-180" : ""}`}
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M19 9l-7 7-7-7"
-          />
-        </svg>
-      </button>
+          <svg
+            className={`h-4 w-4 text-muted transition-transform ${expanded ? "rotate-180" : ""}`}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M19 9l-7 7-7-7"
+            />
+          </svg>
+        </button>
+        {onRefresh && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onRefresh(); }}
+            disabled={refreshCooldown || refreshLoading}
+            className="shrink-0 rounded-lg border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/10 disabled:opacity-50 disabled:cursor-not-allowed min-h-[36px]"
+          >
+            {refreshLoading ? "Gerando..." : refreshCooldown ? "Aguarde..." : "Atualizar"}
+          </button>
+        )}
+      </div>
 
       {expanded && (
         <div className="space-y-4 px-5 pb-5">

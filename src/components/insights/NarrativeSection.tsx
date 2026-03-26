@@ -122,7 +122,13 @@ export function NarrativeSection() {
 
   return (
     <>
-      <NarrativeDisplay narrative={narrative} data={data} />
+      <NarrativeDisplay
+        narrative={narrative}
+        data={data}
+        onRefresh={generate}
+        refreshLoading={loading}
+        refreshCooldown={retryCooldown}
+      />
 
       {/* Footer: metadata, feedback, regenerate */}
       <div className="border-t border-border/30 pt-3 mt-3 space-y-2">
@@ -147,18 +153,9 @@ export function NarrativeSection() {
 
         {error && <p role="alert" className="text-xs text-red-600 dark:text-red-400">{error}</p>}
 
-        <div className="flex items-center gap-4">
-          <button
-            onClick={generate}
-            disabled={retryCooldown || loading}
-            className="text-xs text-primary underline disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? "Gerando..." : retryCooldown ? "Aguarde..." : "Atualizar com novos registros"}
-          </button>
-          <a href="/consentimentos" className="text-xs text-muted underline hover:text-foreground">
-            Gerenciar consentimento
-          </a>
-        </div>
+        <a href="/consentimentos" className="text-xs text-muted underline hover:text-foreground">
+          Gerenciar consentimento
+        </a>
       </div>
     </>
   );

@@ -26,6 +26,7 @@
   --focus-ring: #527a6e;
   --overlay: rgba(0, 0, 0, 0.4);
   --halo: rgba(82, 122, 110, 0.18);
+  --halo-stroke: var(--background);
   --chart-grid: #e5e7eb;
   --chart-axis: #9ca3af;
 
@@ -67,6 +68,7 @@
   --focus-ring: #7da399;
   --overlay: rgba(0, 0, 0, 0.6);
   --halo: rgba(125, 163, 153, 0.18);
+  --halo-stroke: var(--background);
   --chart-grid: #4f4740;
   --chart-axis: #b9ada1;
 

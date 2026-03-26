@@ -20,6 +20,7 @@ export function InsightsTabs({ children }: { children: [React.ReactNode, React.R
         {TABS.map((tab) => (
           <button
             key={tab.key}
+            id={`tab-${tab.key}`}
             role="tab"
             aria-selected={active === tab.key}
             aria-controls={`panel-${tab.key}`}
@@ -42,7 +43,7 @@ export function InsightsTabs({ children }: { children: [React.ReactNode, React.R
           key={tab.key}
           id={`panel-${tab.key}`}
           role="tabpanel"
-          aria-labelledby={tab.key}
+          aria-labelledby={`tab-${tab.key}`}
           hidden={active !== tab.key}
         >
           {children[i]}

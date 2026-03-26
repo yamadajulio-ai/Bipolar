@@ -42,14 +42,14 @@ function ThemeButton() {
   const [mounted, setMounted] = useState(false);
   const { resolvedTheme, setTheme } = useTheme();
   useEffect(() => setMounted(true), []);
-  if (!mounted) return <div className="h-8 w-8" aria-hidden="true" />;
+  if (!mounted) return <div className="h-11 w-11" aria-hidden="true" />;
   const isDark = resolvedTheme === "dark";
   return (
     <button
       onClick={() => setTheme(isDark ? "light" : "dark")}
       aria-label={isDark ? "Mudar para modo claro" : "Mudar para modo escuro"}
       title={isDark ? "Modo claro" : "Modo escuro"}
-      className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-muted/20"
+      className="flex h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-muted/20"
     >
       <AppIcon icon={isDark ? Sun : MoonStar} size="sm" className="text-muted" />
     </button>
@@ -126,7 +126,7 @@ export function Header({ isLoggedIn }: HeaderProps) {
               >
                 <button
                   type="submit"
-                  className="flex h-8 w-8 items-center justify-center rounded-full text-muted transition-colors hover:bg-muted/20 hover:text-foreground"
+                  className="flex h-11 w-11 items-center justify-center rounded-full text-muted transition-colors hover:bg-muted/20 hover:text-foreground"
                   aria-label="Sair"
                   title="Sair"
                 >
@@ -152,7 +152,7 @@ export function Header({ isLoggedIn }: HeaderProps) {
               >
                 <button
                   type="submit"
-                  className="flex h-8 w-8 items-center justify-center rounded-full text-muted transition-colors hover:bg-muted/20 hover:text-foreground"
+                  className="flex h-11 w-11 items-center justify-center rounded-full text-muted transition-colors hover:bg-muted/20 hover:text-foreground"
                   aria-label="Sair"
                   title="Sair"
                 >

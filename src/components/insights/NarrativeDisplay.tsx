@@ -204,7 +204,7 @@ export function NarrativeDisplay({ narrative, data, onRefresh, refreshLoading, r
                           </span>
                         )}
                         {section.status === "limited" && (
-                          <span className="rounded-full bg-surface-alt px-1.5 py-0.5 text-[10px] text-muted dark:bg-gray-800">
+                          <span className="rounded-full bg-surface-alt px-1.5 py-0.5 text-[10px] text-muted dark:bg-surface-raised">
                             poucos dados
                           </span>
                         )}

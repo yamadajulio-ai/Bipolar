@@ -60,17 +60,17 @@ export function CoachMarks() {
       aria-modal="true"
       aria-label="Dicas do painel"
     >
-      <div className="bg-white dark:bg-gray-900 rounded-xl p-5 max-w-sm w-full shadow-xl space-y-3 animate-in slide-in-from-bottom-4 duration-300">
-        <p className="font-semibold text-gray-800 dark:text-gray-100">{mark.title}</p>
-        <p className="text-sm text-gray-600 dark:text-gray-300">{mark.desc}</p>
+      <div className="bg-surface dark:bg-surface-raised rounded-[var(--radius-card)] p-5 max-w-sm w-full shadow-[var(--shadow-float)] space-y-3 animate-in slide-in-from-bottom-4 duration-300">
+        <p className="font-semibold text-foreground">{mark.title}</p>
+        <p className="text-sm text-muted">{mark.desc}</p>
         <div className="flex justify-between items-center">
-          <span className="text-xs text-gray-400" aria-live="polite">
+          <span className="text-xs text-muted" aria-live="polite">
             {current + 1} de {MARKS.length}
           </span>
           <div className="space-x-2">
             <button
               onClick={dismiss}
-              className="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+              className="text-sm text-muted hover:text-foreground transition-colors"
             >
               Pular
             </button>
@@ -79,7 +79,7 @@ export function CoachMarks() {
                 if (!isLast) setCurrent(current + 1);
                 else dismiss();
               }}
-              className="text-sm font-medium text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 transition-colors"
+              className="text-sm font-medium text-primary dark:text-primary-light hover:text-primary-dark transition-colors"
             >
               {isLast ? "Entendi!" : "Próximo \u2192"}
             </button>

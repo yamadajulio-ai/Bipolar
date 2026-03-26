@@ -163,7 +163,7 @@ export default function ProfessionalDashboard() {
   // PIN entry screen
   if (!report) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-surface-alt p-4 dark:bg-gray-950">
+      <div className="flex min-h-screen items-center justify-center bg-surface-alt p-4 dark:bg-surface">
         <Card className="w-full max-w-md">
           <h1 className="mb-2 text-center text-xl font-bold">
             Suporte Bipolar — Painel do Profissional
@@ -212,7 +212,7 @@ export default function ProfessionalDashboard() {
   const { insights, rawData } = report;
 
   return (
-    <div className="min-h-screen bg-surface-alt p-4 dark:bg-gray-950">
+    <div className="min-h-screen bg-surface-alt p-4 dark:bg-surface">
       <div className="mx-auto max-w-4xl">
         {/* Header */}
         <div className="mb-6 rounded-[var(--radius-card)] bg-surface p-6 shadow-[var(--shadow-card)] dark:bg-surface-raised">
@@ -228,7 +228,7 @@ export default function ProfessionalDashboard() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => window.print()}
-                className="rounded-lg border border-border px-3 py-2 text-xs font-medium text-muted hover:bg-surface-alt dark:hover:bg-gray-800 print:hidden"
+                className="rounded-lg border border-border px-3 py-2 text-xs font-medium text-muted hover:bg-surface-alt dark:hover:bg-surface-raised print:hidden"
               >
                 Exportar PDF / Imprimir
               </button>
@@ -430,7 +430,7 @@ export default function ProfessionalDashboard() {
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="bg-surface-alt dark:bg-gray-800">
+                  <tr className="bg-surface-alt dark:bg-surface-raised">
                     <th className="px-2 py-1.5 text-left">Semana</th>
                     <th className="px-2 py-1.5 text-center">ASRM</th>
                     <th className="px-2 py-1.5 text-center">PHQ-9</th>
@@ -493,7 +493,7 @@ export default function ProfessionalDashboard() {
               {report.lifeChartEvents.map((e, i) => (
                 <div key={i} className="flex items-start gap-2 text-xs">
                   <span className="flex-shrink-0 font-medium">{e.date}</span>
-                  <span className="rounded bg-surface-alt px-1.5 py-0.5 text-[10px] dark:bg-gray-800">
+                  <span className="rounded bg-surface-alt px-1.5 py-0.5 text-[10px] dark:bg-surface-raised">
                     {e.eventType}
                   </span>
                   <span className="text-muted">{e.label}</span>
@@ -512,7 +512,7 @@ export default function ProfessionalDashboard() {
             <div className="overflow-x-auto rounded-lg border border-border">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="bg-surface-alt dark:bg-gray-800">
+                  <tr className="bg-surface-alt dark:bg-surface-raised">
                     <th className="px-2 py-1.5 text-left">Data</th>
                     <th className="px-2 py-1.5 text-center">Humor</th>
                     <th className="px-2 py-1.5 text-center">Energia</th>
@@ -561,7 +561,7 @@ export default function ProfessionalDashboard() {
             <div className="overflow-x-auto rounded-lg border border-border">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="bg-surface-alt dark:bg-gray-800">
+                  <tr className="bg-surface-alt dark:bg-surface-raised">
                     <th className="px-2 py-1.5 text-left">Data</th>
                     <th className="px-2 py-1.5 text-center">Hora</th>
                     <th className="px-2 py-1.5 text-center">Humor</th>
@@ -595,7 +595,7 @@ export default function ProfessionalDashboard() {
             <div className="overflow-x-auto rounded-lg border border-border">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="bg-surface-alt dark:bg-gray-800">
+                  <tr className="bg-surface-alt dark:bg-surface-raised">
                     <th className="px-2 py-1.5 text-left">Data</th>
                     <th className="px-2 py-1.5 text-center">Dormir</th>
                     <th className="px-2 py-1.5 text-center">Acordar</th>

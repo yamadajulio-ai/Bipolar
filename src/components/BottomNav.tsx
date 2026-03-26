@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion } from "motion/react";
+import { motion, MotionConfig } from "motion/react";
 import { Home, PenLine, Moon, BarChart3, LayoutGrid } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -24,6 +24,7 @@ export function BottomNav() {
   const pathname = usePathname();
 
   return (
+    <MotionConfig reducedMotion="user">
     <nav
       aria-label="Navegação principal"
       className="fixed bottom-0 left-0 right-0 z-50 lg:hidden"
@@ -88,5 +89,6 @@ export function BottomNav() {
         </div>
       </div>
     </nav>
+    </MotionConfig>
   );
 }

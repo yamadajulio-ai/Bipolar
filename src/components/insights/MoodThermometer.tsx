@@ -79,7 +79,7 @@ export function MoodThermometer({ data }: Props) {
       )}
 
       {/* Spectrum bar */}
-      <div className="relative mb-2">
+      <div className="relative mb-2" aria-hidden="true">
         {/* Background gradient bar */}
         <div className="flex h-4 overflow-hidden rounded-full">
           <div className="flex-1 bg-blue-500" />
@@ -93,7 +93,7 @@ export function MoodThermometer({ data }: Props) {
           className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2"
           style={{ left: `${data.position}%` }}
         >
-          <div className="h-6 w-6 rounded-full border-[3px] border-white dark:border-gray-800 bg-foreground shadow-lg" />
+          <div className="h-6 w-6 rounded-full border-[3px] border-white dark:border-surface bg-foreground shadow-lg" />
         </div>
       </div>
       <div className="mb-4 flex justify-between text-[10px] text-foreground/50">

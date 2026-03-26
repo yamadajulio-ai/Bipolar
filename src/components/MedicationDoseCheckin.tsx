@@ -205,7 +205,7 @@ export function MedicationDoseCheckin({ date, onComplete, onTrackingStatus }: Pr
           </p>
           <div className="space-y-2">
             {yesterdayPending.map((dose) => (
-              <div key={dose.scheduleId} className="flex items-center gap-2 rounded-md border border-amber-200 bg-white dark:bg-gray-900 dark:border-amber-700 px-3 py-2">
+              <div key={dose.scheduleId} className="flex items-center gap-2 rounded-md border border-amber-200 bg-surface dark:bg-surface-raised dark:border-amber-700 px-3 py-2">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">
                     {dose.medicationName}

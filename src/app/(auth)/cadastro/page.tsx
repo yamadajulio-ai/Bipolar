@@ -79,7 +79,7 @@ export default function CadastroPage() {
           <p className="mt-2 text-sm text-muted">Crie sua conta gratuita</p>
         </div>
 
-        <div className="rounded-lg border border-border bg-surface p-6 shadow-sm">
+        <div className="rounded-[var(--radius-card)] border border-border-soft bg-surface p-6 shadow-[var(--shadow-card)] dark:border-border-strong">
           <Alert variant="info" className="mb-4">
             Este aplicativo é educacional e não substitui acompanhamento profissional.
           </Alert>
@@ -154,7 +154,7 @@ export default function CadastroPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-lg bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
+              className="w-full rounded-[var(--radius-card)] bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
             >
               {loading ? "Criando conta..." : "Criar conta"}
             </button>
@@ -168,7 +168,7 @@ export default function CadastroPage() {
 
           <a
             href="/api/auth/google-login"
-            className="flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium text-foreground hover:bg-surface-alt"
+            className="flex w-full items-center justify-center gap-2 rounded-[var(--radius-card)] border border-border-soft bg-surface px-4 py-2 text-sm font-medium text-foreground hover:bg-surface-alt dark:border-border-strong"
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />

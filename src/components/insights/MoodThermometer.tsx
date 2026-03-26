@@ -31,7 +31,7 @@ export function MoodThermometer({ data }: Props) {
   const mixedId = useId();
 
   return (
-    <div className={`rounded-xl p-5 ${colors.bg}`}>
+    <div className={`rounded-[var(--radius-card)] p-5 ${colors.bg}`}>
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-sm font-semibold uppercase tracking-wide text-foreground/60">
           Termômetro de humor

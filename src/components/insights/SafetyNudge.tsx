@@ -109,7 +109,7 @@ export function SafetyNudge({ phq9Item9, riskLevel, compact, bipolarContext }: P
       <div
         role="alert"
         aria-live="polite"
-        className="rounded-lg border border-amber-700 bg-amber-950/50 p-3 text-sm text-amber-200"
+        className="rounded-[var(--radius-card)] border border-amber-700 bg-amber-950/50 p-3 text-sm text-amber-200"
       >
         <p className="font-medium">
           Lembre-se: você não está sozinho.
@@ -147,7 +147,7 @@ export function SafetyNudge({ phq9Item9, riskLevel, compact, bipolarContext }: P
     <div
       role="alert"
       aria-live="polite"
-      className="rounded-xl border border-amber-700 bg-amber-950/50 p-5"
+      className="rounded-[var(--radius-card)] border border-amber-700 bg-amber-950/50 p-5"
     >
       <h3 className="mb-2 text-sm font-semibold text-amber-300">
         {getHeadline(urgency, bipolarContext)}

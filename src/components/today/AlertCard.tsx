@@ -40,7 +40,7 @@ export function AlertCard({ layer, reasons, actions, safety, syndrome }: Props) 
 
   return (
     <div
-      className={`rounded-xl border ${borderColor} ${bgColor} p-5 shadow-sm`}
+      className={`rounded-[var(--radius-card)] border ${borderColor} ${bgColor} p-5 shadow-[var(--shadow-card)]`}
       role={semanticRole}
       aria-live={ariaLive}
       aria-label={headline}

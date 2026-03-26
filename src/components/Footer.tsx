@@ -2,9 +2,9 @@ import Link from "next/link";
 
 export function Footer() {
   return (
-    <footer className="mt-auto border-t border-border bg-[#ecf1ee]">
+    <footer className="mt-auto border-t border-border-soft bg-surface dark:border-border-strong dark:bg-surface-raised">
       <div className="mx-auto max-w-5xl px-4 py-6">
-        <div className="mb-4 rounded-2xl border border-[#d6deda] bg-[#ecf1ee]/60 p-3 text-center text-sm text-[#3d5c52]">
+        <div className="mb-4 rounded-[var(--radius-card)] border border-border-soft bg-surface-raised/60 p-3 text-center text-sm text-primary-dark dark:border-border-strong dark:text-primary-light">
           <strong>Em crise ou risco imediato?</strong> Ligue agora: CVV{" "}
           <strong>188</strong> · SAMU <strong>192</strong> · ou procure uma{" "}
           <strong>UPA 24h</strong>

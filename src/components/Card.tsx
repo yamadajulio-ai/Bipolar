@@ -10,8 +10,9 @@ interface CardProps {
 
 const variantStyles: Record<CardVariant, string> = {
   surface: clsx(
-    "rounded-[var(--radius-card)] border border-border",
+    "rounded-[var(--radius-card)] border border-border-soft",
     "bg-surface shadow-[var(--shadow-card)]",
+    "dark:border-border-strong",
   ),
   raised: clsx(
     "relative overflow-hidden rounded-[var(--radius-card)] border border-border-soft",

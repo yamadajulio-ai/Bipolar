@@ -150,7 +150,7 @@ export default function MaisPage() {
       {/* Contextual recommendation */}
       {contextual && (
         <Link href={contextual.href} className="block no-underline mb-6">
-          <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 transition-colors hover:bg-primary/10">
+          <div className="rounded-[var(--radius-card)] border border-primary/30 bg-primary/5 p-4 transition-colors hover:bg-primary/10">
             <p className="text-sm font-medium text-primary">{contextual.label}</p>
             <p className="text-xs text-muted mt-1">{contextual.description}</p>
           </div>

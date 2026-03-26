@@ -26,7 +26,7 @@ export default async function AppLayout({
         Pular para o conteúdo principal
       </a>
       <Header isLoggedIn />
-      <Alert variant="info" className="mx-auto mt-4 max-w-5xl justify-center">
+      <Alert variant="info" className="mx-4 mt-4 sm:mx-auto sm:max-w-5xl">
         Consulte seu profissional de saúde para decisões clínicas. Este app é educacional.
       </Alert>
       {/* tabIndex={-1} allows skip-to-content link to move keyboard focus, not just scroll */}

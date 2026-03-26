@@ -11,7 +11,7 @@ export function SkeletonBlock({ className = "" }: { className?: string }) {
 
 export function SkeletonCard({ children, className = "" }: { children?: React.ReactNode; className?: string }) {
   return (
-    <div className={`rounded-[var(--radius-card)] border border-border-soft bg-surface p-4 shadow-[var(--shadow-card)] dark:border-border-strong ${className}`}>
+    <div className={`rounded-[var(--radius-card)] border border-border bg-surface p-4 shadow-[var(--shadow-card)] ${className}`}>
       {children}
     </div>
   );

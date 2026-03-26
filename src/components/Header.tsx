@@ -42,7 +42,7 @@ function ThemeButton() {
   const [mounted, setMounted] = useState(false);
   const { resolvedTheme, setTheme } = useTheme();
   useEffect(() => setMounted(true), []);
-  if (!mounted) return <div className="h-8 w-8" />;
+  if (!mounted) return <div className="h-8 w-8" aria-hidden="true" />;
   const isDark = resolvedTheme === "dark";
   return (
     <button
@@ -91,7 +91,7 @@ export function Header({ isLoggedIn }: HeaderProps) {
           <>
             {/* Desktop nav */}
             <nav
-              aria-label="Navegação principal"
+              aria-label="Menu principal"
               className="hidden items-center gap-3 text-sm lg:flex"
             >
               {navLinks.map((link) => {
@@ -127,6 +127,7 @@ export function Header({ isLoggedIn }: HeaderProps) {
                 <button
                   type="submit"
                   className="flex h-8 w-8 items-center justify-center rounded-full text-muted transition-colors hover:bg-muted/20 hover:text-foreground"
+                  aria-label="Sair"
                   title="Sair"
                 >
                   <AppIcon icon={LogOut} size="sm" />
@@ -152,6 +153,7 @@ export function Header({ isLoggedIn }: HeaderProps) {
                 <button
                   type="submit"
                   className="flex h-8 w-8 items-center justify-center rounded-full text-muted transition-colors hover:bg-muted/20 hover:text-foreground"
+                  aria-label="Sair"
                   title="Sair"
                 >
                   <AppIcon icon={LogOut} size="sm" />

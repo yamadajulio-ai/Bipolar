@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 
 export function Greeting() {
-  const [greeting, setGreeting] = useState("");
+  const [greeting, setGreeting] = useState("Bem-vindo");
 
   useEffect(() => {
     const hour = new Date().getHours();

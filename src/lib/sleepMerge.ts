@@ -399,8 +399,8 @@ export function reconcileManualIntoExisting(
 
     // Check if existing record has wearable-enriched biometrics (from standalone HRV/HR import)
     const existingFp = existing?.fieldProvenance ? safeParseProvenance(existing.fieldProvenance) : null;
-    const hrvWearableEnriched = existingFp?.hrv != null && existingFp.hrv !== "manual" && existingFp.hrv !== "unknown_legacy";
-    const hrWearableEnriched = existingFp?.heartRate != null && existingFp.heartRate !== "manual" && existingFp.heartRate !== "unknown_legacy";
+    const hrvWearableEnriched = isWearableSource(existingFp?.hrv);
+    const hrWearableEnriched = isWearableSource(existingFp?.heartRate);
 
     // Preserve wearable-enriched biometrics when manual doesn't provide values
     data.hrv = manual.hrv ?? (hrvWearableEnriched && existing!.hrv != null ? existing!.hrv : null);
@@ -577,6 +577,11 @@ export function reconcileWearableIntoExisting(
 
 // ── Helpers ───────────────────────────────────────────────────────
 
+/** Guard: true if source string indicates a wearable/device origin (not manual or legacy) */
+export function isWearableSource(source: string | undefined | null): boolean {
+  return source != null && source !== "manual" && source !== "unknown_legacy";
+}
+
 /**
  * Check if an existing record has a wearable-owned base (timing/biometrics).
  * Uses fieldProvenance first, then falls back to source.
@@ -588,13 +593,13 @@ function hasWearableBase(existing: ExistingRecord): boolean {
   if (existing.fieldProvenance) {
     try {
       const fp = JSON.parse(existing.fieldProvenance) as Partial<FieldProvenance>;
-      if (fp.bedtime && fp.bedtime !== "manual" && fp.bedtime !== "unknown_legacy") {
+      if (fp.bedtime && isWearableSource(fp.bedtime)) {
         return true;
       }
     } catch { /* fall through */ }
   }
   // Fallback: check source
-  return existing.source !== "manual" && existing.source !== "unknown_legacy";
+  return isWearableSource(existing.source);
 }
 
 /**
@@ -613,7 +618,7 @@ function hasManualFieldProvenance(existing: ExistingRecord): boolean {
   }
 
   // Fallback: check source + non-null subjective fields
-  if (existing.source === "manual" || existing.source === "unknown_legacy") {
+  if (!isWearableSource(existing.source)) {
     return existing.perceivedQuality != null || existing.preRoutine != null || existing.notes != null;
   }
 
@@ -682,6 +687,128 @@ export async function withSerializableTransaction<T>(
   }
   // unreachable
   throw new Error("Transaction failed after max retries");
+}
+
+// ── Shared wearable merge loop ────────────────────────────────────
+
+/** Incoming night for the shared merge loop (already normalized by each parser) */
+export interface WearableNight {
+  date: string;
+  bedtime: string;
+  wakeTime: string;
+  totalHours: number;
+  quality: number;
+  awakenings: number;
+  awakeMinutes: number;
+  hrv?: number | null;
+  heartRate?: number | null;
+  hasStages: boolean;
+  providerRecordId?: string;
+}
+
+/** Select clause for merge-related queries */
+export const MERGE_SELECT = {
+  id: true, bedtime: true, wakeTime: true, bedtimeAt: true, wakeTimeAt: true,
+  totalHours: true, quality: true, perceivedQuality: true, awakenings: true,
+  awakeMinutes: true, hrv: true, heartRate: true, excluded: true, source: true,
+  fieldProvenance: true, providerRecordId: true, rawHash: true, preRoutine: true,
+  notes: true, mergeLog: true, date: true,
+} as const;
+
+/**
+ * Shared wearable merge loop — used by HAE webhook, browser import, and Health Connect.
+ * Runs inside a Serializable transaction: read→match→reconcile→delete stale→upsert.
+ *
+ * This eliminates code duplication and drift between the three wearable import routes.
+ */
+export async function mergeWearableNights(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  prisma: { $transaction: (...args: any[]) => any },
+  userId: string,
+  nights: WearableNight[],
+  wearableSource: "hae" | "health_connect",
+  importBatchId: string,
+): Promise<void> {
+  if (nights.length === 0) return;
+
+  const affectedDates = [...new Set(nights.map((n) => n.date))];
+
+  await withSerializableTransaction(prisma, async (tx) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const txPrisma = tx as any;
+
+    const existingRecords = await txPrisma.sleepLog.findMany({
+      where: { userId, date: { in: affectedDates } },
+      select: MERGE_SELECT,
+    });
+
+    const consumedIds = new Set<string>();
+    const existingByDate = new Map<string, ExistingRecord[]>();
+    for (const rec of existingRecords) {
+      const list = existingByDate.get(rec.date) || [];
+      list.push(rec as ExistingRecord);
+      existingByDate.set(rec.date, list);
+    }
+
+    for (const night of nights) {
+      const dateRecords = (existingByDate.get(night.date) || []).filter((r) => !consumedIds.has(r.id));
+      const { bedtimeAt, wakeTimeAt } = computeAbsoluteTimestamps(night.date, night.bedtime, night.wakeTime);
+
+      const matchResult = findBestMatch(
+        { bedtime: night.bedtime, bedtimeAt, wakeTimeAt },
+        dateRecords,
+      );
+
+      const existingRecord = matchResult?.match as ExistingRecord | undefined ?? null;
+      if (existingRecord) consumedIds.add(existingRecord.id);
+
+      const rawHash = computeRawHash({
+        date: night.date, bedtime: night.bedtime, wakeTime: night.wakeTime,
+        totalHours: night.totalHours, quality: night.quality,
+      });
+
+      const reconciled = reconcileWearableIntoExisting(
+        {
+          bedtime: night.bedtime, wakeTime: night.wakeTime,
+          totalHours: night.totalHours, quality: night.quality,
+          awakenings: night.awakenings, awakeMinutes: night.awakeMinutes,
+          hrv: night.hrv, heartRate: night.heartRate,
+          hasStages: night.hasStages,
+          providerRecordId: night.providerRecordId, rawHash,
+        },
+        existingRecord,
+        night.date,
+        wearableSource,
+        importBatchId,
+        matchResult?.overlapScore,
+      );
+
+      for (const op of reconciled.operations) {
+        if (op.type === "delete") {
+          await txPrisma.sleepLog.delete({ where: { id: op.id } });
+        }
+      }
+
+      // Delete stale wearable records overlapping this night
+      const staleWearable = dateRecords.filter(
+        (r) => r.id !== existingRecord?.id && !consumedIds.has(r.id) &&
+          isWearableSource(r.source) &&
+          findBestMatch({ bedtime: night.bedtime, bedtimeAt, wakeTimeAt }, [r]) !== null,
+      );
+      for (const stale of staleWearable) {
+        consumedIds.add(stale.id);
+        await txPrisma.sleepLog.delete({ where: { id: stale.id } });
+      }
+
+      await txPrisma.sleepLog.upsert({
+        where: {
+          userId_date_bedtime: { userId, date: night.date, bedtime: night.bedtime },
+        },
+        update: reconciled.data as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+        create: { userId, date: night.date, ...reconciled.data } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+      });
+    }
+  });
 }
 
 // ── Legacy compat: keep old exports for backward compat during migration ──

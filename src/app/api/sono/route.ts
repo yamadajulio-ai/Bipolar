@@ -9,6 +9,7 @@ import {
   computeAbsoluteTimestamps,
   reconcileManualIntoExisting,
   withSerializableTransaction,
+  MERGE_SELECT,
   type ExistingRecord,
 } from "@/lib/sleepMerge";
 import * as Sentry from "@sentry/nextjs";
@@ -26,29 +27,6 @@ const sleepLogSchema = z.object({
   notes: z.string().max(280).optional(),
 });
 
-// Fields to select for merge comparison
-const MERGE_SELECT = {
-  id: true,
-  bedtime: true,
-  wakeTime: true,
-  bedtimeAt: true,
-  wakeTimeAt: true,
-  totalHours: true,
-  quality: true,
-  perceivedQuality: true,
-  awakenings: true,
-  awakeMinutes: true,
-  hrv: true,
-  heartRate: true,
-  excluded: true,
-  source: true,
-  fieldProvenance: true,
-  providerRecordId: true,
-  rawHash: true,
-  preRoutine: true,
-  notes: true,
-  mergeLog: true,
-} as const;
 
 export async function GET(request: NextRequest) {
   const session = await getSession();

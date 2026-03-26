@@ -3,39 +3,10 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { parseHealthExportPayloadV2 } from "@/lib/integrations/healthExport";
 import {
-  findBestMatch,
-  computeAbsoluteTimestamps,
-  computeRawHash,
-  reconcileWearableIntoExisting,
-  withSerializableTransaction,
+  mergeWearableNights,
   safeParseProvenance,
-  type ExistingRecord,
+  type WearableNight,
 } from "@/lib/sleepMerge";
-
-// Fields to select for merge comparison
-const MERGE_SELECT = {
-  id: true,
-  date: true,
-  bedtime: true,
-  wakeTime: true,
-  bedtimeAt: true,
-  wakeTimeAt: true,
-  totalHours: true,
-  quality: true,
-  perceivedQuality: true,
-  awakenings: true,
-  awakeMinutes: true,
-  hrv: true,
-  heartRate: true,
-  excluded: true,
-  source: true,
-  fieldProvenance: true,
-  providerRecordId: true,
-  rawHash: true,
-  preRoutine: true,
-  notes: true,
-  mergeLog: true,
-} as const;
 
 /**
  * POST — Manual JSON import (session auth, from browser).
@@ -64,102 +35,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 1. Smart merge sleep nights — Serializable transaction (read→match→reconcile→write atomic)
+    // 1. Smart merge sleep nights — shared helper (Serializable tx, stale purge, provenance)
     let sleepImported = 0;
     if (result.sleepNights.length > 0) {
-      const importBatchId = `hae_browser_${Date.now()}`;
-      const affectedDates = [...new Set(result.sleepNights.map((n) => n.date))];
-
-      await withSerializableTransaction(prisma, async (tx) => {
-        const txPrisma = tx as typeof prisma;
-
-        // Fetch ALL existing records for affected dates (not just manual)
-        const existingRecords = await txPrisma.sleepLog.findMany({
-          where: { userId: session.userId, date: { in: affectedDates } },
-          select: MERGE_SELECT,
-        });
-
-        // Group by date
-        const existingByDate = new Map<string, typeof existingRecords>();
-        for (const rec of existingRecords) {
-          const list = existingByDate.get(rec.date) || [];
-          list.push(rec);
-          existingByDate.set(rec.date, list);
-        }
-
-        const consumedIds = new Set<string>();
-
-        for (const night of result.sleepNights) {
-          const dateRecords = (existingByDate.get(night.date) || []).filter((r) => !consumedIds.has(r.id));
-          const { bedtimeAt, wakeTimeAt } = computeAbsoluteTimestamps(night.date, night.bedtime, night.wakeTime);
-
-          // Find best match (checks fieldProvenance, not just source)
-          const matchResult = findBestMatch(
-            { bedtime: night.bedtime, bedtimeAt, wakeTimeAt },
-            dateRecords,
-          );
-
-          const existingRecord = matchResult?.match as ExistingRecord | undefined ?? null;
-          if (existingRecord) consumedIds.add(existingRecord.id);
-
-          const rawHash = computeRawHash({
-            date: night.date, bedtime: night.bedtime, wakeTime: night.wakeTime,
-            totalHours: night.totalHours, quality: night.quality,
-          });
-
-          const reconciled = reconcileWearableIntoExisting(
-            {
-              bedtime: night.bedtime,
-              wakeTime: night.wakeTime,
-              totalHours: night.totalHours,
-              quality: night.quality,
-              awakenings: night.awakenings,
-              awakeMinutes: night.awakeMinutes,
-              hrv: night.hrv,
-              heartRate: night.heartRate,
-              hasStages: night.hasStages ?? true,
-              providerRecordId: night.providerRecordId,
-              rawHash,
-            },
-            existingRecord,
-            night.date,
-            "hae",
-            importBatchId,
-            matchResult?.overlapScore,
-          );
-
-          for (const op of reconciled.operations) {
-            if (op.type === "delete") {
-              await txPrisma.sleepLog.delete({ where: { id: op.id } });
-            }
-          }
-
-          // Delete stale wearable records overlapping this night
-          const staleWearable = dateRecords.filter(
-            (r) => r.id !== existingRecord?.id && !consumedIds.has(r.id) &&
-              r.source !== "manual" && r.source !== "unknown_legacy" &&
-              findBestMatch({ bedtime: night.bedtime, bedtimeAt, wakeTimeAt }, [r]) !== null,
-          );
-          for (const stale of staleWearable) {
-            consumedIds.add(stale.id);
-            await txPrisma.sleepLog.delete({ where: { id: stale.id } });
-          }
-
-          await txPrisma.sleepLog.upsert({
-            where: {
-              userId_date_bedtime: {
-                userId: session.userId,
-                date: night.date,
-                bedtime: night.bedtime,
-              },
-            },
-            update: reconciled.data as any, // eslint-disable-line @typescript-eslint/no-explicit-any
-            create: { userId: session.userId, date: night.date, ...reconciled.data } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
-            select: { id: true },
-          });
-        }
-      });
-
+      const nights: WearableNight[] = result.sleepNights.map((n) => ({
+        date: n.date, bedtime: n.bedtime, wakeTime: n.wakeTime,
+        totalHours: n.totalHours, quality: n.quality,
+        awakenings: n.awakenings, awakeMinutes: n.awakeMinutes,
+        hrv: n.hrv, heartRate: n.heartRate,
+        hasStages: n.hasStages ?? true,
+        providerRecordId: n.providerRecordId,
+      }));
+      await mergeWearableNights(prisma, session.userId, nights, "hae", `hae_browser_${Date.now()}`);
       sleepImported = result.sleepNights.length;
     }
 

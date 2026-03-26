@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { checkRateLimit } from "@/lib/security";
 import { parseHealthExportPayloadV2 } from "@/lib/integrations/healthExport";
 import {
   mergeWearableNights,
@@ -16,6 +18,20 @@ export async function POST(request: NextRequest) {
   const session = await getSession();
   if (!session.isLoggedIn) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  }
+
+  // Rate limit: 30 imports per hour per user
+  if (!(await checkRateLimit(`hae_import:${session.userId}`, 30, 3600_000))) {
+    return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
+  }
+
+  // Body size limit: reject payloads > 5MB to prevent memory abuse
+  const contentLength = request.headers.get("content-length");
+  if (contentLength && parseInt(contentLength, 10) > 5_000_000) {
+    return NextResponse.json(
+      { error: "Payload muito grande", detail: "Máximo 5MB por requisição" },
+      { status: 413 },
+    );
   }
 
   try {
@@ -59,28 +75,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. Upsert generic health metrics
+    // 3. Upsert generic health metrics (batched transaction)
     let metricsImported = 0;
-    for (const gm of result.genericMetrics) {
-      await prisma.healthMetric.upsert({
-        where: {
-          userId_date_metric: {
+    if (result.genericMetrics.length > 0) {
+      const metricOps = result.genericMetrics.map((gm) =>
+        prisma.healthMetric.upsert({
+          where: {
+            userId_date_metric: {
+              userId: session.userId,
+              date: gm.date,
+              metric: gm.metric,
+            },
+          },
+          update: { value: gm.value, unit: gm.unit },
+          create: {
             userId: session.userId,
             date: gm.date,
             metric: gm.metric,
+            value: gm.value,
+            unit: gm.unit,
           },
-        },
-        update: { value: gm.value, unit: gm.unit },
-        create: {
-          userId: session.userId,
-          date: gm.date,
-          metric: gm.metric,
-          value: gm.value,
-          unit: gm.unit,
-        },
-        select: { id: true },
-      });
-      metricsImported++;
+        }),
+      );
+      await prisma.$transaction(metricOps);
+      metricsImported = result.genericMetrics.length;
     }
 
     return NextResponse.json({
@@ -91,6 +109,7 @@ export async function POST(request: NextRequest) {
       skippedCount: result.skippedCount,
     });
   } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "health-export-import" } });
     return NextResponse.json(
       { error: "Erro ao processar dados importados" },
       { status: 500 },

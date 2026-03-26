@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
     const result = parseHealthConnectPayload(body);
 
     if (result.sleepNights.length > 0) {
-      console.log("[health-connect] Sleep nights parsed:", JSON.stringify(result.sleepNights));
+      console.log("[health-connect] Sleep nights parsed:", result.sleepNights.length);
     }
 
     // Always save debug info for troubleshooting (standalone, non-critical)
@@ -135,7 +135,8 @@ export async function POST(request: NextRequest) {
       _source: "health_connect",
       _keys: Object.keys((body as Record<string, unknown>) || {}),
       _counts: debugInfo,
-      _parsedNights: result.sleepNights,
+      _parsedNightsCount: result.sleepNights.length,
+      _parsedNightsDates: result.sleepNights.map((n) => n.date),
       _parsedMetrics: result.genericMetrics.length,
       _timestamp: new Date().toISOString(),
     });

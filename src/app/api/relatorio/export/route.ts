@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
     const [sleepLogs, entries, assessments, lifeEvents, cognitiveTests, user] = await Promise.all([
       prisma.sleepLog.findMany({
         where: { userId, date: { gte: cutoffStr }, excluded: false },
-        select: { date: true, bedtime: true, wakeTime: true, totalHours: true, quality: true },
+        select: { date: true, bedtime: true, wakeTime: true, totalHours: true, quality: true, source: true },
         orderBy: { date: "asc" },
         take: 500,
       }),

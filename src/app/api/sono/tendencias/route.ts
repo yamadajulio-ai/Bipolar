@@ -34,6 +34,7 @@ export async function GET(request: NextRequest) {
       totalHours: true,
       quality: true,
       awakenings: true,
+      source: true,
     },
   });
 

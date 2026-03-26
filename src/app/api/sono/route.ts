@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/security";
 import { localDateStr } from "@/lib/dateUtils";
+import { bedtimesOverlap, mergeManualIntoWearable } from "@/lib/sleepMerge";
 import * as Sentry from "@sentry/nextjs";
 
 const sleepLogSchema = z.object({
@@ -54,6 +55,7 @@ export async function GET(request: NextRequest) {
       hrv: true,
       heartRate: true,
       excluded: true,
+      source: true,
       preRoutine: true,
       notes: true,
       createdAt: true,
@@ -88,7 +90,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ errors: fieldErrors }, { status: 400 });
     }
 
-    const data = {
+    const manualData: Record<string, unknown> = {
       bedtime: parsed.data.bedtime,
       wakeTime: parsed.data.wakeTime,
       totalHours: parsed.data.totalHours,
@@ -98,28 +100,40 @@ export async function POST(request: NextRequest) {
       heartRate: parsed.data.heartRate ?? null,
       preRoutine: parsed.data.preRoutine || null,
       notes: parsed.data.notes || null,
+      source: "manual",
     };
 
-    // Check if there's already a record for this day with a similar bedtime
-    // (within 30min). This prevents duplicates when HAE says 22:58 and user
-    // manually enters 23:00 for the same sleep session.
+    // Find existing records for this date to check for wearable overlap
     const existing = await prisma.sleepLog.findMany({
       where: { userId: session.userId, date: parsed.data.date },
-      select: { id: true, bedtime: true },
+      select: {
+        id: true,
+        bedtime: true,
+        source: true,
+        awakeMinutes: true,
+        hrv: true,
+        heartRate: true,
+      },
     });
 
-    // Parse bedtime to minutes for proximity check
-    const [bH, bM] = parsed.data.bedtime.split(":").map(Number);
-    const newBedMin = bH * 60 + bM;
+    // Find overlapping records (±30min bedtime, different exact bedtime)
+    const overlapping = existing.filter((e) =>
+      bedtimesOverlap(parsed.data.bedtime, e.bedtime) && e.bedtime !== parsed.data.bedtime,
+    );
 
-    const overlapping = existing.filter((e) => {
-      const [eH, eM] = e.bedtime.split(":").map(Number);
-      let eMin = eH * 60 + eM;
-      let diff = Math.abs(newBedMin - eMin);
-      // Handle midnight crossing (e.g., 23:50 vs 00:10 = 20min apart)
-      if (diff > 720) diff = 1440 - diff;
-      return diff <= 30 && e.bedtime !== parsed.data.bedtime;
-    });
+    // If any overlapping record came from a wearable, preserve its objective data
+    const wearableMatch = overlapping.find((e) => e.source !== "manual")
+      ?? existing.find((e) => e.bedtime === parsed.data.bedtime && e.source !== "manual");
+
+    let finalData = manualData;
+    if (wearableMatch) {
+      finalData = mergeManualIntoWearable(manualData, {
+        awakeMinutes: wearableMatch.awakeMinutes,
+        hrv: wearableMatch.hrv,
+        heartRate: wearableMatch.heartRate,
+      });
+      finalData.source = "manual"; // user intentionally registered
+    }
 
     // Delete near-duplicate records (same night, slightly different bedtime)
     if (overlapping.length > 0) {
@@ -136,19 +150,21 @@ export async function POST(request: NextRequest) {
           bedtime: parsed.data.bedtime,
         },
       },
-      update: data,
-      create: { userId: session.userId, date: parsed.data.date, ...data },
+      update: finalData as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+      create: { userId: session.userId, date: parsed.data.date, ...finalData } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
       select: {
         id: true,
         date: true,
         bedtime: true,
         wakeTime: true,
         totalHours: true,
+        awakeMinutes: true,
         quality: true,
         awakenings: true,
         hrv: true,
         heartRate: true,
         excluded: true,
+        source: true,
         preRoutine: true,
         notes: true,
         createdAt: true,

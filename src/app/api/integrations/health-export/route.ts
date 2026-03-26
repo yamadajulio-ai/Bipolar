@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { checkRateLimit } from "@/lib/security";
 import { parseHealthExportPayloadV2 } from "@/lib/integrations/healthExport";
+import { bedtimesOverlap } from "@/lib/sleepMerge";
 
 type PrismaPromise = Prisma.PrismaPromise<unknown>;
 
@@ -138,34 +139,69 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 2. Sleep nights: delete stale records then upsert fresh ones.
-    //    When re-importing, old records (from pre-multi-cycle schema) may have
-    //    different bedtimes than the new parsed cycles. Delete all existing
-    //    records for each affected date first, then insert the new ones.
+    // 2. Sleep nights: smart merge preserving manual subjective data.
+    //    Pre-fetch existing manual records to merge quality/preRoutine/notes.
     if (result.sleepNights.length > 0) {
       const affectedDates = [...new Set(result.sleepNights.map((n) => n.date))];
-      txOps.push(
-        prisma.sleepLog.deleteMany({
-          where: { userId: integration.userId, date: { in: affectedDates } },
-        }),
-      );
-    }
-    for (const night of result.sleepNights) {
-      const data = {
-        bedtime: night.bedtime,
-        wakeTime: night.wakeTime,
-        totalHours: night.totalHours,
-        quality: night.quality,
-        awakenings: night.awakenings,
-        awakeMinutes: night.awakeMinutes,
-        hrv: night.hrv ?? null,
-        heartRate: night.heartRate ?? null,
-      };
-      txOps.push(
-        prisma.sleepLog.create({
-          data: { userId: integration.userId, date: night.date, ...data },
-        }),
-      );
+
+      const existingRecords = await prisma.sleepLog.findMany({
+        where: { userId: integration.userId, date: { in: affectedDates } },
+        select: { id: true, date: true, bedtime: true, source: true, quality: true, preRoutine: true, notes: true, excluded: true },
+      });
+
+      const consumedIds = new Set<string>();
+
+      for (const night of result.sleepNights) {
+        // Find manual record with overlapping bedtime to preserve subjective data
+        const manualMatch = existingRecords.find(
+          (r) => r.date === night.date && r.source === "manual" && !consumedIds.has(r.id) && bedtimesOverlap(night.bedtime, r.bedtime),
+        );
+
+        const wearableData: Record<string, unknown> = {
+          bedtime: night.bedtime,
+          wakeTime: night.wakeTime,
+          totalHours: night.totalHours,
+          quality: night.quality,
+          awakenings: night.awakenings,
+          awakeMinutes: night.awakeMinutes,
+          hrv: night.hrv ?? null,
+          heartRate: night.heartRate ?? null,
+          source: "hae",
+        };
+
+        if (manualMatch) {
+          consumedIds.add(manualMatch.id);
+          // Preserve manual subjective data
+          wearableData.quality = manualMatch.quality;
+          wearableData.preRoutine = manualMatch.preRoutine;
+          wearableData.notes = manualMatch.notes;
+          wearableData.excluded = manualMatch.excluded;
+
+          // Delete old manual record if bedtime differs (will be recreated with wearable timing)
+          if (manualMatch.bedtime !== night.bedtime) {
+            txOps.push(prisma.sleepLog.delete({ where: { id: manualMatch.id } }));
+          }
+        }
+
+        // Delete stale wearable records with overlapping bedtime
+        const staleWearable = existingRecords.filter(
+          (r) => r.date === night.date && r.source !== "manual" && !consumedIds.has(r.id) && bedtimesOverlap(night.bedtime, r.bedtime),
+        );
+        for (const stale of staleWearable) {
+          consumedIds.add(stale.id);
+          txOps.push(prisma.sleepLog.delete({ where: { id: stale.id } }));
+        }
+
+        txOps.push(
+          prisma.sleepLog.upsert({
+            where: {
+              userId_date_bedtime: { userId: integration.userId, date: night.date, bedtime: night.bedtime },
+            },
+            update: wearableData as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+            create: { userId: integration.userId, date: night.date, ...wearableData } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+          }),
+        );
+      }
     }
 
     // 3. Upsert generic health metrics

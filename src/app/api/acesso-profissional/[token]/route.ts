@@ -212,6 +212,7 @@ export async function POST(
           awakenings: true,
           hrv: true,
           heartRate: true,
+          source: true,
         },
         orderBy: { date: "asc" },
         take: 90,

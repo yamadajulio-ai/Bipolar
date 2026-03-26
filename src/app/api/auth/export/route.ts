@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
         select: {
           date: true, bedtime: true, wakeTime: true, totalHours: true,
           quality: true, awakenings: true, hrv: true, heartRate: true,
-          preRoutine: true, notes: true,
+          preRoutine: true, notes: true, source: true,
         },
       }),
       prisma.plannerBlock.findMany({

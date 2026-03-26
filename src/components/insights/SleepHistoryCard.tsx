@@ -13,6 +13,14 @@ export interface SleepLog {
   hrv: number | null;
   heartRate: number | null;
   excluded: boolean;
+  source?: string; // "manual" | "hae" | "health_connect"
+}
+
+function sourceLabel(source?: string): { text: string; className: string } | null {
+  if (!source || source === "manual") return null;
+  if (source === "hae") return { text: "Apple Watch", className: "bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300" };
+  if (source === "health_connect") return { text: "Android", className: "bg-green-100 dark:bg-green-900/60 text-green-700 dark:text-green-300" };
+  return null;
 }
 
 function formatSleepDuration(hours: number): string {
@@ -178,6 +186,7 @@ function SleepCycleRow({ log, index }: { log: SleepLog; index: number }) {
           {isSuspect && !excluded && (
             <span className="rounded-full bg-amber-100 dark:bg-amber-900/60 px-1.5 py-0.5 text-[9px] font-medium text-amber-700 dark:text-amber-300">incompleto?</span>
           )}
+          {(() => { const s = sourceLabel(log.source); return s ? <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-medium ${s.className}`}>{s.text}</span> : null; })()}
         </div>
         <span className={`text-xs font-bold tabular-nums ${durationColor}`}>
           {formatSleepDuration(log.totalHours)}
@@ -273,6 +282,7 @@ export function SleepHistoryCard({ log }: { log: SleepLog }) {
           {isSuspect && !excluded && (
             <span className="rounded-full bg-amber-100 dark:bg-amber-900/60 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300">incompleto?</span>
           )}
+          {(() => { const s = sourceLabel(log.source); return s ? <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${s.className}`}>{s.text}</span> : null; })()}
         </div>
         <span className={`text-sm font-bold tabular-nums ${durationColor}`}>
           {formatSleepDuration(log.totalHours)}

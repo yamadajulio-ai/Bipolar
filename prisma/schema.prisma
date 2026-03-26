@@ -158,6 +158,7 @@ model SleepLog {
   hrv          Int? // Heart Rate Variability (ms) — ex: RMSSD from wearable
   heartRate  Int? // Resting heart rate (bpm) during sleep
   excluded   Boolean  @default(false) // Incomplete/unreliable record — excluded from metrics
+  source     String   @default("manual") // "manual" | "hae" | "health_connect"
   preRoutine String? // JSON array of routine keys
   notes      String? // max 280 chars
   createdAt  DateTime @default(now())

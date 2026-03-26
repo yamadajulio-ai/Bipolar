@@ -8,6 +8,7 @@ import {
   findBestMatch,
   computeAbsoluteTimestamps,
   reconcileManualIntoExisting,
+  withSerializableTransaction,
   type ExistingRecord,
 } from "@/lib/sleepMerge";
 import * as Sentry from "@sentry/nextjs";
@@ -135,41 +136,43 @@ export async function POST(request: NextRequest) {
       notes: parsed.data.notes || null,
     };
 
-    // Find existing records for this date
-    const existing = await prisma.sleepLog.findMany({
-      where: { userId: session.userId, date: parsed.data.date },
-      select: MERGE_SELECT,
-    });
+    // All read→match→reconcile→write inside Serializable transaction (race-safe)
+    const log = await withSerializableTransaction(prisma, async (tx) => {
+      const txPrisma = tx as typeof prisma;
 
-    // Find best matching record using interval overlap
-    const { bedtimeAt, wakeTimeAt } = computeAbsoluteTimestamps(
-      parsed.data.date, parsed.data.bedtime, parsed.data.wakeTime,
-    );
-    const matchResult = findBestMatch(
-      { bedtime: parsed.data.bedtime, bedtimeAt, wakeTimeAt },
-      existing,
-    );
+      // Find existing records for this date
+      const existing = await txPrisma.sleepLog.findMany({
+        where: { userId: session.userId, date: parsed.data.date },
+        select: MERGE_SELECT,
+      });
 
-    const existingRecord = matchResult?.match as ExistingRecord | undefined ?? null;
+      // Find best matching record using interval overlap
+      const { bedtimeAt, wakeTimeAt } = computeAbsoluteTimestamps(
+        parsed.data.date, parsed.data.bedtime, parsed.data.wakeTime,
+      );
+      const matchResult = findBestMatch(
+        { bedtime: parsed.data.bedtime, bedtimeAt, wakeTimeAt },
+        existing,
+      );
 
-    // Reconcile: manual into existing (may be wearable)
-    const result = reconcileManualIntoExisting(
-      manualInput,
-      existingRecord,
-      parsed.data.date,
-      undefined,
-      matchResult?.overlapScore,
-    );
+      const existingRecord = matchResult?.match as ExistingRecord | undefined ?? null;
 
-    // finalBedtime may differ from parsed.data.bedtime when wearable timing is preserved
-    const finalBedtime = result.data.bedtime as string;
+      // Reconcile: manual into existing (may be wearable)
+      const result = reconcileManualIntoExisting(
+        manualInput,
+        existingRecord,
+        parsed.data.date,
+        undefined,
+        matchResult?.overlapScore,
+      );
 
-    // Execute operations inside a transaction
-    const log = await prisma.$transaction(async (tx) => {
+      // finalBedtime may differ from parsed.data.bedtime when wearable timing is preserved
+      const finalBedtime = result.data.bedtime as string;
+
       // Delete old record if bedtime changed (only when not wearable overlay)
       for (const op of result.operations) {
         if (op.type === "delete") {
-          await (tx as typeof prisma).sleepLog.delete({ where: { id: op.id } });
+          await txPrisma.sleepLog.delete({ where: { id: op.id } });
         }
       }
 
@@ -183,13 +186,13 @@ export async function POST(request: NextRequest) {
         ) !== null,
       );
       if (overlapping.length > 0) {
-        await (tx as typeof prisma).sleepLog.deleteMany({
+        await txPrisma.sleepLog.deleteMany({
           where: { id: { in: overlapping.map((e) => e.id) } },
         });
       }
 
       // Upsert the reconciled record using final bedtime (wearable-preserved or manual)
-      return (tx as typeof prisma).sleepLog.upsert({
+      return txPrisma.sleepLog.upsert({
         where: {
           userId_date_bedtime: {
             userId: session.userId,

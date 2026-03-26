@@ -626,9 +626,8 @@ const RETRY_BASE_MS = 100;
  * This prevents the prefetch-outside-tx race condition flagged in audit.
  */
 export async function withSerializableTransaction<T>(
-  prisma: {
-    $transaction: (fn: (tx: unknown) => Promise<T>, options?: { isolationLevel?: string; maxWait?: number; timeout?: number }) => Promise<T>;
-  },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  prisma: { $transaction: (...args: any[]) => any },
   fn: (tx: unknown) => Promise<T>,
 ): Promise<T> {
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {

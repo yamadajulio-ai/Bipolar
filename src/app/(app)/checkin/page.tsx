@@ -24,6 +24,7 @@ interface SnapshotEntry {
 
 export default function CheckinPage() {
   const router = useRouter();
+  const redirectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [mode, setMode] = useState<CheckinMode>("minimal");
   const [mood, setMood] = useState(3);
   const [energy, setEnergy] = useState(3);
@@ -194,7 +195,7 @@ export default function CheckinPage() {
         try { sessionStorage.removeItem(DRAFT_KEY); } catch {}
         track({ name: "checkin_complete", mode, snapshotCount: todaySnapshots.length });
         setSuccess(true);
-        setTimeout(() => router.push("/hoje"), 8000);
+        redirectTimer.current = setTimeout(() => router.push("/hoje"), 8000);
       } else {
         // Create new snapshot
         const clientRequestId = `${today}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -238,7 +239,7 @@ export default function CheckinPage() {
         try { sessionStorage.removeItem(DRAFT_KEY); } catch {}
         track({ name: "checkin_complete", mode, snapshotCount: todaySnapshots.length + 1 });
         setSuccess(true);
-        setTimeout(() => router.push("/hoje"), 8000);
+        redirectTimer.current = setTimeout(() => router.push("/hoje"), 8000);
       }
     } catch {
       setError("Erro de conexão. Tente novamente.");
@@ -266,6 +267,7 @@ export default function CheckinPage() {
           <p className="text-sm text-muted">Que tal registrar seu sono também?</p>
           <Link
             href="/sono/novo"
+            onClick={() => { if (redirectTimer.current) clearTimeout(redirectTimer.current); }}
             className="inline-block text-sm font-medium text-primary hover:text-primary-dark underline"
           >
             Registrar sono

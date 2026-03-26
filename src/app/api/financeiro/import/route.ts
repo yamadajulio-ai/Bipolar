@@ -6,7 +6,7 @@ import * as Sentry from "@sentry/nextjs";
 import { parseMobillsCsv } from "@/lib/financeiro/parseMobillsCsv";
 import { parseMobillsXlsx } from "@/lib/financeiro/parseMobillsXlsx";
 
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
@@ -55,43 +55,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Use createMany with skipDuplicates — single SQL INSERT ... ON CONFLICT DO NOTHING
+    // Much faster than individual upserts (1 query vs N queries)
+    const total = transactions.length;
     let imported = 0;
-    let skipped = 0;
 
-    // Batch upserts in transaction to avoid Vercel timeout
-    const BATCH_SIZE = 50;
+    const BATCH_SIZE = 200;
     for (let i = 0; i < transactions.length; i += BATCH_SIZE) {
       const batch = transactions.slice(i, i + BATCH_SIZE);
-      const ops = batch.map((tx) =>
-        prisma.financialTransaction.upsert({
-          where: {
-            userId_date_description_amount: {
-              userId: session.userId,
-              date: tx.date,
-              description: tx.description,
-              amount: tx.amount,
-            },
-          },
-          update: {},
-          create: {
-            userId: session.userId,
-            date: tx.date,
-            description: tx.description,
-            amount: tx.amount,
-            category: tx.category,
-            account: tx.account,
-            source: "mobills_csv",
-          },
-        }),
-      );
-      const results = await Promise.allSettled(ops);
-      for (const r of results) {
-        if (r.status === "fulfilled") imported++;
-        else skipped++;
-      }
+      const result = await prisma.financialTransaction.createMany({
+        data: batch.map((tx) => ({
+          userId: session.userId,
+          date: tx.date,
+          description: tx.description,
+          amount: tx.amount,
+          category: tx.category,
+          account: tx.account,
+          source: "mobills_csv",
+        })),
+        skipDuplicates: true,
+      });
+      imported += result.count;
     }
 
-    return NextResponse.json({ imported, skipped, total: transactions.length });
+    const skipped = total - imported;
+    return NextResponse.json({ imported, skipped, total });
   } catch (err) {
     Sentry.captureException(err, { tags: { endpoint: "financeiro_import" } });
     return NextResponse.json(

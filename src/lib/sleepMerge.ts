@@ -262,6 +262,7 @@ function createMergeLogEntry(
 /** Existing record from DB for merge comparison */
 export interface ExistingRecord {
   id: string;
+  date?: string;
   bedtime: string;
   wakeTime: string;
   bedtimeAt: Date | null;
@@ -793,6 +794,11 @@ export async function mergeWearableNights(
         hasStages: night.hasStages,
       });
 
+      // Short-circuit: skip no-op reimport (identical rawHash = identical data)
+      if (existingRecord?.rawHash === rawHash) {
+        continue;
+      }
+
       const reconciled = reconcileWearableIntoExisting(
         {
           bedtime: night.bedtime, wakeTime: night.wakeTime,
@@ -826,42 +832,25 @@ export async function mergeWearableNights(
         await txPrisma.sleepLog.delete({ where: { id: stale.id } });
       }
 
-      await txPrisma.sleepLog.upsert({
+      // Upsert and capture the real persisted record for intra-batch working set
+      const persisted = await txPrisma.sleepLog.upsert({
         where: {
           userId_date_bedtime: { userId, date: night.date, bedtime: night.bedtime },
         },
         update: reconciled.data as any, // eslint-disable-line @typescript-eslint/no-explicit-any
         create: { userId, date: night.date, ...reconciled.data } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+        select: MERGE_SELECT,
       });
 
-      // Add to working set so subsequent nights in same batch can match against it
-      const syntheticId = `batch_${night.date}_${night.bedtime}`;
-      consumedIds.add(syntheticId);
-      const syntheticRecord: ExistingRecord = {
-        id: syntheticId,
-        bedtime: night.bedtime,
-        wakeTime: night.wakeTime,
-        bedtimeAt,
-        wakeTimeAt,
-        totalHours: night.totalHours,
-        quality: night.quality,
-        perceivedQuality: (reconciled.data.perceivedQuality as number | null) ?? null,
-        awakenings: night.awakenings,
-        awakeMinutes: night.awakeMinutes,
-        hrv: night.hrv ?? null,
-        heartRate: night.heartRate ?? null,
-        excluded: false,
-        source: wearableSource,
-        fieldProvenance: (reconciled.data.fieldProvenance as string) ?? null,
-        providerRecordId: night.providerRecordId ?? null,
-        rawHash,
-        preRoutine: (reconciled.data.preRoutine as string | null) ?? null,
-        notes: (reconciled.data.notes as string | null) ?? null,
-        mergeLog: (reconciled.data.mergeLog as string) ?? null,
-      };
-      const dateList = workingByDate.get(night.date) || [];
-      dateList.push(syntheticRecord);
-      workingByDate.set(night.date, dateList);
+      // Update working set: replace matched record with the REAL persisted record
+      // so subsequent nights can match against the updated state (not stale original)
+      const updatedDateList = (workingByDate.get(night.date) || [])
+        .filter((r) => r.id !== existingRecord?.id);
+      updatedDateList.push(persisted as ExistingRecord);
+      workingByDate.set(night.date, updatedDateList);
+      // Un-consume: the persisted record replaces the matched one and must remain
+      // matchable by subsequent nights in the same batch
+      if (existingRecord) consumedIds.delete(existingRecord.id);
     }
   });
 }

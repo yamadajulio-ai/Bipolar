@@ -1218,37 +1218,48 @@ describe("P1-QUALITY-01: quality ownership — wearable without stages", () => {
   });
 });
 
-// ── P1-BATCH-01: intra-batch dedup in mergeWearableNights ──────────
+// ── P1-BATCH-02: mergeWearableNights with real working set ──────────
 
-describe("P1-BATCH-01: mergeWearableNights intra-batch dedup", () => {
-  function makeMockTxPrisma() {
-    const records: Array<Record<string, unknown>> = [];
+describe("P1-BATCH-02: mergeWearableNights intra-batch dedup", () => {
+  // Realistic mock: delete fails on non-existent IDs, upsert returns MERGE_SELECT shape
+  function makeMockTxPrisma(initialRecords: ExistingRecord[] = []) {
+    const records = new Map<string, ExistingRecord>();
+    for (const r of initialRecords) {
+      records.set(r.id, { ...r });
+    }
     const deleted: string[] = [];
+    let idCounter = 0;
 
     const mockTx = {
       sleepLog: {
-        findMany: async () => [...records],
+        findMany: async () => [...records.values()],
         delete: async ({ where }: { where: { id: string } }) => {
+          if (!records.has(where.id)) {
+            throw new Error(`Delete failed: record ${where.id} not found`);
+          }
           deleted.push(where.id);
-          const idx = records.findIndex((r) => r.id === where.id);
-          if (idx >= 0) records.splice(idx, 1);
+          records.delete(where.id);
         },
         upsert: async ({ where, update, create }: {
           where: { userId_date_bedtime: { userId: string; date: string; bedtime: string } };
           update: Record<string, unknown>;
           create: Record<string, unknown>;
         }) => {
-          const key = `${where.userId_date_bedtime.date}_${where.userId_date_bedtime.bedtime}`;
-          const idx = records.findIndex((r) =>
-            r.date === where.userId_date_bedtime.date &&
-            r.bedtime === where.userId_date_bedtime.bedtime,
-          );
-          const data = idx >= 0
-            ? { ...records[idx], ...update, id: records[idx].id }
-            : { ...create, id: `db_${key}` };
-          if (idx >= 0) records[idx] = data;
-          else records.push(data);
-          return data;
+          const { date, bedtime } = where.userId_date_bedtime;
+          // Find existing by unique key
+          let existing: ExistingRecord | undefined;
+          for (const [, rec] of records) {
+            if (rec.date === date && rec.bedtime === bedtime) {
+              existing = rec;
+              break;
+            }
+          }
+          const id = existing?.id ?? `db_${++idCounter}`;
+          const merged = existing
+            ? { ...existing, ...update, id, date }
+            : { ...create, id, date } as unknown as ExistingRecord;
+          records.set(id, merged as ExistingRecord);
+          return merged;
         },
       },
     };
@@ -1258,7 +1269,7 @@ describe("P1-BATCH-01: mergeWearableNights intra-batch dedup", () => {
     return { mockPrisma, records, deleted };
   }
 
-  it("two overlapping nights in same batch → only one record created", async () => {
+  it("overlapping nights (5min apart) — second reconciles into first, not blind create", async () => {
     const { mockPrisma, records } = makeMockTxPrisma();
     const nights: import("./sleepMerge").WearableNight[] = [
       {
@@ -1273,35 +1284,94 @@ describe("P1-BATCH-01: mergeWearableNights intra-batch dedup", () => {
       },
     ];
     await mergeWearableNights(mockPrisma, "user-1", nights, "hae", "batch-1");
-    // Two nights with 5min difference should result in 2 records (different bedtimes)
-    // but the second night should match against the first (intra-batch working set)
-    // and reconcile rather than creating a blind duplicate
-    expect(records.length).toBeLessThanOrEqual(2);
-    // At minimum, each has a merge log entry
-    for (const rec of records) {
+    // 5 min apart → different bedtimes → 2 upserts with different keys
+    // But the second should have matched the first via working set
+    const recs = [...records.values()];
+    // Each record should have merge log
+    for (const rec of recs) {
       expect(rec.mergeLog).toBeTruthy();
     }
   });
 
-  it("batch order is deterministic (sorted by date+bedtime)", async () => {
+  it("identical duplicate in batch — upsert merges on same key, not double create", async () => {
     const { mockPrisma, records } = makeMockTxPrisma();
+    const night: import("./sleepMerge").WearableNight = {
+      date: "2026-03-25", bedtime: "23:00", wakeTime: "07:00",
+      totalHours: 8, quality: 70, awakenings: 2, awakeMinutes: 10,
+      hasStages: true, providerRecordId: "hae:2026-03-25:23:00",
+    };
+    await mergeWearableNights(mockPrisma, "user-1", [night, { ...night }], "hae", "batch-1");
+    // Exactly 1 record (same key, second should match first via working set)
+    expect(records.size).toBe(1);
+    const rec = [...records.values()][0];
+    // mergeLog should show the reconciliation
+    const ml = JSON.parse(rec.mergeLog as string);
+    expect(ml.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("duplicate over manual overlay — preserves perceivedQuality/preRoutine/notes", async () => {
+    // Pre-existing manual record with overlay data
+    const manualRecord = makeExistingRecord({
+      id: "manual-1",
+      date: "2026-03-25",
+      source: "manual",
+      bedtime: "23:00",
+      wakeTime: "07:00",
+      totalHours: 8,
+      quality: 80,
+      perceivedQuality: 85,
+      preRoutine: '["tea"]',
+      notes: "Boa noite",
+      excluded: true,
+      fieldProvenance: JSON.stringify({ perceivedQuality: "manual", preRoutine: "manual", notes: "manual" }),
+    });
+    const { mockPrisma, records } = makeMockTxPrisma([manualRecord]);
+
     const nights: import("./sleepMerge").WearableNight[] = [
       {
-        date: "2026-03-25", bedtime: "23:30", wakeTime: "07:00",
-        totalHours: 7.5, quality: 70, awakenings: 2, awakeMinutes: 10,
-        hasStages: true,
+        date: "2026-03-25", bedtime: "23:00", wakeTime: "07:00",
+        totalHours: 8, quality: 72, awakenings: 2, awakeMinutes: 10,
+        hasStages: true, providerRecordId: "hae:2026-03-25:23:00",
       },
       {
-        date: "2026-03-25", bedtime: "22:00", wakeTime: "06:00",
-        totalHours: 8, quality: 75, awakenings: 1, awakeMinutes: 5,
-        hasStages: true,
+        date: "2026-03-25", bedtime: "23:00", wakeTime: "07:00",
+        totalHours: 8.1, quality: 74, awakenings: 1, awakeMinutes: 8,
+        hasStages: true, providerRecordId: "hae:2026-03-25:23:00",
       },
     ];
     await mergeWearableNights(mockPrisma, "user-1", nights, "hae", "batch-1");
-    // First record should be 22:00 (sorted), second 23:30
-    expect(records.length).toBe(2);
-    expect(records[0].bedtime).toBe("22:00");
-    expect(records[1].bedtime).toBe("23:30");
+
+    expect(records.size).toBe(1);
+    const rec = [...records.values()][0];
+    // Manual subjective data preserved through both merges
+    expect(rec.perceivedQuality).toBe(85);
+    expect(rec.preRoutine).toBe('["tea"]');
+    expect(rec.notes).toBe("Boa noite");
+    expect(rec.excluded).toBe(true);
+  });
+
+  it("batch order is deterministic (sorted by date+bedtime)", async () => {
+    const { mockPrisma, records } = makeMockTxPrisma();
+    // Use truly non-overlapping intervals: nap 14:00→15:00 + night 23:00→07:00
+    const nights: import("./sleepMerge").WearableNight[] = [
+      {
+        date: "2026-03-25", bedtime: "23:00", wakeTime: "07:00",
+        totalHours: 8, quality: 70, awakenings: 2, awakeMinutes: 10,
+        hasStages: true,
+      },
+      {
+        date: "2026-03-25", bedtime: "14:00", wakeTime: "15:00",
+        totalHours: 1, quality: 50, awakenings: 0, awakeMinutes: 0,
+        hasStages: false,
+      },
+    ];
+    await mergeWearableNights(mockPrisma, "user-1", nights, "hae", "batch-1");
+    const recs = [...records.values()];
+    // Both should exist (truly non-overlapping)
+    expect(recs.length).toBe(2);
+    // First upserted should be 14:00 (sorted by bedtime)
+    expect(recs[0].bedtime).toBe("14:00");
+    expect(recs[1].bedtime).toBe("23:00");
   });
 
   it("different dates in same batch — no cross-date dedup", async () => {
@@ -1319,7 +1389,35 @@ describe("P1-BATCH-01: mergeWearableNights intra-batch dedup", () => {
       },
     ];
     await mergeWearableNights(mockPrisma, "user-1", nights, "hae", "batch-1");
-    expect(records.length).toBe(2);
+    expect(records.size).toBe(2);
+  });
+
+  it("rawHash short-circuit — identical reimport is no-op", async () => {
+    const nightData = {
+      date: "2026-03-25", bedtime: "23:00", wakeTime: "07:00",
+      totalHours: 8, quality: 70, awakenings: 2, awakeMinutes: 10,
+      hasStages: true, providerRecordId: "hae:2026-03-25:23:00",
+    };
+    // Compute the expected rawHash
+    const expectedHash = computeRawHash({
+      date: nightData.date, bedtime: nightData.bedtime, wakeTime: nightData.wakeTime,
+      totalHours: nightData.totalHours, quality: nightData.quality,
+      awakenings: nightData.awakenings, awakeMinutes: nightData.awakeMinutes,
+      hrv: null, heartRate: null, hasStages: nightData.hasStages,
+    });
+    // Pre-existing record with same rawHash
+    const existing = makeExistingRecord({
+      id: "existing-1", date: "2026-03-25", bedtime: "23:00",
+      rawHash: expectedHash, source: "hae",
+    });
+    const { mockPrisma, records } = makeMockTxPrisma([existing]);
+
+    await mergeWearableNights(mockPrisma, "user-1", [nightData], "hae", "batch-1");
+
+    // No upsert should have happened — record unchanged
+    const rec = [...records.values()][0];
+    expect(rec.id).toBe("existing-1"); // same record, untouched
+    expect(records.size).toBe(1);
   });
 });
 

@@ -34,8 +34,17 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  let body: unknown;
   try {
-    const body = await request.json();
+    body = await request.json();
+  } catch {
+    return NextResponse.json(
+      { error: "JSON inválido" },
+      { status: 400 },
+    );
+  }
+
+  try {
     const result = parseHealthExportPayloadV2(body);
 
     const hasAnyData =
@@ -67,12 +76,19 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Enrich existing SleepLogs with standalone HRV/HR (transactional, canonical record only)
+    // Always run enrichment — standalone HRV/HR data may cover dates not in sleepNights
     let hrvHrEnriched = 0;
-    if (result.sleepNights.length === 0) {
-      const { hrvByDate, hrByDate } = result.hrvHrData;
-      hrvHrEnriched = await enrichStandaloneHrvHr(
-        prisma, session.userId, hrvByDate, hrByDate, "hae", `hae_browser_enrich_${Date.now()}`,
-      );
+    const { hrvByDate, hrByDate } = result.hrvHrData;
+    if (hrvByDate.size > 0 || hrByDate.size > 0) {
+      // Filter out dates that already got HRV/HR from the sleep merge above
+      const mergedDates = new Set(result.sleepNights.filter((n) => n.hrv != null || n.heartRate != null).map((n) => n.date));
+      const standaloneHrv = new Map([...hrvByDate].filter(([d]) => !mergedDates.has(d)));
+      const standaloneHr = new Map([...hrByDate].filter(([d]) => !mergedDates.has(d)));
+      if (standaloneHrv.size > 0 || standaloneHr.size > 0) {
+        hrvHrEnriched = await enrichStandaloneHrvHr(
+          prisma, session.userId, standaloneHrv, standaloneHr, "hae", `hae_browser_enrich_${Date.now()}`,
+        );
+      }
     }
 
     // 3. Upsert generic health metrics (batched transaction)

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 
 interface ImportResult {
   imported: number;
@@ -12,18 +12,56 @@ export function ImportCSV({ onImported }: { onImported: () => void }) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  async function handleUpload() {
-    const file = fileRef.current?.files?.[0];
+  function handleFileChange(file: File | null) {
     if (!file) return;
+    const name = file.name.toLowerCase();
+    if (!name.endsWith(".csv") && !name.endsWith(".xlsx") && !name.endsWith(".xls")) {
+      setError("Formato não suportado. Use .csv, .xlsx ou .xls");
+      setSelectedFile(null);
+      return;
+    }
+    setSelectedFile(file);
+    setError(null);
+    setResult(null);
+  }
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file) handleFileChange(file);
+  }, []);
+
+  async function handleUpload() {
+    if (!selectedFile) {
+      setError("Selecione um arquivo primeiro");
+      return;
+    }
 
     setLoading(true);
     setError(null);
     setResult(null);
 
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append("file", selectedFile);
 
     try {
       const res = await fetch("/api/financeiro/import", {
@@ -45,9 +83,9 @@ export function ImportCSV({ onImported }: { onImported: () => void }) {
 
       const data: ImportResult = await res.json();
       setResult(data);
+      setSelectedFile(null);
       onImported();
 
-      // Reset file input
       if (fileRef.current) fileRef.current.value = "";
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Erro desconhecido";
@@ -59,30 +97,135 @@ export function ImportCSV({ onImported }: { onImported: () => void }) {
 
   return (
     <div>
-      <h3 className="mb-2 text-sm font-medium">Importar do Mobills</h3>
-      <div className="flex items-center gap-2">
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="text-base font-semibold text-foreground">
+          Importar transações
+        </h3>
+        <button
+          type="button"
+          onClick={() => setShowGuide(!showGuide)}
+          className="text-xs font-medium text-primary hover:underline"
+        >
+          {showGuide ? "Fechar guia" : "Como exportar do Mobills?"}
+        </button>
+      </div>
+
+      {/* Step-by-step guide */}
+      {showGuide && (
+        <div className="mb-4 rounded-lg border border-primary/20 bg-primary/5 p-4 dark:bg-primary/10">
+          <p className="mb-2 text-sm font-semibold text-foreground">
+            Passo a passo para exportar do Mobills:
+          </p>
+          <ol className="list-inside list-decimal space-y-1.5 text-sm text-muted-foreground">
+            <li>Abra o app <strong>Mobills</strong> no celular</li>
+            <li>Vá em <strong>Menu → Exportar dados</strong></li>
+            <li>Escolha o período desejado (mês)</li>
+            <li>Selecione o formato <strong>CSV</strong> ou <strong>Excel (.xlsx)</strong></li>
+            <li>Envie o arquivo para você mesmo (email, WhatsApp, etc.)</li>
+            <li>No computador ou celular, escolha o arquivo abaixo</li>
+          </ol>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Também funciona com qualquer planilha que tenha as colunas: Data, Descrição, Valor, Categoria, Conta
+          </p>
+        </div>
+      )}
+
+      {/* Drop zone */}
+      <div
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        onClick={() => fileRef.current?.click()}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") fileRef.current?.click(); }}
+        aria-label="Área para selecionar ou arrastar arquivo de importação"
+        className={`
+          cursor-pointer rounded-xl border-2 border-dashed p-6 text-center transition-all
+          ${isDragging
+            ? "border-primary bg-primary/10 dark:bg-primary/20"
+            : selectedFile
+              ? "border-green-400 bg-green-50 dark:border-green-600 dark:bg-green-950/30"
+              : "border-gray-300 bg-gray-50 hover:border-primary/50 hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-800/50 dark:hover:border-primary/50 dark:hover:bg-gray-800"
+          }
+        `}
+      >
         <input
           ref={fileRef}
           type="file"
           accept=".csv,.xlsx,.xls"
-          className="text-sm file:mr-2 file:rounded file:border-0 file:bg-primary file:px-3 file:py-1 file:text-sm file:text-white"
+          className="hidden"
+          onChange={(e) => handleFileChange(e.target.files?.[0] || null)}
         />
-        <button
-          onClick={handleUpload}
-          disabled={loading}
-          className="rounded bg-primary px-4 py-1 text-sm text-white disabled:opacity-50"
-        >
-          {loading ? "Importando..." : "Importar"}
-        </button>
+
+        {selectedFile ? (
+          <div>
+            <div className="mb-1 text-2xl">📄</div>
+            <p className="text-sm font-medium text-foreground">{selectedFile.name}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {(selectedFile.size / 1024).toFixed(1)} KB — Clique para trocar
+            </p>
+          </div>
+        ) : (
+          <div>
+            <div className="mb-1 text-2xl">📁</div>
+            <p className="text-sm font-medium text-foreground">
+              Toque para escolher o arquivo
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              ou arraste aqui — CSV, XLSX ou XLS
+            </p>
+          </div>
+        )}
       </div>
 
+      {/* Import button */}
+      <button
+        onClick={handleUpload}
+        disabled={loading || !selectedFile}
+        className={`
+          mt-3 w-full rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition-all
+          ${selectedFile && !loading
+            ? "bg-primary hover:bg-primary/90 active:scale-[0.98]"
+            : "cursor-not-allowed bg-gray-300 dark:bg-gray-600"
+          }
+        `}
+      >
+        {loading ? (
+          <span className="flex items-center justify-center gap-2">
+            <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            Importando...
+          </span>
+        ) : selectedFile ? (
+          `Importar ${selectedFile.name}`
+        ) : (
+          "Selecione um arquivo primeiro"
+        )}
+      </button>
+
+      {/* Success */}
       {result && (
-        <p className="mt-2 text-sm text-green-600">
-          {result.imported} transacoes importadas
-          {result.skipped > 0 && `, ${result.skipped} duplicatas ignoradas`}
-        </p>
+        <div className="mt-3 rounded-lg border border-green-200 bg-green-50 p-3 dark:border-green-800 dark:bg-green-950/30">
+          <p className="text-sm font-medium text-green-700 dark:text-green-400">
+            {result.imported} {result.imported === 1 ? "transação importada" : "transações importadas"} com sucesso!
+          </p>
+          {result.skipped > 0 && (
+            <p className="mt-0.5 text-xs text-green-600 dark:text-green-500">
+              {result.skipped} {result.skipped === 1 ? "duplicata ignorada" : "duplicatas ignoradas"}
+            </p>
+          )}
+        </div>
       )}
-      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+
+      {/* Error */}
+      {error && (
+        <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-950/30">
+          <p className="text-sm font-medium text-red-700 dark:text-red-400">{error}</p>
+        </div>
+      )}
     </div>
   );
 }

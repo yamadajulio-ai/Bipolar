@@ -6,7 +6,7 @@ import { checkRateLimit } from "@/lib/security";
 import { parseHealthExportPayloadV2 } from "@/lib/integrations/healthExport";
 import {
   mergeWearableNights,
-  safeParseProvenance,
+  enrichStandaloneHrvHr,
   type WearableNight,
 } from "@/lib/sleepMerge";
 
@@ -178,52 +178,13 @@ export async function POST(request: NextRequest) {
     const sleepImported = result.sleepNights.length;
     const metricsImported = result.genericMetrics.length;
 
-    // 4. Enrich existing SleepLogs with standalone HRV/HR (with provenance tracking)
+    // 4. Enrich existing SleepLogs with standalone HRV/HR (transactional, canonical record only)
     let hrvHrEnriched = 0;
     if (sleepImported === 0) {
       const { hrvByDate, hrByDate } = result.hrvHrData;
-      const allDates = [...new Set([...hrvByDate.keys(), ...hrByDate.keys()])];
-
-      if (allDates.length > 0) {
-        // Fetch records with provenance so we can update it per-record
-        const existingLogs = await prisma.sleepLog.findMany({
-          where: {
-            userId: integration.userId,
-            date: { in: allDates },
-          },
-          select: { id: true, date: true, fieldProvenance: true },
-        });
-
-        const enrichOps: PrismaPromise[] = [];
-        const enrichedDates = new Set<string>();
-
-        for (const log of existingLogs) {
-          const hrv = hrvByDate.get(log.date);
-          const hr = hrByDate.get(log.date);
-          const updateData: Record<string, unknown> = {};
-          if (hrv !== undefined && hrv >= 1 && hrv <= 300) updateData.hrv = hrv;
-          if (hr !== undefined && hr >= 20 && hr <= 250) updateData.heartRate = hr;
-
-          if (Object.keys(updateData).length > 0) {
-            // Update fieldProvenance to track wearable source for enriched biometrics
-            const fp = safeParseProvenance(log.fieldProvenance);
-            if (updateData.hrv !== undefined) fp.hrv = "hae";
-            if (updateData.heartRate !== undefined) fp.heartRate = "hae";
-            updateData.fieldProvenance = JSON.stringify(fp);
-
-            enrichOps.push(
-              prisma.sleepLog.update({
-                where: { id: log.id },
-                data: updateData,
-              }),
-            );
-            enrichedDates.add(log.date);
-          }
-        }
-
-        if (enrichOps.length > 0) await prisma.$transaction(enrichOps);
-        hrvHrEnriched = enrichedDates.size;
-      }
+      hrvHrEnriched = await enrichStandaloneHrvHr(
+        prisma, integration.userId, hrvByDate, hrByDate, "hae", `hae_enrich_${Date.now()}`,
+      );
     }
 
     const hasAnyData = sleepImported > 0 || hrvHrEnriched > 0 || metricsImported > 0;

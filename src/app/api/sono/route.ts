@@ -14,10 +14,29 @@ import {
 } from "@/lib/sleepMerge";
 import * as Sentry from "@sentry/nextjs";
 
+/** Validate that a YYYY-MM-DD string is a real calendar date */
+function isRealDate(s: string): boolean {
+  const [y, m, d] = s.split("-").map(Number);
+  const dt = new Date(y, m - 1, d);
+  return dt.getFullYear() === y && dt.getMonth() === m - 1 && dt.getDate() === d;
+}
+
+/** Validate that HH:MM is a real clock time (00:00–23:59) */
+function isRealTime(s: string): boolean {
+  const [h, m] = s.split(":").map(Number);
+  return h >= 0 && h <= 23 && m >= 0 && m <= 59;
+}
+
 const sleepLogSchema = z.object({
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data deve ser YYYY-MM-DD"),
-  bedtime: z.string().regex(/^\d{2}:\d{2}$/, "Horário deve ser HH:MM"),
-  wakeTime: z.string().regex(/^\d{2}:\d{2}$/, "Horário deve ser HH:MM"),
+  date: z.string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Data deve ser YYYY-MM-DD")
+    .check(z.refine(isRealDate, "Data inválida no calendário")),
+  bedtime: z.string()
+    .regex(/^\d{2}:\d{2}$/, "Horário deve ser HH:MM")
+    .check(z.refine(isRealTime, "Horário de dormir inválido")),
+  wakeTime: z.string()
+    .regex(/^\d{2}:\d{2}$/, "Horário deve ser HH:MM")
+    .check(z.refine(isRealTime, "Horário de acordar inválido")),
   totalHours: z.number().min(0).max(24),
   quality: z.number().int().min(0).max(100),
   awakenings: z.number().int().min(0).max(10).optional(),
@@ -25,7 +44,25 @@ const sleepLogSchema = z.object({
   heartRate: z.number().int().min(20).max(250).optional(),
   preRoutine: z.string().optional(),
   notes: z.string().max(280).optional(),
-});
+}).check(
+  z.refine(
+    (data) => data.bedtime !== data.wakeTime,
+    "Horário de dormir e acordar não podem ser iguais",
+  ),
+  z.refine(
+    (data) => {
+      // Coherence check: totalHours should be within ±2h of the calculated interval
+      const [bH, bM] = data.bedtime.split(":").map(Number);
+      const [wH, wM] = data.wakeTime.split(":").map(Number);
+      const bedMin = bH * 60 + bM;
+      const wakeMin = wH * 60 + wM;
+      const spanMin = bedMin > wakeMin ? (1440 - bedMin + wakeMin) : (wakeMin - bedMin);
+      const spanHours = spanMin / 60;
+      return Math.abs(data.totalHours - spanHours) <= 2;
+    },
+    "Duração informada é muito diferente do intervalo dormir→acordar",
+  ),
+);
 
 
 export async function GET(request: NextRequest) {

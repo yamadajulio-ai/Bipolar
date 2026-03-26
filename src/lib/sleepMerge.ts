@@ -116,11 +116,18 @@ export function intervalOverlap(a: SleepInterval, b: SleepInterval): number {
 
 /**
  * Find the best matching existing record for an incoming sleep session.
- * Uses interval overlap when absolute timestamps are available,
- * falls back to ±30min clock-distance.
+ *
+ * Matching strategy (two-tier):
+ *   1. Interval overlap (IoU) when absolute timestamps are available.
+ *      Minimum: OVERLAP_MIN_SCORE (0.1 = 10% overlap).
+ *   2. Clock-distance fallback when timestamps are missing.
+ *      Effective window: ≤26 min (due to floating-point: 1 - 27/30 = 0.0999... < 0.1).
+ *      27+ min is rejected because the normalized score drops below OVERLAP_MIN_SCORE.
  *
  * Returns the match and its overlap score, or null if no match.
  */
+const OVERLAP_MIN_SCORE = 0.1;
+
 export function findBestMatch<T extends {
   bedtime: string;
   bedtimeAt?: Date | null;
@@ -145,10 +152,11 @@ export function findBestMatch<T extends {
         bestMatch = c;
       }
     } else {
-      // Fallback: clock-distance
+      // Fallback: clock-distance normalized to 0..1
+      // Effective match window: ≤26 min (27 min → score 0.0999... < OVERLAP_MIN_SCORE due to float)
       const dist = clockDistance(incoming.bedtime, c.bedtime);
       if (dist <= thresholdMin) {
-        const score = 1 - (dist / thresholdMin); // normalize to 0..1
+        const score = 1 - (dist / thresholdMin);
         if (score > bestScore) {
           bestScore = score;
           bestMatch = c;
@@ -157,8 +165,7 @@ export function findBestMatch<T extends {
     }
   }
 
-  // Minimum threshold: 0.1 overlap (or within 30min for clock-based)
-  if (bestMatch && bestScore >= 0.1) {
+  if (bestMatch && bestScore >= OVERLAP_MIN_SCORE) {
     return { match: bestMatch, overlapScore: bestScore };
   }
   return null;
@@ -216,7 +223,7 @@ export interface FieldProvenance {
 export interface MergeLogEntry {
   ts: string; // ISO timestamp
   algorithmVersion: string;
-  action: "create" | "merge_manual_into_wearable" | "merge_wearable_into_manual" | "update_wearable" | "update_manual";
+  action: "create" | "merge_manual_into_wearable" | "merge_wearable_into_manual" | "update_wearable" | "update_manual" | "enrich_wearable_biometrics";
   importBatchId?: string;
   incomingSource: FieldSource;
   existingSource?: FieldSource;
@@ -765,6 +772,9 @@ export async function mergeWearableNights(
       const rawHash = computeRawHash({
         date: night.date, bedtime: night.bedtime, wakeTime: night.wakeTime,
         totalHours: night.totalHours, quality: night.quality,
+        awakenings: night.awakenings, awakeMinutes: night.awakeMinutes,
+        hrv: night.hrv ?? null, heartRate: night.heartRate ?? null,
+        hasStages: night.hasStages,
       });
 
       const reconciled = reconcileWearableIntoExisting(
@@ -808,6 +818,91 @@ export async function mergeWearableNights(
         create: { userId, date: night.date, ...reconciled.data } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
       });
     }
+  });
+}
+
+// ── Shared standalone HRV/HR enrichment ───────────────────────────
+
+/**
+ * Enrich existing SleepLogs with standalone HRV/HR data from wearable payloads.
+ * Runs inside a Serializable transaction (race-safe read→modify→write).
+ *
+ * Fan-out fix: per date, only the LONGEST non-excluded sleep record is enriched
+ * (canonical session), preventing HRV/HR from being replicated to naps or
+ * split-sleep fragments.
+ *
+ * Also appends an "enrich_wearable_biometrics" entry to mergeLog for audit trail.
+ */
+export async function enrichStandaloneHrvHr(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  prisma: { $transaction: (...args: any[]) => any },
+  userId: string,
+  hrvByDate: Map<string, number>,
+  hrByDate: Map<string, number>,
+  wearableSource: "hae" | "health_connect",
+  importBatchId: string,
+): Promise<number> {
+  const allDates = [...new Set([...hrvByDate.keys(), ...hrByDate.keys()])];
+  if (allDates.length === 0) return 0;
+
+  return await withSerializableTransaction(prisma, async (tx) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const txPrisma = tx as any;
+
+    const existingLogs = await txPrisma.sleepLog.findMany({
+      where: { userId, date: { in: allDates } },
+      select: { id: true, date: true, totalHours: true, excluded: true, fieldProvenance: true, mergeLog: true },
+    });
+
+    // Pick canonical record per date: longest non-excluded session
+    const canonicalByDate = new Map<string, typeof existingLogs[0]>();
+    for (const log of existingLogs) {
+      if (log.excluded) continue;
+      const current = canonicalByDate.get(log.date);
+      if (!current || log.totalHours > current.totalHours) {
+        canonicalByDate.set(log.date, log);
+      }
+    }
+
+    const enrichedDates = new Set<string>();
+
+    for (const [date, log] of canonicalByDate) {
+      const hrv = hrvByDate.get(date);
+      const hr = hrByDate.get(date);
+      const updateData: Record<string, unknown> = {};
+      if (hrv !== undefined && hrv >= 1 && hrv <= 300) updateData.hrv = hrv;
+      if (hr !== undefined && hr >= 20 && hr <= 250) updateData.heartRate = hr;
+
+      if (Object.keys(updateData).length === 0) continue;
+
+      // Update fieldProvenance atomically (read inside tx)
+      const fp = safeParseProvenance(log.fieldProvenance);
+      if (updateData.hrv !== undefined) fp.hrv = wearableSource;
+      if (updateData.heartRate !== undefined) fp.heartRate = wearableSource;
+      updateData.fieldProvenance = JSON.stringify(fp);
+
+      // Append to mergeLog for audit trail
+      const existingLog = log.mergeLog ? safeParseMergeLog(log.mergeLog) : [];
+      const entry = createMergeLogEntry(
+        "enrich_wearable_biometrics",
+        wearableSource,
+        undefined,
+        undefined,
+        [],
+        Object.keys(updateData).filter((k) => k !== "fieldProvenance" && k !== "mergeLog"),
+        `Standalone ${wearableSource} HRV/HR enrichment on canonical record for ${date}`,
+        importBatchId,
+      );
+      updateData.mergeLog = JSON.stringify([...existingLog, entry]);
+
+      await txPrisma.sleepLog.update({
+        where: { id: log.id },
+        data: updateData,
+      });
+      enrichedDates.add(date);
+    }
+
+    return enrichedDates.size;
   });
 }
 

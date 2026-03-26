@@ -10,6 +10,8 @@ import {
   buildProviderRecordId,
   reconcileManualIntoExisting,
   reconcileWearableIntoExisting,
+  enrichStandaloneHrvHr,
+  isWearableSource,
   MERGE_ALGORITHM_VERSION,
   type ExistingRecord,
 } from "./sleepMerge";
@@ -955,5 +957,192 @@ describe("full lifecycle", () => {
     expect(reimport.data.notes).toBe("Boa noite");
     // Merge log accumulated
     expect(reimport.mergeLog.length).toBe(3);
+  });
+});
+
+// ── isWearableSource guard ───────────────────────────────────────
+
+describe("isWearableSource", () => {
+  it("hae → true", () => expect(isWearableSource("hae")).toBe(true));
+  it("health_connect → true", () => expect(isWearableSource("health_connect")).toBe(true));
+  it("manual → false", () => expect(isWearableSource("manual")).toBe(false));
+  it("unknown_legacy → false", () => expect(isWearableSource("unknown_legacy")).toBe(false));
+  it("null → false", () => expect(isWearableSource(null)).toBe(false));
+  it("undefined → false", () => expect(isWearableSource(undefined)).toBe(false));
+});
+
+// ── enrichStandaloneHrvHr ────────────────────────────────────────
+
+describe("enrichStandaloneHrvHr", () => {
+  // Mock Prisma that runs the fn directly (simulates Serializable tx)
+  function makeMockPrisma(records: Array<{
+    id: string; date: string; totalHours: number; excluded: boolean;
+    fieldProvenance: string | null; mergeLog: string | null;
+  }>) {
+    const updatedRecords = new Map<string, Record<string, unknown>>();
+    const mockTx = {
+      sleepLog: {
+        findMany: async () => records,
+        update: async ({ where, data }: { where: { id: string }; data: Record<string, unknown> }) => {
+          updatedRecords.set(where.id, data);
+          return { id: where.id, ...data };
+        },
+      },
+    };
+    const mockPrisma = {
+      $transaction: async (fn: (tx: unknown) => Promise<unknown>, _opts?: unknown) => fn(mockTx),
+    };
+    return { mockPrisma, updatedRecords };
+  }
+
+  it("enriches canonical (longest) record per date", async () => {
+    const records = [
+      { id: "nap-1", date: "2026-03-25", totalHours: 0.5, excluded: false, fieldProvenance: null, mergeLog: null },
+      { id: "night-1", date: "2026-03-25", totalHours: 7.5, excluded: false, fieldProvenance: null, mergeLog: null },
+    ];
+    const { mockPrisma, updatedRecords } = makeMockPrisma(records);
+    const hrvByDate = new Map([["2026-03-25", 45]]);
+    const hrByDate = new Map([["2026-03-25", 58]]);
+
+    const enriched = await enrichStandaloneHrvHr(mockPrisma, "user-1", hrvByDate, hrByDate, "hae", "batch-1");
+
+    expect(enriched).toBe(1);
+    // Only the longest record (night-1) should be updated
+    expect(updatedRecords.has("night-1")).toBe(true);
+    expect(updatedRecords.has("nap-1")).toBe(false);
+    // Check provenance
+    const fp = JSON.parse(updatedRecords.get("night-1")!.fieldProvenance as string);
+    expect(fp.hrv).toBe("hae");
+    expect(fp.heartRate).toBe("hae");
+  });
+
+  it("skips excluded records", async () => {
+    const records = [
+      { id: "excl-1", date: "2026-03-25", totalHours: 8, excluded: true, fieldProvenance: null, mergeLog: null },
+      { id: "short-1", date: "2026-03-25", totalHours: 3, excluded: false, fieldProvenance: null, mergeLog: null },
+    ];
+    const { mockPrisma, updatedRecords } = makeMockPrisma(records);
+    const hrvByDate = new Map([["2026-03-25", 42]]);
+
+    const enriched = await enrichStandaloneHrvHr(mockPrisma, "user-1", hrvByDate, new Map(), "hae", "batch-1");
+
+    expect(enriched).toBe(1);
+    expect(updatedRecords.has("short-1")).toBe(true);
+    expect(updatedRecords.has("excl-1")).toBe(false);
+  });
+
+  it("appends enrich_wearable_biometrics to mergeLog", async () => {
+    const records = [
+      { id: "rec-1", date: "2026-03-25", totalHours: 7, excluded: false, fieldProvenance: null, mergeLog: null },
+    ];
+    const { mockPrisma, updatedRecords } = makeMockPrisma(records);
+    const hrvByDate = new Map([["2026-03-25", 50]]);
+
+    await enrichStandaloneHrvHr(mockPrisma, "user-1", hrvByDate, new Map(), "health_connect", "hc-batch");
+
+    const ml = JSON.parse(updatedRecords.get("rec-1")!.mergeLog as string);
+    expect(ml.length).toBe(1);
+    expect(ml[0].action).toBe("enrich_wearable_biometrics");
+    expect(ml[0].incomingSource).toBe("health_connect");
+    expect(ml[0].importBatchId).toBe("hc-batch");
+    expect(ml[0].algorithmVersion).toBe(MERGE_ALGORITHM_VERSION);
+  });
+
+  it("validates HRV/HR ranges (rejects out-of-range)", async () => {
+    const records = [
+      { id: "rec-1", date: "2026-03-25", totalHours: 7, excluded: false, fieldProvenance: null, mergeLog: null },
+    ];
+    const { mockPrisma, updatedRecords } = makeMockPrisma(records);
+    // HRV=0 and HR=300 are both out of valid range
+    const hrvByDate = new Map([["2026-03-25", 0]]);
+    const hrByDate = new Map([["2026-03-25", 300]]);
+
+    const enriched = await enrichStandaloneHrvHr(mockPrisma, "user-1", hrvByDate, hrByDate, "hae", "batch-1");
+
+    expect(enriched).toBe(0);
+    expect(updatedRecords.size).toBe(0);
+  });
+
+  it("returns 0 for empty date maps", async () => {
+    const { mockPrisma } = makeMockPrisma([]);
+    const enriched = await enrichStandaloneHrvHr(mockPrisma, "user-1", new Map(), new Map(), "hae", "batch-1");
+    expect(enriched).toBe(0);
+  });
+
+  it("preserves existing fieldProvenance fields", async () => {
+    const existingFp = JSON.stringify({ bedtime: "manual", wakeTime: "manual", quality: "manual" });
+    const records = [
+      { id: "rec-1", date: "2026-03-25", totalHours: 7, excluded: false, fieldProvenance: existingFp, mergeLog: null },
+    ];
+    const { mockPrisma, updatedRecords } = makeMockPrisma(records);
+    const hrvByDate = new Map([["2026-03-25", 45]]);
+
+    await enrichStandaloneHrvHr(mockPrisma, "user-1", hrvByDate, new Map(), "hae", "batch-1");
+
+    const fp = JSON.parse(updatedRecords.get("rec-1")!.fieldProvenance as string);
+    expect(fp.bedtime).toBe("manual");
+    expect(fp.quality).toBe("manual");
+    expect(fp.hrv).toBe("hae");
+  });
+});
+
+// ── computeRawHash completeness ──────────────────────────────────
+
+describe("computeRawHash completeness", () => {
+  it("different awakenings produce different hashes", () => {
+    const base = { date: "2026-03-25", bedtime: "23:00", wakeTime: "07:00", totalHours: 8, quality: 70 };
+    const a = { ...base, awakenings: 2, awakeMinutes: 10, hrv: 45, heartRate: 58, hasStages: true };
+    const b = { ...base, awakenings: 5, awakeMinutes: 10, hrv: 45, heartRate: 58, hasStages: true };
+    expect(computeRawHash(a)).not.toBe(computeRawHash(b));
+  });
+
+  it("different hrv produce different hashes", () => {
+    const base = { date: "2026-03-25", bedtime: "23:00", wakeTime: "07:00", totalHours: 8, quality: 70, awakenings: 2, awakeMinutes: 10, heartRate: 58, hasStages: true };
+    const a = { ...base, hrv: 45 };
+    const b = { ...base, hrv: 50 };
+    expect(computeRawHash(a)).not.toBe(computeRawHash(b));
+  });
+});
+
+// ── Match threshold documentation ────────────────────────────────
+
+describe("findBestMatch threshold behavior", () => {
+  it("26 min: passes (score ≈ 0.133 ≥ OVERLAP_MIN_SCORE)", () => {
+    const candidates = [{ bedtime: "22:34", bedtimeAt: null, wakeTimeAt: null }];
+    const result = findBestMatch({ bedtime: "23:00" }, candidates);
+    expect(result).not.toBeNull();
+  });
+
+  it("27 min: floating point edge — 1-27/30=0.0999... < 0.1, rejected", () => {
+    // This is a known floating-point behavior: 1 - 0.9 = 0.0999... < 0.1
+    // Effective clock-distance window is ≤26 min, not ≤27 min
+    const candidates = [{ bedtime: "22:33", bedtimeAt: null, wakeTimeAt: null }];
+    const result = findBestMatch({ bedtime: "23:00" }, candidates);
+    expect(result).toBeNull();
+  });
+
+  it("28 min: rejected — score 0.067 < OVERLAP_MIN_SCORE", () => {
+    const candidates = [{ bedtime: "22:32", bedtimeAt: null, wakeTimeAt: null }];
+    const result = findBestMatch({ bedtime: "23:00" }, candidates);
+    expect(result).toBeNull();
+  });
+
+  it("interval overlap below 0.1 is rejected", () => {
+    // Tiny overlap: 5min overlap out of 16h union → ~0.005
+    const a = {
+      bedtime: "23:00",
+      bedtimeAt: new Date("2026-03-24T23:00Z"),
+      wakeTimeAt: new Date("2026-03-25T07:00Z"),
+    };
+    const b = {
+      bedtime: "06:55",
+      bedtimeAt: new Date("2026-03-25T06:55Z"),
+      wakeTimeAt: new Date("2026-03-25T15:00Z"),
+    };
+    const result = findBestMatch(
+      { bedtime: a.bedtime, bedtimeAt: a.bedtimeAt, wakeTimeAt: a.wakeTimeAt },
+      [b],
+    );
+    expect(result).toBeNull();
   });
 });

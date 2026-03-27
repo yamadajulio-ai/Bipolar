@@ -907,6 +907,8 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
       </Link>
 
       {/* === 4. AGENDA DE HOJE === */}
+      {/* DEBUG: remove after confirming */}
+      <Card><p className="text-xs text-muted">DEBUG: todayBlocks={todayBlocks.length}, googleAccount={googleAccount ? 'yes' : 'no'}, dayStart={dayStartUtc.toISOString()}, dayEnd={dayEnd.toISOString()}</p></Card>
       {todayBlocks.length > 0 && (
         <Card>
           <div className="flex items-center justify-between mb-2">

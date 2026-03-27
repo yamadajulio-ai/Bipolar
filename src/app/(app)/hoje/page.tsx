@@ -107,7 +107,9 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
   const session = await getSession();
   const now = new Date();
   const today = localToday();
-  const dayEnd = new Date(today + "T23:59:59");
+  // Use proper BRT boundaries (America/Sao_Paulo = UTC-3)
+  const dayStartUtc = new Date(today + "T00:00:00-03:00");
+  const dayEnd = new Date(today + "T23:59:59-03:00");
 
   // Cutoffs for data fetching
   const cutoff30 = new Date(now);
@@ -123,7 +125,7 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
     todayEntry, todaySleep,
     allEntries30, allSleepLogs30, rawPlannerBlocks30, financialTxs30,
     streakDates, sleepStreakDates,
-    upcomingBlocks,
+    todayBlocks,
     latestMetrics, recentSleepLogs7,
     googleCal, haeKey, financialTx,
     lastWeeklyAssessment,
@@ -163,12 +165,11 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
     // Streaks
     prisma.diaryEntry.findMany({ where: { userId: session.userId }, orderBy: { date: "desc" }, select: { date: true }, take: 90 }),
     prisma.sleepLog.findMany({ where: { userId: session.userId }, orderBy: { date: "desc" }, select: { date: true }, take: 90 }),
-    // Upcoming blocks
+    // Today's blocks (all events for the day, not just future ones)
     prisma.plannerBlock.findMany({
-      where: { userId: session.userId, startAt: { gte: new Date(), lte: dayEnd } },
+      where: { userId: session.userId, startAt: { gte: dayStartUtc, lte: dayEnd } },
       select: { title: true, startAt: true },
       orderBy: { startAt: "asc" },
-      take: 3,
     }),
     // Health metrics (7d)
     prisma.healthMetric.findMany({
@@ -594,7 +595,7 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
           <div className="space-y-2">
             {visibleTasks.map((t, i) => (
               <Link key={i} href={t.href} className="flex items-center gap-3 no-underline group">
-                <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] ${
+                <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[11px] ${
                   t.done ? "bg-emerald-100 border-emerald-300 text-emerald-700" : "border-border text-transparent group-hover:border-primary"
                 }`}>
                   {t.done ? "✓" : ""}
@@ -651,7 +652,7 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
                 {heroLabel}
               </span>
               {thermometer?.mixedFeatures && (
-                <span className="ml-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200">
+                <span className="ml-2 inline-block rounded-full px-2 py-0.5 text-[11px] font-bold bg-purple-100 text-purple-800 border border-purple-200">
                   Humor e energia em direções opostas
                 </span>
               )}
@@ -690,11 +691,11 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
           {/* Primary CTA */}
           <Link
             href={primaryCta.href}
-            className="block w-full text-center rounded-lg py-2.5 text-sm font-semibold no-underline transition-colors bg-primary text-white hover:bg-primary/90"
+            className="block w-full text-center rounded-lg py-3 text-sm font-semibold no-underline transition-colors bg-primary text-white hover:bg-primary/90 min-h-[44px]"
           >
             {primaryCta.label}
           </Link>
-          <p className="mt-1.5 text-[10px] text-center text-muted italic">
+          <p className="mt-1.5 text-[11px] text-center text-muted italic">
             Indicador educacional · Não substitui avaliação profissional
           </p>
         </Card>
@@ -712,7 +713,7 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
                 style={{ width: `${Math.min(100, ((entries30.length + sleepLogsForInsights.length) / 14) * 100)}%` }}
               />
             </div>
-            <span className="text-[10px] text-muted">{entries30.length + sleepLogsForInsights.length}/14</span>
+            <span className="text-[11px] text-muted">{entries30.length + sleepLogsForInsights.length}/14</span>
           </div>
         </Card>
       )}
@@ -737,7 +738,7 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
               Mudanças nos gastos junto com alterações de sono ou energia podem ser um sinal comportamental. Observe e converse com seu profissional se persistir.
             </p>
           )}
-          <p className="mt-1.5 text-[10px] text-muted italic">
+          <p className="mt-1.5 text-[11px] text-muted italic">
             Sinal complementar · Não é diagnóstico e pode ter várias explicações
           </p>
         </Card>
@@ -756,7 +757,7 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
           <ErrorBoundary name="StabilityScoreWidget">
             <StabilityScoreWidget stability={insights.stability} />
           </ErrorBoundary>
-          <p className="mt-2 text-[10px] text-muted italic">
+          <p className="mt-2 text-[11px] text-muted italic">
             Baseado nos seus últimos 30 dias · Não é diagnóstico
           </p>
         </Card>
@@ -768,7 +769,7 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
         <div className="space-y-2">
           {visibleTasks.map((t, i) => (
             <Link key={i} href={t.href} className="flex items-center gap-3 no-underline group">
-              <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] ${
+              <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[11px] ${
                 t.done ? "bg-emerald-100 border-emerald-300 text-emerald-700" : "border-border text-transparent group-hover:border-primary"
               }`}>
                 {t.done ? "✓" : ""}
@@ -788,26 +789,26 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
           <div className="grid grid-cols-2 gap-2">
             {/* Humor */}
             <div className="rounded-lg bg-surface-alt p-3">
-              <p className="text-[10px] text-muted uppercase tracking-wide">Humor</p>
+              <p className="text-[11px] text-muted uppercase tracking-wide">Humor</p>
               <p className={`text-sm font-semibold mt-0.5 ${moodLabels[todayEntry.mood]?.color || "text-foreground"}`}>
                 {moodLabels[todayEntry.mood]?.text || `${todayEntry.mood}/5`}
               </p>
             </div>
             {/* Energia */}
             <div className="rounded-lg bg-surface-alt p-3">
-              <p className="text-[10px] text-muted uppercase tracking-wide">Energia</p>
+              <p className="text-[11px] text-muted uppercase tracking-wide">Energia</p>
               <p className={`text-sm font-semibold mt-0.5 ${todayEntry.energyLevel ? (energyLabels[todayEntry.energyLevel]?.color || "text-foreground") : "text-muted"}`}>
                 {todayEntry.energyLevel ? energyLabels[todayEntry.energyLevel]?.text || `${todayEntry.energyLevel}/5` : "—"}
               </p>
             </div>
             {/* Sono */}
             <div className="rounded-lg bg-surface-alt p-3">
-              <p className="text-[10px] text-muted uppercase tracking-wide">Sono</p>
+              <p className="text-[11px] text-muted uppercase tracking-wide">Sono</p>
               <p className="text-sm font-semibold mt-0.5 text-foreground">
                 {todaySleep ? formatSleepDuration(todaySleep.totalHours) : "—"}
               </p>
               {todaySleep && sleepInsights.avgDuration !== null && (
-                <p className="text-[10px] text-muted">
+                <p className="text-[11px] text-muted">
                   {todaySleep.totalHours >= sleepInsights.avgDuration
                     ? `+${formatSleepDuration(todaySleep.totalHours - sleepInsights.avgDuration)} vs padrão`
                     : `−${formatSleepDuration(sleepInsights.avgDuration - todaySleep.totalHours)} vs padrão`}
@@ -816,7 +817,7 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
             </div>
             {/* Medicação */}
             <div className="rounded-lg bg-surface-alt p-3">
-              <p className="text-[10px] text-muted uppercase tracking-wide">Medicação</p>
+              <p className="text-[11px] text-muted uppercase tracking-wide">Medicação</p>
               {todayMedExpected > 0 ? (
                 <>
                   <p className={`text-sm font-semibold mt-0.5 ${
@@ -833,7 +834,7 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
                           : "Ainda não"}
                   </p>
                   {todayMedTaken > 0 && todayMedTaken < todayMedExpected && todayMedPending > 0 && (
-                    <p className="text-[10px] text-muted">
+                    <p className="text-[11px] text-muted">
                       {todayMedPending === 1 ? "1 pendente" : `${todayMedPending} pendentes`}
                     </p>
                   )}
@@ -851,14 +852,14 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
           </div>
           {/* Snapshot info + register again */}
           <div className="flex items-center justify-between mt-3 pt-2 border-t border-border">
-            <p className="text-[10px] text-muted">
+            <p className="text-[11px] text-muted">
               {(todayEntry.snapshotCount ?? 0) > 1
                 ? `${todayEntry.snapshotCount} registros hoje${todayEntry.moodRange ? ` (variação: ${todayEntry.moodRange})` : ""}`
                 : todayEntry.lastSnapshotAt
                   ? `Registrado às ${new Date(todayEntry.lastSnapshotAt).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" })}`
                   : "1 registro hoje"}
             </p>
-            <a href="/checkin" className="text-[10px] text-primary hover:underline">
+            <a href="/checkin" className="text-[11px] text-primary hover:underline">
               Registrar novamente
             </a>
           </div>
@@ -891,25 +892,24 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
         </Card>
       </Link>
 
-      {/* === 4. PRÓXIMAS ATIVIDADES === */}
-      {upcomingBlocks.length > 0 && (
+      {/* === 4. AGENDA DE HOJE === */}
+      {todayBlocks.length > 0 && (
         <Card>
-          {upcomingBlocks.length > 0 && (
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <h2 className="text-sm font-semibold text-foreground">Próximas atividades</h2>
-                <Link href="/planejador" className="text-xs text-primary hover:underline">Agenda</Link>
-              </div>
-              <div className="space-y-1.5">
-                {upcomingBlocks.map((b, i) => (
-                  <div key={i} className="flex items-center gap-2 text-sm">
-                    <span className="text-xs font-medium text-muted w-12">{formatBlockTime(b.startAt)}</span>
-                    <span className="text-foreground">{b.title}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-sm font-semibold text-foreground">Agenda de hoje</h2>
+            <Link href="/planejador" className="text-xs text-primary hover:underline">Ver tudo</Link>
+          </div>
+          <div className="space-y-1.5">
+            {todayBlocks.map((b, i) => {
+              const isPast = b.startAt < now;
+              return (
+                <div key={i} className={`flex items-center gap-2 text-sm ${isPast ? "opacity-50" : ""}`}>
+                  <span className="text-xs font-medium text-muted w-12">{formatBlockTime(b.startAt)}</span>
+                  <span className={isPast ? "text-muted line-through" : "text-foreground"}>{b.title}</span>
+                </div>
+              );
+            })}
+          </div>
         </Card>
       )}
 
@@ -924,19 +924,19 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
             {avgSteps !== null && (
               <div className="rounded-lg bg-blue-50/70 p-2">
                 <p className="text-base font-semibold text-blue-700">{avgSteps.toLocaleString("pt-BR")}</p>
-                <p className="text-[10px] text-blue-600">Passos/dia</p>
+                <p className="text-[11px] text-blue-600">Passos/dia</p>
               </div>
             )}
             {avgHrv !== null && (
               <div className="rounded-lg bg-purple-50/70 p-2">
                 <p className="text-base font-semibold text-purple-700">{avgHrv} ms</p>
-                <p className="text-[10px] text-purple-600">HRV</p>
+                <p className="text-[11px] text-purple-600">HRV</p>
               </div>
             )}
             {avgHr !== null && (
               <div className="rounded-lg bg-red-50/70 p-2">
                 <p className="text-base font-semibold text-red-700">{avgHr} bpm</p>
-                <p className="text-[10px] text-red-600">FC repouso</p>
+                <p className="text-[11px] text-red-600">FC repouso</p>
               </div>
             )}
           </div>
@@ -973,7 +973,7 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
                 {ig.label === "Mobills" && (
                   <Image src="/mobills-logo.png" alt="Mobills" width={20} height={20} className="object-contain" />
                 )}
-                <span className={`text-[10px] font-medium ${ig.textColor}`}>{ig.label}</span>
+                <span className={`text-[11px] font-medium ${ig.textColor}`}>{ig.label}</span>
               </Link>
             ))}
           </div>
@@ -991,7 +991,7 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
             {newsArticles.map(article => (
               <a key={article.url} href={article.url} target="_blank" rel="noopener noreferrer" className="block rounded-lg bg-surface-alt p-2.5 no-underline hover:bg-primary/5 transition-colors">
                 <p className="text-xs font-medium text-foreground line-clamp-2">{article.title}</p>
-                <p className="mt-0.5 text-[10px] text-muted">
+                <p className="mt-0.5 text-[11px] text-muted">
                   {article.sourceName || "PubMed"} · {article.publishedAt.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}
                 </p>
               </a>

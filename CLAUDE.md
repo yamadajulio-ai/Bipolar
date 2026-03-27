@@ -15,7 +15,8 @@
 - CDN/WAF: Cloudflare Pro ($20/ano, proxy ON, SSL Full strict)
 - Workers: Cloudflare Workers Paid ($5/mês)
 - Backup: Cloudflare R2 (bucket `suporte-bipolar-backups`)
-- Integrações: Apple Health via Health Auto Export (HAE) + Cloudflare Worker proxy
+- Integrações: Apple Health via Health Auto Export (HAE) + Cloudflare Worker proxy + `waitUntil()` background processing
+- `@vercel/functions` — `waitUntil()` for deferred background work (HAE import)
 
 ## Público-alvo
 - Brasileiros com transtorno bipolar
@@ -51,7 +52,9 @@
 - **NUNCA implementar features novas sem auditoria do GPT Pro antes.** Toda feature nova deve ser planejada, auditada e aprovada pelo GPT Pro antes de qualquer código ser escrito. Isso garante qualidade e alinhamento com o padrão do projeto.
 - **NUNCA dar sugestão/opinião própria pura.** Sempre consultar o modelo mais avançado disponível (o3 da OpenAI via API) para análise e recomendação. O usuário quer a melhor qualidade possível e confia na análise de modelos especializados.
 - **Prompts de auditoria GPT Pro**: Prompts DEVEM ser **self-contained** — o GPT Pro deve conseguir auditar SEM pedir mais contexto. Isso significa: incluir TODO o código-fonte dos arquivos relevantes (completo, não truncado), testes, e contexto de mudanças. Salvar em arquivo `.txt` na Desktop para o usuário copiar (Ctrl+A, Ctrl+C) e colar no GPT Pro. Nunca gerar prompt que dependa de follow-up — cada ida ao GPT Pro é cara em tempo.
-- **Auto-revisão antes do GPT Pro**: Antes de montar o prompt de auditoria para o GPT Pro, o Claude DEVE fazer uma auto-análise crítica do próprio código implementado — revisar edge cases, segurança, cobertura de testes, robustez e possíveis lacunas. Corrigir o que encontrar ANTES de gerar o prompt. Isso otimiza tempo evitando que o GPT Pro aponte problemas que o Claude poderia ter pego sozinho.
+- **Auto-revisão exaustiva antes do GPT Pro**: Antes de montar QUALQUER prompt de auditoria para o GPT Pro, o Claude DEVE fazer múltiplas rodadas de auto-análise crítica — revisando não apenas o código recém-implementado, mas TODAS as áreas do projeto que possam ter sido afetadas ou que estejam em aberto. Isso inclui: edge cases, segurança, cobertura de testes, robustez, acessibilidade, touch targets, dark mode, e qualquer gap que possa existir. Corrigir TUDO antes de gerar o prompt. O Claude busca e encontra problemas muito mais rápido que o GPT Pro — cada problema que o Claude pega sozinho economiza uma ida cara ao GPT Pro. O prompt de auditoria só deve ser montado quando o Claude estiver confiante de que não há mais issues conhecidos.
+- **NUNCA ignorar NADA das respostas do GPT Pro.** Quando o GPT Pro devolver uma auditoria, o Claude DEVE analisar TODOS os pontos levantados, um por um, sem pular nenhum. Cada achado, cada risco, cada sugestão — mesmo os que parecem menores ou "nice-to-have" — deve ser endereçado: ou implementado, ou justificado por que não se aplica com evidência concreta. Zero tolerância para ignorar pontos. Se o GPT Pro levantou, é porque importa. Tratar cada resposta do GPT Pro como checklist obrigatório onde TODO item precisa de resolução documentada.
+- **Auto-análise crítica pós-implementação obrigatória**: Após QUALQUER implementação ou correção, o Claude DEVE fazer análise crítica exaustiva de tudo que acabou de implementar, buscando falhas, bugs, edge cases, inconsistências, problemas de segurança, acessibilidade e integração. Repetir a análise quantas vezes forem necessárias até não encontrar mais falhas. Só considerar o trabalho "feito" quando a última rodada de análise retornar zero problemas. Corrigir cada problema encontrado antes de seguir para a próxima tarefa. Isso é um gate obrigatório — não pode ser pulado.
 
 ## Clipboard (Windows)
 - **NUNCA usar `type file | clip`** — corrompe caracteres UTF-8 (acentos viram lixo).
@@ -103,7 +106,7 @@
 ## Domínios
 - **Produção**: suportebipolar.com (Vercel Pro + Cloudflare Pro, proxy ON, SSL Full strict)
 - **Legacy**: redebipolar.com (ainda ativo)
-- **HAE Worker**: hae-proxy on Cloudflare Workers Paid → suportebipolar.com/api/integrations/health-export
+- **HAE Worker**: hae-proxy on Cloudflare Workers Paid → suportebipolar.com/api/integrations/health-export (POST responds instantly via `waitUntil()`, heavy DB ops run in background)
 - **Backups**: Cloudflare R2 bucket `suporte-bipolar-backups` (ENAM, Standard)
 
 ## Insights — Arquitetura

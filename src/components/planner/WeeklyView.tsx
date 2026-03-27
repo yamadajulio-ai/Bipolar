@@ -103,6 +103,7 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [needsReauth, setNeedsReauth] = useState(false);
   const [googleConnected, setGoogleConnected] = useState<boolean | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const didScroll = useRef(false);
@@ -178,6 +179,7 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
               clearTimeout(syncTimeout);
               if (!syncRes.ok) {
                 const errData = await syncRes.json().catch(() => ({}));
+                if (errData.reauth) setNeedsReauth(true);
                 setSyncError(errData.error || `Erro ${syncRes.status}`);
               } else {
                 // Refresh blocks after successful sync
@@ -316,14 +318,20 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
 
       {/* Sync error */}
       {syncError && !syncing && (
-        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5" role="alert">
-          <p className="text-sm text-red-700">{syncError}</p>
-          <button
-            onClick={handleManualSync}
-            className="mt-1 text-xs font-medium text-red-600 underline hover:text-red-800"
-          >
-            Tentar novamente
-          </button>
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 dark:border-red-900 dark:bg-red-950/20" role="alert">
+          <p className="text-sm text-red-700 dark:text-red-400">{syncError}</p>
+          {needsReauth ? (
+            <a href="/integracoes" className="mt-1 inline-block text-xs font-medium text-red-600 underline hover:text-red-800 dark:text-red-400">
+              Reconectar Google Agenda
+            </a>
+          ) : (
+            <button
+              onClick={handleManualSync}
+              className="mt-1 text-xs font-medium text-red-600 underline hover:text-red-800 dark:text-red-400"
+            >
+              Tentar novamente
+            </button>
+          )}
         </div>
       )}
 
@@ -404,7 +412,7 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
                   key={day}
                   className={`flex-1 border-l border-border px-1 py-2 text-center ${isToday ? "bg-primary/5" : ""}`}
                 >
-                  <div className={`text-[10px] font-medium ${isToday ? "text-primary" : "text-muted"}`}>
+                  <div className={`text-[11px] font-medium ${isToday ? "text-primary" : "text-muted"}`}>
                     {WEEKDAY_NAMES[i]}
                   </div>
                   <div
@@ -431,7 +439,7 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
                 {HOURS.map((h) => (
                   <div
                     key={h}
-                    className="absolute right-1 text-[10px] text-muted leading-none"
+                    className="absolute right-1 text-[11px] text-muted leading-none"
                     style={{ top: h * HOUR_HEIGHT - 5 }}
                   >
                     {h > 0 ? `${String(h).padStart(2, "0")}:00` : ""}
@@ -501,16 +509,16 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
                           title={`${lb.occ.title}\n${formatTime(lb.occ.startAt)} - ${formatTime(lb.occ.endAt)}`}
                         >
                           {isShort ? (
-                            <div className="px-1 py-0.5 text-[9px] leading-tight truncate">
+                            <div className="px-1 py-0.5 text-[11px] leading-tight truncate">
                               <span className="font-semibold">{lb.occ.title}</span>
                             </div>
                           ) : (
                             <div className="px-1.5 py-1">
-                              <div className="text-[10px] font-semibold leading-tight truncate">
+                              <div className="text-[11px] font-semibold leading-tight truncate">
                                 {lb.occ.title}
                                 {lb.occ.kind === "ANCHOR" && <span className="ml-0.5 opacity-60">⚓</span>}
                               </div>
-                              <div className="text-[9px] opacity-75 leading-tight">
+                              <div className="text-[11px] opacity-75 leading-tight">
                                 {formatTime(lb.occ.startAt)} – {formatTime(lb.occ.endAt)}
                               </div>
                             </div>

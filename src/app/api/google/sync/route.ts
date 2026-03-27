@@ -176,8 +176,14 @@ export async function POST(request: Request) {
     return NextResponse.json(result);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erro desconhecido";
+    if (message === "GOOGLE_REAUTH_REQUIRED") {
+      return NextResponse.json(
+        { error: "Sessão do Google expirou. Desconecte e reconecte o Google Agenda.", reauth: true },
+        { status: 401 },
+      );
+    }
     Sentry.captureException(err, { tags: { endpoint: "google-sync" } });
-    console.error("[Google Sync] Error:", message, err);
+    console.error(JSON.stringify({ event: "google_sync_error", errorType: err instanceof Error ? err.constructor.name : "Unknown", message: message.slice(0, 200) }));
     return NextResponse.json(
       { error: `Erro na sincronização: ${message}` },
       { status: 500 },

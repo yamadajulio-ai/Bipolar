@@ -41,15 +41,23 @@ export async function getAuthenticatedClient(userId: string) {
 
   // Auto-refresh if expired
   if (account.expiresAt.getTime() < Date.now()) {
-    const { credentials } = await oauth2Client.refreshAccessToken();
-    await prisma.googleAccount.update({
-      where: { userId },
-      data: {
-        accessToken: encrypt(credentials.access_token!),
-        expiresAt: new Date(credentials.expiry_date!),
-      },
-    });
-    oauth2Client.setCredentials(credentials);
+    try {
+      const { credentials } = await oauth2Client.refreshAccessToken();
+      await prisma.googleAccount.update({
+        where: { userId },
+        data: {
+          accessToken: encrypt(credentials.access_token!),
+          expiresAt: new Date(credentials.expiry_date!),
+        },
+      });
+      oauth2Client.setCredentials(credentials);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes("invalid_grant")) {
+        throw new Error("GOOGLE_REAUTH_REQUIRED");
+      }
+      throw err;
+    }
   }
 
   return oauth2Client;

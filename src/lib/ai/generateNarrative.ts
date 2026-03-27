@@ -33,7 +33,10 @@ const DEFAULT_MODEL = "gpt-5.4";
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
   if (!_openai) {
-    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    _openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+      timeout: 90_000, // 90s — fail gracefully before Vercel's 120s maxDuration
+    });
   }
   return _openai;
 }

@@ -9,7 +9,7 @@ import type { NarrativeExtraData, AssessmentSnapshot, LifeEventSnapshot, Cogniti
 
 const TZ = "America/Sao_Paulo";
 
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 // DELETE — Revoke/delete a specific narrative (LGPD right of erasure).
 // Deletes the narrative and its feedback. Cascading via Prisma relation.

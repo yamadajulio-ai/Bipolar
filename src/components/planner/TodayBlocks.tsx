@@ -94,7 +94,7 @@ export function TodayBlocks({ blocks, today, targetSleepTimeMin }: TodayBlocksPr
             style={{ width: `${Math.min(100, totalEnergy)}%` }}
           />
         </div>
-        <p className="mt-1 text-[10px] text-muted">
+        <p className="mt-1 text-[11px] text-muted">
           Soma dos custos de energia dos blocos. Valores altos podem exigir mais periodos de descanso.
         </p>
       </Card>
@@ -117,7 +117,7 @@ export function TodayBlocks({ blocks, today, targetSleepTimeMin }: TodayBlocksPr
       {displayBlocks.length === 0 ? (
         <Card>
           <p className="text-center text-muted py-2">
-            Sua agenda de hoje está vazia. Organize seu dia no <a href="/planejador" className="text-primary hover:underline">planejador</a> para manter a rotina.
+            Sua agenda de hoje está vazia. Organize seu dia na <a href="/agenda-rotina" className="text-primary hover:underline">agenda</a> para manter a rotina.
           </p>
         </Card>
       ) : (

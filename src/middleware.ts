@@ -9,7 +9,7 @@ import {
 const protectedPaths = [
   "/app",
   "/hoje",
-  "/planejador",
+  "/agenda-rotina",
   "/checkin",
   "/insights",
   "/mais",
@@ -212,5 +212,5 @@ function ensureCsrfCookie(request: NextRequest, response: NextResponse): NextRes
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon\\.ico|sw\\.js|manifest\\.webmanifest|robots\\.txt|sitemap\\.xml|apple-app-site-association).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon\\.ico|sw\\.js|manifest\\.webmanifest|robots\\.txt|sitemap\\.xml|apple-app-site-association|offline-fallback\\.html|\\.well-known).*)"],
 };

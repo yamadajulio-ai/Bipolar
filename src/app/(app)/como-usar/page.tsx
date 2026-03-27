@@ -39,7 +39,7 @@ const sections = [
       "• Risco — atividades que exigem atenção extra (ex: eventos sociais intensos)",
       "O sistema alerta automaticamente sobre conflitos de horário, noites tardias e atividades que invadem seus horários de âncora.",
     ],
-    link: { href: "/planejador", label: "Abrir agenda" },
+    link: { href: "/agenda-rotina", label: "Abrir agenda" },
   },
   {
     id: "quick-add",

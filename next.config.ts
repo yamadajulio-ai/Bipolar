@@ -34,6 +34,11 @@ const nextConfig: NextConfig = {
         destination: "/ferramentas/regularidade-do-sono",
         permanent: true,
       },
+      {
+        source: "/planejador",
+        destination: "/agenda-rotina",
+        permanent: true,
+      },
     ];
   },
   async headers() {

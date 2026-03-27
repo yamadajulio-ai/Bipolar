@@ -403,7 +403,7 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
   const hasFinancial = !!financialTx;
   const missingIntegrations = [
     !hasHae && { label: "Wearable", href: "/integracoes", bg: "bg-red-50 hover:bg-red-100", textColor: "text-red-700" },
-    !hasGoogleCal && { label: "Google Agenda", href: "/planejador", bg: "bg-blue-50 hover:bg-blue-100", textColor: "text-blue-700" },
+    !hasGoogleCal && { label: "Google Agenda", href: "/agenda-rotina", bg: "bg-blue-50 hover:bg-blue-100", textColor: "text-blue-700" },
     !hasFinancial && { label: "Mobills", href: "/financeiro", bg: "bg-green-50 hover:bg-green-100", textColor: "text-green-700" },
   ].filter(Boolean) as { label: string; href: string; bg: string; textColor: string }[];
 
@@ -911,7 +911,7 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
         <Card>
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-sm font-semibold text-foreground">Agenda de hoje</h2>
-            <Link href="/planejador" className="text-xs text-primary hover:underline">Ver tudo</Link>
+            <Link href="/agenda-rotina" className="text-xs text-primary hover:underline">Ver tudo</Link>
           </div>
           <div className="space-y-1.5">
             {todayBlocks.map((b, i) => {

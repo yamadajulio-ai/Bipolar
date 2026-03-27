@@ -9,6 +9,7 @@ import {
 } from "@/lib/ai/narrative-types";
 import { toPublicEvidence } from "@/lib/ai/public-evidence";
 import type { NarrativeResponse } from "./useNarrative";
+import { NarrativeProgress } from "./NarrativeProgress";
 
 // ── Externalized deterministic phrases ─────────────────────────
 const SHARE_WITH_PROFESSIONAL_TEXT =
@@ -107,6 +108,13 @@ export function NarrativeDisplay({ narrative, data, onRefresh, refreshLoading, r
           </button>
         )}
       </div>
+
+      {/* Progress bar when refreshing */}
+      {refreshLoading && (
+        <div className="px-5">
+          <NarrativeProgress active />
+        </div>
+      )}
 
       {expanded && (
         <div className="space-y-4 px-5 pb-5">

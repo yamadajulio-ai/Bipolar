@@ -3,6 +3,7 @@
 import { useNarrative } from "./useNarrative";
 import { NarrativeDisplay, APP_DISCLAIMER } from "./NarrativeDisplay";
 import { NarrativeFeedback } from "./NarrativeFeedback";
+import { NarrativeProgress } from "./NarrativeProgress";
 import { LoadingState, ErrorState } from "@/components/ui/StatusStates";
 
 export function NarrativeSection() {
@@ -105,7 +106,7 @@ export function NarrativeSection() {
 
   // Loading (no previous narrative)
   if (loading && !narrative) {
-    return <LoadingState message="Analisando seus dados por área..." />;
+    return <NarrativeProgress active />;
   }
 
   // Error (no previous narrative)

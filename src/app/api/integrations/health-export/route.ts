@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { waitUntil } from "@vercel/functions";
 import * as Sentry from "@sentry/nextjs";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
@@ -62,6 +63,95 @@ export async function GET(request: NextRequest) {
   });
 }
 
+/**
+ * Background processor — handles the heavy DB operations (merge, upsert, enrich)
+ * after the HTTP response has already been sent to the client.
+ */
+async function processPayloadInBackground(
+  userId: string,
+  apiKey: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  body: any,
+): Promise<void> {
+  try {
+    const metrics = body?.data?.metrics ?? body?.metrics ?? [];
+    const result = parseHealthExportPayloadV2(body);
+
+    // 1. Save debug payload — ONLY overwrite when sleep data is present
+    const sleepMetricRaw = Array.isArray(metrics)
+      ? metrics.find((m: { name?: string; data?: { value?: string }[] }) =>
+          ["sleep_analysis", "Sleep Analysis", "sleepAnalysis", "sleep"].includes(m.name || "") ||
+          (m.data?.slice(0, 5).some((e: { value?: string }) =>
+            e.value && /Core|Deep|REM|Asleep|InBed|Awake/i.test(e.value))))
+      : null;
+    if (sleepMetricRaw) {
+      const debugPayload = JSON.stringify({
+        _sleepMetric: sleepMetricRaw,
+        _parsedNights: result.sleepNights,
+        _metricsCount: metrics.length,
+        _timestamp: new Date().toISOString(),
+      });
+      await prisma.integrationKey.update({
+        where: { apiKey },
+        data: { lastPayloadDebug: debugPayload.slice(0, 50000) },
+      });
+    }
+
+    // 2. Sleep nights: shared merge loop (Serializable transaction, stale purge, provenance)
+    if (result.sleepNights.length > 0) {
+      const nights: WearableNight[] = result.sleepNights.map((n) => ({
+        date: n.date, bedtime: n.bedtime, wakeTime: n.wakeTime,
+        totalHours: n.totalHours, quality: n.quality,
+        awakenings: n.awakenings, awakeMinutes: n.awakeMinutes,
+        hrv: n.hrv, heartRate: n.heartRate,
+        hasStages: n.hasStages ?? true,
+        providerRecordId: n.providerRecordId,
+      }));
+      await mergeWearableNights(prisma, userId, nights, "hae", `hae_worker_${Date.now()}`);
+    }
+
+    // 3. Upsert generic health metrics (idempotent, separate batch)
+    if (result.genericMetrics.length > 0) {
+      const metricOps: PrismaPromise[] = result.genericMetrics.map((gm) =>
+        prisma.healthMetric.upsert({
+          where: {
+            userId_date_metric: {
+              userId,
+              date: gm.date,
+              metric: gm.metric,
+            },
+          },
+          update: { value: gm.value, unit: gm.unit },
+          create: {
+            userId,
+            date: gm.date,
+            metric: gm.metric,
+            value: gm.value,
+            unit: gm.unit,
+          },
+        }),
+      );
+      await prisma.$transaction(metricOps);
+    }
+
+    // 4. Enrich existing SleepLogs with standalone HRV/HR
+    if (result.sleepNights.length === 0) {
+      const { hrvByDate, hrByDate } = result.hrvHrData;
+      await enrichStandaloneHrvHr(
+        prisma, userId, hrvByDate, hrByDate, "hae", `hae_enrich_${Date.now()}`,
+      );
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Erro desconhecido";
+    Sentry.captureException(err, { tags: { endpoint: "health-export-bg" } });
+    console.error(JSON.stringify({
+      event: "health_export_bg_error",
+      errorType: err instanceof Error ? err.constructor.name : "Unknown",
+      message: message.slice(0, 200),
+    }));
+  }
+}
+
 export async function POST(request: NextRequest) {
   // Auth via Bearer API key (NOT session — this is called from iOS app)
   const authHeader = request.headers.get("authorization");
@@ -99,115 +189,32 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    const metrics = body?.data?.metrics ?? body?.metrics ?? [];
-    const debugInfo = {
-      topLevelKeys: Object.keys(body || {}),
-      metricsCount: Array.isArray(metrics) ? metrics.length : 0,
-      metricNames: Array.isArray(metrics)
-        ? metrics.map((m: { name?: string; units?: string }) => m.name || `(unnamed, units=${m.units})`)
-        : [],
-    };
-
-    console.log("[health-export] Debug info:", JSON.stringify(debugInfo));
-
+    // Parse synchronously (CPU-only, fast) to get estimated counts for the response
     const result = parseHealthExportPayloadV2(body);
 
-    // Log sleep parsing results for debugging
-    if (result.sleepNights.length > 0) {
-      console.log("[health-export] Sleep nights parsed:", JSON.stringify(result.sleepNights));
-    }
+    const sleepNights = result.sleepNights.length;
+    const metricsCount = result.genericMetrics.length;
+    const hasAnyData = sleepNights > 0 || metricsCount > 0 ||
+      (result.hrvHrData.hrvByDate.size > 0 || result.hrvHrData.hrByDate.size > 0);
 
-    // 1. Save debug payload — ONLY overwrite when sleep data is present
-    //    (prevents non-sleep metrics from overwriting sleep debug data)
-    const sleepMetricRaw = Array.isArray(metrics)
-      ? metrics.find((m: { name?: string; data?: { value?: string }[] }) =>
-          ["sleep_analysis", "Sleep Analysis", "sleepAnalysis", "sleep"].includes(m.name || "") ||
-          (m.data?.slice(0, 5).some((e: { value?: string }) =>
-            e.value && /Core|Deep|REM|Asleep|InBed|Awake/i.test(e.value))))
-      : null;
-    if (sleepMetricRaw) {
-      const debugPayload = JSON.stringify({
-        _sleepMetric: sleepMetricRaw,
-        _parsedNights: result.sleepNights,
-        _metricsCount: metrics.length,
-        _timestamp: new Date().toISOString(),
-      });
-      await prisma.integrationKey.update({
-        where: { apiKey },
-        data: { lastPayloadDebug: debugPayload.slice(0, 50000) },
-      });
-    }
-
-    // 2. Sleep nights: shared merge loop (Serializable transaction, stale purge, provenance)
-    if (result.sleepNights.length > 0) {
-      const nights: WearableNight[] = result.sleepNights.map((n) => ({
-        date: n.date, bedtime: n.bedtime, wakeTime: n.wakeTime,
-        totalHours: n.totalHours, quality: n.quality,
-        awakenings: n.awakenings, awakeMinutes: n.awakeMinutes,
-        hrv: n.hrv, heartRate: n.heartRate,
-        hasStages: n.hasStages ?? true,
-        providerRecordId: n.providerRecordId,
-      }));
-      await mergeWearableNights(prisma, integration.userId, nights, "hae", `hae_worker_${Date.now()}`);
-    }
-
-    // 3. Upsert generic health metrics (idempotent, separate batch)
-    if (result.genericMetrics.length > 0) {
-      const metricOps: PrismaPromise[] = result.genericMetrics.map((gm) =>
-        prisma.healthMetric.upsert({
-          where: {
-            userId_date_metric: {
-              userId: integration.userId,
-              date: gm.date,
-              metric: gm.metric,
-            },
-          },
-          update: { value: gm.value, unit: gm.unit },
-          create: {
-            userId: integration.userId,
-            date: gm.date,
-            metric: gm.metric,
-            value: gm.value,
-            unit: gm.unit,
-          },
-        }),
-      );
-      await prisma.$transaction(metricOps);
-    }
-
-    const sleepImported = result.sleepNights.length;
-    const metricsImported = result.genericMetrics.length;
-
-    // 4. Enrich existing SleepLogs with standalone HRV/HR (transactional, canonical record only)
-    let hrvHrEnriched = 0;
-    if (sleepImported === 0) {
-      const { hrvByDate, hrByDate } = result.hrvHrData;
-      hrvHrEnriched = await enrichStandaloneHrvHr(
-        prisma, integration.userId, hrvByDate, hrByDate, "hae", `hae_enrich_${Date.now()}`,
-      );
-    }
-
-    const hasAnyData = sleepImported > 0 || hrvHrEnriched > 0 || metricsImported > 0;
-    console.log("[health-export] Result:", JSON.stringify({
-      sleepImported, hrvHrEnriched, metricsImported,
-    }));
+    // Defer all heavy DB operations (merge, upsert, enrich) to background
+    // so the HTTP response is sent immediately — prevents HAE CancellationError
+    waitUntil(processPayloadInBackground(integration.userId, apiKey, body));
 
     return NextResponse.json({
-      imported: sleepImported,
-      sleepNights: sleepImported,
-      hrvHrEnriched,
-      metricsImported,
+      imported: sleepNights,
+      sleepNights,
+      metricsCount,
       metricTypes: [...new Set(result.genericMetrics.map((m) => m.metric))],
       skippedCount: result.skippedCount,
       message: hasAnyData
-        ? `Importado: ${sleepImported} noite(s), ${hrvHrEnriched} enriquecimento(s) HRV/HR, ${metricsImported} metrica(s)`
+        ? `Recebido: ${sleepNights} noite(s), ${metricsCount} metrica(s). Processando em segundo plano.`
         : "Nenhum dado reconhecido no payload",
-      debug: debugInfo,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erro desconhecido";
     Sentry.captureException(err, { tags: { endpoint: "health-export" } });
-    console.error("[health-export] Error:", message, err);
+    console.error(JSON.stringify({ event: "health_export_error", errorType: err instanceof Error ? err.constructor.name : "Unknown", message: message.slice(0, 200) }));
     return NextResponse.json(
       { error: "Erro ao processar dados de saúde" },
       { status: 500 },

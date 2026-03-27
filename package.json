@@ -1,6 +1,6 @@
 {
   "name": "empresa-bipolar",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "postinstall": "prisma generate",
@@ -11,16 +11,15 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "cap:init": "mkdir -p out && echo '<html><body>Loading...</body></html>' > out/index.html && npx cap sync",
+    "cap:init": "mkdir -p out && cp public/offline-fallback.html out/offline-fallback.html && npx cap sync",
     "cap:ios": "npx cap open ios",
     "cap:sync": "npx cap sync ios",
-    "cap:build": "mkdir -p out && echo '<html><body>Loading...</body></html>' > out/index.html && npx cap sync ios && npx cap open ios"
+    "cap:build": "mkdir -p out && cp public/offline-fallback.html out/offline-fallback.html && npx cap sync ios && npx cap open ios"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",
+    "@capacitor-community/apple-sign-in": "^7.1.0",
     "@capacitor/app": "^8.0.1",
-    "@capacitor/app-launcher": "^8.0.1",
-    "@capacitor/browser": "^8.0.2",
     "@capacitor/core": "^8.2.0",
     "@capacitor/haptics": "^8.0.1",
     "@capacitor/ios": "^8.2.0",
@@ -35,6 +34,7 @@
     "@prisma/client": "^6.19.2",
     "@sentry/nextjs": "^10.42.0",
     "@vercel/analytics": "^2.0.1",
+    "@vercel/functions": "^3.4.3",
     "@vercel/speed-insights": "^2.0.0",
     "argon2": "^0.44.0",
     "bcryptjs": "^3.0.3",
@@ -43,6 +43,7 @@
     "gray-matter": "^4.0.3",
     "ipaddr.js": "^2.3.0",
     "iron-session": "^8.0.4",
+    "jose": "^6.2.2",
     "libphonenumber-js": "^1.12.40",
     "lucide-react": "^1.7.0",
     "motion": "^12.38.0",

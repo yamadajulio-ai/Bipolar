@@ -5,9 +5,12 @@
 
 ## Stack
 - Next.js 15 (App Router, Server Components)
-- TypeScript, Tailwind CSS
+- TypeScript, Tailwind CSS v4
 - Prisma + PostgreSQL (Neon)
 - Recharts para gráficos
+- Motion for React (v12) — BottomNav animated pill
+- Lucide React (v1.7) — icon system via `AppIcon` wrapper
+- clsx — conditional className composition
 - Deploy: Vercel Pro ($20/mês)
 - CDN/WAF: Cloudflare Pro ($20/ano, proxy ON, SSL Full strict)
 - Workers: Cloudflare Workers Paid ($5/mês)
@@ -67,6 +70,19 @@
 - **Múltiplos ciclos/dia**: SleepLog usa `@@unique([userId, date, bedtime])` — permite múltiplos registros por dia. UI agrupa por data com somatório e exibe cada ciclo individualmente ("Ciclo 1, 2..."). Métricas usam `aggregateSleepByDay()` para somar ciclos antes de calcular médias.
 - Todos os registros aparecem no histórico para revisão clínica
 - Histórico configurável pelo usuário: 7, 15, 30 noites ou 3 meses (via `?noites=N`)
+
+## Design System — Phase 1 (Foundation + Chrome)
+- **Tokens CSS** em `globals.css`: elevation (shadow-card/raised/float), radius (card 18px, panel 24px, pill 999px), surfaces (surface/raised/glass), borders (soft 10%/strong 20%), blur-chrome 18px, halo, halo-stroke
+- **4 camadas de elevação**: Canvas (background) → Surface (cards) → Raised (glaze overlay) → Float (backdrop-blur nav/header)
+- **Card.tsx**: 4 variantes (surface, raised, hero, interactive) com GlazeOverlay radial gradient
+- **BottomNav**: floating dock com glassmorphism + `motion.span layoutId="nav-pill"` + `MotionConfig reducedMotion="user"`
+- **Header**: glassmorphism chrome, Lucide icons (Sun/MoonStar/LogOut/ShieldAlert), touch targets 44px
+- **AppIcon**: wrapper padronizado para Lucide icons (sm 16px, md 20px, lg 24px)
+- **Regra de radius**: `--radius-card` (18px) para containers/cards, `rounded-lg` (8px) para botões pequenos/interativos, `rounded-md` (6px) para inputs
+- **Dark mode**: 100% tokenizado no app autenticado. Zero `dark:*-gray` hardcoded.
+- **Print**: todas as shadows → none, surfaces → white, cores → preto
+- **Acessibilidade**: touch targets ≥44px, aria-hidden em decorativos, prefers-reduced-motion, aria-labelledby linkage correto
+- **Landing pages públicas**: ainda Phase 1 legacy (deferred para Phase 2/3)
 
 ## iOS App Store — Estratégia B+
 - **Abordagem**: Capacitor com WebView + Vercel backend + pilares nativos reais (GPT Pro audit: 7.7/10)

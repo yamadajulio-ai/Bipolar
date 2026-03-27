@@ -1,6 +1,7 @@
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { localToday, localDateStr } from "@/lib/dateUtils";
+import { pullGoogleCalendar } from "@/lib/google/sync";
 import { getNews } from "@/lib/news";
 import { Card } from "@/components/Card";
 import { Greeting } from "@/components/Greeting";
@@ -119,6 +120,19 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
   const cutoff7 = new Date(now);
   cutoff7.setDate(cutoff7.getDate() - 7);
   const cutoff7Str = localDateStr(cutoff7);
+
+  // === Sync Google Calendar if connected (non-blocking, best-effort) ===
+  const googleAccount = await prisma.googleAccount.findUnique({
+    where: { userId: session.userId },
+    select: { lastSyncAt: true },
+  });
+  if (googleAccount) {
+    const lastSync = googleAccount.lastSyncAt?.getTime() ?? 0;
+    const stale = now.getTime() - lastSync > 5 * 60 * 1000; // 5 min
+    if (stale) {
+      await pullGoogleCalendar(session.userId).catch(() => {});
+    }
+  }
 
   // === Fetch all data in parallel ===
   const [

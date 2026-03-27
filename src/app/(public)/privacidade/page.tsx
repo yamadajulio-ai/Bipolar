@@ -243,7 +243,7 @@ export default function PrivacidadePage() {
             serviços de terceiros:
           </p>
           <ul className="list-inside list-disc space-y-1 text-sm text-muted">
-            <li><strong>Vercel Analytics e Speed Insights:</strong> métricas de performance e uso agregado, sem cookies de rastreamento.</li>
+            <li><strong>Vercel Analytics e Speed Insights:</strong> métricas de performance e uso agregado, sem cookies de rastreamento. Carregado em todas as páginas (web e app iOS).</li>
             <li><strong>Google Analytics:</strong> dados de navegação e uso (Google LLC, EUA). Pode definir cookies como <code>_ga</code> e <code>_gid</code>.</li>
             <li><strong>Microsoft Clarity:</strong> análise de comportamento de navegação, como mapas de calor e gravações de sessão (Microsoft, EUA). Pode definir cookies como <code>_clck</code> e <code>_clsk</code>. Gravações não capturam campos de entrada de dados sensíveis.</li>
           </ul>
@@ -251,8 +251,20 @@ export default function PrivacidadePage() {
           <ul className="list-inside list-disc space-y-1 text-sm text-muted">
             <li><strong>Meta Pixel (Facebook):</strong> utilizado para medir a eficácia de campanhas de divulgação (Meta Platforms, EUA). Pode definir cookies como <code>_fbp</code> e <code>_fbc</code>. Eventos enviados: PageView, ViewContent e CompleteRegistration — nenhum dado de saúde é incluído nesses eventos.</li>
           </ul>
+          <div className="mt-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
+            <p className="text-sm font-medium text-foreground mb-1">
+              Nota sobre o app iOS
+            </p>
+            <p className="text-sm text-muted">
+              Os serviços Google Analytics, Microsoft Clarity e Meta Pixel são carregados <strong>apenas nas páginas públicas
+              e de autenticação do site</strong> (suportebipolar.com). Eles <strong>não são carregados</strong> dentro da
+              experiência autenticada do app que os usuários iOS utilizam no dia a dia. O único serviço de analytics presente
+              no app iOS é o Vercel Analytics, que coleta apenas métricas anônimas de performance (tempo de carregamento,
+              Web Vitals) sem cookies de rastreamento e sem dados pessoais.
+            </p>
+          </div>
           <p className="mt-3 text-sm text-muted">
-            Esses serviços podem coletar dados como endereço IP, tipo de navegador, páginas visitadas e
+            Os serviços acima (quando carregados) podem coletar dados como endereço IP, tipo de navegador, páginas visitadas e
             horários de acesso. <strong>Nenhum dado de saúde, humor, sono ou check-in é compartilhado
             com esses serviços.</strong> Para mais informações, consulte as políticas de privacidade
             do{" "}

@@ -29,3 +29,12 @@ export {
   shareContent,
   SHARE_PRESETS,
 } from './deep-links';
+
+export {
+  hapticLight,
+  hapticMedium,
+  hapticHeavy,
+  hapticSuccess,
+  hapticWarning,
+  hapticError,
+} from './haptics';

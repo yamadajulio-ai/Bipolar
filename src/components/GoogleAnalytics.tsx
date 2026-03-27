@@ -10,7 +10,8 @@ const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
  * Integra nativamente com Microsoft Clarity.
  */
 export function GoogleAnalytics() {
-  if (!GA_ID) return null;
+  // Block marketing trackers inside Capacitor WebView (Apple App Store compliance)
+  if (!GA_ID || (typeof window !== "undefined" && "Capacitor" in window)) return null;
 
   return (
     <>
@@ -47,14 +48,14 @@ declare global {
 
 /** Dispara evento de cadastro iniciado */
 export function gaTrackSignUpStart() {
-  if (typeof window !== "undefined" && window.gtag) {
+  if (typeof window !== "undefined" && window.gtag && !("Capacitor" in window)) {
     window.gtag("event", "sign_up_start", { method: "email" });
   }
 }
 
 /** Dispara evento de cadastro concluído */
 export function gaTrackSignUpComplete(method: "email" | "google" = "email") {
-  if (typeof window !== "undefined" && window.gtag) {
+  if (typeof window !== "undefined" && window.gtag && !("Capacitor" in window)) {
     window.gtag("event", "sign_up", { method });
   }
 }

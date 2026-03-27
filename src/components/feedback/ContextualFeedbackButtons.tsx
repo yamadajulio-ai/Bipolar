@@ -60,7 +60,7 @@ export function ContextualFeedbackButtons({
         <button
           onClick={() => send(true)}
           disabled={status === "pending"}
-          className="min-h-[32px] min-w-[48px] rounded border border-green-300 px-3 py-1 text-sm text-green-700 hover:bg-green-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500 transition-colors disabled:opacity-50"
+          className="min-h-[44px] min-w-[48px] rounded border border-green-300 px-3 py-1 text-sm text-green-700 hover:bg-green-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500 transition-colors disabled:opacity-50"
           aria-label="Sim, foi útil"
         >
           {status === "pending" && useful === true ? "..." : "Sim"}
@@ -68,7 +68,7 @@ export function ContextualFeedbackButtons({
         <button
           onClick={() => send(false)}
           disabled={status === "pending"}
-          className="min-h-[32px] min-w-[48px] rounded border border-red-300 px-3 py-1 text-sm text-red-700 hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 transition-colors disabled:opacity-50"
+          className="min-h-[44px] min-w-[48px] rounded border border-red-300 px-3 py-1 text-sm text-red-700 hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 transition-colors disabled:opacity-50"
           aria-label="Não, não foi útil"
         >
           {status === "pending" && useful === false ? "..." : "Não"}

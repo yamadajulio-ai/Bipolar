@@ -473,7 +473,7 @@ function ConfidenceBadge({ confidence }: { confidence: DataConfidence }) {
   };
   const labels = { alta: "Alta", media: "Média", baixa: "Baixa" };
   return (
-    <span className={`mt-1 inline-block rounded px-1.5 py-0.5 text-[10px] font-medium ${colors[confidence]}`}>
+    <span className={`mt-1 inline-block rounded px-1.5 py-0.5 text-[11px] font-medium ${colors[confidence]}`}>
       Confiança: {labels[confidence]}
     </span>
   );

@@ -123,7 +123,7 @@ export async function PUT(request: NextRequest) {
           diaryReminder: parsed.data.diaryReminder ?? null,
           breathingReminder: parsed.data.breathingReminder ?? null,
           enabled: parsed.data.enabled ?? true,
-          privacyMode: parsed.data.privacyMode ?? false,
+          privacyMode: parsed.data.privacyMode ?? true,
         },
         create: {
           userId: session.userId,
@@ -132,7 +132,7 @@ export async function PUT(request: NextRequest) {
           diaryReminder: parsed.data.diaryReminder ?? null,
           breathingReminder: parsed.data.breathingReminder ?? null,
           enabled: parsed.data.enabled ?? true,
-          privacyMode: parsed.data.privacyMode ?? false,
+          privacyMode: parsed.data.privacyMode ?? true,
         },
         select: {
           id: true, wakeReminder: true, sleepReminder: true,

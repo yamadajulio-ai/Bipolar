@@ -195,7 +195,7 @@ export async function GET(request: NextRequest) {
   } catch (err) {
     Sentry.captureCheckIn({ checkInId, monitorSlug: "reactivation-loop", status: "error" });
     Sentry.captureException(err, { tags: { endpoint: "cron-reactivation" } });
-    console.error("[reactivation] Error:", err);
+    console.error(JSON.stringify({ event: "reactivation_error", errorType: err instanceof Error ? err.constructor.name : "Unknown", message: (err as Error).message?.slice(0, 200) || "Unknown" }));
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
 }

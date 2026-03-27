@@ -14,8 +14,10 @@ model User {
   passwordChangedAt       DateTime?
   authProvider            String                   @default("email")
   googleSub               String?                  @unique
+  appleSub                String?                  @unique
+  appleRefreshToken       String?
   name                    String?
-  whatsappPhone           String? // E.164 format, e.g. "+5511999999999"
+  whatsappPhone           String?                  @unique // E.164 format, e.g. "+5511999999999"
   role                    String                   @default("user") // "user" | "admin"
   onboarded               Boolean                  @default(false)
   onboardingGoal          String?
@@ -214,7 +216,7 @@ model ReminderSettings {
   diaryReminder     String? // HH:MM
   breathingReminder String? // HH:MM
   enabled           Boolean @default(true)
-  privacyMode       Boolean @default(false) // Generic notification text (hides health content on lock screen)
+  privacyMode       Boolean @default(true) // Generic notification text (hides health content on lock screen) — default ON for App Store compliance
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
@@ -935,4 +937,16 @@ model EarlyWarningProfile {
   updatedAt       DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([expiresAt])
 }

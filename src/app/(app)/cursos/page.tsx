@@ -48,7 +48,7 @@ export default async function CursosPage() {
                       <p className="text-sm text-muted mt-1">{course.description}</p>
                     </div>
                     {isComplete && (
-                      <span className="flex-shrink-0 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-bold text-green-800">
+                      <span className="flex-shrink-0 rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-bold text-green-800">
                         Completo
                       </span>
                     )}

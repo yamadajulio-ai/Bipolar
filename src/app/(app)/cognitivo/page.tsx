@@ -86,7 +86,7 @@ export default function CognitivoPage() {
             </div>
           )}
 
-          <p className="text-center text-[10px] text-muted">
+          <p className="text-center text-[11px] text-muted">
             Baseado em paradigmas de neuropsicologia cognitiva. Alterações cognitivas são comuns
             em episódios bipolares (Bora et al., 2009). Resultados são indicativos — não diagnósticos.
           </p>
@@ -189,7 +189,7 @@ function TrendSummary({ history, currentResult }: { history: HistoryEntry[]; cur
           </p>
         )}
       </div>
-      <p className="mt-2 text-[10px] text-muted italic">
+      <p className="mt-2 text-[11px] text-muted italic">
         Comparação com sua mediana das últimas sessões. Variação normal entre sessões é esperada.
       </p>
     </Card>
@@ -230,7 +230,7 @@ function getDigitLevel(span: number): { label: string; color: string; emoji: str
   if (span >= 7) return { label: "Bom", color: "text-green-400", emoji: "🟢", detail: "Dentro da média (7±2, Miller 1956). Memória de trabalho funcionando bem." };
   if (span >= 5) return { label: "Normal", color: "text-amber-400", emoji: "🟡", detail: "Ligeiramente abaixo da média geral, mas dentro do esperado para pessoas com transtorno bipolar em fase estável (~6, Bora et al. 2009)." };
   if (span >= 4) return { label: "Abaixo da média", color: "text-orange-400", emoji: "🟠", detail: "Abaixo do esperado. Pode estar relacionado a episódio atual, efeito de medicação, ou fadiga. Acompanhe a evolução." };
-  return { label: "Reduzido", color: "text-red-400", emoji: "🔴", detail: "Significativamente abaixo da média. Dificuldade de memória de trabalho pode indicar fase ativa ou efeito medicamentoso. Vale discutir com seu profissional." };
+  return { label: "Reduzido", color: "text-red-400", emoji: "🔴", detail: "Significativamente abaixo da média. Vários fatores podem influenciar (sono, medicação, fadiga, entre outros). Compartilhe este resultado com seu profissional de saúde." };
 }
 
 function GaugeBar({ value, min, max, zones }: { value: number; min: number; max: number; zones: { end: number; color: string }[] }) {
@@ -343,7 +343,7 @@ function ResultsScreen({ result, history, onBack, onReset, onSaved }: { result: 
               { end: 800, color: "bg-red-400" },
             ]}
           />
-          <div className="flex justify-between text-[9px] text-muted">
+          <div className="flex justify-between text-[11px] text-muted">
             <span>150ms</span>
             <span>250</span>
             <span>350</span>
@@ -351,7 +351,7 @@ function ResultsScreen({ result, history, onBack, onReset, onSaved }: { result: 
             <span>700+</span>
           </div>
           <p className="mt-3 text-xs leading-relaxed text-muted">{reactionInfo.detail}</p>
-          <p className="mt-1 text-[10px] text-muted italic">
+          <p className="mt-1 text-[11px] text-muted italic">
             Ref: adultos saudáveis 250–350ms (Deary et al., 2001)
           </p>
         </Card>
@@ -386,7 +386,7 @@ function ResultsScreen({ result, history, onBack, onReset, onSaved }: { result: 
               { end: 11, color: "bg-green-500" },
             ]}
           />
-          <div className="flex justify-between text-[9px] text-muted">
+          <div className="flex justify-between text-[11px] text-muted">
             <span>2</span>
             <span>4</span>
             <span>5</span>
@@ -394,7 +394,7 @@ function ResultsScreen({ result, history, onBack, onReset, onSaved }: { result: 
             <span>9+</span>
           </div>
           <p className="mt-3 text-xs leading-relaxed text-muted">{digitInfo.detail}</p>
-          <p className="mt-1 text-[10px] text-muted italic">
+          <p className="mt-1 text-[11px] text-muted italic">
             Ref: média 7±2 (Miller, 1956). Bipolar em fase estável: ~6 (Bora et al., 2009)
           </p>
         </Card>
@@ -427,7 +427,7 @@ function ResultsScreen({ result, history, onBack, onReset, onSaved }: { result: 
           sua função cognitiva ao longo do tempo. Variações podem ajudar a identificar mudanças no
           seu estado de humor antes que se tornem evidentes.
         </p>
-        <p className="mt-2 text-[10px] text-muted italic">
+        <p className="mt-2 text-[11px] text-muted italic">
           Estes resultados são indicativos e não substituem avaliação neuropsicológica profissional.
         </p>
       </Card>
@@ -542,7 +542,7 @@ function ReactionTimeTask({ onComplete, onBack }: { onComplete: (ms: number) => 
               ? "bg-green-600"
               : phase === "tooEarly"
                 ? "bg-amber-900/50"
-                : "bg-gray-800"
+                : "bg-gray-800 dark:bg-gray-900"
         }`}
       >
         {phase === "wait" && (
@@ -562,7 +562,7 @@ function ReactionTimeTask({ onComplete, onBack }: { onComplete: (ms: number) => 
       {trials.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {trials.map((t, i) => (
-            <span key={i} className="rounded-full bg-gray-800 px-2 py-0.5 text-xs text-muted">
+            <span key={i} className="rounded-full bg-gray-800 dark:bg-gray-900 px-2 py-0.5 text-xs text-muted">
               {t}ms
             </span>
           ))}
@@ -659,7 +659,7 @@ function DigitSpanTask({ onComplete, onBack }: { onComplete: (span: number) => v
       </div>
 
       {/* Display area */}
-      <div className="flex h-48 items-center justify-center rounded-[var(--radius-card)] bg-gray-800">
+      <div className="flex h-48 items-center justify-center rounded-[var(--radius-card)] bg-gray-800 dark:bg-gray-900">
         {phase === "showing" && showingIndex < currentSequence.length && (
           <span className="text-6xl font-bold text-white tabular-nums">
             {currentSequence[showingIndex]}
@@ -708,7 +708,7 @@ function DigitSpanTask({ onComplete, onBack }: { onComplete: (span: number) => v
         )}
       </div>
 
-      <p className="text-center text-[10px] text-muted">
+      <p className="text-center text-[11px] text-muted">
         Digit Span Forward — teste padrão de memória de trabalho (Wechsler, 1997).
         Adultos saudáveis: 7±2. Não substitui avaliação neuropsicológica.
       </p>

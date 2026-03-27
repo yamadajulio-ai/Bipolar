@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { FormField } from "@/components/FormField";
 import { Alert } from "@/components/Alert";
+import { AppleSignInButton } from "@/components/auth/AppleSignInButton";
 import { trackCompleteRegistration } from "@/components/MetaPixel";
 import { gaTrackSignUpComplete } from "@/components/GoogleAnalytics";
 
@@ -30,12 +31,25 @@ export default function CadastroPage() {
       return;
     }
 
+    const senha = formData.get("senha") as string;
+    const confirmarSenha = formData.get("confirmarSenha") as string;
+
+    if (senha.length < 8) {
+      setError("A senha precisa ter no mínimo 8 caracteres.");
+      return;
+    }
+
+    if (senha !== confirmarSenha) {
+      setError("As senhas não coincidem.");
+      return;
+    }
+
     setLoading(true);
 
     const data = {
       email: formData.get("email") as string,
-      senha: formData.get("senha") as string,
-      confirmarSenha: formData.get("confirmarSenha") as string,
+      senha,
+      confirmarSenha,
       ageGate: true,
       healthConsent: true,
     };
@@ -139,11 +153,11 @@ export default function CadastroPage() {
               <span>
                 Consinto com o tratamento dos meus dados sensíveis de saúde (humor, sono, energia)
                 para fins de acompanhamento pessoal, conforme a{" "}
-                <Link href="/privacidade" className="text-primary underline" target="_blank">
+                <Link href="/privacidade" className="text-primary underline">
                   Política de Privacidade
                 </Link>{" "}
                 e os{" "}
-                <Link href="/termos" className="text-primary underline" target="_blank">
+                <Link href="/termos" className="text-primary underline">
                   Termos de Uso
                 </Link>{" "}
                 (LGPD Art. 11, I).
@@ -178,6 +192,10 @@ export default function CadastroPage() {
             </svg>
             Cadastrar com Google
           </a>
+
+          <div className="mt-3">
+            <AppleSignInButton />
+          </div>
 
           <p className="mt-4 text-center text-sm text-muted">
             Já tem conta?{" "}

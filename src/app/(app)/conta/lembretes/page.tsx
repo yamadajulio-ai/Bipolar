@@ -130,7 +130,7 @@ export default function LembretesPage() {
               <input
                 type="checkbox"
                 name="privacyMode"
-                defaultChecked={settings?.privacyMode ?? false}
+                defaultChecked={settings?.privacyMode ?? true}
                 className="h-4 w-4 rounded border-border"
               />
               Modo privado
@@ -155,7 +155,7 @@ export default function LembretesPage() {
               Mensagens genéricas enviadas via WhatsApp Business (Meta Platforms, Inc.).
               O conteúdo não menciona saúde mental — apenas &quot;Você tem um lembrete pendente&quot;.
             </p>
-            <p className="ml-6 mt-1 text-[10px] text-muted/70">
+            <p className="ml-6 mt-1 text-[11px] text-muted/70">
               Ao ativar, você consente com a transferência do seu número de telefone para servidores
               da Meta nos EUA/EU (LGPD art. 33), com retenção de até 30 dias.
               Você pode revogar este consentimento a qualquer momento aqui ou em Privacidade → Consentimentos.

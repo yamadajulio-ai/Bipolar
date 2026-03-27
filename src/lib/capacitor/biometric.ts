@@ -65,14 +65,22 @@ export async function verifyBiometric(): Promise<boolean> {
 
 /** Check if user has enabled biometric lock */
 export async function isBiometricEnabled(): Promise<boolean> {
-  const { value } = await Preferences.get({ key: BIOMETRIC_ENABLED_KEY });
-  return value === 'true';
+  try {
+    const { value } = await Preferences.get({ key: BIOMETRIC_ENABLED_KEY });
+    return value === 'true';
+  } catch {
+    return false;
+  }
 }
 
 /** Enable/disable biometric lock */
 export async function setBiometricEnabled(enabled: boolean): Promise<void> {
-  await Preferences.set({
-    key: BIOMETRIC_ENABLED_KEY,
-    value: enabled ? 'true' : 'false',
-  });
+  try {
+    await Preferences.set({
+      key: BIOMETRIC_ENABLED_KEY,
+      value: enabled ? 'true' : 'false',
+    });
+  } catch {
+    // Preferences plugin failure — non-blocking
+  }
 }

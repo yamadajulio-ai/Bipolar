@@ -63,6 +63,7 @@ export default function IntegraçõesPage() {
   const [importProgress, setImportProgress] = useState<{ current: number; total: number } | null>(null);
   const [importResult, setImportResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [pendingAction, setPendingAction] = useState<{ type: "revoke" | "clear"; service?: "health_auto_export" | "health_connect"; label?: string } | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const fetchKeys = useCallback(async (signal?: AbortSignal) => {
@@ -140,21 +141,30 @@ export default function IntegraçõesPage() {
 
   async function handleRevoke(service: "health_auto_export" | "health_connect" = "health_auto_export") {
     const label = service === "health_connect" ? "HC Webhook" : "Health Auto Export";
-    if (!confirm(`Revogar a chave? O ${label} vai parar de enviar dados.`)) return;
-    await fetch("/api/integrations/settings", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ service }),
-    });
-    await fetchKeys();
+    setPendingAction({ type: "revoke", service, label });
   }
 
   async function handleClearSleepData() {
-    if (!confirm("Limpar todos os registros de sono importados? Isso permite re-sincronizar com dados corretos.")) return;
-    setClearing(true);
-    await fetch("/api/integrations/health-export/status", { method: "DELETE" });
-    await fetchSyncStatus();
-    setClearing(false);
+    setPendingAction({ type: "clear" });
+  }
+
+  async function confirmPendingAction() {
+    if (!pendingAction) return;
+    if (pendingAction.type === "revoke" && pendingAction.service) {
+      setPendingAction(null);
+      await fetch("/api/integrations/settings", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ service: pendingAction.service }),
+      });
+      await fetchKeys();
+    } else if (pendingAction.type === "clear") {
+      setPendingAction(null);
+      setClearing(true);
+      await fetch("/api/integrations/health-export/status", { method: "DELETE" });
+      await fetchSyncStatus();
+      setClearing(false);
+    }
   }
 
   async function handleFileImport(e: React.ChangeEvent<HTMLInputElement>) {
@@ -847,6 +857,32 @@ export default function IntegraçõesPage() {
         </p>
         <GoogleCalendarSync isConnected={googleConnected} />
       </Card>
+
+      {pendingAction && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-xs rounded-[var(--radius-card)] bg-surface p-6 shadow-lg">
+            <p className="mb-4 text-sm font-medium text-foreground">
+              {pendingAction.type === "revoke"
+                ? `Revogar a chave? O ${pendingAction.label} vai parar de enviar dados.`
+                : "Limpar todos os registros de sono importados? Isso permite re-sincronizar com dados corretos."}
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setPendingAction(null)}
+                className="flex-1 rounded-lg border border-border py-2.5 text-sm font-medium text-foreground"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmPendingAction}
+                className="flex-1 rounded-lg bg-red-600 py-2.5 text-sm font-medium text-white"
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

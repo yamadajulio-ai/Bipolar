@@ -209,7 +209,7 @@ export default function CircadianoPage() {
                 <p className="mt-1 text-xs text-muted">
                   {tip.detail}
                 </p>
-                <p className="mt-1.5 text-[10px] text-muted italic">
+                <p className="mt-1.5 text-[11px] text-muted italic">
                   {tip.reference}
                 </p>
               </div>
@@ -235,11 +235,11 @@ export default function CircadianoPage() {
                 <span className="font-medium">{c.type}</span>
                 <span className="tabular-nums">{c.midpointRange}</span>
               </div>
-              <p className="mt-0.5 text-[10px]">{c.description}</p>
+              <p className="mt-0.5 text-[11px]">{c.description}</p>
             </div>
           ))}
         </div>
-        <p className="mt-3 text-[10px] text-muted">
+        <p className="mt-3 text-[11px] text-muted">
           Baseado no Munich Chronotype Questionnaire (Roenneberg et al., 2003).
           Ponto médio = média entre horário de dormir e acordar.
         </p>
@@ -272,7 +272,7 @@ export default function CircadianoPage() {
         </ul>
       </Card>
 
-      <p className="mt-6 text-center text-[10px] text-muted">
+      <p className="mt-6 text-center text-[11px] text-muted">
         Referências: Henriksen et al. (2016), Sit et al. (2007), Roenneberg et al. (2003),
         Frank et al. (2005). Informações educativas — não substitui orientação profissional.
       </p>

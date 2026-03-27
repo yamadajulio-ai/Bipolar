@@ -71,10 +71,10 @@ export function MonthlyReport({ data }: MonthlyReportProps) {
         <p className="text-muted">
           {new Date(data.month + "-15").toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}
         </p>
-        <p className="mt-2 text-xs text-muted print:text-[10px]">
+        <p className="mt-2 text-xs text-muted print:text-[11px]">
           Gerado em {new Date().toLocaleDateString("pt-BR")} — Suporte Bipolar
         </p>
-        <p className="mt-1 text-xs text-warning print:text-[10px]">
+        <p className="mt-1 text-xs text-warning print:text-[11px]">
           Este relatório é educacional e não substitui avaliação profissional.
         </p>
       </div>
@@ -233,7 +233,7 @@ export function MonthlyReport({ data }: MonthlyReportProps) {
             <li>• Humor estável — manter acompanhamento</li>
           )}
         </ul>
-        <p className="mt-3 text-[10px] text-muted italic">
+        <p className="mt-3 text-[11px] text-muted italic">
           Estes tópicos são gerados automaticamente com base nos seus dados e têm caráter
           sugestivo. A interpretação clínica deve ser feita pelo profissional.
         </p>
@@ -281,7 +281,7 @@ function StatCard({ label, value, subtitle }: { label: string; value: string | n
     <div className="rounded-lg border border-border bg-surface p-3 text-center">
       <p className="text-lg font-bold text-foreground">{value}</p>
       <p className="text-xs text-muted">{label}</p>
-      {subtitle && <p className="mt-0.5 text-[10px] text-muted/70">{subtitle}</p>}
+      {subtitle && <p className="mt-0.5 text-[11px] text-muted/70">{subtitle}</p>}
     </div>
   );
 }

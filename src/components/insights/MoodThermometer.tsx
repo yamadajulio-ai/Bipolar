@@ -96,7 +96,7 @@ export function MoodThermometer({ data }: Props) {
           <div className="h-6 w-6 rounded-full border-[3px] border-white dark:border-surface bg-foreground shadow-lg" />
         </div>
       </div>
-      <div className="mb-4 flex justify-between text-[10px] text-foreground/50">
+      <div className="mb-4 flex justify-between text-[11px] text-foreground/50">
         <span>Rebaixamento</span>
         <span>Padrão</span>
         <span>Ativação</span>
@@ -131,11 +131,11 @@ export function MoodThermometer({ data }: Props) {
         </div>
       )}
 
-      <p className="mt-3 text-center text-[10px] text-foreground/50">
+      <p className="mt-3 text-center text-[11px] text-foreground/50">
         Indicador baseado nos seus registros recentes. Não substitui avaliação profissional.
       </p>
       {!data.baselineAvailable && (
-        <p className="mt-1 text-center text-[10px] text-amber-600 dark:text-amber-400">
+        <p className="mt-1 text-center text-[11px] text-amber-600 dark:text-amber-400">
           Usando referências gerais de sono. Com mais registros, o cálculo se ajustará ao seu padrão pessoal.
         </p>
       )}

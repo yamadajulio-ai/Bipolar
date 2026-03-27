@@ -51,7 +51,7 @@ export function SpendingMoodInsightCard({ data }: Props) {
       {showChart && data.chartData && data.chartData.some((d) => d.expense > 0) && (
         <figure className="mt-3" role="img" aria-describedby={data.srSummary ? chartDescId : undefined}>
           {data.chartRangeLabel && (
-            <figcaption className="mb-1 text-[10px] font-medium text-muted">{data.chartRangeLabel}</figcaption>
+            <figcaption className="mb-1 text-[11px] font-medium text-muted">{data.chartRangeLabel}</figcaption>
           )}
           <SpendingMoodMiniChart data={data.chartData} />
         </figure>

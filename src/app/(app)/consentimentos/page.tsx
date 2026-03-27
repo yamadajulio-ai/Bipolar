@@ -77,7 +77,7 @@ const CONSENT_SCOPES = [
     scope: "sos_chatbot",
     label: "SOS — Apoio por IA",
     description:
-      "Uso do chatbot de apoio emocional temporário. Não substitui atendimento de emergência. " +
+      "Uso do chatbot de apoio emocional temporário (processado por Anthropic Claude). Não substitui atendimento de emergência. " +
       "Em situações de risco, o recurso funciona independentemente deste consentimento (LGPD art. 11, II, e).",
     essential: false,
   },
@@ -164,14 +164,14 @@ export default function ConsentimentosPage() {
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-medium text-foreground">{item.label}</p>
                     {item.essential && (
-                      <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                      <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[11px] font-medium text-primary">
                         Obrigatório
                       </span>
                     )}
                   </div>
                   <p className="text-xs text-muted mt-1">{item.description}</p>
                   {isActive && consents.find((c) => c.scope === item.scope) && (
-                    <p className="text-[10px] text-muted mt-1">
+                    <p className="text-[11px] text-muted mt-1">
                       Concedido em{" "}
                       {new Date(consents.find((c) => c.scope === item.scope)!.grantedAt).toLocaleDateString("pt-BR")}
                     </p>

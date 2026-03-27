@@ -93,7 +93,7 @@ export function AudioPlayer({ track }: { track: AudioTrack }) {
                 style={{ width: `${progress}%` }}
               />
             </div>
-            <span className="text-[10px] text-muted w-8">
+            <span className="text-[11px] text-muted w-8">
               {playing ? currentTime : track.duration}
             </span>
           </div>

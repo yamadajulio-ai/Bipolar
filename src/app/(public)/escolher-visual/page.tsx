@@ -74,7 +74,7 @@ function PreviewAurora() {
         </p>
 
         <div className="relative rounded-2xl p-3 mb-3" style={{ background: "rgba(255,255,255,0.5)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.6)" }}>
-          <p className="text-[9px] text-[#7c3aed] mb-2.5">Conteúdo educacional — não substitui seu profissional</p>
+          <p className="text-[11px] text-[#7c3aed] mb-2.5">Conteúdo educacional — não substitui seu profissional</p>
           <div className="flex justify-center gap-2">
             <span className="rounded-full px-5 py-1.5 text-[10px] font-medium text-white shadow-md" style={{ background: "linear-gradient(135deg, #a855f7, #6366f1)" }}>Criar conta gratuita</span>
             <span className="rounded-full px-5 py-1.5 text-[10px] text-[#6366f1] border border-[#c4b5fd]" style={{ background: "rgba(255,255,255,0.5)" }}>Entrar</span>
@@ -90,11 +90,11 @@ function PreviewAurora() {
         ].map((f) => (
           <div key={f.label} className="rounded-xl p-2 text-center" style={{ background: "rgba(255,255,255,0.6)", border: "1px solid rgba(255,255,255,0.7)" }}>
             <span className="text-sm">{f.icon}</span>
-            <p className="text-[9px] font-medium text-[#4b5563] mt-0.5">{f.label}</p>
+            <p className="text-[11px] font-medium text-[#4b5563] mt-0.5">{f.label}</p>
           </div>
         ))}
       </div>
-      <div className="py-1.5 text-center text-[9px] text-[#a78bfa]" style={{ background: "rgba(255,255,255,0.4)" }}>CVV 188 · SAMU 192 · UPA 24h</div>
+      <div className="py-1.5 text-center text-[11px] text-[#a78bfa]" style={{ background: "rgba(255,255,255,0.4)" }}>CVV 188 · SAMU 192 · UPA 24h</div>
     </div>
   );
 }
@@ -153,10 +153,10 @@ function PreviewTerra() {
 
       <div className="flex flex-wrap justify-center gap-1.5 px-4 pb-3">
         {["Diário", "Biblioteca", "Exercícios", "Família"].map((f) => (
-          <span key={f} className="rounded-full bg-white/80 border border-[#d6deda] px-3 py-1 text-[9px] font-medium text-[#3d5c52]">{f}</span>
+          <span key={f} className="rounded-full bg-white/80 border border-[#d6deda] px-3 py-1 text-[11px] font-medium text-[#3d5c52]">{f}</span>
         ))}
       </div>
-      <div className="py-1.5 text-center text-[9px] text-[#7da399] bg-[#ecf1ee]">CVV 188 · SAMU 192 · UPA 24h</div>
+      <div className="py-1.5 text-center text-[11px] text-[#7da399] bg-[#ecf1ee]">CVV 188 · SAMU 192 · UPA 24h</div>
     </div>
   );
 }
@@ -217,7 +217,7 @@ function PreviewNoite() {
           Ferramentas gentis para o dia a dia com Transtorno Bipolar
         </p>
 
-        <div className="relative inline-block rounded-xl px-3 py-1.5 text-[9px] text-[#93c5fd] mb-3" style={{ background: "rgba(59,130,246,0.08)", border: "1px solid rgba(59,130,246,0.15)" }}>
+        <div className="relative inline-block rounded-xl px-3 py-1.5 text-[11px] text-[#93c5fd] mb-3" style={{ background: "rgba(59,130,246,0.08)", border: "1px solid rgba(59,130,246,0.15)" }}>
           Educacional · Consulte seu profissional
         </div>
 
@@ -235,11 +235,11 @@ function PreviewNoite() {
         ].map((f) => (
           <div key={f.label} className="rounded-xl p-2 text-center" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}>
             <span className="text-sm">{f.icon}</span>
-            <p className="text-[9px] text-[#64748b] mt-0.5">{f.label}</p>
+            <p className="text-[11px] text-[#64748b] mt-0.5">{f.label}</p>
           </div>
         ))}
       </div>
-      <div className="py-1.5 text-center text-[9px] text-[#334155]" style={{ background: "rgba(0,0,0,0.15)" }}>CVV 188 · SAMU 192 · UPA 24h</div>
+      <div className="py-1.5 text-center text-[11px] text-[#334155]" style={{ background: "rgba(0,0,0,0.15)" }}>CVV 188 · SAMU 192 · UPA 24h</div>
     </div>
   );
 }
@@ -301,11 +301,11 @@ function PreviewJardim() {
         ].map((f) => (
           <div key={f.label} className="rounded-xl p-2 text-center border border-[#f0f0f0]">
             <div className="mx-auto mb-1 flex h-7 w-7 items-center justify-center rounded-lg text-sm" style={{ background: f.color }}>{f.icon}</div>
-            <p className="text-[9px] font-medium text-[#374151]">{f.label}</p>
+            <p className="text-[11px] font-medium text-[#374151]">{f.label}</p>
           </div>
         ))}
       </div>
-      <div className="py-1.5 text-center text-[9px] text-[#6b7280] bg-[#f9fafb] border-t border-[#f0f0f0]">CVV 188 · SAMU 192 · UPA 24h</div>
+      <div className="py-1.5 text-center text-[11px] text-[#6b7280] bg-[#f9fafb] border-t border-[#f0f0f0]">CVV 188 · SAMU 192 · UPA 24h</div>
     </div>
   );
 }
@@ -347,25 +347,25 @@ function PreviewEditorial() {
           <h2 className="font-black text-[14px] leading-[1.12] mb-2 tracking-tight">
             Você não<br/>precisa passar<br/>por isso sozinho.
           </h2>
-          <p className="text-[9px] text-[#737373] mb-3 leading-relaxed">
+          <p className="text-[11px] text-[#737373] mb-3 leading-relaxed">
             Ferramentas de cuidado para quem convive com Transtorno Bipolar.
           </p>
           <div className="border-l-2 border-[#ea580c] pl-2 mb-3">
             <p className="text-[8px] text-[#a3a3a3] italic">Educacional — não substitui profissional</p>
           </div>
-          <span className="bg-[#111] text-white rounded-lg py-1.5 text-[9px] font-bold tracking-wide text-center">
+          <span className="bg-[#111] text-white rounded-lg py-1.5 text-[11px] font-bold tracking-wide text-center">
             CRIAR CONTA GRATUITA
           </span>
         </div>
       </div>
 
       <div className="border-t border-[#f0f0f0]" />
-      <div className="px-5 py-2.5 flex justify-between text-[9px]">
+      <div className="px-5 py-2.5 flex justify-between text-[11px]">
         {["Calendário", "Insights", "Apoio"].map((f) => (
           <span key={f} className="font-bold text-[#404040]">{f}</span>
         ))}
       </div>
-      <div className="py-1.5 text-center text-[9px] text-[#d4d4d4] bg-white border-t border-[#f0f0f0]">CVV 188 · SAMU 192 · UPA 24h</div>
+      <div className="py-1.5 text-center text-[11px] text-[#d4d4d4] bg-white border-t border-[#f0f0f0]">CVV 188 · SAMU 192 · UPA 24h</div>
     </div>
   );
 }

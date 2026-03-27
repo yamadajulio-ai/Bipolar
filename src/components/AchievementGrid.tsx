@@ -22,7 +22,7 @@ export function AchievementGrid({ achievements, hidden, onToggleHide }: Achievem
     return (
       <button
         onClick={handleShow}
-        className="w-full text-center text-[10px] text-muted hover:text-foreground min-h-10 py-2"
+        className="w-full text-center text-[11px] text-muted hover:text-foreground min-h-10 py-2"
         aria-label="Mostrar conquistas"
       >
         Mostrar conquistas
@@ -36,7 +36,7 @@ export function AchievementGrid({ achievements, hidden, onToggleHide }: Achievem
         <h3 className="text-sm font-semibold text-foreground">Conquistas</h3>
         <button
           onClick={handleHide}
-          className="text-[10px] text-muted hover:text-foreground min-h-10 px-2 py-2"
+          className="text-[11px] text-muted hover:text-foreground min-h-10 px-2 py-2"
           aria-label="Esconder conquistas"
         >
           Esconder
@@ -50,7 +50,7 @@ export function AchievementGrid({ achievements, hidden, onToggleHide }: Achievem
           >
             <span className="text-2xl">{a.icon}</span>
             <span className="mt-1 text-[11px] font-semibold text-foreground leading-tight">{a.label}</span>
-            <span className="text-[9px] text-muted leading-tight">{a.description}</span>
+            <span className="text-[11px] text-muted leading-tight">{a.description}</span>
           </div>
         ))}
         {locked.slice(0, 4 - (unlocked.length % 4 === 0 ? 0 : unlocked.length % 4)).map((a) => (

@@ -159,21 +159,25 @@ export default function AvaliacaoSemanalPage() {
   }, [asrmScores, fastScores, notes, step, DRAFT_KEY]);
 
   function prefillFromExisting(assessment: ExistingAssessment) {
-    if (assessment.asrmScores) {
-      const parsed = JSON.parse(assessment.asrmScores);
-      if (Array.isArray(parsed)) setAsrmScores(parsed);
+    try {
+      if (assessment.asrmScores) {
+        const parsed = JSON.parse(assessment.asrmScores);
+        if (Array.isArray(parsed)) setAsrmScores(parsed);
+      }
+      if (assessment.phq9Scores) {
+        const parsed = JSON.parse(assessment.phq9Scores);
+        if (Array.isArray(parsed)) setPhq9Scores(parsed);
+      }
+      if (assessment.fastScores) {
+        const parsed = typeof assessment.fastScores === "string"
+          ? JSON.parse(assessment.fastScores)
+          : assessment.fastScores;
+        if (parsed && typeof parsed === "object") setFastScores(parsed);
+      }
+      if (assessment.notes) setNotes(assessment.notes);
+    } catch {
+      // Corrupted stored data — start fresh
     }
-    if (assessment.phq9Scores) {
-      const parsed = JSON.parse(assessment.phq9Scores);
-      if (Array.isArray(parsed)) setPhq9Scores(parsed);
-    }
-    if (assessment.fastScores) {
-      const parsed = typeof assessment.fastScores === "string"
-        ? JSON.parse(assessment.fastScores)
-        : assessment.fastScores;
-      if (parsed && typeof parsed === "object") setFastScores(parsed);
-    }
-    if (assessment.notes) setNotes(assessment.notes);
     setShowExistingWarning(false);
   }
 
@@ -298,6 +302,10 @@ export default function AvaliacaoSemanalPage() {
               Sinais de humor baixo detectados (pontuação {phq9Total}) — considere compartilhar esse resultado na sua próxima consulta.
             </p>
           )}
+          <p className="mt-3 text-[11px] text-muted">
+            Estes resultados são indicadores de rastreio, não um diagnóstico.
+            Compartilhe com seu profissional de saúde para avaliação completa.
+          </p>
           <button
             onClick={() => router.push("/insights")}
             className="mt-4 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-dark"
@@ -522,7 +530,7 @@ export default function AvaliacaoSemanalPage() {
                   >
                     {opt.label}
                     {"hint" in opt && opt.hint && (
-                      <span className="block text-[10px] opacity-60 mt-0.5">{opt.hint}</span>
+                      <span className="block text-[11px] opacity-60 mt-0.5">{opt.hint}</span>
                     )}
                   </button>
                 ))}
@@ -596,7 +604,7 @@ export default function AvaliacaoSemanalPage() {
                   </button>
                 ))}
               </div>
-              <div className="mt-1 flex justify-between text-[10px] text-muted">
+              <div className="mt-1 flex justify-between text-[11px] text-muted">
                 <span>Muito difícil</span>
                 <span>Sem dificuldade</span>
               </div>
@@ -648,9 +656,9 @@ export default function AvaliacaoSemanalPage() {
                   <span className="text-xs font-normal text-muted">/20</span>
                 </div>
                 {asrmTotal >= 6 ? (
-                  <div className="text-[10px] text-amber-400">Acima do ponto de atenção — vale mencionar na consulta</div>
+                  <div className="text-[11px] text-amber-400">Acima do ponto de atenção — vale mencionar na consulta</div>
                 ) : (
-                  <div className="text-[10px] text-green-400">Sem sinais significativos</div>
+                  <div className="text-[11px] text-green-400">Sem sinais significativos</div>
                 )}
               </div>
               <div>
@@ -669,7 +677,7 @@ export default function AvaliacaoSemanalPage() {
                   {phq9Total}
                   <span className="text-xs font-normal text-muted">/27</span>
                 </div>
-                <div className="text-[10px] text-muted">
+                <div className="text-[11px] text-muted">
                   {phq9Total < 5
                     ? "Sem sinais significativos"
                     : phq9Total < 10
@@ -687,7 +695,7 @@ export default function AvaliacaoSemanalPage() {
                   {fastAvg ?? "—"}
                   <span className="text-xs font-normal text-muted">/5</span>
                 </div>
-                <div className="text-[10px] text-muted">Funcionamento</div>
+                <div className="text-[11px] text-muted">Funcionamento</div>
               </div>
             </div>
           </Card>
@@ -724,9 +732,10 @@ export default function AvaliacaoSemanalPage() {
             </button>
           </div>
 
-          <p className="text-center text-[10px] text-muted">
+          <p className="text-center text-[11px] text-muted">
             Questionários validados internacionalmente: mania (ASRM, Altman), depressão (PHQ-9, Kroenke),
-            funcionamento (inspirado no FAST, Vieta). Não substitui avaliação profissional.
+            funcionamento (inspirado no FAST, Vieta). Estes são instrumentos de rastreio — os resultados
+            não constituem diagnóstico médico. Compartilhe com seu profissional de saúde.
           </p>
         </div>
       )}

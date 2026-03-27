@@ -5,6 +5,7 @@ import { DeleteAccountButton } from "@/components/conta/DeleteAccountButton";
 import { ExportDataButton } from "@/components/conta/ExportDataButton";
 import { DisplayPreferences } from "@/components/conta/DisplayPreferences";
 import { ThemeToggle } from "@/components/conta/ThemeToggle";
+import { BiometricSettings } from "@/components/conta/BiometricSettings";
 
 export default async function ContaPage() {
   const session = await getSession();
@@ -35,6 +36,8 @@ export default async function ContaPage() {
       <Card className="mb-6">
         <DisplayPreferences />
       </Card>
+
+      <BiometricSettings />
 
       <Card className="mb-6">
         <h2 className="mb-2 font-semibold">Excluir conta</h2>

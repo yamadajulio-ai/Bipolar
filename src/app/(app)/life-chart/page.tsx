@@ -34,6 +34,7 @@ export default function LifeChartPage() {
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   const fetchEvents = useCallback(async () => {
     try {
@@ -89,8 +90,10 @@ export default function LifeChartPage() {
     }
   }
 
-  async function handleDelete(id: string) {
-    if (!confirm("Remover este evento? Esta ação não pode ser desfeita.")) return;
+  async function confirmDelete() {
+    if (!pendingDeleteId) return;
+    const id = pendingDeleteId;
+    setPendingDeleteId(null);
     try {
       const res = await fetch(`/api/life-chart?id=${id}`, { method: "DELETE" });
       if (res.ok) {
@@ -249,7 +252,7 @@ export default function LifeChartPage() {
                                 { day: "2-digit", month: "short" },
                               )}
                             </span>
-                            <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px]">
+                            <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px]">
                               {typeInfo?.label || evt.eventType}
                             </span>
                           </div>
@@ -259,7 +262,7 @@ export default function LifeChartPage() {
                           )}
                         </div>
                         <button
-                          onClick={() => handleDelete(evt.id)}
+                          onClick={() => setPendingDeleteId(evt.id)}
                           className="text-xs opacity-50 hover:opacity-100"
                           aria-label="Remover evento"
                         >
@@ -275,10 +278,34 @@ export default function LifeChartPage() {
         </div>
       )}
 
-      <p className="mt-6 text-center text-[10px] text-muted">
+      <p className="mt-6 text-center text-[11px] text-muted">
         Registrar eventos ajuda a entender o que pode ter influenciado mudanças no seu humor.
         Baseado em método clínico internacional (NIMH Life Chart).
       </p>
+
+      {pendingDeleteId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-xs rounded-[var(--radius-card)] bg-surface p-6 shadow-lg">
+            <p className="mb-4 text-sm font-medium text-foreground">
+              Remover este evento? Esta ação não pode ser desfeita.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setPendingDeleteId(null)}
+                className="flex-1 rounded-lg border border-border py-2.5 text-sm font-medium text-foreground"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="flex-1 rounded-lg bg-red-600 py-2.5 text-sm font-medium text-white"
+              >
+                Remover
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

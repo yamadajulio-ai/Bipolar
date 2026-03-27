@@ -390,7 +390,7 @@ export default function PerfilPage() {
                 </li>
               ))}
             </ul>
-            <p className="mt-3 text-[10px] text-muted italic">
+            <p className="mt-3 text-[11px] text-muted italic">
               Recomendações gerais baseadas no seu perfil. Consulte seu
               profissional de saúde para orientação personalizada.
             </p>

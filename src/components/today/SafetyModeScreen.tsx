@@ -121,7 +121,7 @@ export function SafetyModeScreen({ actions, onDismiss }: Props) {
         </div>
       )}
 
-      <p className="text-center text-[10px] text-muted" role="note">
+      <p className="text-center text-[11px] text-muted" role="note">
         {DISCLAIMER}
       </p>
     </div>

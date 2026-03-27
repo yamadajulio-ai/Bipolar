@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   isNative,
+  isIOS,
   verifyBiometric,
   isBiometricAvailable,
   isBiometricEnabled,
@@ -12,38 +13,57 @@ import {
   registerDeepLinkHandler,
   onAppStateChange,
 } from '@/lib/capacitor';
+import { setupDefaultReminders } from '@/lib/capacitor/notifications';
+import { hapticMedium } from '@/lib/capacitor/haptics';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { Keyboard } from '@capacitor/keyboard';
 
 /**
  * NativeAppShell — initializes all native capabilities when running in Capacitor.
- * Renders nothing visible; handles biometric lock, push registration, deep links.
+ * Renders nothing visible unless biometric lock is active.
+ * Handles biometric lock, push registration, deep links, status bar.
  * Must be mounted once in the root layout.
  */
 export function NativeAppShell() {
   const router = useRouter();
   const [locked, setLocked] = useState(false);
+  const initRef = useRef(false);
+  const biometricPending = useRef(false);
 
   const handleBiometricCheck = useCallback(async () => {
-    const { available } = await isBiometricAvailable();
-    const enabled = await isBiometricEnabled();
+    if (biometricPending.current) return; // debounce concurrent calls
+    biometricPending.current = true;
+    try {
+      const { available } = await isBiometricAvailable();
+      const enabled = await isBiometricEnabled();
 
-    if (available && enabled) {
-      setLocked(true);
-      const verified = await verifyBiometric();
-      if (verified) {
-        setLocked(false);
+      if (available && enabled) {
+        setLocked(true);
+        const verified = await verifyBiometric();
+        if (verified) {
+          setLocked(false);
+          hapticMedium();
+        }
+        // If not verified, stays locked — user must retry
       }
-      // If not verified, stays locked — user must retry
+    } catch {
+      // Plugin failure — don't block the user, unlock gracefully
+      setLocked(false);
+    } finally {
+      biometricPending.current = false;
     }
   }, []);
 
   useEffect(() => {
-    if (!isNative()) return;
+    if (!isNative() || initRef.current) return;
+    initRef.current = true;
 
     // ── Status Bar ──
     StatusBar.setStyle({ style: Style.Light }).catch(() => {});
-    StatusBar.setBackgroundColor({ color: '#527a6e' }).catch(() => {});
+    // setBackgroundColor is Android-only — skip on iOS
+    if (!isIOS()) {
+      StatusBar.setBackgroundColor({ color: '#527a6e' }).catch(() => {});
+    }
 
     // ── Keyboard ──
     Keyboard.setAccessoryBarVisible({ isVisible: true }).catch(() => {});
@@ -52,55 +72,67 @@ export function NativeAppShell() {
     handleBiometricCheck();
 
     // ── Re-lock on app resume ──
-    onAppStateChange((isActive) => {
+    const stateCleanup = onAppStateChange((isActive) => {
       if (isActive) {
         handleBiometricCheck();
       }
     });
 
     // ── Push notifications ──
-    registerPushNotifications().then((token) => {
-      if (token) {
-        // Send APNs token to our backend for native push
-        fetch('/api/push-subscriptions', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type: 'apns', token }),
-        }).catch(() => {});
-      }
-    });
+    // Only register if permission was already granted (no prompt on bootstrap).
+    // First-time permission is requested contextually after first check-in.
+    import('@capacitor/push-notifications').then(({ PushNotifications }) =>
+      PushNotifications.checkPermissions().then((result) => {
+        if (result.receive === 'granted') {
+          registerPushNotifications().then((token) => {
+            if (token) {
+              fetch('/api/push-subscriptions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: 'apns', token }),
+              }).catch(() => {});
+            }
+          }).catch(() => {});
 
-    // ── Deep links ──
-    registerDeepLinkHandler((path) => {
-      router.push(path);
-    });
+          // Local notifications only after permission is already granted
+          setupDefaultReminders().catch(() => {});
+        }
+      }).catch(() => {})
+    ).catch(() => {});
 
-    // ── Handle push tap → navigate ──
-    onPushActionPerformed((data) => {
-      const path = data?.path as string | undefined;
-      if (path) {
+    // ── Deep links (router.push guarded against invalid paths) ──
+    const deepLinkCleanup = registerDeepLinkHandler((path) => {
+      try {
         router.push(path);
+      } catch {
+        // Invalid route — ignore
       }
     });
+
+    // ── Handle push tap → navigate (guarded) ──
+    const pushActionCleanup = onPushActionPerformed((data) => {
+      try {
+        const path = data?.path as string | undefined;
+        if (path && path.startsWith('/')) {
+          router.push(path);
+        }
+      } catch {
+        // Invalid path from push payload — ignore
+      }
+    });
+
+    // ── Cleanup all listeners on unmount ──
+    return () => {
+      stateCleanup?.();
+      deepLinkCleanup?.();
+      pushActionCleanup?.();
+    };
   }, [router, handleBiometricCheck]);
 
-  // ── Biometric lock screen ──
+  // ── Biometric lock screen (Tailwind + dark mode) ──
   if (locked) {
     return (
-      <div
-        style={{
-          position: 'fixed',
-          inset: 0,
-          zIndex: 99999,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '1rem',
-          backgroundColor: '#527a6e',
-          color: 'white',
-        }}
-      >
+      <div className="fixed inset-0 z-[99999] flex flex-col items-center justify-center gap-4 bg-primary text-white dark:bg-[#1a3d34]">
         <svg
           width="64"
           height="64"
@@ -110,29 +142,21 @@ export function NativeAppShell() {
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
+          aria-hidden="true"
         >
           <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
           <path d="M7 11V7a5 5 0 0 1 10 0v4" />
         </svg>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>
+        <h2 className="text-xl font-semibold">
           Suporte Bipolar
         </h2>
-        <p style={{ fontSize: '0.875rem', opacity: 0.8, textAlign: 'center', maxWidth: '280px' }}>
+        <p className="max-w-[280px] text-center text-sm opacity-80">
           Use biometria para desbloquear seus dados de saúde
         </p>
         <button
           onClick={handleBiometricCheck}
-          style={{
-            marginTop: '1rem',
-            padding: '0.75rem 2rem',
-            borderRadius: '0.5rem',
-            border: '2px solid white',
-            backgroundColor: 'transparent',
-            color: 'white',
-            fontSize: '1rem',
-            fontWeight: 500,
-            cursor: 'pointer',
-          }}
+          className="mt-4 rounded-lg border-2 border-white bg-transparent px-8 py-3 text-base font-medium text-white transition-colors active:bg-white/20"
+          style={{ minHeight: '44px', minWidth: '44px' }}
         >
           Desbloquear
         </button>

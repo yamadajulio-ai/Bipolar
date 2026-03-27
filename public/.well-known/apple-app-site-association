@@ -1,0 +1,26 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appIDs": ["TEAM_ID.com.suportebipolar.app"],
+        "components": [
+          { "/": "/hoje", "comment": "Dashboard principal" },
+          { "/": "/checkin", "comment": "Check-in de humor" },
+          { "/": "/sono", "comment": "Registro de sono" },
+          { "/": "/insights", "comment": "Insights e padroes" },
+          { "/": "/sos", "comment": "Modo crise" },
+          { "/": "/avaliacao-semanal", "comment": "Avaliacao semanal" },
+          { "/": "/plano-de-crise", "comment": "Plano de crise" },
+          { "/": "/diario", "comment": "Diario" },
+          { "/": "/conta", "comment": "Conta/Settings" },
+          { "/": "/mais", "comment": "Menu mais" },
+          { "/": "/consentimentos", "comment": "Centro de consentimentos" }
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": ["TEAM_ID.com.suportebipolar.app"]
+  }
+}

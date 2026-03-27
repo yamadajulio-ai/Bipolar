@@ -359,7 +359,7 @@ export default function MedicamentosPage() {
         </div>
       )}
 
-      <p className="mt-6 text-center text-[10px] text-muted">
+      <p className="mt-6 text-center text-[11px] text-muted">
         Seus medicamentos são dados sensíveis protegidos pela LGPD (art. 11).
         Eles são usados apenas para acompanhamento pessoal de adesão.
       </p>

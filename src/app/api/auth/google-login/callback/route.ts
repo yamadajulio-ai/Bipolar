@@ -112,7 +112,7 @@ export async function GET(request: NextRequest) {
     return response;
   } catch (err) {
     Sentry.captureException(err, { tags: { endpoint: "google-login-callback" } });
-    console.error("Google login callback error:", err);
+    console.error(JSON.stringify({ event: "google_login_callback_error", errorType: err instanceof Error ? err.constructor.name : "Unknown", message: (err as Error).message?.slice(0, 200) || "Unknown" }));
     return NextResponse.redirect(new URL("/login?error=google_login_failed", request.url));
   }
 }

@@ -286,7 +286,7 @@ export default async function InsightsPage({
               Registrar sono
             </Link>
           </div>
-          <p className="text-[10px] text-muted mt-4">
+          <p className="text-[11px] text-muted mt-4">
             {entries.length}/3 check-ins · {sleepLogsForInsights.length}/3 registros de sono
           </p>
         </Card>
@@ -358,7 +358,7 @@ export default async function InsightsPage({
                   })}
                 </ul>
               )}
-              <p className="mt-2 text-[10px] text-muted italic">
+              <p className="mt-2 text-[11px] text-muted italic">
                 Indicador educacional baseado nos seus dados — não substitui avaliação profissional.
               </p>
             </Card>
@@ -498,7 +498,7 @@ export default async function InsightsPage({
                   </li>
                 ))}
               </ul>
-              <p className="mt-2 text-[10px] text-muted italic">
+              <p className="mt-2 text-[11px] text-muted italic">
                 Sinais de alerta frequentes podem indicar uma fase se aproximando. Converse com seu profissional de saúde.
               </p>
             </Card>
@@ -557,9 +557,9 @@ export default async function InsightsPage({
                   )}
                 </div>
                 {insights.sleep.avgDurationColor && insights.sleep.recordCount >= 7 && (
-                  <p className="mt-1 text-[10px] text-muted">{colorToText(insights.sleep.avgDurationColor)}</p>
+                  <p className="mt-1 text-[11px] text-muted">{colorToText(insights.sleep.avgDurationColor)}</p>
                 )}
-                <p className="mt-0.5 text-[10px] text-muted">
+                <p className="mt-0.5 text-[11px] text-muted">
                   {insights.sleep.recordCount} noites
                   {insights.sleep.recordCount > 0 && insights.sleep.recordCount < 7 && " · mín. 7"}
                 </p>
@@ -577,7 +577,7 @@ export default async function InsightsPage({
                     ? `±${insights.sleep.bedtimeVariance}min`
                     : "—"}
                 </p>
-                <p className="mt-1 text-[10px] text-muted">
+                <p className="mt-1 text-[11px] text-muted">
                   {insights.sleep.bedtimeVariance !== null
                     ? insights.sleep.bedtimeVariance <= 30 ? "Excelente"
                       : insights.sleep.bedtimeVariance <= 60 ? "Moderada"
@@ -598,7 +598,7 @@ export default async function InsightsPage({
                     ? `±${insights.sleep.durationVariability}min`
                     : "—"}
                 </p>
-                <p className="mt-1 text-[10px] text-muted">
+                <p className="mt-1 text-[11px] text-muted">
                   {insights.sleep.durationVariability !== null
                     ? insights.sleep.durationVariability <= 30 ? "Consistente"
                       : insights.sleep.durationVariability <= 60 ? "Moderada"
@@ -624,7 +624,7 @@ export default async function InsightsPage({
                     </span>
                   )}
                 </div>
-                <p className="mt-1 text-[10px] text-muted">7 dias vs anteriores</p>
+                <p className="mt-1 text-[11px] text-muted">7 dias vs anteriores</p>
               </Card>
 
               {/* Ponto médio */}
@@ -634,7 +634,7 @@ export default async function InsightsPage({
                   {insights.sleep.midpoint ?? "—"}
                 </p>
                 {insights.sleep.midpointTrend && (
-                  <p className="mt-0.5 text-[10px] text-muted">
+                  <p className="mt-0.5 text-[11px] text-muted">
                     {insights.sleep.midpointTrend === "up" ? "↑ Atrasando"
                       : insights.sleep.midpointTrend === "down" ? "↓ Adiantando"
                       : "→ Estável"}
@@ -643,7 +643,7 @@ export default async function InsightsPage({
                     )}
                   </p>
                 )}
-                <p className="mt-0.5 text-[10px] text-muted">marcador circadiano</p>
+                <p className="mt-0.5 text-[11px] text-muted">marcador circadiano</p>
               </Card>
 
               {/* Qualidade */}
@@ -652,7 +652,7 @@ export default async function InsightsPage({
                 <p className="text-xl font-bold mt-0.5 tabular-nums">
                   {insights.sleep.avgQuality !== null ? `${insights.sleep.avgQuality}%` : "—"}
                 </p>
-                <p className="mt-1 text-[10px] text-muted">wearable (0-100)</p>
+                <p className="mt-1 text-[11px] text-muted">wearable (0-100)</p>
               </Card>
 
               {/* Social Jet Lag */}
@@ -666,7 +666,7 @@ export default async function InsightsPage({
                   <p className="text-xl font-bold mt-0.5 tabular-nums">
                     {insights.sleep.socialJetLag}min
                   </p>
-                  <p className="mt-1 text-[10px] text-muted">
+                  <p className="mt-1 text-[11px] text-muted">
                     {insights.sleep.socialJetLagLabel} · semana vs fim de semana
                   </p>
                 </Card>
@@ -675,7 +675,7 @@ export default async function InsightsPage({
 
             <div className="mb-2 flex items-center gap-2">
               <ConfidenceBadge confidence={insights.sleep.dataConfidence} />
-              <span className="text-[10px] text-muted">
+              <span className="text-[11px] text-muted">
                 {insights.sleep.recordCount} noites registradas
               </span>
             </div>
@@ -740,7 +740,7 @@ export default async function InsightsPage({
                       {insights.mood.moodAmplitudeLabel ?? "—"}
                     </p>
                     {insights.mood.moodAmplitude !== null && (
-                      <p className="mt-0.5 text-[10px] text-muted">
+                      <p className="mt-0.5 text-[11px] text-muted">
                         {insights.mood.moodAmplitude} {insights.mood.moodAmplitude === 1 ? "ponto" : "pontos"}
                       </p>
                     )}
@@ -759,7 +759,7 @@ export default async function InsightsPage({
                         ? `${insights.mood.medicationAdherence}%`
                         : "—"}
                     </p>
-                    <p className="mt-0.5 text-[10px] text-muted">
+                    <p className="mt-0.5 text-[11px] text-muted">
                       {insights.mood.medicationResponseRate
                         ? `${insights.mood.medicationResponseRate}`
                         : "últimos 30 dias"}
@@ -903,7 +903,7 @@ export default async function InsightsPage({
                             style={{ height: `${Math.max(10, heightPct)}%` }}
                           />
                         </div>
-                        <span className="text-[9px] text-muted">{names[m.month]}</span>
+                        <span className="text-[11px] text-muted">{names[m.month]}</span>
                         <span className="text-[8px] text-muted tabular-nums">{m.avgMood.toFixed(1)}</span>
                       </div>
                     );
@@ -935,7 +935,7 @@ export default async function InsightsPage({
                     <div className="flex items-center justify-between">
                       <div>
                         <span className="text-sm font-medium">Sono → Humor (mesmo dia)</span>
-                        <p className="text-[10px] text-muted">Quando durmo mais, meu humor tende a...</p>
+                        <p className="text-[11px] text-muted">Quando durmo mais, meu humor tende a...</p>
                       </div>
                       <CorrelationBadge result={insights.chart.correlation} />
                     </div>
@@ -944,13 +944,13 @@ export default async function InsightsPage({
                     <div className="flex items-center justify-between">
                       <div>
                         <span className="text-sm font-medium">Sono ontem → Humor hoje</span>
-                        <p className="text-[10px] text-muted">O sono de ontem influencia como me sinto hoje?</p>
+                        <p className="text-[11px] text-muted">O sono de ontem influencia como me sinto hoje?</p>
                       </div>
                       <CorrelationBadge result={insights.chart.lagCorrelation} />
                     </div>
                   )}
                 </div>
-                <p className="mt-3 text-[10px] text-muted italic">
+                <p className="mt-3 text-[11px] text-muted italic">
                   Método estatístico de correlação por ranking. Baseado em {insights.chart.correlation?.n ?? insights.chart.lagCorrelation?.n ?? 0} dias de dados.
                   Correlações fracas são comuns com poucos dados.
                 </p>

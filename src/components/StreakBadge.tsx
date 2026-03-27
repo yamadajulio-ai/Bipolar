@@ -29,10 +29,10 @@ export function StreakBadge({ checkinStreak, sleepStreak, bestCheckinStreak, hid
             <span className="text-sm font-bold text-primary leading-tight">
               {checkinStreak} {checkinStreak === 1 ? "dia" : "dias"}
             </span>
-            <span className="text-[10px] text-muted leading-tight">de acompanhamento</span>
+            <span className="text-[11px] text-muted leading-tight">de acompanhamento</span>
           </div>
           {bestCheckinStreak > checkinStreak && (
-            <span className="text-[10px] text-muted">
+            <span className="text-[11px] text-muted">
               (melhor: {bestCheckinStreak})
             </span>
           )}
@@ -46,14 +46,14 @@ export function StreakBadge({ checkinStreak, sleepStreak, bestCheckinStreak, hid
             <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400 leading-tight">
               {sleepStreak} {sleepStreak === 1 ? "dia" : "dias"}
             </span>
-            <span className="text-[10px] text-muted leading-tight">sono registrado</span>
+            <span className="text-[11px] text-muted leading-tight">sono registrado</span>
           </div>
         </div>
       )}
 
       <button
         onClick={handleHide}
-        className="ml-auto text-[10px] text-muted hover:text-foreground"
+        className="ml-auto text-[11px] text-muted hover:text-foreground"
         aria-label="Esconder contagem de dias"
         title="Esconder"
       >

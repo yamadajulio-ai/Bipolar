@@ -177,6 +177,7 @@ export default function FamiliasPage() {
     for (let i = 0; i < total; i++) {
       if (checked[`${moduleId}-${i}`]) done++;
     }
+    if (total === 0) return 0;
     return Math.round((done / total) * 100);
   }
 
@@ -213,7 +214,7 @@ export default function FamiliasPage() {
                     <h2 className="text-base font-semibold">
                       {moduleIdx + 1}. {mod.title}
                     </h2>
-                    <span className="text-[10px] text-muted flex-shrink-0">{mod.duration}</span>
+                    <span className="text-[11px] text-muted flex-shrink-0">{mod.duration}</span>
                   </div>
                   {/* Progress bar */}
                   {progress > 0 && (
@@ -304,20 +305,20 @@ export default function FamiliasPage() {
         <div className="grid grid-cols-3 gap-2 text-center">
           <a href="tel:188" className="rounded-lg bg-white border border-red-200 p-2 no-underline">
             <p className="text-lg font-bold text-red-700">188</p>
-            <p className="text-[10px] text-red-600">CVV (24h)</p>
+            <p className="text-[11px] text-red-600">CVV (24h)</p>
           </a>
           <a href="tel:192" className="rounded-lg bg-white border border-red-200 p-2 no-underline">
             <p className="text-lg font-bold text-red-700">192</p>
-            <p className="text-[10px] text-red-600">SAMU</p>
+            <p className="text-[11px] text-red-600">SAMU</p>
           </a>
           <a href="tel:190" className="rounded-lg bg-white border border-red-200 p-2 no-underline">
             <p className="text-lg font-bold text-red-700">190</p>
-            <p className="text-[10px] text-red-600">Polícia</p>
+            <p className="text-[11px] text-red-600">Polícia</p>
           </a>
         </div>
       </Card>
 
-      <p className="mt-4 text-center text-[10px] text-muted">
+      <p className="mt-4 text-center text-[11px] text-muted">
         Baseado em orientações CANMAT (patient/family guide), CDC health literacy guidelines e pesquisas PROMAN/USP.
       </p>
     </div>

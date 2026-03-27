@@ -15,7 +15,7 @@ import { NarrativeProgress } from "./NarrativeProgress";
 const SHARE_WITH_PROFESSIONAL_TEXT =
   "Pode ser interessante compartilhar esses dados com seu profissional de referência.";
 const APP_DISCLAIMER =
-  "Esta análise é educacional e não substitui avaliação profissional. O app é uma ferramenta de acompanhamento.";
+  "Esta análise é apenas educacional — não é um diagnóstico médico e não substitui avaliação profissional. O app é uma ferramenta de acompanhamento.";
 
 interface NarrativeDisplayProps {
   narrative: NarrativeResultV2;
@@ -80,7 +80,7 @@ export function NarrativeDisplay({ narrative, data, onRefresh, refreshLoading, r
             Resumo inteligente
           </h3>
           {data?.latestAttemptFailed && (
-            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] text-amber-700 dark:bg-amber-900 dark:text-amber-300">
+            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] text-amber-700 dark:bg-amber-900 dark:text-amber-300">
               versão anterior
             </span>
           )}
@@ -102,7 +102,7 @@ export function NarrativeDisplay({ narrative, data, onRefresh, refreshLoading, r
           <button
             onClick={(e) => { e.stopPropagation(); onRefresh(); }}
             disabled={refreshCooldown || refreshLoading}
-            className="shrink-0 rounded-lg border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/10 disabled:opacity-50 disabled:cursor-not-allowed min-h-[36px]"
+            className="shrink-0 rounded-lg border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/10 disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
           >
             {refreshLoading ? "Gerando..." : refreshCooldown ? "Aguarde..." : "Atualizar"}
           </button>
@@ -207,12 +207,12 @@ export function NarrativeDisplay({ narrative, data, onRefresh, refreshLoading, r
                           {SECTION_LABELS[key]}
                         </span>
                         {isNotable && (
-                          <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-900 dark:text-amber-300">
+                          <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[11px] font-medium text-amber-700 dark:bg-amber-900 dark:text-amber-300">
                             mudou
                           </span>
                         )}
                         {section.status === "limited" && (
-                          <span className="rounded-full bg-surface-alt px-1.5 py-0.5 text-[10px] text-muted dark:bg-surface-raised">
+                          <span className="rounded-full bg-surface-alt px-1.5 py-0.5 text-[11px] text-muted dark:bg-surface-raised">
                             poucos dados
                           </span>
                         )}

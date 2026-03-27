@@ -46,7 +46,7 @@ export function InfoTooltip({ title, content, tip }: Props) {
         onClick={() => setOpen(!open)}
         onFocus={() => setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 200)}
-        className="ml-1 inline-flex h-6 w-6 items-center justify-center rounded-full bg-black/10 text-[10px] font-bold text-muted hover:bg-black/20"
+        className="ml-1 inline-flex h-8 w-8 items-center justify-center rounded-full bg-black/10 text-[11px] font-bold text-muted hover:bg-black/20"
         aria-label={`Informações sobre ${title}`}
         aria-expanded={open}
         aria-describedby={open ? tooltipId : undefined}

@@ -26,6 +26,7 @@ export async function POST(request: Request) {
 
   let goal: string | undefined;
   let profile: string | undefined;
+  let ageGate = false;
   let consentScopes: string[] = [];
   try {
     const body = await request.json();
@@ -35,6 +36,9 @@ export async function POST(request: Request) {
     if (body.profile && typeof body.profile === "string" && VALID_PROFILES.has(body.profile)) {
       profile = body.profile;
     }
+    if (body.ageGate === true) {
+      ageGate = true;
+    }
     if (Array.isArray(body.consents)) {
       consentScopes = body.consents.filter(
         (s: unknown) => typeof s === "string" && VALID_CONSENT_SCOPES.has(s),
@@ -42,6 +46,11 @@ export async function POST(request: Request) {
     }
   } catch {
     // No body or invalid JSON — that's fine, goal/profile are optional
+  }
+
+  // Age gate is required — reject if not confirmed
+  if (!ageGate) {
+    return NextResponse.json({ error: "Confirmação de idade obrigatória" }, { status: 400 });
   }
 
   const onboardingGoal = profile

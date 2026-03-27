@@ -100,7 +100,7 @@ export function CalendarHeatmap({ data, metric, onDaySelect, selectedDate }: Pro
         {monthLabels.map(({ text, weekIdx }, i) => (
           <span
             key={i}
-            className="text-[9px] text-muted"
+            className="text-[11px] text-muted"
             style={{ position: "absolute", left: `${20 + weekIdx * 14}px` }}
           >
             {text}
@@ -166,7 +166,7 @@ export function CalendarHeatmap({ data, metric, onDaySelect, selectedDate }: Pro
       </div>
 
       {/* Legend */}
-      <div className="mt-2 flex items-center gap-2 text-[9px] text-muted" aria-label={metric === "mood" ? "Legenda: humor de 1 (baixo) a 5 (alto)" : "Legenda: sono de menos de 5h a mais de 10h"}>
+      <div className="mt-2 flex items-center gap-2 text-[11px] text-muted" aria-label={metric === "mood" ? "Legenda: humor de 1 (baixo) a 5 (alto)" : "Legenda: sono de menos de 5h a mais de 10h"}>
         {metric === "mood" && (
           <>
             <span>Baixo</span>
@@ -196,7 +196,7 @@ export function CalendarHeatmap({ data, metric, onDaySelect, selectedDate }: Pro
       {/* Tooltip */}
       {tooltip && (
         <div
-          className="pointer-events-none fixed z-50 rounded-lg bg-gray-900 px-2.5 py-1.5 text-xs text-white shadow-lg"
+          className="pointer-events-none fixed z-[60] rounded-lg bg-gray-900 dark:bg-gray-800 px-2.5 py-1.5 text-xs text-white shadow-lg"
           style={{ left: tooltip.x + 12, top: tooltip.y - 30 }}
         >
           {getTooltipText(tooltip.day)}

@@ -189,7 +189,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (err) {
     Sentry.captureException(err, { tags: { endpoint: "clinical-export" } });
-    console.error("Clinical export error:", err);
+    console.error(JSON.stringify({ event: "clinical_export_error", errorType: err instanceof Error ? err.constructor.name : "Unknown", message: (err as Error).message?.slice(0, 200) || "Unknown" }));
     return NextResponse.json({ error: "Erro ao gerar exportação" }, { status: 500 });
   }
 }

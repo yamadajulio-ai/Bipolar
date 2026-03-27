@@ -61,7 +61,14 @@ export default async function AdminUsersPage({
       orderBy: { createdAt: "desc" },
       skip: (page - 1) * perPage,
       take: perPage,
-      include: {
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        createdAt: true,
+        onboarded: true,
+        authProvider: true,
+        onboardingGoal: true,
         entries: {
           orderBy: { createdAt: "desc" },
           take: 1,

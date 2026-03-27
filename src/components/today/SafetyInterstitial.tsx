@@ -86,7 +86,7 @@ export function SafetyInterstitial({ source, sourceAssessmentId, onComplete, onD
             Lembrar em 15 min
           </button>
         </div>
-        <p className="mt-3 text-[10px] text-muted">
+        <p className="mt-3 text-[11px] text-muted">
           Baseado no ASQ (Ask Suicide-Screening Questions) do NIMH.
         </p>
       </div>
@@ -112,10 +112,10 @@ export function SafetyInterstitial({ source, sourceAssessmentId, onComplete, onD
                     next[i] = true;
                     setAsqAnswers(next);
                   }}
-                  className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                  className={`rounded-md px-3 py-2.5 text-xs font-medium transition-colors min-h-[44px] ${
                     asqAnswers[i] === true
                       ? "bg-red-600 text-white"
-                      : "border border-orange-300 bg-white text-orange-800 hover:bg-orange-100"
+                      : "border border-orange-300 dark:border-orange-700 bg-white dark:bg-orange-950/50 text-orange-800 dark:text-orange-200 hover:bg-orange-100 dark:hover:bg-orange-900/50"
                   }`}
                 >
                   Sim
@@ -127,10 +127,10 @@ export function SafetyInterstitial({ source, sourceAssessmentId, onComplete, onD
                     next[i] = false;
                     setAsqAnswers(next);
                   }}
-                  className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                  className={`rounded-md px-3 py-2.5 text-xs font-medium transition-colors min-h-[44px] ${
                     asqAnswers[i] === false
                       ? "bg-emerald-600 text-white"
-                      : "border border-orange-300 bg-white text-orange-800 hover:bg-orange-100"
+                      : "border border-orange-300 dark:border-orange-700 bg-white dark:bg-orange-950/50 text-orange-800 dark:text-orange-200 hover:bg-orange-100 dark:hover:bg-orange-900/50"
                   }`}
                 >
                   Não
@@ -232,7 +232,7 @@ export function SafetyInterstitial({ source, sourceAssessmentId, onComplete, onD
           Suas respostas não indicam risco agudo neste momento. Mesmo assim, se precisar de apoio,
           o CVV (188) está disponível 24 horas.
         </p>
-        <p className="text-[10px] text-muted">
+        <p className="text-[11px] text-muted">
           Este aplicativo não substitui avaliação profissional.
         </p>
       </div>
@@ -263,7 +263,7 @@ export function SafetyInterstitial({ source, sourceAssessmentId, onComplete, onD
           Ligar CVV 188
         </a>
       </div>
-      <p className="mt-3 text-[10px] text-muted">
+      <p className="mt-3 text-[11px] text-muted">
         Este aplicativo não substitui avaliação profissional. Em emergência, ligue 192.
       </p>
     </div>
@@ -438,13 +438,13 @@ function BssaFlow({
             aria-label={`${opt.label} — ${currentQ.label}`}
             onClick={() => handleAnswer(opt.value)}
             disabled={saving}
-            className="block w-full rounded-lg border border-orange-300 bg-white px-4 py-3 text-sm text-left text-orange-900 hover:bg-orange-100 transition-colors disabled:opacity-50"
+            className="block w-full rounded-lg border border-orange-300 dark:border-orange-700 bg-white dark:bg-orange-950/50 px-4 py-3 text-sm text-left text-orange-900 dark:text-orange-200 hover:bg-orange-100 dark:hover:bg-orange-900/50 transition-colors disabled:opacity-50 min-h-[44px]"
           >
             {opt.label}
           </button>
         ))}
       </div>
-      <p className="mt-3 text-[10px] text-muted">
+      <p className="mt-3 text-[11px] text-muted">
         Suas respostas são confidenciais. Baseado no protocolo BSSA do NIMH.
       </p>
     </div>

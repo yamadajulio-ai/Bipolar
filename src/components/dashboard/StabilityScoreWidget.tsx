@@ -54,7 +54,7 @@ function ScoreRing({ score, className }: { score: number; className: string }) {
       <text
         x="44" y="56"
         textAnchor="middle"
-        className="fill-muted text-[10px]"
+        className="fill-muted text-[11px]"
         style={{ fontSize: "10px" }}
       >
         de 100
@@ -98,12 +98,12 @@ export function StabilityScoreWidget({ stability }: { stability: StabilityScore 
               {stability.label}
             </span>
             {stability.provisional && (
-              <span className="rounded-full bg-surface-alt px-1.5 py-0.5 text-[10px] text-muted">
+              <span className="rounded-full bg-surface-alt px-1.5 py-0.5 text-[11px] text-muted">
                 provisório
               </span>
             )}
             {stability.riskCapped && (
-              <span className="rounded-full bg-red-100 dark:bg-red-900/30 px-1.5 py-0.5 text-[10px] text-red-600 dark:text-red-400">
+              <span className="rounded-full bg-red-100 dark:bg-red-900/30 px-1.5 py-0.5 text-[11px] text-red-600 dark:text-red-400">
                 limitado por risco
               </span>
             )}
@@ -128,7 +128,7 @@ export function StabilityScoreWidget({ stability }: { stability: StabilityScore 
       </div>
 
       {stability.confidence !== "high" && (
-        <p className="text-[10px] text-muted italic">
+        <p className="text-[11px] text-muted italic">
           {stability.confidence === "low"
             ? "Poucos dias de dados — o score vai ficar mais preciso com o tempo."
             : "Score baseado em dados parciais. Continue registrando para maior precisão."}

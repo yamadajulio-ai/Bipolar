@@ -6,12 +6,13 @@ const CACHE_OFFLINE = "rb-offline-v4";
 const ALL_CACHES = [CACHE_STATIC, CACHE_OFFLINE];
 
 const OFFLINE_URL = "/offline";
+const OFFLINE_FALLBACK_URL = "/offline-fallback.html";
 
 
 // --- Install ---
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_OFFLINE).then((cache) => cache.addAll([OFFLINE_URL]))
+    caches.open(CACHE_OFFLINE).then((cache) => cache.addAll([OFFLINE_URL, OFFLINE_FALLBACK_URL]))
   );
   self.skipWaiting();
 });
@@ -58,7 +59,7 @@ self.addEventListener("fetch", (event) => {
   // 4. Navigation — network-only with offline fallback
   if (request.mode === "navigate") {
     event.respondWith(
-      fetch(request).catch(() => caches.match(OFFLINE_URL))
+      fetch(request).catch(() => caches.match(OFFLINE_FALLBACK_URL))
     );
     return;
   }

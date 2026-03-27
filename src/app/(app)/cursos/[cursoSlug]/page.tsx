@@ -94,7 +94,7 @@ export default async function CursoPage({
                     <h3 className="font-medium text-foreground">
                       {lesson.title}
                       {lesson.videoUrl && (
-                        <span className="ml-1.5 inline-block rounded bg-red-100 px-1.5 py-0.5 align-middle text-[10px] font-medium text-red-700">
+                        <span className="ml-1.5 inline-block rounded bg-red-100 px-1.5 py-0.5 align-middle text-[11px] font-medium text-red-700">
                           Video
                         </span>
                       )}

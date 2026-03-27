@@ -122,13 +122,7 @@ export async function POST(request: NextRequest) {
       appVersion: b?.app_version,
     };
 
-    console.log("[health-connect] Payload info:", JSON.stringify(debugInfo));
-
     const result = parseHealthConnectPayload(body);
-
-    if (result.sleepNights.length > 0) {
-      console.log("[health-connect] Sleep nights parsed:", result.sleepNights.length);
-    }
 
     // Always save debug info for troubleshooting (standalone, non-critical)
     const debugPayload = JSON.stringify({
@@ -187,8 +181,6 @@ export async function POST(request: NextRequest) {
     const metricsImported = result.genericMetrics.length;
     const hasAnyData = sleepImported > 0 || metricsImported > 0;
 
-    console.log("[health-connect] Result:", JSON.stringify({ sleepImported, metricsImported }));
-
     return NextResponse.json({
       imported: sleepImported,
       sleepNights: sleepImported,
@@ -197,12 +189,11 @@ export async function POST(request: NextRequest) {
       message: hasAnyData
         ? `Importado: ${sleepImported} noite(s), ${metricsImported} métrica(s)`
         : "Nenhum dado reconhecido no payload",
-      debug: debugInfo,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erro desconhecido";
     Sentry.captureException(err, { tags: { endpoint: "health-connect" } });
-    console.error("[health-connect] Error:", message, err);
+    console.error(JSON.stringify({ event: "health_connect_error", errorType: err instanceof Error ? err.constructor.name : "Unknown", message: message.slice(0, 200) }));
     return NextResponse.json(
       { error: "Erro ao processar dados de saúde" },
       { status: 500 },

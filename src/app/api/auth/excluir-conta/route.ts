@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
   // Step-up auth: verify identity before destructive action
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { passwordHash: true, authProvider: true },
+    select: { passwordHash: true, authProvider: true, appleSub: true, appleRefreshToken: true },
   });
   if (!user) {
     return NextResponse.json({ error: "Usuário não encontrado" }, { status: 404 });
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Senha incorreta." }, { status: 403 });
     }
   } else {
-    // Google OAuth users: require recent authentication (< 5 min)
+    // OAuth users (Google/Apple): require recent authentication (< 5 min)
     const REAUTH_WINDOW = 5 * 60 * 1000;
     if (!session.lastActive || Date.now() - session.lastActive > REAUTH_WINDOW) {
       return NextResponse.json(
@@ -86,8 +86,22 @@ export async function POST(request: NextRequest) {
         const token = decrypt(googleAccount.refreshToken);
         await fetch(`https://oauth2.googleapis.com/revoke?token=${token}`, { method: "POST" });
       } catch {
-        // Log but continue — token cleanup is best-effort
         Sentry.captureMessage("Failed to revoke Google token on account deletion", { level: "warning" });
+      }
+    }
+
+    // Revoke Apple tokens before cascade delete (Apple requirement for SIWA account deletion)
+    if (user.appleRefreshToken) {
+      try {
+        const { decrypt } = await import("@/lib/crypto");
+        const { revokeAppleToken } = await import("@/lib/apple/auth");
+        const decryptedToken = decrypt(user.appleRefreshToken);
+        const revoked = await revokeAppleToken(decryptedToken);
+        if (!revoked) {
+          Sentry.captureMessage("Failed to revoke Apple token on account deletion", { level: "warning" });
+        }
+      } catch {
+        Sentry.captureMessage("Failed to revoke Apple token on account deletion", { level: "warning" });
       }
     }
 

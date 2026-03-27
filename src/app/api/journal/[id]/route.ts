@@ -97,7 +97,7 @@ export async function PATCH(
     });
   } catch (err) {
     Sentry.captureException(err, { tags: { endpoint: "journal-update" } });
-    console.error("Journal update error:", (err as Error).message);
+    console.error(JSON.stringify({ event: "journal_update_error", errorType: err instanceof Error ? err.constructor.name : "Unknown", message: (err as Error).message?.slice(0, 200) || "Unknown" }));
     return NextResponse.json({ error: "Erro ao atualizar entrada" }, { status: 500 });
   }
 }
@@ -140,7 +140,7 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (err) {
     Sentry.captureException(err, { tags: { endpoint: "journal-delete" } });
-    console.error("Journal delete error:", (err as Error).message);
+    console.error(JSON.stringify({ event: "journal_delete_error", errorType: err instanceof Error ? err.constructor.name : "Unknown", message: (err as Error).message?.slice(0, 200) || "Unknown" }));
     return NextResponse.json({ error: "Erro ao excluir entrada" }, { status: 500 });
   }
 }

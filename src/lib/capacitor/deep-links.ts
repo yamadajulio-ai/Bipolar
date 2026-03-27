@@ -6,32 +6,45 @@ import { App as CapApp } from '@capacitor/app';
 import { Share } from '@capacitor/share';
 import { isNative } from './platform';
 
-/** Register deep link handler for Universal Links */
+/** Register deep link handler for Universal Links. Returns cleanup function. */
 export function registerDeepLinkHandler(
   navigate: (path: string) => void
-): void {
-  if (!isNative()) return;
+): (() => void) | undefined {
+  if (!isNative()) return undefined;
 
-  CapApp.addListener('appUrlOpen', (event) => {
+  const ALLOWED_HOSTS = new Set(['suportebipolar.com', 'www.suportebipolar.com']);
+
+  const handle = CapApp.addListener('appUrlOpen', (event) => {
     try {
       const url = new URL(event.url);
+      // Only handle links from our domain or custom scheme
+      const isCustomScheme = url.protocol === 'suportebipolar:';
+      const isTrustedHost = ALLOWED_HOSTS.has(url.hostname);
+      if (!isCustomScheme && !isTrustedHost) return;
+
       const path = url.pathname + url.search;
-      navigate(path);
+      if (path.startsWith('/')) {
+        navigate(path);
+      }
     } catch {
       // Invalid URL — ignore
     }
   });
+
+  return () => { handle.then(h => h.remove()); };
 }
 
-/** Handle app state changes (resume from background) */
+/** Handle app state changes (resume from background). Returns cleanup function. */
 export function onAppStateChange(
   callback: (isActive: boolean) => void
-): void {
-  if (!isNative()) return;
+): (() => void) | undefined {
+  if (!isNative()) return undefined;
 
-  CapApp.addListener('appStateChange', (state) => {
+  const handle = CapApp.addListener('appStateChange', (state) => {
     callback(state.isActive);
   });
+
+  return () => { handle.then(h => h.remove()); };
 }
 
 /** Native share sheet */

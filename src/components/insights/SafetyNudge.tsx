@@ -209,7 +209,7 @@ export function SafetyNudge({ phq9Item9, riskLevel, compact, bipolarContext }: P
         </div>
       </div>
 
-      <p className="mt-3 text-[10px] text-muted">
+      <p className="mt-3 text-[11px] text-muted">
         Este aplicativo não substitui avaliação profissional.
       </p>
     </div>

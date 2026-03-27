@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /login
+Disallow: /cadastro
+Disallow: /onboarding
+Disallow: /profissional/
+
+Sitemap: https://suportebipolar.com/sitemap.xml

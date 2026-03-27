@@ -56,6 +56,8 @@ export function useJournalEntries(initialEntries: JournalEntry[]) {
   const [filter, setFilter] = useState<JournalType | "ALL">("ALL");
   const [reflection, setReflection] = useState<ReflectionData | null>(null);
   const [loadingReflection, setLoadingReflection] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   // ── Save entry ─────────────────────────────────────────────
 
@@ -81,7 +83,7 @@ export function useJournalEntries(initialEntries: JournalEntry[]) {
 
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          alert(data.error || "Erro ao salvar.");
+          setErrorMsg(data.error || "Erro ao salvar.");
           return;
         }
 
@@ -101,7 +103,7 @@ export function useJournalEntries(initialEntries: JournalEntry[]) {
           setNextCursor(listData.nextCursor);
         }
       } catch {
-        alert("Erro de conexão.");
+        setErrorMsg("Erro de conexão.");
       } finally {
         setSaving(false);
       }
@@ -124,7 +126,7 @@ export function useJournalEntries(initialEntries: JournalEntry[]) {
 
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          alert(data.error || "Erro ao editar.");
+          setErrorMsg(data.error || "Erro ao editar.");
           return;
         }
 
@@ -145,7 +147,7 @@ export function useJournalEntries(initialEntries: JournalEntry[]) {
         setEditingId(null);
         setEditContent("");
       } catch {
-        alert("Erro de conexão.");
+        setErrorMsg("Erro de conexão.");
       }
     },
     [editContent],
@@ -153,8 +155,14 @@ export function useJournalEntries(initialEntries: JournalEntry[]) {
 
   // ── Delete entry ───────────────────────────────────────────
 
-  const handleDelete = useCallback(async (id: string) => {
-    if (!confirm("Tem certeza? Esta ação é permanente.")) return;
+  const requestDelete = useCallback((id: string) => {
+    setPendingDeleteId(id);
+  }, []);
+
+  const confirmDelete = useCallback(async () => {
+    if (!pendingDeleteId) return;
+    const id = pendingDeleteId;
+    setPendingDeleteId(null);
 
     try {
       const res = await fetch(`/api/journal/${id}`, { method: "DELETE" });
@@ -162,8 +170,12 @@ export function useJournalEntries(initialEntries: JournalEntry[]) {
         setEntries((prev) => prev.filter((e) => e.id !== id));
       }
     } catch {
-      alert("Erro ao excluir.");
+      setErrorMsg("Erro ao excluir.");
     }
+  }, [pendingDeleteId]);
+
+  const cancelDelete = useCallback(() => {
+    setPendingDeleteId(null);
   }, []);
 
   // ── Load more ──────────────────────────────────────────────
@@ -228,9 +240,14 @@ export function useJournalEntries(initialEntries: JournalEntry[]) {
     reflection,
     setReflection,
     loadingReflection,
+    errorMsg,
+    setErrorMsg,
+    pendingDeleteId,
     handleSave,
     handleEdit,
-    handleDelete,
+    requestDelete,
+    confirmDelete,
+    cancelDelete,
     loadMore,
     loadReflection,
   };

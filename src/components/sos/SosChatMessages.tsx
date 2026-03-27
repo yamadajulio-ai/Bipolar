@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useCallback } from "react";
 import type { Message } from "./useSosChat";
 
 interface SosChatMessagesProps {
@@ -13,6 +14,20 @@ export function SosChatMessages({
   streaming,
   onSuggestionClick,
 }: SosChatMessagesProps) {
+  const [reportedIndexes, setReportedIndexes] = useState<Set<number>>(new Set());
+
+  const handleReport = useCallback((index: number, content: string) => {
+    setReportedIndexes((prev) => new Set(prev).add(index));
+    try {
+      fetch("/api/sos/report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messageIndex: index, content: content.slice(0, 500) }),
+      }).catch(() => {});
+    } catch {
+      // Non-blocking — best effort
+    }
+  }, []);
   return (
     <>
       {messages.length === 0 && (
@@ -83,29 +98,46 @@ export function SosChatMessages({
               {m.content}
             </div>
           ) : (
-            <div
-              className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
-                m.role === "user"
-                  ? "bg-blue-700 text-white rounded-br-md"
-                  : "bg-gray-800 text-gray-100 rounded-bl-md"
-              }`}
-            >
-              {m.content || (
-                <span className="inline-flex gap-1" aria-label="Digitando">
-                  <span className="animate-pulse">.</span>
-                  <span
-                    className="animate-pulse"
-                    style={{ animationDelay: "0.2s" }}
-                  >
-                    .
+            <div className={`max-w-[85%] ${m.role === "assistant" ? "space-y-1" : ""}`}>
+              <div
+                className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+                  m.role === "user"
+                    ? "bg-blue-700 text-white rounded-br-md"
+                    : "bg-gray-800 text-gray-100 rounded-bl-md"
+                }`}
+              >
+                {m.content || (
+                  <span className="inline-flex gap-1" aria-label="Digitando">
+                    <span className="animate-pulse">.</span>
+                    <span
+                      className="animate-pulse"
+                      style={{ animationDelay: "0.2s" }}
+                    >
+                      .
+                    </span>
+                    <span
+                      className="animate-pulse"
+                      style={{ animationDelay: "0.4s" }}
+                    >
+                      .
+                    </span>
                   </span>
-                  <span
-                    className="animate-pulse"
-                    style={{ animationDelay: "0.4s" }}
+                )}
+              </div>
+              {m.role === "assistant" && m.content && (
+                reportedIndexes.has(i) ? (
+                  <p className="text-[10px] text-gray-500 pl-1">
+                    Reportado — obrigado pelo feedback
+                  </p>
+                ) : (
+                  <button
+                    onClick={() => handleReport(i, m.content)}
+                    className="text-[10px] text-gray-600 hover:text-red-400 pl-1 transition-colors"
+                    aria-label="Reportar resposta inadequada"
                   >
-                    .
-                  </span>
-                </span>
+                    Reportar resposta
+                  </button>
+                )
               )}
             </div>
           )}

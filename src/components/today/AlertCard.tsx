@@ -102,7 +102,7 @@ export function AlertCard({ layer, reasons, actions, safety, syndrome }: Props) 
         ))}
       </nav>
 
-      <p className="mt-3 text-[10px] text-muted" role="note">
+      <p className="mt-3 text-[11px] text-muted" role="note">
         {DISCLAIMER_SHORT}
       </p>
     </div>

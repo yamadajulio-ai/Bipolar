@@ -10,7 +10,8 @@ const CLARITY_ID = process.env.NEXT_PUBLIC_CLARITY_ID;
  * Completamente gratuito, sem limite de sessões.
  */
 export function MicrosoftClarity() {
-  if (!CLARITY_ID) return null;
+  // Block marketing trackers inside Capacitor WebView (Apple App Store compliance)
+  if (!CLARITY_ID || (typeof window !== "undefined" && "Capacitor" in window)) return null;
 
   return (
     <Script

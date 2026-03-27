@@ -208,7 +208,7 @@ export default function NovoDiarioPage() {
           ))}
         </div>
 
-        <p className="mb-4 text-[10px] text-muted italic text-center">
+        <p className="mb-4 text-[11px] text-muted italic text-center">
           Esses insights são educacionais — não substituem avaliação profissional.
         </p>
 

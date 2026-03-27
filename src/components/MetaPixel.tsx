@@ -11,7 +11,8 @@ const PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID;
  * o mesmo event_id para deduplicação automática.
  */
 export function MetaPixel() {
-  if (!PIXEL_ID) return null;
+  // Block marketing trackers inside Capacitor WebView (Apple App Store compliance)
+  if (!PIXEL_ID || (typeof window !== "undefined" && "Capacitor" in window)) return null;
 
   return (
     <>
@@ -82,7 +83,7 @@ function sendServerEvent(
 
 /** Dispara ViewContent — usar na landing page /comecar */
 export function trackViewContent(data?: Record<string, string>) {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined" || "Capacitor" in window) return;
 
   const eventId = generateEventId();
 
@@ -97,7 +98,7 @@ export function trackViewContent(data?: Record<string, string>) {
 
 /** Dispara CompleteRegistration — usar após cadastro concluído */
 export function trackCompleteRegistration() {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined" || "Capacitor" in window) return;
 
   const eventId = generateEventId();
 

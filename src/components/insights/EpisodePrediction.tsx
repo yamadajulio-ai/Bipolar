@@ -76,7 +76,7 @@ export function EpisodePrediction({ data }: Props) {
         <div id={panelId} className="mb-3 space-y-2">
           {data.maniaSignals.length > 0 && (
             <div className="rounded-lg bg-amber-100/60 border border-amber-200/50 p-2.5">
-              <p className="mb-1 text-[10px] font-semibold text-amber-700">Sinais de ativação</p>
+              <p className="mb-1 text-[11px] font-semibold text-amber-700">Sinais de ativação</p>
               <ul className="space-y-0.5">
                 {data.maniaSignals.map((s, i) => (
                   <li key={i} className="text-xs text-foreground/70">• {s}</li>
@@ -86,7 +86,7 @@ export function EpisodePrediction({ data }: Props) {
           )}
           {data.depressionSignals.length > 0 && (
             <div className="rounded-lg bg-blue-100/60 border border-blue-200/50 p-2.5">
-              <p className="mb-1 text-[10px] font-semibold text-blue-700">Sinais de rebaixamento</p>
+              <p className="mb-1 text-[11px] font-semibold text-blue-700">Sinais de rebaixamento</p>
               <ul className="space-y-0.5">
                 {data.depressionSignals.map((s, i) => (
                   <li key={i} className="text-xs text-foreground/70">• {s}</li>
@@ -100,7 +100,7 @@ export function EpisodePrediction({ data }: Props) {
       {/* Recommendations */}
       {data.recommendations.length > 0 && (
         <div className="rounded-lg bg-surface/60 border border-border p-2.5">
-          <p className="mb-1 text-[10px] font-semibold text-foreground/60">Recomendações</p>
+          <p className="mb-1 text-[11px] font-semibold text-foreground/60">Recomendações</p>
           <ul className="space-y-0.5">
             {data.recommendations.map((r, i) => (
               <li key={i} className="text-xs text-foreground/70">→ {r}</li>
@@ -109,7 +109,7 @@ export function EpisodePrediction({ data }: Props) {
         </div>
       )}
 
-      <p className="mt-3 text-center text-[10px] text-foreground/50">
+      <p className="mt-3 text-center text-[11px] text-foreground/50">
         Baseado em sinais que costumam aparecer antes de episódios. Indicador educacional — não substitui avaliação profissional.
         {data.daysUsed} dias analisados.
       </p>

@@ -84,7 +84,7 @@ export default function FeedbackPage() {
 
       if (res.status === 429) {
         setStatus("error");
-        setErrorMsg("Você já enviou vários feedbacks recentemente. Tente novamente em breve.");
+        setErrorMsg("Você já enviou vários feedbacks recentemente. Tente novamente em algumas horas.");
         return;
       }
 

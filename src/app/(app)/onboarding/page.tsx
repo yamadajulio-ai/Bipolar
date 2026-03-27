@@ -87,6 +87,7 @@ export default function OnboardingPage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [goal, setGoal] = useState<string | null>(null);
   const [finishing, setFinishing] = useState(false);
+  const [ageGate, setAgeGate] = useState(false);
   const [consents, setConsents] = useState({
     health_data: false,
     terms_of_use: false,
@@ -109,6 +110,7 @@ export default function OnboardingPage() {
         body: JSON.stringify({
           goal,
           profile,
+          ageGate,
           consents: Object.entries(consents)
             .filter(([, v]) => v)
             .map(([scope]) => scope),
@@ -121,7 +123,7 @@ export default function OnboardingPage() {
     router.refresh();
   }
 
-  const essentialConsentsAccepted = consents.health_data && consents.terms_of_use;
+  const essentialConsentsAccepted = ageGate && consents.health_data && consents.terms_of_use;
 
   const goals = profile ? GOALS_BY_PROFILE[profile] : [];
   const anchor = goal ? ANCHOR_BY_GOAL[goal] : ANCHOR_BY_GOAL.detect;
@@ -157,10 +159,10 @@ export default function OnboardingPage() {
             Vamos começar
           </button>
           <button
-            onClick={completeOnboarding}
+            onClick={() => setStep("consent")}
             className="text-xs text-muted underline"
           >
-            Pular e explorar por conta própria
+            Pular configuração
           </button>
         </div>
       )}
@@ -200,7 +202,7 @@ export default function OnboardingPage() {
           >
             Continuar
           </button>
-          <button onClick={completeOnboarding} className="w-full text-xs text-muted underline">
+          <button onClick={() => setStep("consent")} className="w-full text-xs text-muted underline">
             Pular
           </button>
         </div>
@@ -243,7 +245,7 @@ export default function OnboardingPage() {
           >
             Continuar
           </button>
-          <button onClick={completeOnboarding} className="w-full text-xs text-muted underline">
+          <button onClick={() => setStep("consent")} className="w-full text-xs text-muted underline">
             Pular
           </button>
         </div>
@@ -296,7 +298,7 @@ export default function OnboardingPage() {
               return milestones.map((milestone, mi) => (
                 <div key={milestone}>
                   <div className="flex items-center gap-2 mb-1.5">
-                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-white">
                       {mi + 1}
                     </span>
                     <span className="text-xs font-semibold text-primary uppercase tracking-wide">{milestone}</span>
@@ -341,6 +343,23 @@ export default function OnboardingPage() {
           </p>
 
           <div className="space-y-3">
+            {/* Age gate — required */}
+            <label className="flex items-start gap-3 rounded-lg border border-border bg-surface p-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={ageGate}
+                onChange={(e) => setAgeGate(e.target.checked)}
+                className="mt-0.5 h-4 w-4 accent-primary shrink-0"
+              />
+              <div>
+                <p className="text-sm font-medium text-foreground">Tenho 18 anos ou mais</p>
+                <p className="text-xs text-muted mt-0.5">
+                  Este app é destinado a maiores de 18 anos.
+                </p>
+                <span className="text-[11px] text-primary font-medium">Obrigatório</span>
+              </div>
+            </label>
+
             {/* Essential — health data */}
             <label className="flex items-start gap-3 rounded-lg border border-border bg-surface p-3 cursor-pointer">
               <input
@@ -354,7 +373,7 @@ export default function OnboardingPage() {
                 <p className="text-xs text-muted mt-0.5">
                   Necessário para o app funcionar. Seus registros de humor, sono e ritmos ficam armazenados com criptografia.
                 </p>
-                <span className="text-[10px] text-primary font-medium">Obrigatório</span>
+                <span className="text-[11px] text-primary font-medium">Obrigatório</span>
               </div>
             </label>
 
@@ -371,7 +390,7 @@ export default function OnboardingPage() {
                 <p className="text-xs text-muted mt-0.5">
                   Este app é uma ferramenta de acompanhamento e não substitui avaliação profissional.
                 </p>
-                <span className="text-[10px] text-primary font-medium">Obrigatório</span>
+                <span className="text-[11px] text-primary font-medium">Obrigatório</span>
               </div>
             </label>
 
@@ -388,7 +407,7 @@ export default function OnboardingPage() {
                 <p className="text-xs text-muted mt-0.5">
                   Lembretes para check-in, sono e atividades. Você pode desativar a qualquer momento.
                 </p>
-                <span className="text-[10px] text-muted">Opcional</span>
+                <span className="text-[11px] text-muted">Opcional</span>
               </div>
             </label>
 
@@ -405,7 +424,7 @@ export default function OnboardingPage() {
                 <p className="text-xs text-muted mt-0.5">
                   Autoavaliações estruturadas (PHQ-9, ASRM, FAST) para acompanhar sua evolução.
                 </p>
-                <span className="text-[10px] text-muted">Opcional — pré-marcado</span>
+                <span className="text-[11px] text-muted">Opcional — pré-marcado</span>
               </div>
             </label>
 
@@ -422,7 +441,7 @@ export default function OnboardingPage() {
                 <p className="text-xs text-muted mt-0.5">
                   Contatos de confiança, profissional e estratégias para momentos difíceis.
                 </p>
-                <span className="text-[10px] text-muted">Opcional — pré-marcado</span>
+                <span className="text-[11px] text-muted">Opcional — pré-marcado</span>
               </div>
             </label>
 
@@ -439,7 +458,7 @@ export default function OnboardingPage() {
                 <p className="text-xs text-muted mt-0.5">
                   Chatbot de apoio emocional temporário. Não substitui atendimento profissional. Em emergência, funciona mesmo sem este consentimento.
                 </p>
-                <span className="text-[10px] text-muted">Opcional — pré-marcado</span>
+                <span className="text-[11px] text-muted">Opcional — pré-marcado</span>
               </div>
             </label>
 
@@ -456,12 +475,12 @@ export default function OnboardingPage() {
                 <p className="text-xs text-muted mt-0.5">
                   Relatórios estruturados para compartilhar com seu profissional de saúde.
                 </p>
-                <span className="text-[10px] text-muted">Opcional — pré-marcado</span>
+                <span className="text-[11px] text-muted">Opcional — pré-marcado</span>
               </div>
             </label>
           </div>
 
-          <p className="text-[10px] text-muted text-center">
+          <p className="text-[11px] text-muted text-center">
             Você pode alterar essas permissões a qualquer momento em Configurações.
           </p>
 

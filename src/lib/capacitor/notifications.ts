@@ -12,46 +12,58 @@ import { isNative } from './platform';
 export async function registerPushNotifications(): Promise<string | null> {
   if (!isNative()) return null;
 
-  const permission = await PushNotifications.requestPermissions();
-  if (permission.receive !== 'granted') return null;
+  try {
+    const permission = await PushNotifications.requestPermissions();
+    if (permission.receive !== 'granted') return null;
 
-  await PushNotifications.register();
+    await PushNotifications.register();
 
-  return new Promise((resolve) => {
-    PushNotifications.addListener('registration', (token) => {
-      resolve(token.value);
+    return new Promise((resolve) => {
+      const regHandle = PushNotifications.addListener('registration', (token) => {
+        regHandle.then(h => h.remove());
+        errHandle.then(h => h.remove());
+        resolve(token.value);
+      });
+
+      const errHandle = PushNotifications.addListener('registrationError', () => {
+        regHandle.then(h => h.remove());
+        errHandle.then(h => h.remove());
+        resolve(null);
+      });
     });
-
-    PushNotifications.addListener('registrationError', () => {
-      resolve(null);
-    });
-  });
+  } catch {
+    return null;
+  }
 }
 
-/** Listen for incoming push notifications */
+/** Listen for incoming push notifications. Returns cleanup function. */
 export function onPushReceived(
   callback: (notification: { title?: string; body?: string; data?: Record<string, unknown> }) => void
-) {
-  if (!isNative()) return;
+): (() => void) | undefined {
+  if (!isNative()) return undefined;
 
-  PushNotifications.addListener('pushNotificationReceived', (notification) => {
+  const handle = PushNotifications.addListener('pushNotificationReceived', (notification) => {
     callback({
       title: notification.title ?? undefined,
       body: notification.body ?? undefined,
       data: notification.data as Record<string, unknown> | undefined,
     });
   });
+
+  return () => { handle.then(h => h.remove()); };
 }
 
-/** Listen for push notification taps (deep link handling) */
+/** Listen for push notification taps (deep link handling). Returns cleanup function. */
 export function onPushActionPerformed(
   callback: (data: Record<string, unknown>) => void
-) {
-  if (!isNative()) return;
+): (() => void) | undefined {
+  if (!isNative()) return undefined;
 
-  PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
+  const handle = PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
     callback(action.notification.data as Record<string, unknown>);
   });
+
+  return () => { handle.then(h => h.remove()); };
 }
 
 // ── Local Notifications ──
@@ -60,8 +72,12 @@ export function onPushActionPerformed(
 export async function requestLocalNotificationPermission(): Promise<boolean> {
   if (!isNative()) return false;
 
-  const result = await LocalNotifications.requestPermissions();
-  return result.display === 'granted';
+  try {
+    const result = await LocalNotifications.requestPermissions();
+    return result.display === 'granted';
+  } catch {
+    return false;
+  }
 }
 
 /** Schedule a daily reminder (e.g., check-in, sleep log) */
@@ -74,36 +90,48 @@ export async function scheduleDailyReminder(options: {
 }): Promise<void> {
   if (!isNative()) return;
 
-  await LocalNotifications.schedule({
-    notifications: [
-      {
-        id: options.id,
-        title: options.title,
-        body: options.body,
-        schedule: {
-          on: { hour: options.hour, minute: options.minute },
-          repeats: true,
-          allowWhileIdle: true,
+  try {
+    await LocalNotifications.schedule({
+      notifications: [
+        {
+          id: options.id,
+          title: options.title,
+          body: options.body,
+          schedule: {
+            on: { hour: options.hour, minute: options.minute },
+            repeats: true,
+            allowWhileIdle: true,
+          },
+          sound: 'default',
         },
-        sound: 'default',
-      },
-    ],
-  });
+      ],
+    });
+  } catch {
+    // Plugin failure — non-blocking
+  }
 }
 
 /** Cancel a scheduled notification */
 export async function cancelNotification(id: number): Promise<void> {
   if (!isNative()) return;
-  await LocalNotifications.cancel({ notifications: [{ id }] });
+  try {
+    await LocalNotifications.cancel({ notifications: [{ id }] });
+  } catch {
+    // Plugin failure — non-blocking
+  }
 }
 
 /** Cancel all scheduled notifications */
 export async function cancelAllNotifications(): Promise<void> {
   if (!isNative()) return;
 
-  const pending = await LocalNotifications.getPending();
-  if (pending.notifications.length > 0) {
-    await LocalNotifications.cancel({ notifications: pending.notifications });
+  try {
+    const pending = await LocalNotifications.getPending();
+    if (pending.notifications.length > 0) {
+      await LocalNotifications.cancel({ notifications: pending.notifications });
+    }
+  } catch {
+    // Plugin failure — non-blocking
   }
 }
 
@@ -120,18 +148,19 @@ export async function setupDefaultReminders(): Promise<void> {
   const hasPermission = await requestLocalNotificationPermission();
   if (!hasPermission) return;
 
+  // Lock screen safe: generic titles that don't reveal health context
   await scheduleDailyReminder({
     id: REMINDER_IDS.MORNING_CHECKIN,
-    title: 'Bom dia! Como você está?',
-    body: 'Registre seu humor e energia no check-in matinal.',
+    title: 'Suporte Bipolar',
+    body: 'Você tem um lembrete.',
     hour: 9,
     minute: 0,
   });
 
   await scheduleDailyReminder({
     id: REMINDER_IDS.EVENING_SLEEP,
-    title: 'Hora de registrar o sono',
-    body: 'Como foi sua noite? Registre antes de dormir.',
+    title: 'Suporte Bipolar',
+    body: 'Você tem um lembrete.',
     hour: 22,
     minute: 0,
   });

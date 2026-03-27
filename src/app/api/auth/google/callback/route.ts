@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL("/integracoes?google=connected", request.url));
   } catch (err) {
     Sentry.captureException(err, { tags: { endpoint: "google-auth-callback" } });
-    console.error("Google auth callback error:", err);
+    console.error(JSON.stringify({ event: "google_auth_callback_error", errorType: err instanceof Error ? err.constructor.name : "Unknown", message: (err as Error).message?.slice(0, 200) || "Unknown" }));
     return NextResponse.redirect(new URL("/integracoes?error=google_auth_failed", request.url));
   }
 }

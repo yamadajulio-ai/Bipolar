@@ -109,7 +109,7 @@ export function EarlySignsChecklist() {
           </p>
           <p className="text-xs text-muted">
             {totalChecked >= 5
-              ? "Vários sinais identificados. Considere conversar com seu profissional de saúde em breve."
+              ? "Vários sinais identificados. Considere conversar com seu profissional de saúde."
               : totalChecked >= 3
               ? "Alguns sinais presentes. Continue observando e registre no app."
               : "Poucos sinais — continue monitorando regularmente."}

@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
     }
     // Do NOT log content (sensitive data)
     Sentry.captureException(err, { tags: { endpoint: "journal-create" } });
-    console.error("Journal create error:", (err as Error).message);
+    console.error(JSON.stringify({ event: "journal_create_error", errorType: err instanceof Error ? err.constructor.name : "Unknown", message: (err as Error).message?.slice(0, 200) || "Unknown" }));
     return NextResponse.json({ error: "Erro ao salvar entrada" }, { status: 500 });
   }
 }

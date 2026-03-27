@@ -19,26 +19,26 @@ import { isWhatsAppConfigured, sendWhatsAppReminder, WHATSAPP_REMINDER_TEMPLATES
 
 const reminderMessages: Record<string, PushPayload> = {
   wakeReminder: {
-    title: "Bom dia! ☀️",
-    body: "Hora de registrar como você acordou.",
+    title: "Bom dia!",
+    body: "Que tal fazer um registro rápido?",
     tag: "wake",
     url: "/sono",
   },
   sleepReminder: {
-    title: "Hora de descansar 🌙",
-    body: "Prepare-se para dormir. Registre seu dia.",
+    title: "Boa noite!",
+    body: "Hora de fazer seu registro antes de dormir.",
     tag: "sleep",
     url: "/checkin",
   },
   diaryReminder: {
-    title: "Check-in do dia 📊",
-    body: "Como está seu humor e energia hoje?",
+    title: "Suporte Bipolar",
+    body: "Que tal fazer um registro rápido?",
     tag: "diary",
     url: "/checkin",
   },
   breathingReminder: {
-    title: "Pausa para respirar 🫁",
-    body: "Um minuto de respiração pode fazer diferença.",
+    title: "Suporte Bipolar",
+    body: "Você tem um lembrete.",
     tag: "breathing",
     url: "/exercicios",
   },

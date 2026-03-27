@@ -146,7 +146,7 @@ export default async function SonoPage() {
               )}
             </div>
             {deviationMin !== null && (
-              <p className="text-[10px] text-muted">
+              <p className="text-[11px] text-muted">
                 {deviationMin === 0 ? `Na sua média (${formatSleepDuration(personalBaseline)})`
                   : deviationMin > 0 ? `+${deviationMin}min vs sua média`
                   : `${deviationMin}min vs sua média`}
@@ -166,7 +166,7 @@ export default async function SonoPage() {
             <p className="text-xl font-bold tabular-nums">
               {bedtimeVariance !== null ? `±${bedtimeVariance}min` : "—"}
             </p>
-            <p className="text-[10px] text-muted">
+            <p className="text-[11px] text-muted">
               {bedtimeVariance !== null
                 ? bedtimeVariance <= 30 ? "Excelente — meta: ±30min"
                   : bedtimeVariance <= 60 ? "Moderada — tente horários fixos"
@@ -184,7 +184,7 @@ export default async function SonoPage() {
                 : trend === "stable" ? "→ Estável"
                 : "—"}
             </p>
-            <p className="text-[10px] text-muted">vs semana anterior</p>
+            <p className="text-[11px] text-muted">vs semana anterior</p>
           </Card>
 
           {/* Qualidade */}
@@ -193,7 +193,7 @@ export default async function SonoPage() {
             <p className="text-xl font-bold tabular-nums">
               {avgQuality !== null ? `${avgQuality}%` : "—"}
             </p>
-            <p className="text-[10px] text-muted">
+            <p className="text-[11px] text-muted">
               {avgQuality !== null
                 ? avgQuality >= 80 ? "Boa qualidade"
                   : avgQuality >= 60 ? "Regular"

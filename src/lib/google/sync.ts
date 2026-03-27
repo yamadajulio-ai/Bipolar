@@ -40,14 +40,12 @@ export async function pullGoogleCalendar(userId: string): Promise<SyncResult> {
 
   const confirmed = response.items.filter((e) => e.status !== "cancelled" && e.id);
   const cancelled = response.items.filter((e) => e.status === "cancelled" && e.id);
-  console.log(`[Google Sync] ${response.items.length} events (${confirmed.length} confirmed, ${cancelled.length} cancelled, fullSync=${isFullSync})`);
 
   // Full sync: delete all Google-sourced blocks first, then re-create.
   if (isFullSync) {
     const deleted = await prisma.plannerBlock.deleteMany({
       where: { userId, sourceType: "google" },
     });
-    console.log(`[Google Sync] Deleted ${deleted.count} old google blocks`);
   }
 
   let skippedAllDay = 0;
@@ -115,7 +113,6 @@ export async function pullGoogleCalendar(userId: string): Promise<SyncResult> {
     }
   }
 
-  console.log(`[Google Sync] Done: pulled=${pulled}, errors=${errors}, skippedAllDay=${skippedAllDay}, skippedLong=${skippedLong}`);
 
   // Update syncToken and lastSyncAt
   await prisma.googleAccount.update({

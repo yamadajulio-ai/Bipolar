@@ -9,7 +9,7 @@ function getCsrfToken(): string {
   const match = document.cookie
     .split("; ")
     .find((row) => row.startsWith(`${CSRF_COOKIE_NAME}=`));
-  return match ? match.split("=")[1] : "";
+  return match ? match.split("=")[1] ?? "" : "";
 }
 
 /**

@@ -10,6 +10,9 @@ import { ScaleSelector } from "@/components/ScaleSelector";
 import { MOOD_LABELS, ENERGY_LABELS, ANXIETY_LABELS, IRRITABILITY_LABELS, MEDICATION_OPTIONS, WARNING_SIGNS } from "@/lib/constants";
 import { MedicationDoseCheckin } from "@/components/MedicationDoseCheckin";
 import { track } from "@/lib/telemetry";
+import { hapticSuccess } from "@/lib/capacitor/haptics";
+import { isNative, registerPushNotifications } from "@/lib/capacitor";
+import { setupDefaultReminders } from "@/lib/capacitor/notifications";
 
 type CheckinMode = "minimal" | "complete";
 
@@ -238,7 +241,29 @@ export default function CheckinPage() {
         // Clear draft on success
         try { sessionStorage.removeItem(DRAFT_KEY); } catch {}
         track({ name: "checkin_complete", mode, snapshotCount: todaySnapshots.length + 1 });
+        hapticSuccess();
         setSuccess(true);
+
+        // Contextual push permission: ask after first successful check-in (native only)
+        if (isNative()) {
+          import('@capacitor/push-notifications').then(({ PushNotifications }) =>
+            PushNotifications.checkPermissions().then((result) => {
+              if (result.receive === 'prompt') {
+                registerPushNotifications().then((token) => {
+                  if (token) {
+                    fetch('/api/push-subscriptions', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ type: 'apns', token }),
+                    }).catch(() => {});
+                  }
+                  setupDefaultReminders().catch(() => {});
+                }).catch(() => {});
+              }
+            }).catch(() => {})
+          ).catch(() => {});
+        }
+
         redirectTimer.current = setTimeout(() => router.push("/hoje"), 8000);
       }
     } catch {
@@ -321,7 +346,7 @@ export default function CheckinPage() {
                   }`}
                 >
                   <p className="text-xs font-medium text-foreground">{time}</p>
-                  <div className="flex gap-2 mt-1 text-[10px] text-muted">
+                  <div className="flex gap-2 mt-1 text-[11px] text-muted">
                     <span title="Humor">H:{snap.mood}</span>
                     <span title="Energia">E:{snap.energy}</span>
                     <span title="Ansiedade">A:{snap.anxiety}</span>
@@ -336,7 +361,7 @@ export default function CheckinPage() {
                         setAnxiety(snap.anxiety);
                         setIrritability(snap.irritability);
                       }}
-                      className="mt-1 text-[10px] text-primary hover:underline"
+                      className="mt-1 text-[11px] text-primary hover:underline"
                     >
                       Editar ({minsLeft}min)
                     </button>
@@ -345,7 +370,7 @@ export default function CheckinPage() {
               );
             })}
           </div>
-          <p className="text-[10px] text-muted mt-2">
+          <p className="text-[11px] text-muted mt-2">
             Registre novamente para captar mudanças ao longo do dia.
           </p>
         </Card>

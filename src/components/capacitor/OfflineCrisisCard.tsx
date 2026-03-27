@@ -53,7 +53,7 @@ export function OfflineCrisisCard() {
           ))}
         </div>
         <button
-          onClick={() => shareContent(SHARE_PRESETS.crisisContacts)}
+          onClick={() => { shareContent(SHARE_PRESETS.crisisContacts).catch(() => {}); }}
           className="mt-2 w-full text-sm text-muted-foreground underline"
         >
           Compartilhar contatos com alguém de confiança

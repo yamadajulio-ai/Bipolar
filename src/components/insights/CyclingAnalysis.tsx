@@ -33,7 +33,7 @@ export function CyclingAnalysis({ data }: Props) {
         <div>
           <div className="text-xs text-foreground/60">Episódios</div>
           <div className="text-lg font-bold text-foreground">{data.episodes.length}</div>
-          <div className="text-[10px] text-foreground/50">últimos 90 dias</div>
+          <div className="text-[11px] text-foreground/50">últimos 90 dias</div>
         </div>
         <div>
           <div className="text-xs text-foreground/60">Mudanças de polo</div>
@@ -49,7 +49,7 @@ export function CyclingAnalysis({ data }: Props) {
 
       {/* Episode timeline */}
       <div className="mb-3">
-        <p className="mb-1.5 text-[10px] font-medium text-foreground/60">Linha do tempo</p>
+        <p className="mb-1.5 text-[11px] font-medium text-foreground/60">Linha do tempo</p>
         <div className="flex flex-wrap gap-1">
           {data.episodes.map((ep, i) => {
             const start = new Date(ep.startDate + "T12:00:00");
@@ -61,7 +61,7 @@ export function CyclingAnalysis({ data }: Props) {
             return (
               <div
                 key={i}
-                className={`rounded-md ${EPISODE_COLORS[ep.type]} px-2 py-1 text-[10px] font-semibold`}
+                className={`rounded-md ${EPISODE_COLORS[ep.type]} px-2 py-1 text-[11px] font-semibold`}
                 aria-label={`${typeLabel}: ${ep.startDate} a ${ep.endDate} (${days} dias)`}
                 title={`${typeLabel}: ${ep.startDate} a ${ep.endDate} (${days} dias)`}
               >
@@ -79,7 +79,7 @@ export function CyclingAnalysis({ data }: Props) {
         </div>
       )}
 
-      <p className="mt-3 text-center text-[10px] text-foreground/50">
+      <p className="mt-3 text-center text-[11px] text-foreground/50">
         Detecção baseada em padrões de humor e energia. Não constitui diagnóstico.
         Ciclagem rápida = 4 ou mais episódios em um ano (critério diagnóstico internacional).
       </p>

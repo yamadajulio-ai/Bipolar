@@ -58,7 +58,7 @@ export function NarrativeSection() {
             >
               Gerar resumo com IA
             </button>
-            <p className="mt-2 text-[10px] text-muted">
+            <p className="mt-2 text-[11px] text-muted">
               <a href="/consentimentos" className="underline hover:text-foreground">
                 Gerenciar consentimento
               </a>
@@ -99,7 +99,7 @@ export function NarrativeSection() {
             </button>
           </>
         )}
-        <p className="mt-2 text-[10px] text-muted italic">Powered by GPT — {APP_DISCLAIMER}</p>
+        <p className="mt-2 text-[11px] text-muted italic">Powered by GPT — {APP_DISCLAIMER}</p>
       </div>
     );
   }
@@ -133,7 +133,7 @@ export function NarrativeSection() {
 
       {/* Footer: metadata, feedback, regenerate */}
       <div className="border-t border-border/30 pt-3 mt-3 space-y-2">
-        <p className="text-[10px] text-muted italic">
+        <p className="text-[11px] text-muted italic">
           {narrative.source === "llm" ? "Gerado por IA"
             : narrative.source === "fallback" ? "Dados enviados à IA (resumo indisponível)"
             : "Resumo automático local"}
@@ -143,7 +143,7 @@ export function NarrativeSection() {
 
         {narrative.overview.dataQualityNote &&
          narrative.overview.dataQualityNote !== "Análise baseada nos registros disponíveis." && (
-          <p className="text-[10px] text-muted italic">{narrative.overview.dataQualityNote}</p>
+          <p className="text-[11px] text-muted italic">{narrative.overview.dataQualityNote}</p>
         )}
 
         <NarrativeFeedback

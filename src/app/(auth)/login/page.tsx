@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { FormField } from "@/components/FormField";
 import { Alert } from "@/components/Alert";
+import { AppleSignInButton } from "@/components/auth/AppleSignInButton";
 
 const oauthErrorMessages: Record<string, string> = {
   csrf: "Erro de segurança. Tente novamente.",
@@ -110,6 +111,10 @@ function LoginForm() {
         </svg>
         Entrar com Google
       </a>
+
+      <div className="mt-3">
+        <AppleSignInButton />
+      </div>
 
       <p className="mt-4 text-center text-sm text-muted">
         Não tem conta?{" "}

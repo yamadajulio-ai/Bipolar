@@ -32,7 +32,7 @@ export function InsightsTabs({ children }: { children: [React.ReactNode, React.R
             }`}
           >
             {tab.label}
-            <span className="block text-[10px] font-normal opacity-70">{tab.description}</span>
+            <span className="block text-[11px] font-normal opacity-70">{tab.description}</span>
           </button>
         ))}
       </div>

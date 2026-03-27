@@ -1,0 +1,51 @@
+<!--
+  Add these entries to ios/App/App/Info.plist after running `npx cap add ios`.
+  These are NOT automatically injected by Capacitor — they must be added manually
+  in Xcode or by editing the plist file directly.
+-->
+
+<!-- Face ID / Touch ID usage description (REQUIRED for App Store) -->
+<key>NSFaceIDUsageDescription</key>
+<string>O Suporte Bipolar usa Face ID para proteger seus dados de saúde. Somente você pode acessar seus registros de humor, sono e avaliações.</string>
+
+<!-- Microphone — used by SOS chatbot voice mode (STT) -->
+<key>NSMicrophoneUsageDescription</key>
+<string>O modo de voz do SOS usa o microfone para transcrever o que você fala durante o acolhimento por voz. O áudio não é gravado nem armazenado.</string>
+
+<!-- Speech Recognition — used by SOS chatbot voice mode -->
+<key>NSSpeechRecognitionUsageDescription</key>
+<string>O modo de voz do SOS usa reconhecimento de fala da Apple para converter sua voz em texto. Dados de áudio podem ser enviados aos servidores da Apple para processamento. Nenhum áudio é armazenado pelo app.</string>
+
+<!-- Camera (if ever needed for profile photo, etc.) -->
+<!-- <key>NSCameraUsageDescription</key>
+<string>Permite tirar foto de perfil</string> -->
+
+<!-- Push Notifications entitlement is configured in Xcode Signing & Capabilities -->
+
+<!-- Universal Links — Associated Domains entitlement -->
+<!-- In Xcode: Signing & Capabilities → + Associated Domains → add:
+     applinks:suportebipolar.com
+     webcredentials:suportebipolar.com
+-->
+
+<!-- Custom URL Scheme -->
+<key>CFBundleURLTypes</key>
+<array>
+  <dict>
+    <key>CFBundleURLName</key>
+    <string>com.suportebipolar.app</string>
+    <key>CFBundleURLSchemes</key>
+    <array>
+      <string>suportebipolar</string>
+    </array>
+  </dict>
+</array>
+
+<!-- App Transport Security — already satisfied (HTTPS only) -->
+<!-- No exceptions needed -->
+
+<!-- Background Modes for push notifications -->
+<key>UIBackgroundModes</key>
+<array>
+  <string>remote-notification</string>
+</array>

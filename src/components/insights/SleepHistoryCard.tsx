@@ -137,7 +137,7 @@ export function SleepDayGroup({ logs }: { logs: SleepLog[] }) {
               <div className="flex items-center gap-2">
                 <span className="text-xs font-medium capitalize">{weekday}</span>
                 <span className="text-xs text-muted">{dateLabel}</span>
-                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
                   {dayLogs.length} ciclos
                 </span>
               </div>
@@ -145,7 +145,7 @@ export function SleepDayGroup({ logs }: { logs: SleepLog[] }) {
                 <span className={`text-sm font-bold tabular-nums ${durationColor}`}>
                   {formatSleepDuration(dayTotal)}
                 </span>
-                <p className="text-[10px] text-muted">total do dia</p>
+                <p className="text-[11px] text-muted">total do dia</p>
               </div>
             </div>
 
@@ -203,15 +203,15 @@ function SleepCycleRow({ log, index }: { log: SleepLog; index: number }) {
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-[11px] font-medium text-muted">Ciclo {index}</span>
           {isNap && !excluded && (
-            <span className="rounded-full bg-purple-100 dark:bg-purple-900/60 px-1.5 py-0.5 text-[9px] font-medium text-purple-700 dark:text-purple-300">cochilo</span>
+            <span className="rounded-full bg-purple-100 dark:bg-purple-900/60 px-1.5 py-0.5 text-[11px] font-medium text-purple-700 dark:text-purple-300">cochilo</span>
           )}
           {excluded && (
-            <span className="rounded-full bg-surface-alt px-1.5 py-0.5 text-[9px] font-medium text-muted">excluído</span>
+            <span className="rounded-full bg-surface-alt px-1.5 py-0.5 text-[11px] font-medium text-muted">excluído</span>
           )}
           {isSuspect && !excluded && (
-            <span className="rounded-full bg-amber-100 dark:bg-amber-900/60 px-1.5 py-0.5 text-[9px] font-medium text-amber-700 dark:text-amber-300">incompleto?</span>
+            <span className="rounded-full bg-amber-100 dark:bg-amber-900/60 px-1.5 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-300">incompleto?</span>
           )}
-          {sourceLabels(log.source, log.fieldProvenance).map((s) => <span key={s.text} className={`rounded-full px-1.5 py-0.5 text-[9px] font-medium ${s.className}`}>{s.text}</span>)}
+          {sourceLabels(log.source, log.fieldProvenance).map((s) => <span key={s.text} className={`rounded-full px-1.5 py-0.5 text-[11px] font-medium ${s.className}`}>{s.text}</span>)}
         </div>
         <span className={`text-xs font-bold tabular-nums ${durationColor}`}>
           {formatSleepDuration(log.totalHours)}
@@ -222,15 +222,15 @@ function SleepCycleRow({ log, index }: { log: SleepLog; index: number }) {
         <div className={`h-1 rounded-full ${barColor}`} style={{ width: `${durationPct}%` }} />
       </div>
 
-      <div className="flex items-center justify-between text-[10px] text-muted">
+      <div className="flex items-center justify-between text-[11px] text-muted">
         <div className="flex flex-col">
           <span>{log.bedtime} → {log.wakeTime}</span>
           {awakeMinutes >= 30 && inBedHours !== null ? (
-            <span className="text-[9px] text-muted/70">
+            <span className="text-[11px] text-muted/70">
               Na cama: {formatSleepDuration(inBedHours)} · Dormiu: {formatSleepDuration(Math.max(0, log.totalHours - awakeMinutes / 60))} · {awakeMinutes}min acordado
             </span>
           ) : awakeMinutes >= 2 ? (
-            <span className="text-[9px] text-muted/70">{awakeMinutes}min acordado (relógio)</span>
+            <span className="text-[11px] text-muted/70">{awakeMinutes}min acordado (relógio)</span>
           ) : null}
         </div>
         <div className="flex items-center gap-2">
@@ -243,7 +243,7 @@ function SleepCycleRow({ log, index }: { log: SleepLog; index: number }) {
         <button
           onClick={handleToggle}
           disabled={toggling}
-          className={`mt-1.5 w-full rounded-md px-2 py-0.5 text-[10px] transition-colors ${
+          className={`mt-1.5 w-full rounded-md px-2 py-0.5 text-[11px] transition-colors ${
             excluded ? "bg-primary/10 text-primary hover:bg-primary/20" : "bg-surface-alt text-muted hover:bg-border"
           } disabled:opacity-50`}
         >
@@ -299,15 +299,15 @@ export function SleepHistoryCard({ log }: { log: SleepLog }) {
           <span className="text-xs font-medium capitalize">{weekday}</span>
           <span className="text-xs text-muted">{dateLabel}</span>
           {isNap && !excluded && (
-            <span className="rounded-full bg-purple-100 dark:bg-purple-900/60 px-2 py-0.5 text-[10px] font-medium text-purple-700 dark:text-purple-300">cochilo</span>
+            <span className="rounded-full bg-purple-100 dark:bg-purple-900/60 px-2 py-0.5 text-[11px] font-medium text-purple-700 dark:text-purple-300">cochilo</span>
           )}
           {excluded && (
-            <span className="rounded-full bg-surface-alt px-2 py-0.5 text-[10px] font-medium text-muted">excluído</span>
+            <span className="rounded-full bg-surface-alt px-2 py-0.5 text-[11px] font-medium text-muted">excluído</span>
           )}
           {isSuspect && !excluded && (
-            <span className="rounded-full bg-amber-100 dark:bg-amber-900/60 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300">incompleto?</span>
+            <span className="rounded-full bg-amber-100 dark:bg-amber-900/60 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-300">incompleto?</span>
           )}
-          {sourceLabels(log.source, log.fieldProvenance).map((s) => <span key={s.text} className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${s.className}`}>{s.text}</span>)}
+          {sourceLabels(log.source, log.fieldProvenance).map((s) => <span key={s.text} className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${s.className}`}>{s.text}</span>)}
         </div>
         <span className={`text-sm font-bold tabular-nums ${durationColor}`}>
           {formatSleepDuration(log.totalHours)}
@@ -322,11 +322,11 @@ export function SleepHistoryCard({ log }: { log: SleepLog }) {
         <div className="flex flex-col">
           <span>{log.bedtime} → {log.wakeTime}</span>
           {awakeMinutes >= 30 && inBedHours !== null ? (
-            <span className="text-[10px] text-muted/70">
+            <span className="text-[11px] text-muted/70">
               Na cama: {formatSleepDuration(inBedHours)} · Dormiu: {formatSleepDuration(Math.max(0, log.totalHours - awakeMinutes / 60))} · {awakeMinutes}min acordado
             </span>
           ) : awakeMinutes >= 2 ? (
-            <span className="text-[10px] text-muted/70">{awakeMinutes}min acordado (relógio)</span>
+            <span className="text-[11px] text-muted/70">{awakeMinutes}min acordado (relógio)</span>
           ) : null}
         </div>
         <div className="flex items-center gap-3">

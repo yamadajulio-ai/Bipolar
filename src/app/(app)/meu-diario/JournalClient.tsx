@@ -154,7 +154,7 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
             >
               Fechar esta mensagem
             </button>
-            <p className="text-[10px] text-red-600/70 italic">
+            <p className="text-[11px] text-red-600/70 italic">
               Esta é uma sugestão automática — não substitui avaliação profissional.
             </p>
           </div>
@@ -297,17 +297,17 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
               <div className="grid grid-cols-3 gap-2 text-center">
                 <div className="rounded-lg bg-surface-alt p-2">
                   <p className="text-lg font-bold text-primary">{journal.reflection.stats.totalEntries}</p>
-                  <p className="text-[10px] text-muted">entradas</p>
+                  <p className="text-[11px] text-muted">entradas</p>
                 </div>
                 <div className="rounded-lg bg-surface-alt p-2">
                   <p className="text-lg font-bold text-primary">{journal.reflection.stats.daysWithEntries}</p>
-                  <p className="text-[10px] text-muted">dias</p>
+                  <p className="text-[11px] text-muted">dias</p>
                 </div>
                 <div className="rounded-lg bg-surface-alt p-2">
                   <p className="text-lg font-bold text-primary">
                     {journal.reflection.stats.avgMood ?? "—"}
                   </p>
-                  <p className="text-[10px] text-muted">humor médio</p>
+                  <p className="text-[11px] text-muted">humor médio</p>
                 </div>
               </div>
 
@@ -322,7 +322,7 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
                       <div key={mj.zone} className="rounded-lg border border-border p-2.5">
                         <div className="flex items-center gap-2 mb-1">
                           <span className="text-xs font-medium">{mj.label}</span>
-                          <span className="text-[10px] text-muted">
+                          <span className="text-[11px] text-muted">
                             ({mj.count} {mj.count === 1 ? "entrada" : "entradas"})
                           </span>
                         </div>
@@ -349,7 +349,7 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
                 </div>
               )}
 
-              <p className="text-[10px] text-muted italic text-center">
+              <p className="text-[11px] text-muted italic text-center">
                 Período: {formatPeriod(journal.reflection.periodStart)} a {formatPeriod(journal.reflection.periodEnd)}
               </p>
             </div>
@@ -375,7 +375,7 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
                     {formatDate(entry.entryDateLocal, entry.createdAt)}
                   </span>
                   <span
-                    className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                    className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
                       entry.type === "DIARY"
                         ? "bg-primary/10 text-primary"
                         : "bg-amber-100 text-amber-800"
@@ -384,7 +384,7 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
                     {entry.type === "DIARY" ? "Diário" : "Insight"}
                   </span>
                   {entry.editedAt && (
-                    <span className="text-[10px] text-muted">(editado)</span>
+                    <span className="text-[11px] text-muted">(editado)</span>
                   )}
                 </div>
 
@@ -397,7 +397,7 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
                     mixed={entry.mixedAtCapture}
                   />
                 ) : (
-                  <span className="rounded-full bg-surface-alt px-2 py-0.5 text-[10px] text-muted">
+                  <span className="rounded-full bg-surface-alt px-2 py-0.5 text-[11px] text-muted">
                     Sem registro de humor
                   </span>
                 )}
@@ -447,7 +447,7 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
                     Editar
                   </button>
                   <button
-                    onClick={() => journal.handleDelete(entry.id)}
+                    onClick={() => journal.requestDelete(entry.id)}
                     className="text-xs text-red-500 hover:text-red-700"
                   >
                     Excluir
@@ -467,6 +467,43 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
               {journal.loadingMore ? "Carregando..." : "Ver mais entradas"}
             </button>
           )}
+        </div>
+      )}
+      {/* Error banner */}
+      {journal.errorMsg && (
+        <div className="fixed bottom-20 left-4 right-4 z-50 rounded-lg bg-red-600 p-3 text-center text-sm text-white shadow-lg">
+          <p>{journal.errorMsg}</p>
+          <button
+            onClick={() => journal.setErrorMsg(null)}
+            className="mt-1 text-xs underline"
+          >
+            Fechar
+          </button>
+        </div>
+      )}
+
+      {/* Delete confirmation */}
+      {journal.pendingDeleteId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-xs rounded-[var(--radius-card)] bg-surface p-6 shadow-lg">
+            <p className="mb-4 text-sm font-medium text-foreground">
+              Tem certeza? Esta ação é permanente.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={journal.cancelDelete}
+                className="flex-1 rounded-lg border border-border py-2.5 text-sm font-medium text-foreground"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={journal.confirmDelete}
+                className="flex-1 rounded-lg bg-red-600 py-2.5 text-sm font-medium text-white"
+              >
+                Excluir
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -493,14 +530,14 @@ function MoodBadge({
     <div className="flex items-center gap-1.5">
       {mixed && (
         <span
-          className="rounded-full bg-purple-100 px-1.5 py-0.5 text-[10px] font-medium text-purple-800"
+          className="rounded-full bg-purple-100 px-1.5 py-0.5 text-[11px] font-medium text-purple-800"
           title="Sinais de mania e depressão ao mesmo tempo"
         >
           Sinais mistos
         </span>
       )}
       <span
-        className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${config.bg} ${config.color}`}
+        className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${config.bg} ${config.color}`}
         title={`M: ${maniaScore ?? "?"} D: ${depressionScore ?? "?"}`}
       >
         {config.label}

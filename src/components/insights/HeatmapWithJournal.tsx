@@ -133,7 +133,7 @@ export function HeatmapWithJournal({ heatmapData, diaryEntries, journalEntries }
           {/* Check-in summary */}
           {diary && (
             <div className="mb-3 rounded-lg bg-surface-alt p-3">
-              <p className="text-[10px] font-medium text-muted uppercase tracking-wide mb-2">
+              <p className="text-[11px] font-medium text-muted uppercase tracking-wide mb-2">
                 Check-in do dia
               </p>
               <div className="grid grid-cols-2 gap-2 text-sm">
@@ -173,7 +173,7 @@ export function HeatmapWithJournal({ heatmapData, diaryEntries, journalEntries }
           {/* Journal entries for this day */}
           {journals.length > 0 && (
             <div>
-              <p className="text-[10px] font-medium text-muted uppercase tracking-wide mb-2">
+              <p className="text-[11px] font-medium text-muted uppercase tracking-wide mb-2">
                 Diário — o que você escreveu
               </p>
               <div className="space-y-2">
@@ -181,7 +181,7 @@ export function HeatmapWithJournal({ heatmapData, diaryEntries, journalEntries }
                   <div key={j.id} className="rounded-lg border border-border p-3">
                     <div className="flex items-center gap-2 mb-1.5">
                       <span
-                        className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                        className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
                           j.type === "DIARY"
                             ? "bg-primary/10 text-primary"
                             : "bg-amber-100 text-amber-800"
@@ -190,11 +190,11 @@ export function HeatmapWithJournal({ heatmapData, diaryEntries, journalEntries }
                         {j.type === "DIARY" ? "Diário" : "Insight"}
                       </span>
                       {j.zoneAtCapture && j.snapshotSource === "RECENT_CHECKIN" && (
-                        <span className={`text-[10px] ${ZONE_LABELS[j.zoneAtCapture]?.color ?? "text-muted"}`}>
+                        <span className={`text-[11px] ${ZONE_LABELS[j.zoneAtCapture]?.color ?? "text-muted"}`}>
                           {ZONE_LABELS[j.zoneAtCapture]?.label ?? j.zoneAtCapture}
                         </span>
                       )}
-                      <span className="text-[10px] text-muted ml-auto">
+                      <span className="text-[11px] text-muted ml-auto">
                         {formatTime(j.createdAt)}
                       </span>
                     </div>

@@ -333,7 +333,7 @@ export function MedicationDoseCheckin({ date, onComplete, onTrackingStatus }: Pr
                   )}
                   <span className="ml-auto flex items-center gap-1.5">
                     {dose.timeLocal}
-                    <span className="text-[10px] opacity-60 underline">corrigir</span>
+                    <span className="text-[11px] opacity-60 underline">corrigir</span>
                   </span>
                 </button>
               ),

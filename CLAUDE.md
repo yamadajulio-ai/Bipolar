@@ -88,13 +88,17 @@
 - **Landing pages públicas**: ainda Phase 1 legacy (deferred para Phase 2/3)
 
 ## iOS App Store — Estratégia B+
-- **Abordagem**: Capacitor com WebView + Vercel backend + pilares nativos reais (GPT Pro audit: 7.7/10)
-- **Pilares nativos**: Face ID/Keychain, APNs + Local Notifications, offline de crise, deep links + share
-- **NÃO usar**: `server.url` em produção (Capacitor docs: só para dev), static export (refactor 40-60% inviável)
-- **Apple Developer**: conta individual (Julio Cesar de Sousa Yamada), Enrollment ID 5J4DNRWRS2, compra 2026-03-19
-- **Mac Mini M4**: comprado, a caminho — necessário para Xcode build + TestFlight
-- **Review risks**: Guideline 4.2 (mitigado por native value), 1.4.1 (copy de suporte, não diagnóstico), demo account
+- **Abordagem**: Capacitor 8 com WebView + Vercel backend + pilares nativos reais
+- **GPT Pro audit scores**: R1 4.5 → R2 7.4 → R3 8.2/10
+- **Pilares nativos**: Face ID/Keychain, APNs + Local Notifications, offline de crise, deep links + share, Sign in with Apple (nonce + refresh token criptografado)
+- **server.url**: GPT Pro R3 recomenda remover para release (shell local + API remota). Capacitor docs: `server.url` é para dev, não produção. **BLOQUEADOR de submissão.**
+- **Conta Apple Developer**: individual (Julio Cesar de Sousa Yamada), Enrollment ID 5J4DNRWRS2. GPT Pro R3 alerta: Guideline 5.1.1(ix) exige legal entity para apps de saúde com dados sensíveis. **Considerar migração para organização.**
+- **Mac Mini M4**: recebido — pronto para Xcode build + TestFlight
+- **Review risks**: Guideline 4.2 (mitigado por 9 pilares nativos), 1.4.1 (copy de suporte), 5.1.1(ix) (conta individual), demo account
 - **Review Notes**: `docs/app-store-review-notes.md`
+- **Sign in with Apple**: flow nativo via @capacitor-community/apple-sign-in, nonce replay protection (NonceMismatchError), refresh token AES-256-GCM, revogação na exclusão de conta
+- **Privacy**: trackers bloqueados no WebView (`"Capacitor" in window`), privacyMode default ON, PrivacyInfo.xcprivacy, notificações genéricas no lock screen
+- **Pendentes para TestFlight**: remover server.url, substituir TEAM_ID no AASA, configurar entitlements no Xcode, testar plugin Apple v7/Cap v8 em device real
 
 ## AI Narrative — Modelo
 - **Modelo atual**: GPT-5.4 via OpenAI Responses API (migrado de Claude Sonnet 4)
@@ -124,9 +128,13 @@
 ## Security — Arquitetura
 - **CSRF**: 2 camadas — Sec-Fetch-Site/Origin (middleware) + double-submit cookie (`__Host-csrf` + `X-CSRF-Token` header via `CsrfProvider` global interceptor)
 - **CSP**: enforced (não report-only) — `Content-Security-Policy` no `next.config.ts`
-- **Step-up auth**: ações sensíveis (delete account, export) exigem re-confirmação de senha (email users) ou sessão recente <5min (Google OAuth)
-- **Session**: idle 7d + absolute 30d + sliding refresh 1h, iron-session encrypted, `Clear-Site-Data` no logout
-- **Rate limiting**: DB-backed atômico (`$transaction`), per-endpoint
+- **Permissions-Policy**: `camera=(), geolocation=()` — microphone liberado (necessário para SOS voice mode)
+- **Step-up auth**: ações sensíveis (delete account, export) exigem re-confirmação de senha (email users) ou sessão recente <5min (Google/Apple OAuth)
+- **Session**: idle 7d + absolute 30d + sliding refresh 1h, iron-session encrypted, `Clear-Site-Data` no logout, session rotation no login (anti-fixation)
+- **Rate limiting**: DB-backed atômico (`$transaction`), per-endpoint, windowMs em milissegundos (não segundos)
+- **Password reset tokens**: SHA-256 hash no DB, raw token só no e-mail
+- **OAuth refresh tokens**: AES-256-GCM (Google + Apple), revogação na exclusão de conta
+- **Apple Sign-In**: nonce replay protection (NonceMismatchError propaga imediatamente fora do key rotation loop)
 - **Sentry PII**: replays OFF, request data filtered, URL redaction, breadcrumb whitelist
 
 ## SafetyNudge — Arquitetura

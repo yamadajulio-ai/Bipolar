@@ -222,7 +222,7 @@ export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
           <p className="text-xs text-gray-400">
             {waitingMode
               ? "Estou com você enquanto o 188 atende"
-              : "IA de acolhimento — não é profissional de saúde"}
+              : "IA de acolhimento — NÃO é serviço de emergência"}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -380,9 +380,9 @@ export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
             </svg>
           </button>
         </div>
-        <p className="mt-2 text-center text-[10px] text-gray-500">
-          Você está conversando com uma IA. Não substitui atendimento
-          profissional.
+        <p className="mt-2 text-center text-[11px] text-gray-500">
+          Este chat NÃO é um serviço de emergência. Suas mensagens são processadas pela Anthropic (IA).
+          Em crise, ligue 192 (SAMU) ou 188 (CVV).
           {elapsedMin >= 5 && ` (${elapsedMin} min)`}
         </p>
       </div>

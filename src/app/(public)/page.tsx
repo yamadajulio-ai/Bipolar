@@ -190,7 +190,7 @@ export default function LandingPage() {
 
               {/* Google Calendar */}
               <div className="flex flex-col items-center rounded-2xl border border-border bg-surface p-6 text-center shadow-sm transition-shadow hover:shadow-md">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow-md border border-gray-200">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white dark:bg-gray-800 shadow-md border border-gray-200 dark:border-gray-700">
                   <svg className="h-7 w-7" viewBox="0 0 24 24">
                     <rect x="3" y="3" width="18" height="18" rx="2" fill="none" stroke="#4285F4" strokeWidth="1.5" />
                     <path d="M3 9h18M9 3v18" stroke="#4285F4" strokeWidth="1" opacity="0.3" />

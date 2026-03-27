@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Suporte Bipolar — Sem Conexão</title>
+  <style>
+    :root {
+      --primary: #527a6e;
+      --bg: #ffffff;
+      --text: #1a1a1a;
+      --muted: #6b7280;
+      --red: #dc2626;
+      --card-bg: #f9fafb;
+      --border: #e5e7eb;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #171411;
+        --text: #f5f5f4;
+        --muted: #a1a1aa;
+        --red: #ef4444;
+        --card-bg: #1c1917;
+        --border: #292524;
+      }
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: calc(1.5rem + var(--safe-top)) 1rem calc(1.5rem + var(--safe-bottom));
+    }
+    .header { text-align: center; margin-bottom: 1.5rem; }
+    .header h1 { font-size: 1.25rem; font-weight: 700; color: var(--primary); }
+    .header p { font-size: 0.8rem; color: var(--muted); margin-top: 0.25rem; }
+    .icon-offline {
+      display: block; margin: 0 auto 1rem; width: 56px; height: 56px;
+      border-radius: 50%; background: var(--primary); color: white;
+      display: flex; align-items: center; justify-content: center; font-size: 1.5rem;
+    }
+    .section { margin-bottom: 1.5rem; }
+    .section h2 { font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem; }
+    .card {
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: 12px; padding: 0.75rem; margin-bottom: 0.5rem;
+    }
+    .emergency-link {
+      display: flex; align-items: center; justify-content: space-between;
+      text-decoration: none; color: inherit;
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: 12px; padding: 0.75rem 1rem; margin-bottom: 0.5rem;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .emergency-link.primary { border-color: var(--red); }
+    .emergency-link .name { font-size: 0.85rem; font-weight: 500; }
+    .emergency-link .detail { font-size: 0.7rem; color: var(--muted); }
+    .emergency-link .phone { font-size: 1.25rem; font-weight: 700; color: var(--red); }
+    .grounding-step {
+      display: flex; align-items: center; gap: 0.75rem;
+      padding: 0.6rem 0; border-bottom: 1px solid var(--border);
+    }
+    .grounding-step:last-child { border-bottom: none; }
+    .grounding-step .num {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: var(--primary); color: white; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; font-size: 0.8rem;
+      flex-shrink: 0;
+    }
+    .grounding-step .sense { font-size: 0.85rem; }
+    .safety-msg {
+      background: rgba(82, 122, 110, 0.1); border: 1px solid rgba(82, 122, 110, 0.2);
+      border-radius: 12px; padding: 1rem; text-align: center; margin-top: auto;
+    }
+    .safety-msg p { font-size: 0.8rem; line-height: 1.5; }
+    .safety-msg a { color: var(--red); font-weight: 700; text-decoration: none; }
+    .retry-btn {
+      display: block; width: 100%; margin-top: 1rem; padding: 0.75rem;
+      border-radius: 8px; border: 1px solid var(--primary); background: transparent;
+      color: var(--primary); font-size: 0.85rem; font-weight: 500; cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="icon-offline">&#x26A0;</div>
+    <h1>Sem conexão com a internet</h1>
+    <p>Os recursos de crise abaixo funcionam offline</p>
+  </div>
+
+  <div class="section">
+    <h2>Contatos de Emergência</h2>
+    <a href="tel:188" class="emergency-link primary">
+      <div>
+        <div class="name">CVV — Centro de Valorização da Vida</div>
+        <div class="detail">24 horas, gratuito, confidencial</div>
+      </div>
+      <div class="phone">188</div>
+    </a>
+    <a href="tel:192" class="emergency-link primary">
+      <div>
+        <div class="name">SAMU</div>
+        <div class="detail">24 horas</div>
+      </div>
+      <div class="phone">192</div>
+    </a>
+    <a href="tel:193" class="emergency-link">
+      <div>
+        <div class="name">Bombeiros</div>
+        <div class="detail">24 horas</div>
+      </div>
+      <div class="phone">193</div>
+    </a>
+    <a href="tel:190" class="emergency-link">
+      <div>
+        <div class="name">Polícia Militar</div>
+        <div class="detail">24 horas</div>
+      </div>
+      <div class="phone">190</div>
+    </a>
+  </div>
+
+  <div class="section">
+    <h2>Exercício de Aterramento (5-4-3-2-1)</h2>
+    <p style="font-size: 0.8rem; color: var(--muted); margin-bottom: 0.5rem;">
+      Respire fundo e identifique ao seu redor:
+    </p>
+    <div class="card">
+      <div class="grounding-step"><div class="num">5</div><div class="sense">coisas que você pode <strong>VER</strong></div></div>
+      <div class="grounding-step"><div class="num">4</div><div class="sense">coisas que você pode <strong>TOCAR</strong></div></div>
+      <div class="grounding-step"><div class="num">3</div><div class="sense">coisas que você pode <strong>OUVIR</strong></div></div>
+      <div class="grounding-step"><div class="num">2</div><div class="sense">coisas que você pode <strong>CHEIRAR</strong></div></div>
+      <div class="grounding-step"><div class="num">1</div><div class="sense">coisa que você pode <strong>SABOREAR</strong></div></div>
+    </div>
+  </div>
+
+  <div class="safety-msg">
+    <p>
+      Você não está sozinho.<br>
+      Se estiver em crise, ligue para o <a href="tel:188">CVV 188</a><br>
+      <small style="color: var(--muted);">Gratuito, confidencial, 24 horas.</small>
+    </p>
+  </div>
+
+  <button class="retry-btn" onclick="location.reload()">Tentar reconectar</button>
+</body>
+</html>

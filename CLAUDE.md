@@ -132,11 +132,16 @@
 - **Permissions-Policy**: `camera=(), geolocation=()` — microphone liberado (necessário para SOS voice mode)
 - **Step-up auth**: ações sensíveis (delete account, export) exigem re-confirmação de senha (email users) ou sessão recente <5min (Google/Apple OAuth)
 - **Session**: idle 7d + absolute 30d + sliding refresh 1h, iron-session encrypted, `Clear-Site-Data` no logout, session rotation no login (anti-fixation)
-- **Rate limiting**: DB-backed atômico (`$transaction`), per-endpoint, windowMs em milissegundos (não segundos). **100% de rotas com rate limit** (cobertura completa após hardening 2026-03-28).
+- **Rate limiting**: DB-backed atômico (`$transaction`), per-endpoint, windowMs em milissegundos (não segundos). **100% de rotas com rate limit** (cobertura completa após hardening 2026-03-28). Integration GET endpoints: 30 req/min per API key.
+- **LGPD Consent Gates**: todas as rotas de escrita E leitura de dados de saúde verificam consent ativo (`health_data` ou `journal_data`). 13+ endpoints protegidos incl. integration GET/POST. Integration endpoints usam `integration.userId` (key owner). Ordem padrão: auth → rate limit → consent → body parse.
 - **getClientIp()**: utility padronizada (`cf-connecting-ip` → `x-forwarded-for[0]` → `x-real-ip` → `"unknown"`). Todas as rotas usam — zero raw `x-forwarded-for` parsing.
-- **Password reset tokens**: SHA-256 hash no DB, raw token só no e-mail
+- **Password reset tokens**: SHA-256 hash no DB, raw token só no e-mail. Orphan cleanup on account deletion (keyed by email, not userId — sem FK cascade). Cron purge tokens >7 dias (used/expired).
+- **Password hashing**: argon2id padrão. bcrypt→argon2id transparent rehash on successful login (auto-upgrade legado, non-blocking com Sentry fallback).
+- **Anti-enumeration**: cadastro returns identical 201 for duplicate emails; forgot-password returns 200 mesmo se sendEmail falhar (try/catch com Sentry); timing equalized (argon2 always runs).
+- **SESSION_SECRET**: min 32 chars + entropy check (min 8 unique chars) enforced em `getCsrfKey()`.
 - **OAuth refresh tokens**: AES-256-GCM (Google + Apple), revogação na exclusão de conta
 - **Apple Sign-In**: nonce replay protection (NonceMismatchError propaga imediatamente fora do key rotation loop)
+- **Cron purge**: `$transaction` atômico para AccessLog (90d) + RateLimit (expired) + PasswordResetToken (7d)
 - **Sentry PII**: replays OFF, request data filtered, URL redaction, breadcrumb whitelist
 - **Error messages**: 100% pt-BR em todas as rotas (zero English leaking)
 

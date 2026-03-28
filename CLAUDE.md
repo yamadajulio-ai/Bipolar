@@ -15,6 +15,7 @@
 - CDN/WAF: Cloudflare Pro ($20/ano, proxy ON, SSL Full strict)
 - Workers: Cloudflare Workers Paid ($5/mês)
 - Backup: Cloudflare R2 (bucket `suporte-bipolar-backups`)
+- Email: Postmark (transactional, DKIM+Return-Path verified, remetente `contato@suportebipolar.com`)
 - Integrações: Apple Health via Health Auto Export (HAE) + Cloudflare Worker proxy + `waitUntil()` background processing
 - `@vercel/functions` — `waitUntil()` for deferred background work (HAE import)
 
@@ -99,7 +100,7 @@
 - **Pilares nativos**: Face ID/Keychain, APNs + Local Notifications, offline de crise, deep links + share, Sign in with Apple (nonce + refresh token criptografado)
 - **server.url**: GPT Pro R3 recomenda remover para release (shell local + API remota). Capacitor docs: `server.url` é para dev, não produção. **BLOQUEADOR de submissão.**
 - **Conta Apple Developer**: individual (Julio Cesar de Sousa Yamada), Enrollment ID 5J4DNRWRS2. GPT Pro R3 alerta: Guideline 5.1.1(ix) exige legal entity para apps de saúde com dados sensíveis. **Considerar migração para organização.**
-- **Mac Mini M4**: recebido — pronto para Xcode build + TestFlight
+- **Mac Mini M4**: configurado (Node.js, VS Code, Claude Code). Setup script: `scripts/ios-setup.sh`. Guia enviado por email (2026-03-28).
 - **Review risks**: Guideline 4.2 (mitigado por 9 pilares nativos), 1.4.1 (copy de suporte), 5.1.1(ix) (conta individual), demo account
 - **Review Notes**: `docs/app-store-review-notes.md`
 - **Sign in with Apple**: nativo (Capacitor plugin) + **web OAuth** (form_post callback). Service ID `com.suportebipolar.web`, App ID `com.suportebipolar.app`. Dual audience JWT verification, sameSite:none state cookie, nonce replay protection, refresh token AES-256-GCM, revogação na exclusão de conta
@@ -119,6 +120,8 @@
 - **Legacy**: redebipolar.com (ainda ativo)
 - **HAE Worker**: hae-proxy on Cloudflare Workers Paid → suportebipolar.com/api/integrations/health-export (POST responds instantly via `waitUntil()`, heavy DB ops run in background)
 - **Backups**: Cloudflare R2 bucket `suporte-bipolar-backups` (ENAM, Standard)
+- **Email**: Postmark (Server ID 18583576, DKIM verified, Return-Path verified). Password reset via `src/lib/email.ts`. 100 emails/mês (Free tier).
+- **Neon DB**: sa-east-1 (São Paulo), PostgreSQL 17.8, 51 tabelas, pooler endpoint. PITR 7d. Restore drill: `scripts/restore-drill.mjs` (11 checks PASS). Backup script: `scripts/backup-db.sh` (pg_dump → R2).
 
 ## Insights — Arquitetura
 - Página: `src/app/(app)/insights/page.tsx` (Server Component)

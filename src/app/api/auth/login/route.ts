@@ -67,6 +67,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: AUTH_ERROR }, { status: 401 });
     }
 
+    // Auto-upgrade legacy bcrypt hashes to argon2id (transparent rehash on successful login)
+    if (user.passwordHash.startsWith("$2a$") || user.passwordHash.startsWith("$2b$")) {
+      const { hashPassword } = await import("@/lib/auth");
+      const newHash = await hashPassword(senha);
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { passwordHash: newHash },
+      }).catch(() => {}); // Non-blocking: login succeeds even if rehash fails
+    }
+
     // Session rotation: destroy pre-auth cookie before creating authenticated session
     // Prevents session fixation — any pre-existing cookie is invalidated
     const session = await getSession();

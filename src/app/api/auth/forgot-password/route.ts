@@ -4,6 +4,7 @@ import { randomBytes, createHash } from "crypto";
 import { prisma } from "@/lib/db";
 import { checkRateLimit, getClientIp } from "@/lib/security";
 import { sendEmail } from "@/lib/email";
+import * as Sentry from "@sentry/nextjs";
 
 /** Hash token with SHA-256 before storing — raw token is only sent via email */
 function hashToken(token: string): string {
@@ -72,38 +73,44 @@ export async function POST(request: NextRequest) {
 
     const resetUrl = `${process.env.NEXT_PUBLIC_BASE_URL || "https://suportebipolar.com"}/redefinir-senha?token=${token}`;
 
-    await sendEmail({
-      to: email,
-      subject: "Redefinir sua senha — Suporte Bipolar",
-      htmlBody: `
-        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
-          <h2 style="color: #527a6e; margin-bottom: 16px;">Redefinir senha</h2>
-          <p style="color: #333; line-height: 1.6;">
-            Você solicitou a redefinição da sua senha no <strong>Suporte Bipolar</strong>.
-          </p>
-          <p style="color: #333; line-height: 1.6;">
-            Clique no botão abaixo para criar uma nova senha. Este link expira em <strong>30 minutos</strong>.
-          </p>
-          <div style="text-align: center; margin: 24px 0;">
-            <a href="${resetUrl}" style="display: inline-block; background-color: #527a6e; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px;">
-              Redefinir minha senha
-            </a>
+    try {
+      await sendEmail({
+        to: email,
+        subject: "Redefinir sua senha — Suporte Bipolar",
+        htmlBody: `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
+            <h2 style="color: #527a6e; margin-bottom: 16px;">Redefinir senha</h2>
+            <p style="color: #333; line-height: 1.6;">
+              Você solicitou a redefinição da sua senha no <strong>Suporte Bipolar</strong>.
+            </p>
+            <p style="color: #333; line-height: 1.6;">
+              Clique no botão abaixo para criar uma nova senha. Este link expira em <strong>30 minutos</strong>.
+            </p>
+            <div style="text-align: center; margin: 24px 0;">
+              <a href="${resetUrl}" style="display: inline-block; background-color: #527a6e; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px;">
+                Redefinir minha senha
+              </a>
+            </div>
+            <p style="color: #666; font-size: 13px; line-height: 1.5;">
+              Se você não solicitou isso, ignore este e-mail. Sua senha permanecerá a mesma.
+            </p>
+            <p style="color: #666; font-size: 13px; line-height: 1.5;">
+              Caso o botão não funcione, copie e cole este link no navegador:<br/>
+              <a href="${resetUrl}" style="color: #527a6e; word-break: break-all;">${resetUrl}</a>
+            </p>
+            <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0;" />
+            <p style="color: #999; font-size: 11px;">
+              Suporte Bipolar — Ferramenta de autocuidado. Não substitui acompanhamento profissional.
+            </p>
           </div>
-          <p style="color: #666; font-size: 13px; line-height: 1.5;">
-            Se você não solicitou isso, ignore este e-mail. Sua senha permanecerá a mesma.
-          </p>
-          <p style="color: #666; font-size: 13px; line-height: 1.5;">
-            Caso o botão não funcione, copie e cole este link no navegador:<br/>
-            <a href="${resetUrl}" style="color: #527a6e; word-break: break-all;">${resetUrl}</a>
-          </p>
-          <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0;" />
-          <p style="color: #999; font-size: 11px;">
-            Suporte Bipolar — Ferramenta de autocuidado. Não substitui acompanhamento profissional.
-          </p>
-        </div>
-      `,
-      textBody: `Redefinir senha — Suporte Bipolar\n\nVocê solicitou a redefinição da sua senha.\n\nAcesse este link para criar uma nova senha (expira em 30 minutos):\n${resetUrl}\n\nSe você não solicitou isso, ignore este e-mail.\n\n—\nSuporte Bipolar`,
-    });
+        `,
+        textBody: `Redefinir senha — Suporte Bipolar\n\nVocê solicitou a redefinição da sua senha.\n\nAcesse este link para criar uma nova senha (expira em 30 minutos):\n${resetUrl}\n\nSe você não solicitou isso, ignore este e-mail.\n\n—\nSuporte Bipolar`,
+      });
+    } catch (emailErr) {
+      // Swallow email errors to prevent user enumeration via 500 vs 200 difference.
+      // Token was created — user can retry if email didn't arrive.
+      Sentry.captureException(emailErr, { tags: { endpoint: "forgot-password", action: "send-email" } });
+    }
   }
 
   return NextResponse.json({ ok: true });

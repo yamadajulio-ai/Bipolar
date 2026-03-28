@@ -74,6 +74,7 @@ vi.mock("@/lib/db", () => ({
     financialTransaction: { findMany: mockFinancialFindMany },
     feedback: { findMany: mockFeedbackFindMany },
     contextualFeedback: { findMany: mockContextualFindMany },
+    passwordResetToken: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
   },
 }));
 

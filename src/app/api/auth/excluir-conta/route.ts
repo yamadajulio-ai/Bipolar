@@ -117,6 +117,11 @@ export async function POST(request: NextRequest) {
       Sentry.captureException(err, { level: "warning", tags: { endpoint: "excluir-conta", action: "revoke-native-sessions" } });
     });
 
+    // Purge orphan PasswordResetTokens (no FK cascade — keyed by email, not userId)
+    await prisma.passwordResetToken.deleteMany({
+      where: { email: session.email },
+    }).catch(() => {});
+
     await prisma.user.delete({ where: { id: userId } });
   } catch (err) {
     Sentry.captureException(err, { tags: { endpoint: "excluir-conta" } });

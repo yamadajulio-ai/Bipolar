@@ -182,6 +182,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Limite de requisições atingido" }, { status: 429 });
   }
 
+  // Consent gate: verify key owner still has "health_data" consent (LGPD Art. 11)
+  const consent = await prisma.consent.findFirst({
+    where: { userId: integration.userId, scope: "health_data", revokedAt: null },
+    select: { id: true },
+  });
+  if (!consent) {
+    return NextResponse.json(
+      { error: "Consentimento para dados de saúde revogado pelo usuário." },
+      { status: 403 },
+    );
+  }
+
   // Reject oversized payloads before JSON parsing (max 5MB — HAE batches are typically <1MB)
   const contentLength = request.headers.get("content-length");
   if (contentLength && parseInt(contentLength, 10) > 5_000_000) {

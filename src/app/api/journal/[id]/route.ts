@@ -32,6 +32,18 @@ export async function PATCH(
     );
   }
 
+  // Consent gate: require "journal_data" scope (LGPD Art. 11)
+  const journalConsent = await prisma.consent.findFirst({
+    where: { userId: session.userId, scope: "journal_data", revokedAt: null },
+    select: { id: true },
+  });
+  if (!journalConsent) {
+    return NextResponse.json(
+      { error: "Consentimento para dados do diário não concedido. Acesse Privacidade para autorizar." },
+      { status: 403 },
+    );
+  }
+
   try {
     const body = await request.json();
     const parsed = updateSchema.safeParse(body);

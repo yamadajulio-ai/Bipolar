@@ -38,6 +38,18 @@ export async function GET(request: NextRequest) {
       where: { expiresAt: { lt: new Date() } },
     });
 
+    // Purge used/expired password reset tokens older than 7 days
+    const tokenCutoff = new Date();
+    tokenCutoff.setDate(tokenCutoff.getDate() - 7);
+    await prisma.passwordResetToken.deleteMany({
+      where: {
+        OR: [
+          { usedAt: { lt: tokenCutoff } },
+          { expiresAt: { lt: tokenCutoff } },
+        ],
+      },
+    });
+
     Sentry.captureCheckIn({ checkInId, monitorSlug: "purge-access-logs", status: "ok" });
     return NextResponse.json({ ok: true });
   } catch (err) {

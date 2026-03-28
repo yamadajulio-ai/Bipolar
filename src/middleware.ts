@@ -41,6 +41,7 @@ const ONBOARD_EXEMPT_EXACT = [
   "/api/consentimentos",
   "/api/display-preferences",
   "/api/safety-screening",
+  "/api/sos", // SOS must always be accessible — crisis endpoint (prefix "/api/sos/" already in PREFIXES)
 ];
 
 const protectedPaths = [
@@ -134,11 +135,13 @@ async function checkCsrf(request: NextRequest): Promise<NextResponse | null> {
 
   // Sec-Fetch-Site: browsers always send this on fetch/XHR
   if (secFetchSite && secFetchSite !== "same-origin" && secFetchSite !== "none") {
+    console.warn("[CSRF] cross-origin blocked", { pathname, secFetchSite, origin });
     return NextResponse.json({ error: "Requisição cross-origin bloqueada" }, { status: 403 });
   }
 
   // Origin header check (fallback for older browsers)
   if (origin && origin !== expectedOrigin) {
+    console.warn("[CSRF] origin mismatch", { pathname, origin, expected: expectedOrigin });
     return NextResponse.json({ error: "Requisição cross-origin bloqueada" }, { status: 403 });
   }
 
@@ -146,9 +149,11 @@ async function checkCsrf(request: NextRequest): Promise<NextResponse | null> {
   if (!secFetchSite && !origin) {
     try {
       if (!referer || new URL(referer).origin !== expectedOrigin) {
+        console.warn("[CSRF] unverifiable origin", { pathname, referer: referer ?? "none" });
         return NextResponse.json({ error: "Origem não verificável" }, { status: 403 });
       }
     } catch {
+      console.warn("[CSRF] unverifiable origin (malformed referer)", { pathname });
       return NextResponse.json({ error: "Origem não verificável" }, { status: 403 });
     }
   }
@@ -158,6 +163,7 @@ async function checkCsrf(request: NextRequest): Promise<NextResponse | null> {
   const csrfCookie = request.cookies.get(CSRF_COOKIE_NAME)?.value;
   const csrfHeader = headers.get(CSRF_HEADER_NAME);
   if (!(await validateCsrfToken(csrfCookie, csrfHeader))) {
+    console.warn("[CSRF] token validation failed", { pathname, hasCookie: !!csrfCookie, hasHeader: !!csrfHeader });
     return NextResponse.json({ error: "Token CSRF inválido" }, { status: 403 });
   }
 

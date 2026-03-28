@@ -299,7 +299,7 @@ export default function LifeChartPage() {
               </button>
               <button
                 onClick={confirmDelete}
-                className="flex-1 rounded-lg bg-red-600 py-2.5 text-sm font-medium text-white"
+                className="flex-1 rounded-lg bg-danger py-2.5 text-sm font-medium text-white"
               >
                 Remover
               </button>

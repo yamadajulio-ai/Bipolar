@@ -131,13 +131,13 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
             <div className="flex flex-wrap gap-2">
               <a
                 href="tel:188"
-                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white"
+                className="rounded-lg bg-danger px-4 py-2 text-sm font-medium text-white"
               >
                 CVV 188 (24h)
               </a>
               <a
                 href="tel:192"
-                className="rounded-lg bg-red-700 px-4 py-2 text-sm font-medium text-white"
+                className="rounded-lg bg-danger px-4 py-2 text-sm font-medium text-white"
               >
                 SAMU 192
               </a>
@@ -498,7 +498,7 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
               </button>
               <button
                 onClick={journal.confirmDelete}
-                className="flex-1 rounded-lg bg-red-600 py-2.5 text-sm font-medium text-white"
+                className="flex-1 rounded-lg bg-danger py-2.5 text-sm font-medium text-white"
               >
                 Excluir
               </button>

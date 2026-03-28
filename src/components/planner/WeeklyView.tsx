@@ -380,8 +380,8 @@ export function WeeklyView({ initialWeekStart }: WeeklyViewProps) {
       ))}
 
       {fetchError && (
-        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-center">
-          <p className="text-sm text-red-700">{fetchError}</p>
+        <div className="mb-4 rounded-lg border border-danger-border bg-danger-bg-subtle p-4 text-center">
+          <p className="text-sm text-danger-fg">{fetchError}</p>
           <button
             onClick={() => {
               const controller = new AbortController();

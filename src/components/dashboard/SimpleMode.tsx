@@ -89,7 +89,7 @@ export function SimpleMode({
       {/* Primary action: check-in */}
       <Link
         href="/checkin"
-        className="block w-full rounded-xl bg-emerald-600 text-white text-center py-5 text-lg font-medium hover:bg-emerald-700 transition-colors no-underline shadow-sm"
+        className="block w-full rounded-xl bg-primary text-white text-center py-5 text-lg font-medium hover:bg-primary-dark transition-colors no-underline shadow-sm"
       >
         Registrar como estou
       </Link>
@@ -97,7 +97,7 @@ export function SimpleMode({
       {/* SOS button */}
       <Link
         href="/sos"
-        className="block w-full rounded-xl bg-red-600 text-white text-center py-5 text-lg font-medium hover:bg-red-700 transition-colors no-underline shadow-sm"
+        className="block w-full rounded-xl bg-danger text-white text-center py-5 text-lg font-medium hover:bg-danger/90 transition-colors no-underline shadow-sm"
       >
         SOS — Preciso de ajuda
       </Link>

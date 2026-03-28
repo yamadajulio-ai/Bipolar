@@ -311,7 +311,7 @@ function ResultsScreen({ result, history, onBack, onReset, onSaved }: { result: 
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold">Seus Resultados</h2>
-        {saved && <span className="text-xs text-green-500">Salvo</span>}
+        {saved && <span className="text-xs text-success-fg">Salvo</span>}
       </div>
 
       {/* Reaction Time */}

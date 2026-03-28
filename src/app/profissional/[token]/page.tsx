@@ -279,10 +279,10 @@ export default function ProfessionalDashboard() {
               <span
                 className={`rounded-full px-3 py-1 text-xs font-bold ${
                   insights.risk.level === "ok"
-                    ? "bg-green-100 text-green-800"
+                    ? "bg-success-bg-subtle text-success-fg"
                     : insights.risk.level === "atencao"
-                      ? "bg-amber-100 text-amber-800"
-                      : "bg-red-100 text-red-800"
+                      ? "bg-warning-bg-subtle text-warning-fg"
+                      : "bg-danger-bg-subtle text-danger-fg"
                 }`}
               >
                 {insights.risk.level === "ok"

@@ -114,7 +114,7 @@ export function SafetyInterstitial({ source, sourceAssessmentId, onComplete, onD
                   }}
                   className={`rounded-md px-3 py-2.5 text-xs font-medium transition-colors min-h-[44px] ${
                     asqAnswers[i] === true
-                      ? "bg-red-600 text-white"
+                      ? "bg-danger text-white"
                       : "border border-orange-300 dark:border-orange-700 bg-surface dark:bg-orange-950/50 text-orange-800 dark:text-orange-200 hover:bg-orange-100 dark:hover:bg-orange-900/50"
                   }`}
                 >
@@ -164,7 +164,7 @@ export function SafetyInterstitial({ source, sourceAssessmentId, onComplete, onD
         <h3 className="text-base font-bold text-red-900 dark:text-red-200 mb-2">
           Mais uma pergunta importante
         </h3>
-        <p className="text-sm text-red-800 mb-4">
+        <p className="text-sm text-red-800 dark:text-red-200 mb-4">
           Você está tendo pensamentos de se matar <strong>agora</strong>?
         </p>
         <div className="flex gap-2">
@@ -225,10 +225,10 @@ export function SafetyInterstitial({ source, sourceAssessmentId, onComplete, onD
   if (step === "result_clear") {
     return (
       <div className="rounded-[var(--radius-card)] border border-emerald-300 bg-emerald-50 p-6 shadow-[var(--shadow-card)] dark:bg-emerald-950/50 dark:border-emerald-700">
-        <h3 className="text-base font-bold text-emerald-900 mb-2">
+        <h3 className="text-base font-bold text-emerald-900 dark:text-emerald-200 mb-2">
           Obrigado por responder
         </h3>
-        <p className="text-sm text-emerald-800 mb-4">
+        <p className="text-sm text-emerald-800 dark:text-emerald-300 mb-4">
           Suas respostas não indicam risco agudo neste momento. Mesmo assim, se precisar de apoio,
           o CVV (188) está disponível 24 horas.
         </p>
@@ -242,10 +242,10 @@ export function SafetyInterstitial({ source, sourceAssessmentId, onComplete, onD
   // ── Result: Concern ──────────────────────────────────────────
   return (
     <div className="rounded-[var(--radius-card)] border border-red-400 bg-red-50 p-6 shadow-[var(--shadow-card)] dark:bg-red-950/50 dark:border-red-700" role="alert">
-      <h3 className="text-base font-bold text-red-900 mb-2">
+      <h3 className="text-base font-bold text-red-900 dark:text-red-200 mb-2">
         Queremos garantir que você está seguro
       </h3>
-      <p className="text-sm text-red-800 mb-4">
+      <p className="text-sm text-red-800 dark:text-red-200 mb-4">
         Suas respostas indicam que você pode precisar de apoio agora. Existem pessoas prontas para ajudar
         — 24 horas, todos os dias.
       </p>

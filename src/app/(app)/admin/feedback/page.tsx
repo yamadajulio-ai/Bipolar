@@ -126,7 +126,7 @@ export default async function AdminFeedbackPage({
               {label}
             </a>
           ))}
-          <a href="/admin/feedback?priority=high" className={`px-2 py-1 rounded ${priorityFilter === "high" ? "bg-red-600 text-white" : "bg-danger-bg-subtle text-danger-fg"}`}>
+          <a href="/admin/feedback?priority=high" className={`px-2 py-1 rounded ${priorityFilter === "high" ? "bg-danger text-white" : "bg-danger-bg-subtle text-danger-fg"}`}>
             Sinal de risco
           </a>
         </div>

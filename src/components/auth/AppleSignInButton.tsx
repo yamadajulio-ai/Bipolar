@@ -108,7 +108,7 @@ export function AppleSignInButton({ className }: { className?: string }) {
         {loading ? "Entrando..." : "Continuar com Apple"}
       </button>
       {error && (
-        <p className="mt-2 text-center text-xs text-red-500">{error}</p>
+        <p className="mt-2 text-center text-xs text-danger-fg">{error}</p>
       )}
     </div>
   );

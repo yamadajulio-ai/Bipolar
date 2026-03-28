@@ -259,7 +259,7 @@ export function MedicationDoseCheckin({ date, onComplete, onTrackingStatus }: Pr
       {/* Overdue / current doses */}
       {overdueDoses.length > 0 && (
         <div className="mb-3">
-          <p className="text-xs font-medium text-amber-600 mb-2">
+          <p className="text-xs font-medium text-warning-fg mb-2">
             Agora / atrasadas
           </p>
           <div className="space-y-2">
@@ -380,7 +380,7 @@ function DoseRow({
             <span className="text-muted font-normal ml-1">({dose.dosageText})</span>
           )}
         </p>
-        <p className={`text-xs ${dose.isOverdue ? "text-amber-600" : "text-muted"}`}>
+        <p className={`text-xs ${dose.isOverdue ? "text-warning-fg" : "text-muted"}`}>
           {dose.timeLocal}
           {dose.isOverdue && " — atrasado"}
         </p>

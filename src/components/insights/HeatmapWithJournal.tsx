@@ -154,8 +154,8 @@ export function HeatmapWithJournal({ heatmapData, diaryEntries, journalEntries }
                 <div>
                   <span className="text-xs text-muted">Medicação:</span>{" "}
                   <span className={`font-medium ${
-                    diary.tookMedication === "sim" ? "text-emerald-700" :
-                    diary.tookMedication === "nao" ? "text-red-600" : "text-amber-600"
+                    diary.tookMedication === "sim" ? "text-success-fg" :
+                    diary.tookMedication === "nao" ? "text-danger-fg" : "text-warning-fg"
                   }`}>
                     {diary.tookMedication === "sim" ? "Sim" :
                      diary.tookMedication === "nao" ? "Não" : "Ainda não"}

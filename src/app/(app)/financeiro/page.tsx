@@ -489,7 +489,7 @@ function CorrelationCard({ label, corr, description }: { label: string; corr: Co
   };
   const strengthColors = {
     muito_fraca: "text-muted",
-    fraca: "text-amber-600",
+    fraca: "text-amber-600 dark:text-amber-400",
     moderada: "text-orange-600 dark:text-orange-400",
     forte: "text-danger-fg",
   };

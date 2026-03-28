@@ -89,11 +89,11 @@ export function GoogleCalendarSync({ isConnected: initialConnected }: Props) {
         </button>
         {confirmDisconnect ? (
           <div className="flex items-center gap-2">
-            <span className="text-xs text-red-600">Blocos importados serão removidos.</span>
+            <span className="text-xs text-danger-fg">Blocos importados serão removidos.</span>
             <button
               onClick={handleDisconnect}
               disabled={disconnecting}
-              className="rounded bg-red-600 px-3 py-2.5 text-sm text-white disabled:opacity-50"
+              className="rounded bg-danger px-3 py-2.5 text-sm text-white disabled:opacity-50"
             >
               {disconnecting ? "Removendo..." : "Confirmar"}
             </button>
@@ -107,7 +107,7 @@ export function GoogleCalendarSync({ isConnected: initialConnected }: Props) {
         ) : (
           <button
             onClick={handleDisconnect}
-            className="rounded border border-red-300 px-3 py-2.5 text-sm text-red-600"
+            className="rounded border border-danger-border px-3 py-2.5 text-sm text-danger-fg"
           >
             Desconectar
           </button>
@@ -120,7 +120,7 @@ export function GoogleCalendarSync({ isConnected: initialConnected }: Props) {
           {syncResult.errors > 0 && `, ${syncResult.errors} erros`}
         </p>
       )}
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-danger-fg">{error}</p>}
 
       <div className="rounded bg-surface-alt p-3 text-xs text-muted">
         <p className="font-medium text-foreground mb-1">Como funciona:</p>

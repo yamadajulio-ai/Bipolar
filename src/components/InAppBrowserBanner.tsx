@@ -36,12 +36,12 @@ export function InAppBrowserBanner() {
     <div className="fixed inset-x-0 top-0 z-50 bg-amber-50 border-b border-amber-200 px-4 py-3 shadow-[var(--shadow-raised)] safe-top dark:bg-amber-950/90 dark:border-amber-700">
       <div className="mx-auto flex max-w-lg items-start gap-3">
         <span className="mt-0.5 text-xl shrink-0" aria-hidden="true">⚠️</span>
-        <div className="flex-1 text-sm text-amber-900">
+        <div className="flex-1 text-sm text-amber-900 dark:text-amber-200">
           <p className="font-semibold">Abra no Safari para a melhor experiência</p>
-          <p className="mt-1 text-amber-800">
+          <p className="mt-1 text-amber-800 dark:text-amber-300">
             Você está em um navegador interno (Instagram/Facebook). Para instalar o app e usar todos os recursos:
           </p>
-          <ol className="mt-1.5 ml-4 list-decimal text-xs text-amber-800 space-y-0.5">
+          <ol className="mt-1.5 ml-4 list-decimal text-xs text-amber-800 dark:text-amber-300 space-y-0.5">
             <li>
               Toque nos <strong>três pontos</strong> (⋯) no canto superior
             </li>
@@ -52,7 +52,7 @@ export function InAppBrowserBanner() {
         </div>
         <button
           onClick={dismiss}
-          className="shrink-0 rounded p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-amber-600 hover:text-amber-900"
+          className="shrink-0 rounded p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-amber-600 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-200"
           aria-label="Fechar aviso"
         >
           <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">

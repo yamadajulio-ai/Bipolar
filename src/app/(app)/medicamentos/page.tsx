@@ -175,7 +175,7 @@ export default function MedicamentosPage() {
                     {med.dosageText && <span className="text-muted ml-1">({med.dosageText})</span>}
                   </p>
                   {med.isAsNeeded ? (
-                    <p className="text-xs text-amber-600 mt-1">Uso sob demanda (SOS)</p>
+                    <p className="text-xs text-warning-fg mt-1">Uso sob demanda (SOS)</p>
                   ) : (
                     <div className="flex flex-wrap gap-1.5 mt-1.5">
                       {med.schedules.map((s) => (

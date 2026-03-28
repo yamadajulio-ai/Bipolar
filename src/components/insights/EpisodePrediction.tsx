@@ -37,7 +37,7 @@ export function EpisodePrediction({ data }: Props) {
       <div className="mb-4 space-y-3">
         <div>
           <div className="mb-1 flex justify-between text-xs">
-            <span className="font-medium text-amber-700">Ativação</span>
+            <span className="font-medium text-warning-fg">Ativação</span>
             <span className="tabular-nums text-foreground/60">{maniaRisk}%</span>
           </div>
           <div className="h-2.5 w-full rounded-full bg-black/10">
@@ -49,7 +49,7 @@ export function EpisodePrediction({ data }: Props) {
         </div>
         <div>
           <div className="mb-1 flex justify-between text-xs">
-            <span className="font-medium text-blue-700">Rebaixamento</span>
+            <span className="font-medium text-info-fg">Rebaixamento</span>
             <span className="tabular-nums text-foreground/60">{depressionRisk}%</span>
           </div>
           <div className="h-2.5 w-full rounded-full bg-black/10">

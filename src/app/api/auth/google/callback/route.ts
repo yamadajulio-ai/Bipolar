@@ -4,11 +4,17 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { exchangeCodeForTokens } from "@/lib/google/auth";
 import { encrypt } from "@/lib/crypto";
+import { checkRateLimit } from "@/lib/security";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
   if (!session.isLoggedIn) {
     return NextResponse.redirect(new URL("/login", request.url));
+  }
+
+  const allowed = await checkRateLimit(`google_callback:${session.userId}`, 10, 900_000);
+  if (!allowed) {
+    return NextResponse.redirect(new URL("/integracoes?error=rate_limited", request.url));
   }
 
   const code = new URL(request.url).searchParams.get("code");

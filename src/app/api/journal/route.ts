@@ -151,6 +151,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
+  const readAllowed = await checkRateLimit(`journal_read:${session.userId}`, 60, 60_000);
+  if (!readAllowed) {
+    return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
+  }
+
   const url = new URL(request.url);
   const parsed = listSchema.safeParse({
     type: url.searchParams.get("type") || undefined,

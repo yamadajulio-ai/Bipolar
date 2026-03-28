@@ -50,6 +50,11 @@ export async function DELETE() {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
+  const allowed = await checkRateLimit(`journal_consent_del:${session.userId}`, 5, 60_000);
+  if (!allowed) {
+    return NextResponse.json({ error: "Muitas requisições." }, { status: 429 });
+  }
+
   await prisma.consent.updateMany({
     where: {
       userId: session.userId,

@@ -15,6 +15,12 @@ import crypto from "crypto";
  * Sets a state cookie for CSRF protection (same pattern as Google login).
  */
 export async function GET(request: NextRequest) {
+  const ip = getClientIp(request);
+  const allowed = await checkRateLimit(`apple-login-get:${ip}`, 10, 900_000);
+  if (!allowed) {
+    return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
+  }
+
   const session = await getSession();
   if (session.isLoggedIn) {
     return NextResponse.redirect(new URL("/hoje", request.url));

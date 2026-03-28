@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
   const rawIp = getClientIp(request);
   const rlAllowed = await checkRateLimit(`meta-events:${rawIp}`, 30, 60_000);
   if (!rlAllowed) {
-    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
   }
 
   // Server-side consent gate: only send to Meta CAPI if user accepted analytics cookies.

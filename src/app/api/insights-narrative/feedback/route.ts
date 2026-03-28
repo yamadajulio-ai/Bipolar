@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { z } from "zod/v4";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
@@ -35,34 +36,39 @@ export async function POST(request: NextRequest) {
 
   const { narrativeId, rating, reasonCodes, comment } = parsed.data;
 
-  // Verify narrative belongs to user
-  const narrative = await prisma.narrative.findFirst({
-    where: { id: narrativeId, userId: session.userId },
-    select: { id: true },
-  });
-
-  if (!narrative) {
-    return NextResponse.json({ error: "Narrativa não encontrada" }, { status: 404 });
-  }
-
-  // Prevent duplicate feedback (one per narrative per user)
-  const existing = await prisma.narrativeFeedback.findFirst({
-    where: { narrativeId },
-    select: { id: true },
-  });
-
-  if (existing) {
-    // Update existing feedback
-    await prisma.narrativeFeedback.update({
-      where: { id: existing.id },
-      data: { rating, reasonCodes, comment },
+  try {
+    // Verify narrative belongs to user
+    const narrative = await prisma.narrative.findFirst({
+      where: { id: narrativeId, userId: session.userId },
+      select: { id: true },
     });
-    return NextResponse.json({ updated: true });
+
+    if (!narrative) {
+      return NextResponse.json({ error: "Narrativa não encontrada" }, { status: 404 });
+    }
+
+    // Prevent duplicate feedback (one per narrative per user)
+    const existing = await prisma.narrativeFeedback.findFirst({
+      where: { narrativeId },
+      select: { id: true },
+    });
+
+    if (existing) {
+      // Update existing feedback
+      await prisma.narrativeFeedback.update({
+        where: { id: existing.id },
+        data: { rating, reasonCodes, comment },
+      });
+      return NextResponse.json({ updated: true });
+    }
+
+    await prisma.narrativeFeedback.create({
+      data: { narrativeId, rating, reasonCodes, comment },
+    });
+
+    return NextResponse.json({ created: true }, { status: 201 });
+  } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "narrative-feedback" } });
+    return NextResponse.json({ error: "Erro interno" }, { status: 500 });
   }
-
-  await prisma.narrativeFeedback.create({
-    data: { narrativeId, rating, reasonCodes, comment },
-  });
-
-  return NextResponse.json({ created: true }, { status: 201 });
 }

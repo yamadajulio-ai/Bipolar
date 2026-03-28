@@ -6,7 +6,7 @@ import { checkRateLimit } from "@/lib/security";
 import { z } from "zod/v4";
 
 const bodySchema = z.object({
-  password: z.string().min(1, "Senha obrigatória").optional(),
+  password: z.string().min(1, "Senha obrigatória").max(128).optional(),
 });
 
 /**
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
   const userId = session.userId;
 
   // Rate limit: 5 exports per hour per user
-  const allowed = await checkRateLimit(`export:${userId}`, 5, 60 * 60 * 1000);
+  const allowed = await checkRateLimit(`auth-export:${userId}`, 5, 60 * 60 * 1000);
   if (!allowed) {
     return NextResponse.json(
       { error: "Muitas exportações. Tente novamente mais tarde." },

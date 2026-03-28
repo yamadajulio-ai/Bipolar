@@ -111,6 +111,10 @@ export async function DELETE(
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
+  if (!(await checkRateLimit(`med_delete:${session.userId}`, 30, 60_000))) {
+    return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
+  }
+
   const { id } = await params;
 
   const existing = await prisma.medication.findFirst({

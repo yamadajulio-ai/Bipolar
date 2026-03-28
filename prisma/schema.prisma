@@ -60,6 +60,7 @@ model User {
   alertEpisodes           AlertEpisode[]
   safetyScreenings        SafetyScreeningSession[]
   earlyWarningProfile     EarlyWarningProfile?
+  nativeSessions          NativeSession[]
 }
 
 enum DiaryEntryMode {
@@ -71,6 +72,7 @@ model DiaryEntry {
   id             String  @id @default(uuid())
   userId         String
   date           String // YYYY-MM-DD
+  feeling        Int? // 1..5 (1=muito deprimido, 5=muito feliz) — subjective well-being
   mood           Int // 1..5
   sleepHours     Float // 0..24
   note           String? // max 280 chars
@@ -121,6 +123,7 @@ model MoodSnapshot {
   timezone        String   @default("America/Sao_Paulo")
   clientRequestId String   @unique // idempotência mobile
 
+  feeling         Int? // 1..5 (1=muito deprimido, 5=muito feliz) — subjective well-being
   mood            Int // 1..5
   energy          Int // 1..5
   anxiety         Int? // 1..5 (optional in quick check-in)
@@ -229,6 +232,9 @@ model CrisisPlan {
   medications       String? // JSON array of medication names only
   preferredHospital String?
   copingStrategies  String? // JSON array of strings
+  // Offline sync support (B-lite native)
+  serverRev         Int      @default(1) // incremented on every server-side write
+  updatedByDeviceId String?  // device that last wrote this plan
   updatedAt         DateTime @updatedAt
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -949,4 +955,32 @@ model PasswordResetToken {
 
   @@index([email])
   @@index([expiresAt])
+}
+
+// ─── Native App Sessions (B-lite iOS) ───────────────────────────────
+// Device-bound sessions for Capacitor native app.
+// Access token: short-lived (15min), stateless JWT-like opaque token.
+// Refresh token: long-lived (30d), opaque, rotated on every use.
+// Reuse detection: if a rotated-away refresh token is reused, the entire
+// token family is revoked (indicates token theft).
+model NativeSession {
+  id               String    @id @default(cuid())
+  userId           String
+  deviceId         String    // Unique device identifier (from Capacitor Device plugin)
+  platform         String    // "ios" | "android"
+  appVersion       String?   // e.g. "1.0.0"
+  refreshTokenHash String    @unique // SHA-256 hash of the current refresh token
+  tokenFamily      String    // Groups all rotated tokens from the same login
+  rotatedFrom      String?   // Hash of the previous refresh token in this family
+  revokedAt        DateTime? // Set when session is explicitly revoked or reuse detected
+  lastSeenAt       DateTime  @default(now())
+  lastIp           String?   // Masked /24 for privacy
+  createdAt        DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenFamily])
+  @@index([revokedAt])
+  @@index([rotatedFrom])
 }

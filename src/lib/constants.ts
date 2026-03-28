@@ -124,6 +124,14 @@ export const LIFE_CHART_EVENT_TYPES = [
   { key: "other", label: "Outro" },
 ] as const;
 
+export const FEELING_LABELS: Record<number, string> = {
+  1: "Muito deprimido",
+  2: "Deprimido",
+  3: "Normal",
+  4: "Feliz",
+  5: "Muito feliz",
+};
+
 export const MOOD_LABELS: Record<number, string> = {
   1: "Muito baixo",
   2: "Baixo",

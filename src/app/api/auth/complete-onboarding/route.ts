@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
+import * as Sentry from "@sentry/nextjs";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { maskIp, checkRateLimit } from "@/lib/security";
@@ -57,36 +58,41 @@ export async function POST(request: Request) {
     ? `${profile}:${goal || "none"}`
     : goal || undefined;
 
-  const headersList = await headers();
-  const rawIp = headersList.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-  const maskedIp = maskIp(rawIp);
+  try {
+    const headersList = await headers();
+    const rawIp = headersList.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    const maskedIp = maskIp(rawIp);
 
-  // Use transaction to atomically update user + create consents
-  await prisma.$transaction(async (tx) => {
-    await tx.user.update({
-      where: { id: session.userId },
-      data: {
-        onboarded: true,
-        ...(onboardingGoal ? { onboardingGoal } : {}),
-      },
+    // Use transaction to atomically update user + create consents
+    await prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: session.userId },
+        data: {
+          onboarded: true,
+          ...(onboardingGoal ? { onboardingGoal } : {}),
+        },
+      });
+
+      // Create consent records for each accepted scope
+      if (consentScopes.length > 0) {
+        await tx.consent.createMany({
+          data: consentScopes.map((scope) => ({
+            userId: session.userId,
+            scope,
+            version: CONSENT_VERSION,
+            ipAddress: maskedIp,
+          })),
+          skipDuplicates: true,
+        });
+      }
     });
 
-    // Create consent records for each accepted scope
-    if (consentScopes.length > 0) {
-      await tx.consent.createMany({
-        data: consentScopes.map((scope) => ({
-          userId: session.userId,
-          scope,
-          version: CONSENT_VERSION,
-          ipAddress: maskedIp,
-        })),
-        skipDuplicates: true,
-      });
-    }
-  });
+    session.onboarded = true;
+    await session.save();
 
-  session.onboarded = true;
-  await session.save();
-
-  return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "complete-onboarding" } });
+    return NextResponse.json({ error: "Erro interno do servidor." }, { status: 500 });
+  }
 }

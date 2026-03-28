@@ -21,6 +21,13 @@ export async function GET(request: Request) {
   });
 
   const url = new URL(request.url);
+  if ((url.searchParams.get("debug") === "1" || url.searchParams.get("raw") === "1" || url.searchParams.get("calendars") === "1") && account) {
+    const debugAllowed = await checkRateLimit(`google-sync-debug:${session.userId}`, 20, 60_000);
+    if (!debugAllowed) {
+      return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
+    }
+  }
+
   if (url.searchParams.get("debug") === "1" && account) {
     const googleBlocks = await prisma.plannerBlock.findMany({
       where: { userId: session.userId, sourceType: "google" },

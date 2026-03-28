@@ -5,20 +5,16 @@ const config: CapacitorConfig = {
   appName: 'Suporte Bipolar',
   webDir: 'out',
 
-  // B+ strategy: WebView loads Vercel, native plugins add real value.
-  // Native value: biometric lock, APNs push, local notifications, offline crisis,
-  // haptic feedback, deep links, native share — justifies Guideline 4.2.
+  // B-lite strategy: bundle local (core clínico) + API remota (token auth).
+  // server.url REMOVIDO — Apple 4.2/2.5.2, Capacitor docs: "not intended for production".
+  // WebView carrega do bundle local (out/). API calls via fetch + bearer token.
   server: {
-    url: 'https://suportebipolar.com',
-    cleartext: false,
-    allowNavigation: ['suportebipolar.com', '*.suportebipolar.com'],
-    // When WebView fails to load (offline), Capacitor shows webDir fallback.
-    // out/index.html redirects to offline-fallback.html with crisis resources.
+    // iosScheme configura o scheme do WebView local (default: capacitor)
+    iosScheme: 'capacitor',
     errorPath: '/offline-fallback.html',
   },
 
   ios: {
-    scheme: 'Suporte Bipolar',
     contentInset: 'automatic',
     preferredContentMode: 'mobile',
     backgroundColor: '#ffffff',
@@ -26,9 +22,6 @@ const config: CapacitorConfig = {
 
     // Only enable for dev builds — MUST be false for App Store submission
     webContentsDebuggingEnabled: false,
-
-    // Info.plist entries injected by Capacitor on sync
-    // These appear under ios/App/App/Info.plist after `npx cap sync ios`
   },
 
   plugins: {

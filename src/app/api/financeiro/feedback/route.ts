@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod/v4";
+import * as Sentry from "@sentry/nextjs";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/security";
@@ -24,29 +25,34 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Muitas requisições" }, { status: 429, headers: HEADERS });
   }
 
-  const body = await request.json();
-  const parsed = feedbackSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json({ error: "Dados inválidos" }, { status: 400, headers: HEADERS });
-  }
+  try {
+    const body = await request.json();
+    const parsed = feedbackSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Dados inválidos" }, { status: 400, headers: HEADERS });
+    }
 
-  // Upsert for idempotency (1 feedback per user+alertType+alertDate)
-  await prisma.alertFeedback.upsert({
-    where: {
-      userId_alertType_alertDate: {
+    // Upsert for idempotency (1 feedback per user+alertType+alertDate)
+    await prisma.alertFeedback.upsert({
+      where: {
+        userId_alertType_alertDate: {
+          userId: session.userId,
+          alertType: parsed.data.alertType,
+          alertDate: parsed.data.alertDate,
+        },
+      },
+      update: { useful: parsed.data.useful },
+      create: {
         userId: session.userId,
         alertType: parsed.data.alertType,
         alertDate: parsed.data.alertDate,
+        useful: parsed.data.useful,
       },
-    },
-    update: { useful: parsed.data.useful },
-    create: {
-      userId: session.userId,
-      alertType: parsed.data.alertType,
-      alertDate: parsed.data.alertDate,
-      useful: parsed.data.useful,
-    },
-  });
+    });
 
-  return NextResponse.json({ ok: true }, { headers: HEADERS });
+    return NextResponse.json({ ok: true }, { headers: HEADERS });
+  } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "financeiro-feedback" } });
+    return NextResponse.json({ error: "Erro interno." }, { status: 500, headers: HEADERS });
+  }
 }

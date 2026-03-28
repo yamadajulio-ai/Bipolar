@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const allowed = await checkRateLimit(`export:${session.userId}`, 5, 60 * 60 * 1000);
+  const allowed = await checkRateLimit(`relatorio-export:${session.userId}`, 5, 60 * 60 * 1000);
   if (!allowed) {
     return NextResponse.json(
       { error: "Muitas exportações recentes. Tente novamente em breve." },

@@ -52,7 +52,7 @@ export function InAppBrowserBanner() {
         </div>
         <button
           onClick={dismiss}
-          className="shrink-0 rounded p-1 text-amber-600 hover:text-amber-900"
+          className="shrink-0 rounded p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-amber-600 hover:text-amber-900"
           aria-label="Fechar aviso"
         >
           <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">

@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Rate limit: 10 subscription changes per 15 minutes per user
-  const allowed = await checkRateLimit(`push_sub:${session.userId}`, 10);
+  const allowed = await checkRateLimit(`push_sub:${session.userId}`, 10, 900_000);
   if (!allowed) {
     return NextResponse.json(
       { error: "Muitas requisições. Tente novamente mais tarde." },
@@ -127,7 +127,7 @@ export async function DELETE(request: NextRequest) {
   }
 
   // Rate limit: share same bucket as POST (subscription changes)
-  const allowed = await checkRateLimit(`push_sub:${session.userId}`, 10);
+  const allowed = await checkRateLimit(`push_sub:${session.userId}`, 10, 900_000);
   if (!allowed) {
     return NextResponse.json(
       { error: "Muitas requisições. Tente novamente mais tarde." },

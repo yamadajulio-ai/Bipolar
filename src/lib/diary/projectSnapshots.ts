@@ -8,6 +8,7 @@ export const AGGREGATION_VERSION = 1;
 
 interface SnapshotInput {
   capturedAt: Date;
+  feeling: number | null;
   mood: number;
   energy: number;
   anxiety: number | null;
@@ -18,6 +19,7 @@ interface SnapshotInput {
 
 interface ProjectionResult {
   // Latest values (for DiaryEntry fields)
+  feeling: number | null;
   mood: number;
   energyLevel: number;
   anxietyLevel: number | null;
@@ -160,6 +162,7 @@ export function projectSnapshots(snapshots: SnapshotInput[]): ProjectionResult |
   const riskScorePeak = riskScores.length > 0 ? Math.max(...riskScores) : 0;
 
   return {
+    feeling: latest.feeling ?? null,
     mood: latest.mood,
     energyLevel: latest.energy,
     anxietyLevel: latest.anxiety ?? null,

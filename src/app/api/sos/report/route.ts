@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
   const allowed = await checkRateLimit(
     session.isLoggedIn ? `sos-report:${session.userId}` : `sos-report:${ip}`,
     10,
-    3600,
+    3_600_000,
   );
   if (!allowed) {
     return NextResponse.json({ error: "rate_limited" }, { status: 429 });

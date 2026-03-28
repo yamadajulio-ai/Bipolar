@@ -30,10 +30,21 @@ export async function GET() {
   const medications = await prisma.medication.findMany({
     where: { userId: session.userId },
     orderBy: { createdAt: "asc" },
-    include: {
+    select: {
+      id: true,
+      name: true,
+      dosageText: true,
+      instructions: true,
+      isActive: true,
+      isAsNeeded: true,
+      riskRole: true,
+      startDate: true,
+      endDate: true,
+      createdAt: true,
       schedules: {
         where: { effectiveTo: null },
         orderBy: { timeLocal: "asc" },
+        select: { id: true, timeLocal: true },
       },
     },
   });

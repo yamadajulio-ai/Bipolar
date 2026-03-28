@@ -11,7 +11,7 @@ function hashToken(token: string): string {
 }
 
 const schema = z.object({
-  email: z.email().transform((e) => e.toLowerCase().trim()),
+  email: z.email().max(254).transform((e) => e.toLowerCase().trim()),
 });
 
 export async function POST(request: NextRequest) {

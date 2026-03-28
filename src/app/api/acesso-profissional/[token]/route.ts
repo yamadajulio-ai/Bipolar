@@ -40,6 +40,12 @@ export async function POST(
   }
 
   const { token } = await params;
+
+  // Validate token format (alphanumeric + base64url chars, 20-100 chars)
+  if (!token || typeof token !== "string" || token.length > 100 || !/^[A-Za-z0-9_-]+$/.test(token)) {
+    return privateJson({ error: "Token inválido" }, { status: 400 });
+  }
+
   const rawIp = getClientIp(request);
 
   // Rate limit by IP: 20 attempts per 15 min (catches spray attacks across tokens)

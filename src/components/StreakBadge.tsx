@@ -53,7 +53,7 @@ export function StreakBadge({ checkinStreak, sleepStreak, bestCheckinStreak, hid
 
       <button
         onClick={handleHide}
-        className="ml-auto text-[11px] text-muted hover:text-foreground"
+        className="ml-auto text-[11px] text-muted hover:text-foreground min-h-11 min-w-11 flex items-center justify-center"
         aria-label="Esconder contagem de dias"
         title="Esconder"
       >

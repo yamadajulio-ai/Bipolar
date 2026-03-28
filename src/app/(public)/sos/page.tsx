@@ -105,19 +105,19 @@ export default function SOSPage() {
     <div className="mx-auto flex w-full max-w-lg items-center justify-between pb-3">
       <button
         onClick={() => setView("main")}
-        className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-gray-400 transition-colors hover:bg-gray-800 hover:text-white"
+        className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-gray-300 transition-colors hover:bg-gray-800 hover:text-white"
         aria-label="Voltar para o SOS"
       >
-        <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+        <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" aria-hidden="true">
           <polyline points="15 18 9 12 15 6" />
         </svg>
         SOS
       </button>
       <Link
         href={isLoggedIn ? "/hoje" : "/"}
-        className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-gray-400 no-underline transition-colors hover:bg-gray-800 hover:text-white"
+        className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-gray-300 no-underline transition-colors hover:bg-gray-800 hover:text-white"
       >
-        <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+        <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" aria-hidden="true">
           <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
           <polyline points="9 22 9 12 15 12 15 22" />
         </svg>
@@ -184,10 +184,10 @@ export default function SOSPage() {
       <div className="mx-auto w-full max-w-lg rounded-2xl bg-gray-900 p-8 text-white">
         {liveRegion}
         <h1 className="mb-2 text-center text-3xl font-bold">SOS</h1>
-        <p className="mb-1 text-center text-gray-400">
+        <p className="mb-1 text-center text-gray-300">
           Você não precisa passar por isso sozinho(a).
         </p>
-        <p className="mb-6 text-center text-sm text-gray-400">
+        <p className="mb-6 text-center text-sm text-gray-300">
           Se houver risco imediato, ligue 192. Se precisar conversar agora, ligue 188.
         </p>
 
@@ -201,9 +201,9 @@ export default function SOSPage() {
           >
             <span className="text-4xl font-bold text-white">192</span>
             <br />
-            <span className="text-lg text-red-100">SAMU</span>
+            <span className="text-lg text-white">SAMU</span>
             <br />
-            <span className="text-sm text-red-200">
+            <span className="text-sm text-white">
               Risco imediato · 24h · gratuito
             </span>
           </a>
@@ -217,11 +217,11 @@ export default function SOSPage() {
             >
               <span className="text-4xl font-bold text-white">188</span>
               <br />
-              <span className="text-lg text-red-100">
+              <span className="text-lg text-white">
                 CVV — Centro de Valorização da Vida
               </span>
               <br />
-              <span className="text-sm text-red-200">
+              <span className="text-sm text-white">
                 Preciso conversar agora · 24h · gratuito · sigilo garantido
               </span>
             </a>
@@ -245,7 +245,7 @@ export default function SOSPage() {
                   }}
                   className="inline-flex items-center justify-center gap-2 rounded-lg bg-white/25 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-white/35"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4" aria-hidden="true">
                     <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
                   </svg>
                   Ligar 188 + companheiro de espera
@@ -255,9 +255,9 @@ export default function SOSPage() {
                     setView("chat");
                     logSOS("chat_while_waiting");
                   }}
-                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-white/10 px-4 py-2 text-xs text-red-200 transition-colors hover:bg-white/20"
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-white/10 px-4 py-2 text-xs text-white transition-colors hover:bg-white/20"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-3.5 w-3.5">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-3.5 w-3.5" aria-hidden="true">
                     <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
                   </svg>
                   Só conversar por texto
@@ -317,11 +317,11 @@ export default function SOSPage() {
           <div className="rounded-xl bg-red-900 p-5 text-center">
             <span className="text-2xl font-bold text-white">UPA 24h</span>
             <br />
-            <span className="text-base text-red-100">
+            <span className="text-base text-white">
               Vá à UPA mais próxima
             </span>
             <br />
-            <span className="text-sm text-red-200">
+            <span className="text-sm text-white">
               Atendimento presencial 24 horas
             </span>
             <a
@@ -330,7 +330,7 @@ export default function SOSPage() {
               rel="noopener noreferrer"
               onClick={() => logSOS("open_maps_upa")}
               aria-label="Abrir mapa para encontrar UPA 24h próxima"
-              className="mt-2 inline-block rounded-lg bg-red-800/60 px-4 py-2 text-sm text-red-100 no-underline hover:bg-red-800"
+              className="mt-2 inline-block rounded-lg bg-red-800/60 px-4 py-2 text-sm text-white no-underline hover:bg-red-800"
             >
               Abrir no mapa
             </a>
@@ -393,7 +393,7 @@ export default function SOSPage() {
 
         {/* Coping tools below emergency numbers */}
         <div className="border-t border-gray-700 pt-6">
-          <p className="mb-3 text-center text-sm text-gray-400">
+          <p className="mb-3 text-center text-sm text-gray-300">
             Ferramentas rápidas (1–3 min)
           </p>
           <div className="space-y-3">
@@ -483,7 +483,7 @@ export default function SOSPage() {
                   Meu plano de crise
                 </span>
                 <br />
-                <span className="text-sm text-gray-400">
+                <span className="text-sm text-gray-300">
                   Contatos, medicações e estratégias pessoais
                 </span>
               </Link>
@@ -493,7 +493,7 @@ export default function SOSPage() {
 
         <Link
           href={isLoggedIn ? "/hoje" : "/"}
-          className="mt-8 block text-center text-sm text-gray-400 no-underline hover:text-gray-300"
+          className="mt-8 block text-center text-sm text-gray-300 no-underline hover:text-gray-300"
         >
           {isLoggedIn ? "Voltar para o app" : "Voltar para o início"}
         </Link>
@@ -553,10 +553,10 @@ function StepByStepGrounding({ onClose }: { onClose: () => void }) {
     return (
       <div className="mx-auto flex min-h-[60vh] max-w-lg flex-col items-center justify-center rounded-2xl bg-gray-900 p-8 text-white">
         <p className="mb-4 text-2xl font-light">Exercício concluído.</p>
-        <p className="mb-2 text-lg text-gray-400">
+        <p className="mb-2 text-lg text-gray-300">
           Esse pico de sofrimento costuma diminuir. Você atravessou esses minutos.
         </p>
-        <p className="mb-8 text-sm text-gray-400">
+        <p className="mb-8 text-sm text-gray-300">
           Se precisar, repita o exercício ou faça a respiração 4-7-8.
           Se houver risco imediato, ligue 192 (SAMU) ou 188 (CVV).
         </p>
@@ -572,7 +572,7 @@ function StepByStepGrounding({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="mx-auto flex min-h-[60vh] max-w-lg flex-col items-center justify-center rounded-2xl bg-gray-900 p-8 text-white">
-      <p className="mb-2 text-sm text-gray-400">
+      <p className="mb-2 text-sm text-gray-300">
         Passo {step + 1} de {GROUNDING_STEPS.length}
       </p>
 
@@ -593,7 +593,7 @@ function StepByStepGrounding({ onClose }: { onClose: () => void }) {
         {current.instruction}
       </p>
 
-      <p className="mb-6 text-center text-sm text-gray-400">
+      <p className="mb-6 text-center text-sm text-gray-300">
         Tome o tempo que precisar. Quando estiver pronto(a), avance.
       </p>
 
@@ -601,7 +601,7 @@ function StepByStepGrounding({ onClose }: { onClose: () => void }) {
         {step > 0 && (
           <button
             onClick={() => setStep(step - 1)}
-            className="flex-1 rounded-lg border border-gray-600 px-4 py-3 text-gray-400 hover:bg-gray-800"
+            className="flex-1 rounded-lg border border-gray-600 px-4 py-3 text-gray-300 hover:bg-gray-800"
           >
             Anterior
           </button>
@@ -616,7 +616,7 @@ function StepByStepGrounding({ onClose }: { onClose: () => void }) {
 
       <button
         onClick={onClose}
-        className="mt-6 text-sm text-gray-400 hover:text-gray-300"
+        className="mt-6 text-sm text-gray-300 hover:text-gray-300"
       >
         Fechar
       </button>

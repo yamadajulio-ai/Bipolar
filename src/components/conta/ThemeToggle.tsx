@@ -24,7 +24,7 @@ export function ThemeToggle() {
           {OPTIONS.map((opt) => (
             <span
               key={opt.value}
-              className="rounded-lg border border-border px-4 py-2 text-sm text-muted"
+              className="rounded-lg border border-border px-4 py-3 text-sm text-muted"
             >
               {opt.label}
             </span>
@@ -43,7 +43,7 @@ export function ThemeToggle() {
           <button
             key={opt.value}
             onClick={() => setTheme(opt.value)}
-            className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
+            className={`rounded-lg border px-4 py-3 text-sm font-medium transition-colors ${
               theme === opt.value
                 ? "border-primary bg-primary/10 text-primary"
                 : "border-border text-muted hover:border-primary/50"

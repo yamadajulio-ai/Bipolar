@@ -83,7 +83,7 @@ export function GoogleCalendarSync({ isConnected: initialConnected }: Props) {
         <button
           onClick={handleSync}
           disabled={syncing}
-          className="rounded bg-primary px-4 py-1 text-sm text-white disabled:opacity-50"
+          className="rounded bg-primary px-4 py-2.5 text-sm text-white disabled:opacity-50"
         >
           {syncing ? "Sincronizando..." : "Sincronizar agora"}
         </button>
@@ -93,13 +93,13 @@ export function GoogleCalendarSync({ isConnected: initialConnected }: Props) {
             <button
               onClick={handleDisconnect}
               disabled={disconnecting}
-              className="rounded bg-red-600 px-3 py-1 text-sm text-white disabled:opacity-50"
+              className="rounded bg-red-600 px-3 py-2.5 text-sm text-white disabled:opacity-50"
             >
               {disconnecting ? "Removendo..." : "Confirmar"}
             </button>
             <button
               onClick={() => setConfirmDisconnect(false)}
-              className="rounded border border-border px-3 py-1 text-sm text-muted"
+              className="rounded border border-border px-3 py-2.5 text-sm text-muted"
             >
               Cancelar
             </button>
@@ -107,7 +107,7 @@ export function GoogleCalendarSync({ isConnected: initialConnected }: Props) {
         ) : (
           <button
             onClick={handleDisconnect}
-            className="rounded border border-red-300 px-3 py-1 text-sm text-red-600"
+            className="rounded border border-red-300 px-3 py-2.5 text-sm text-red-600"
           >
             Desconectar
           </button>

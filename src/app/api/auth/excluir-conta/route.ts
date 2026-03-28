@@ -120,7 +120,9 @@ export async function POST(request: NextRequest) {
     // Purge orphan PasswordResetTokens (no FK cascade — keyed by email, not userId)
     await prisma.passwordResetToken.deleteMany({
       where: { email: session.email },
-    }).catch(() => {});
+    }).catch((err) => {
+      Sentry.captureException(err, { level: "warning", tags: { endpoint: "excluir-conta", action: "purge-reset-tokens" } });
+    });
 
     await prisma.user.delete({ where: { id: userId } });
   } catch (err) {

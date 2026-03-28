@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod/v4";
 import { prisma } from "@/lib/db";
-import { getSession, verifyPassword } from "@/lib/auth";
+import { getSession, verifyPassword, hashPassword } from "@/lib/auth";
 import { checkRateLimit, getClientIp } from "@/lib/security";
 import * as Sentry from "@sentry/nextjs";
 
@@ -69,12 +69,13 @@ export async function POST(request: NextRequest) {
 
     // Auto-upgrade legacy bcrypt hashes to argon2id (transparent rehash on successful login)
     if (user.passwordHash.startsWith("$2a$") || user.passwordHash.startsWith("$2b$")) {
-      const { hashPassword } = await import("@/lib/auth");
       const newHash = await hashPassword(senha);
       await prisma.user.update({
         where: { id: user.id },
         data: { passwordHash: newHash },
-      }).catch(() => {}); // Non-blocking: login succeeds even if rehash fails
+      }).catch((err) => {
+        Sentry.captureException(err, { level: "warning", tags: { endpoint: "login", action: "bcrypt-rehash" } });
+      });
     }
 
     // Session rotation: destroy pre-auth cookie before creating authenticated session

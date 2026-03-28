@@ -74,8 +74,17 @@ vi.mock("@/lib/db", () => ({
     financialTransaction: { findMany: mockFinancialFindMany },
     feedback: { findMany: mockFeedbackFindMany },
     contextualFeedback: { findMany: mockContextualFindMany },
-    passwordResetToken: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
+    passwordResetToken: {
+      deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+      updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+      create: vi.fn().mockResolvedValue({ id: "token-1" }),
+    },
   },
+}));
+
+const mockSendEmail = vi.fn().mockResolvedValue(undefined);
+vi.mock("@/lib/email", () => ({
+  sendEmail: (...args: unknown[]) => mockSendEmail(...args),
 }));
 
 vi.mock("@/lib/crypto", () => ({
@@ -461,5 +470,145 @@ describe("POST /api/auth/excluir-conta", () => {
     expect(mockUserDelete).toHaveBeenCalled();
 
     globalThis.fetch = originalFetch;
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LOGIN — bcrypt → argon2id auto-rehash
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe("POST /api/auth/login — bcrypt rehash", () => {
+  let POST: (req: NextRequest) => Promise<Response>;
+  const mockUpdate = vi.fn().mockResolvedValue({});
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    resetSession();
+    mockCheckRateLimit.mockResolvedValue(true);
+
+    // Patch prisma.user.update for this suite
+    const { prisma } = await import("@/lib/db");
+    (prisma.user as unknown as Record<string, unknown>).update = mockUpdate;
+
+    ({ POST } = await import("./login/route"));
+  });
+
+  it("auto-upgrades bcrypt $2a$ hash to argon2id on successful login", async () => {
+    mockUserFindUnique.mockResolvedValueOnce({
+      id: "u1", email: "t@test.com",
+      passwordHash: "$2a$10$somebcrypthashvalue",
+      onboarded: true,
+    });
+    const res = await POST(makeRequest({ email: "t@test.com", senha: "correctpw" }));
+    expect(res.status).toBe(200);
+    expect(mockUpdate).toHaveBeenCalledWith({
+      where: { id: "u1" },
+      data: { passwordHash: "hashed-pw" }, // from hashPassword mock
+    });
+  });
+
+  it("auto-upgrades bcrypt $2b$ hash to argon2id on successful login", async () => {
+    mockUserFindUnique.mockResolvedValueOnce({
+      id: "u2", email: "t@test.com",
+      passwordHash: "$2b$12$anotherbcrypthash",
+      onboarded: true,
+    });
+    const res = await POST(makeRequest({ email: "t@test.com", senha: "correctpw" }));
+    expect(res.status).toBe(200);
+    expect(mockUpdate).toHaveBeenCalledWith({
+      where: { id: "u2" },
+      data: { passwordHash: "hashed-pw" },
+    });
+  });
+
+  it("does NOT rehash argon2id hashes", async () => {
+    mockUserFindUnique.mockResolvedValueOnce({
+      id: "u3", email: "t@test.com",
+      passwordHash: "$argon2id$v=19$m=65536,t=3,p=4$salt$hash",
+      onboarded: true,
+    });
+    const res = await POST(makeRequest({ email: "t@test.com", senha: "correctpw" }));
+    expect(res.status).toBe(200);
+    expect(mockUpdate).not.toHaveBeenCalled();
+  });
+
+  it("login succeeds even if rehash update fails", async () => {
+    mockUpdate.mockRejectedValueOnce(new Error("DB error"));
+    mockUserFindUnique.mockResolvedValueOnce({
+      id: "u4", email: "t@test.com",
+      passwordHash: "$2a$10$bcrypthash",
+      onboarded: true,
+    });
+    const res = await POST(makeRequest({ email: "t@test.com", senha: "correctpw" }));
+    // Login must succeed even though rehash failed
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.success).toBe(true);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FORGOT PASSWORD — Anti-enumeration + email error handling
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe("POST /api/auth/forgot-password", () => {
+  let POST: (req: NextRequest) => Promise<Response>;
+  const url = "https://suportebipolar.com/api/auth/forgot-password";
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    mockCheckRateLimit.mockResolvedValue(true);
+    mockSendEmail.mockResolvedValue(undefined);
+    ({ POST } = await import("./forgot-password/route"));
+  });
+
+  it("returns 429 when IP rate limited", async () => {
+    mockCheckRateLimit.mockResolvedValueOnce(false);
+    const res = await POST(makeRequest({ email: "test@test.com" }, url));
+    expect(res.status).toBe(429);
+  });
+
+  it("returns 400 for invalid email", async () => {
+    const res = await POST(makeRequest({ email: "not-an-email" }, url));
+    expect(res.status).toBe(400);
+  });
+
+  it("returns success even for non-existent user (anti-enumeration)", async () => {
+    mockUserFindUnique.mockResolvedValueOnce(null);
+    const res = await POST(makeRequest({ email: "nobody@test.com" }, url));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    // Must NOT send email for non-existent user
+    expect(mockSendEmail).not.toHaveBeenCalled();
+  });
+
+  it("sends email and creates token for existing user", async () => {
+    mockUserFindUnique.mockResolvedValueOnce({ id: "u1", passwordHash: "hash" });
+    const res = await POST(makeRequest({ email: "real@test.com" }, url));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(mockSendEmail).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns success (not 500) when sendEmail throws (anti-enumeration)", async () => {
+    mockUserFindUnique.mockResolvedValueOnce({ id: "u1", passwordHash: "hash" });
+    mockSendEmail.mockRejectedValueOnce(new Error("SMTP error"));
+    const res = await POST(makeRequest({ email: "real@test.com" }, url));
+    // Must NOT return 500 — that would leak user existence
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+  });
+
+  it("returns success for social-only user without passwordHash (anti-enumeration)", async () => {
+    mockUserFindUnique.mockResolvedValueOnce({ id: "u2", passwordHash: null });
+    const res = await POST(makeRequest({ email: "google@test.com" }, url));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    // Must NOT send email — user can't reset a password they don't have
+    expect(mockSendEmail).not.toHaveBeenCalled();
   });
 });

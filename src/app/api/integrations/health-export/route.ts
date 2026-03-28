@@ -42,6 +42,18 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  // Consent gate: verify key owner still has "health_data" consent (LGPD Art. 11)
+  const getConsent = await prisma.consent.findFirst({
+    where: { userId: integration.userId, scope: "health_data", revokedAt: null },
+    select: { id: true },
+  });
+  if (!getConsent) {
+    return NextResponse.json(
+      { status: "error", message: "Consentimento para dados de saúde revogado pelo usuário." },
+      { status: 403 },
+    );
+  }
+
   const recentLogs = await prisma.sleepLog.findMany({
     where: { userId: integration.userId },
     select: { date: true, bedtime: true, wakeTime: true, totalHours: true, quality: true },

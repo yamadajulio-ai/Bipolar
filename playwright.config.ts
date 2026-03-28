@@ -13,8 +13,16 @@ export default defineConfig({
   },
   projects: [
     {
-      name: "chromium",
+      name: "desktop-chrome",
       use: { browserName: "chromium" },
+    },
+    {
+      name: "mobile-safari",
+      use: {
+        browserName: "webkit",
+        viewport: { width: 390, height: 844 },
+        isMobile: true,
+      },
     },
   ],
   // Don't auto-start dev server — run `pnpm dev` separately or point E2E_BASE_URL to staging

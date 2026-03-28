@@ -15,13 +15,16 @@ export function AppleSignInButton({ className }: { className?: string }) {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    // Check if running inside Capacitor (native iOS)
+    // Check if ACTUALLY running inside a native Capacitor app (iOS/Android).
+    // Just "Capacitor" in window is not enough — the JS SDK can be loaded in web too.
+    const cap = typeof window !== "undefined" && (window as unknown as Record<string, unknown>).Capacitor;
     setIsNative(
-      typeof window !== "undefined" && "Capacitor" in window
+      !!cap && typeof (cap as Record<string, unknown>).isNativePlatform === "function" &&
+      (cap as { isNativePlatform: () => boolean }).isNativePlatform()
     );
   }, []);
 
-  const buttonStyles = `flex w-full items-center justify-center gap-2 rounded-[var(--radius-card)] bg-black px-4 py-2 text-[15px] font-medium text-white hover:bg-[#1a1a1a] disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-[#f0f0f0] ${className || ""}`;
+  const buttonStyles = `flex w-full items-center justify-center gap-2 rounded-[var(--radius-card)] bg-black px-4 py-3 text-[15px] font-medium text-white hover:bg-[#1a1a1a] disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-[#f0f0f0] ${className || ""}`;
   const buttonStyle = { minHeight: "44px", fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif" };
 
   const appleIcon = (

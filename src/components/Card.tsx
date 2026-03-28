@@ -30,6 +30,7 @@ const variantStyles: Record<CardVariant, string> = {
     "dark:border-border-strong",
     "transition-[transform,box-shadow] duration-200",
     "hover:-translate-y-px hover:shadow-[var(--shadow-raised)]",
+    "focus-visible:-translate-y-px focus-visible:shadow-[var(--shadow-raised)]",
     "active:scale-[0.985] active:shadow-[var(--shadow-card)]",
   ),
 };

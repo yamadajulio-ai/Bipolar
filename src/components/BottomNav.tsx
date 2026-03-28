@@ -37,6 +37,7 @@ export function BottomNav() {
             "border border-border-soft dark:border-border-strong",
             "bg-surface-glass backdrop-blur-[var(--blur-chrome)]",
             "shadow-[var(--shadow-float)]",
+            "[contain:layout_style_paint] [will-change:transform]",
           ].join(" ")}
         >
           {tabs.map((tab) => {
@@ -50,14 +51,14 @@ export function BottomNav() {
               <Link
                 key={tab.href}
                 href={tab.href}
-                className="relative flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-2xl py-3 no-underline transition-colors"
+                className="relative flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-[var(--radius-card)] py-3 no-underline transition-colors"
                 aria-current={isActive ? "page" : undefined}
               >
                 {isActive && (
                   <motion.span
                     aria-hidden="true"
                     layoutId="nav-pill"
-                    className="absolute inset-1 rounded-2xl bg-primary/10 dark:bg-primary/15"
+                    className="absolute inset-1 rounded-[var(--radius-card)] bg-primary/10 dark:bg-primary/15"
                     transition={{
                       type: "spring",
                       stiffness: 420,
@@ -71,14 +72,14 @@ export function BottomNav() {
                     strokeWidth={isActive ? 2 : 1.75}
                     className={
                       isActive
-                        ? "text-primary"
-                        : "text-foreground/50 transition-colors"
+                        ? "text-primary-dark dark:text-primary-light"
+                        : "text-muted transition-colors"
                     }
                   />
                 </span>
                 <span
-                  className={`relative z-10 text-[11px] font-semibold ${
-                    isActive ? "text-primary" : "text-foreground/50"
+                  className={`relative z-10 text-xs font-semibold ${
+                    isActive ? "text-primary-dark dark:text-primary-light" : "text-muted"
                   }`}
                 >
                   {tab.label}

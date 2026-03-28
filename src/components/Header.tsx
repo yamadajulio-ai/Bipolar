@@ -71,7 +71,7 @@ export function Header({ isLoggedIn }: HeaderProps) {
   }
 
   return (
-    <header className="border-b border-border-soft bg-surface-glass backdrop-blur-[var(--blur-chrome)] dark:border-border-strong">
+    <header className="border-b border-border-soft bg-surface-glass shadow-[var(--shadow-float)] backdrop-blur-[var(--blur-chrome)] [contain:layout_style_paint] dark:border-border-strong">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
         <Link
           href={isLoggedIn ? "/hoje" : "/"}

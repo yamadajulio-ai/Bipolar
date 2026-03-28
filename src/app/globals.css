@@ -15,6 +15,10 @@
   --border: #d6deda;
   --border-soft: rgb(82 122 110 / 0.10);
   --border-strong: rgb(82 122 110 / 0.20);
+  --control-border: #c4cdc8;
+  --control-border-hover: #a3b0aa;
+  --control-border-focus: var(--primary);
+  --control-border-danger: var(--danger);
   --muted: #5f7a70;
   --success: #4a7c59;
   --warning: #c4842d;
@@ -42,6 +46,57 @@
 
   /* Chrome */
   --blur-chrome: 18px;
+
+  /* Semantic status — subtle backgrounds */
+  --success-bg-subtle: #f0fdf4;
+  --success-fg: #15803d;
+  --success-border: #bbf7d0;
+  --warning-bg-subtle: #fffbeb;
+  --warning-fg: #a16207;
+  --warning-border: #fde68a;
+  --danger-bg-subtle: #fef2f2;
+  --danger-fg: #b91c1c;
+  --danger-border: #fecaca;
+  --info-bg-subtle: #f0fdfa;
+  --info-fg: #0f766e;
+  --info-border: #99f6e4;
+
+  /* Typography scale */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.625;
+
+  /* Z-index scale */
+  --z-base: 0;
+  --z-dropdown: 10;
+  --z-sticky: 20;
+  --z-overlay: 30;
+  --z-modal: 40;
+  --z-toast: 50;
+  --z-nav: 50;
+
+  /* Motion tokens */
+  --duration-fast: 150ms;
+  --duration-normal: 200ms;
+  --duration-slow: 350ms;
+  --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+  /* Chart palette (sequential, for multi-series) */
+  --chart-1: #527a6e;
+  --chart-2: #7da399;
+  --chart-3: #c4842d;
+  --chart-4: #d5a04e;
+  --chart-5: #b53325;
+  --chart-6: #4a7c59;
 }
 
 .dark {
@@ -57,6 +112,10 @@
   --border: #766e66;
   --border-soft: rgb(255 255 255 / 0.06);
   --border-strong: rgb(255 255 255 / 0.12);
+  --control-border: #5c544c;
+  --control-border-hover: #7a716a;
+  --control-border-focus: var(--primary-light);
+  --control-border-danger: var(--danger);
   --muted: #b9ada1;
   --success: #79af88;
   --warning: #d5a04e;
@@ -77,6 +136,28 @@
   --shadow-raised: 0 8px 24px -12px rgb(0 0 0 / 0.28), 0 2px 8px rgb(0 0 0 / 0.16);
   --shadow-float: 0 20px 40px -20px rgb(0 0 0 / 0.40), 0 8px 16px -10px rgb(0 0 0 / 0.24);
 
+  /* Semantic status — subtle backgrounds (dark) */
+  --success-bg-subtle: rgba(34, 197, 94, 0.12);
+  --success-fg: #86efac;
+  --success-border: rgba(34, 197, 94, 0.25);
+  --warning-bg-subtle: rgba(234, 179, 8, 0.12);
+  --warning-fg: #fde047;
+  --warning-border: rgba(234, 179, 8, 0.25);
+  --danger-bg-subtle: rgba(239, 68, 68, 0.12);
+  --danger-fg: #fca5a5;
+  --danger-border: rgba(239, 68, 68, 0.25);
+  --info-bg-subtle: rgba(20, 184, 166, 0.12);
+  --info-fg: #5eead4;
+  --info-border: rgba(20, 184, 166, 0.25);
+
+  /* Chart palette — dark */
+  --chart-1: #7da399;
+  --chart-2: #a8c4bc;
+  --chart-3: #d5a04e;
+  --chart-4: #e5c078;
+  --chart-5: #d26c61;
+  --chart-6: #79af88;
+
   color-scheme: dark;
 }
 
@@ -93,6 +174,10 @@
   --color-border: var(--border);
   --color-border-soft: var(--border-soft);
   --color-border-strong: var(--border-strong);
+  --color-control-border: var(--control-border);
+  --color-control-border-hover: var(--control-border-hover);
+  --color-control-border-focus: var(--control-border-focus);
+  --color-control-border-danger: var(--control-border-danger);
   --color-muted: var(--muted);
   --color-success: var(--success);
   --color-warning: var(--warning);
@@ -104,6 +189,24 @@
   --color-halo: var(--halo);
   --color-chart-grid: var(--chart-grid);
   --color-chart-axis: var(--chart-axis);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-chart-6: var(--chart-6);
+  --color-success-bg-subtle: var(--success-bg-subtle);
+  --color-success-fg: var(--success-fg);
+  --color-success-border: var(--success-border);
+  --color-warning-bg-subtle: var(--warning-bg-subtle);
+  --color-warning-fg: var(--warning-fg);
+  --color-warning-border: var(--warning-border);
+  --color-danger-bg-subtle: var(--danger-bg-subtle);
+  --color-danger-fg: var(--danger-fg);
+  --color-danger-border: var(--danger-border);
+  --color-info-bg-subtle: var(--info-bg-subtle);
+  --color-info-fg: var(--info-fg);
+  --color-info-border: var(--info-border);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --shadow-card: var(--shadow-card);
@@ -144,6 +247,17 @@ body {
       transition-duration: 0.01ms !important;
     }
   }
+
+  /* Reduced transparency fallback — improves contrast on glass UI */
+  @media (prefers-reduced-transparency: reduce) {
+    :root,
+    .dark {
+      --surface-glass: var(--surface);
+      --blur-chrome: 0px;
+      --border-soft: var(--border);
+      --border-strong: var(--border);
+    }
+  }
 }
 
 /* Print styles — always force light mode for legibility + ink savings */
@@ -159,7 +273,17 @@ body {
     --border: #d0d0d0;
     --border-soft: #e0e0e0;
     --border-strong: #d0d0d0;
+    --control-border: #999999;
+    --control-border-hover: #777777;
     --muted: #555555;
+    --success-bg-subtle: #f0fdf4;
+    --success-fg: #15803d;
+    --warning-bg-subtle: #fffbeb;
+    --warning-fg: #a16207;
+    --danger-bg-subtle: #fef2f2;
+    --danger-fg: #b91c1c;
+    --info-bg-subtle: #f0fdfa;
+    --info-fg: #0f766e;
     --chart-grid: #e5e7eb;
     --chart-axis: #9ca3af;
     --shadow-card: none;

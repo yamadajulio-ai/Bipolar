@@ -75,17 +75,22 @@
 ## Design System — Phase 1 (Foundation + Chrome)
 - **Tokens CSS** em `globals.css`: elevation (shadow-card/raised/float), radius (card 18px, panel 24px, pill 999px), surfaces (surface/raised/glass), borders (soft 10%/strong 20%), blur-chrome 18px, halo, halo-stroke
 - **Semantic status tokens**: success/warning/danger/info com `-bg-subtle`, `-fg`, `-border` (light+dark+print)
+- **on-* tokens**: text colors for solid semantic backgrounds (on-danger, on-success, on-warning, on-info, on-primary)
 - **Control border tokens**: `--control-border`, `--control-border-hover`, `--control-border-focus`, `--control-border-danger`
 - **Phase 2 foundation tokens**: typography scale (6 sizes), z-index scale (7 layers), motion (3 durations + 4 easings), chart palette (6 series)
 - **4 camadas de elevação**: Canvas (background) → Surface (cards) → Raised (glaze overlay) → Float (backdrop-blur nav/header, shadow-float)
 - **Card.tsx**: 4 variantes (surface, raised, hero, interactive) com GlazeOverlay + focus-visible lift
-- **BottomNav**: floating dock com glassmorphism + `motion.span layoutId="nav-pill"` + `MotionConfig reducedMotion="user"` + `contain:layout_style_paint` + WCAG AA contrast (text-muted inativo, text-primary-dark ativo, 12px labels)
-- **Header**: glassmorphism chrome + shadow-float + contain hint, Lucide icons (Sun/MoonStar/LogOut/ShieldAlert), touch targets 44px
+- **BottomNav**: floating dock com glassmorphism + `motion.span layoutId="nav-pill"` + `MotionConfig reducedMotion="user"` + `contain:layout_style_paint` + WCAG AA contrast (text-muted inativo, text-primary-dark ativo, 12px labels) + `print:hidden`
+- **Header**: glassmorphism chrome + shadow-float + contain hint + `pt-[env(safe-area-inset-top)]` (notch/Dynamic Island), Lucide icons (Sun/MoonStar/LogOut/ShieldAlert), touch targets 44px, `print:hidden`
 - **AppIcon**: wrapper padronizado para Lucide icons (sm 16px, md 20px, lg 24px)
-- **Regra de radius**: `--radius-card` (18px) para containers/cards, `rounded-lg` (8px) para botões pequenos/interativos, `rounded-md` (6px) para inputs. Zero `rounded-2xl` hardcoded.
+- **Regra de radius**: `--radius-card` (18px) para containers/cards, `rounded-lg` (8px) para botões pequenos/interativos, `rounded-md` (6px) para inputs. Zero `rounded-2xl` hardcoded. **Nota**: `@theme inline` NÃO suporta `var()` self-references — usar `rounded-[var(--radius-card)]` diretamente.
 - **Dark mode**: 100% tokenizado no app autenticado. Zero `dark:*-gray` hardcoded.
-- **Print**: todas as shadows → none, surfaces → white, cores → preto
-- **Acessibilidade**: touch targets ≥44px, aria-hidden em decorativos, prefers-reduced-motion, prefers-reduced-transparency fallback, aria-labelledby linkage correto
+- **Print**: `print:hidden` em Header, Footer, BottomNav, SOSButton, InstallBanner, Alert. Shadows → none, surfaces → white, cores → preto.
+- **Acessibilidade**: touch targets ≥44px (96 instâncias em 31 arquivos), aria-hidden em decorativos, prefers-reduced-motion, prefers-reduced-transparency fallback, aria-labelledby linkage correto
+- **iOS input zoom**: global CSS `font-size: 16px` em inputs/textarea/select no mobile + FormField `text-base`
+- **WCAG AA contraste**: 17 pares críticos verificados matematicamente (sRGB linearization). Todos PASS. Valores-chave: `--muted` light `#587369` (4.52:1+), `--danger` dark `#c05046` (4.69:1), `--on-primary` dark `#ffffff` (4.81:1)
+- **CoachMarks**: focus trap + Escape dismiss + auto-focus (WCAG modal compliance)
+- **Recharts**: todas as 11 instâncias lazy-loaded via `dynamic(() => import(...), { ssr: false })` com skeleton loaders (~400KB bundle reduction)
 - **Landing pages públicas**: ainda Phase 1 legacy (deferred para Phase 2/3)
 
 ## iOS App Store — Estratégia B+
@@ -99,7 +104,8 @@
 - **Review Notes**: `docs/app-store-review-notes.md`
 - **Sign in with Apple**: nativo (Capacitor plugin) + **web OAuth** (form_post callback). Service ID `com.suportebipolar.web`, App ID `com.suportebipolar.app`. Dual audience JWT verification, sameSite:none state cookie, nonce replay protection, refresh token AES-256-GCM, revogação na exclusão de conta
 - **Privacy**: trackers bloqueados no WebView (`"Capacitor" in window`), privacyMode default ON, PrivacyInfo.xcprivacy, notificações genéricas no lock screen
-- **Pendentes para TestFlight**: remover server.url, substituir TEAM_ID no AASA, configurar entitlements no Xcode, testar plugin Apple v7/Cap v8 em device real
+- **App Store code readiness audit (2026-03-28)**: 8.7/10 CODE READY. 9 native pillars pass Guideline 4.2. Security 9.75/10. Clinical safety 9.9/10. Performance improved (recharts lazy-load).
+- **Pendentes para TestFlight** (requer Mac Mini): `npx cap add ios`, PrivacyInfo.xcprivacy, substituir TEAM_ID `7MQYXX5DRU` no AASA, configurar entitlements no Xcode, testar plugin Apple v7/Cap v8 em device real
 
 ## AI Narrative — Modelo
 - **Modelo atual**: GPT-5.4 via OpenAI Responses API (migrado de Claude Sonnet 4)

@@ -131,6 +131,8 @@ async function getCsrfKey(): Promise<CryptoKey> {
   const secret = process.env.SESSION_SECRET;
   if (!secret) throw new Error("SESSION_SECRET is required for CSRF");
   if (secret.length < 32) throw new Error("SESSION_SECRET must be at least 32 characters for security");
+  // Basic entropy check: reject secrets with all identical characters
+  if (new Set(secret).size < 8) throw new Error("SESSION_SECRET has insufficient entropy (too few unique characters)");
   const enc = new TextEncoder();
   _csrfKey = await crypto.subtle.importKey(
     "raw",

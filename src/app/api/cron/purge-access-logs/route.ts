@@ -26,28 +26,30 @@ export async function GET(request: NextRequest) {
   );
 
   try {
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - 90);
+    await prisma.$transaction(async (tx) => {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - 90);
 
-    await prisma.accessLog.deleteMany({
-      where: { createdAt: { lt: cutoff } },
-    });
+      await tx.accessLog.deleteMany({
+        where: { createdAt: { lt: cutoff } },
+      });
 
-    // Also purge expired rate-limit rows
-    await prisma.rateLimit.deleteMany({
-      where: { expiresAt: { lt: new Date() } },
-    });
+      // Also purge expired rate-limit rows
+      await tx.rateLimit.deleteMany({
+        where: { expiresAt: { lt: new Date() } },
+      });
 
-    // Purge used/expired password reset tokens older than 7 days
-    const tokenCutoff = new Date();
-    tokenCutoff.setDate(tokenCutoff.getDate() - 7);
-    await prisma.passwordResetToken.deleteMany({
-      where: {
-        OR: [
-          { usedAt: { lt: tokenCutoff } },
-          { expiresAt: { lt: tokenCutoff } },
-        ],
-      },
+      // Purge used/expired password reset tokens older than 7 days
+      const tokenCutoff = new Date();
+      tokenCutoff.setDate(tokenCutoff.getDate() - 7);
+      await tx.passwordResetToken.deleteMany({
+        where: {
+          OR: [
+            { usedAt: { lt: tokenCutoff } },
+            { expiresAt: { lt: tokenCutoff } },
+          ],
+        },
+      });
     });
 
     Sentry.captureCheckIn({ checkInId, monitorSlug: "purge-access-logs", status: "ok" });

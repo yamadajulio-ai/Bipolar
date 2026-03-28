@@ -54,6 +54,8 @@ const mockReminderFindUnique = vi.fn().mockResolvedValue(null);
 const mockFinancialFindMany = vi.fn().mockResolvedValue([]);
 const mockFeedbackFindMany = vi.fn().mockResolvedValue([]);
 const mockContextualFindMany = vi.fn().mockResolvedValue([]);
+const mockPasswordResetTokenDeleteMany = vi.fn().mockResolvedValue({ count: 0 });
+const mockConsentFindFirst = vi.fn().mockResolvedValue(null);
 
 vi.mock("@/lib/db", () => ({
   prisma: {
@@ -75,10 +77,11 @@ vi.mock("@/lib/db", () => ({
     feedback: { findMany: mockFeedbackFindMany },
     contextualFeedback: { findMany: mockContextualFindMany },
     passwordResetToken: {
-      deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+      deleteMany: mockPasswordResetTokenDeleteMany,
       updateMany: vi.fn().mockResolvedValue({ count: 0 }),
       create: vi.fn().mockResolvedValue({ id: "token-1" }),
     },
+    consent: { findFirst: mockConsentFindFirst },
   },
 }));
 
@@ -425,6 +428,10 @@ describe("POST /api/auth/excluir-conta", () => {
     expect(mockUserDelete).toHaveBeenCalledWith({ where: { id: "user-1" } });
     expect(mockSession.destroy).toHaveBeenCalled();
     expect(res.headers.get("Location")).toContain("/");
+    // Must purge orphan PasswordResetTokens before cascade delete (keyed by email, not userId)
+    expect(mockPasswordResetTokenDeleteMany).toHaveBeenCalledWith({
+      where: { email: "test@example.com" },
+    });
   });
 
   it("returns 403 (requiresReauth) for OAuth user with stale login", async () => {

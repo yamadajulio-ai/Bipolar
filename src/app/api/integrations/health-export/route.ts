@@ -30,6 +30,11 @@ export async function GET(request: NextRequest) {
   }
   const apiKey = authHeader.slice(7);
 
+  const rlAllowed = await checkRateLimit(`hae_get:${apiKey.slice(0, 16)}`, 30, 60_000);
+  if (!rlAllowed) {
+    return NextResponse.json({ status: "error", message: "Muitas requisições" }, { status: 429 });
+  }
+
   const integration = await prisma.integrationKey.findUnique({
     where: { apiKey },
     select: { id: true, userId: true, enabled: true, service: true },

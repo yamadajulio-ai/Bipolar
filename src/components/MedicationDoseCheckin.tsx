@@ -228,7 +228,7 @@ export function MedicationDoseCheckin({ date, onComplete, onTrackingStatus }: Pr
                   <button
                     onClick={() => logYesterdayDose(dose.scheduleId, "MISSED")}
                     disabled={saving.has(dose.scheduleId)}
-                    className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted hover:bg-red-50 hover:text-red-700 hover:border-red-200 disabled:opacity-50"
+                    className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted hover:bg-danger-bg-subtle hover:text-danger-fg hover:border-danger-border disabled:opacity-50"
                   >
                     Não
                   </button>
@@ -396,7 +396,7 @@ function DoseRow({
         <button
           onClick={() => onLog(dose.scheduleId, "MISSED")}
           disabled={saving}
-          className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted hover:bg-red-50 hover:text-red-700 hover:border-red-200 disabled:opacity-50"
+          className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted hover:bg-danger-bg-subtle hover:text-danger-fg hover:border-danger-border disabled:opacity-50"
         >
           Não
         </button>

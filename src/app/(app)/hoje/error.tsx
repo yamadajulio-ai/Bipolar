@@ -30,7 +30,7 @@ export default function HojeError({
           </button>
           <a
             href="/sos"
-            className="block w-full rounded-[var(--radius-card)] bg-red-600 text-white py-3 font-medium hover:bg-red-700 transition-colors"
+            className="block w-full rounded-[var(--radius-card)] bg-danger text-white py-3 font-medium hover:bg-danger/90 transition-colors"
           >
             SOS — Preciso de ajuda
           </a>

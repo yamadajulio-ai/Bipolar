@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Erro ao excluir conta" }, { status: 500 });
   }
 
-  session.destroy();
+  await session.destroy();
 
   // Clear all browser-side data (LGPD Art. 18 — complete data elimination)
   const response = NextResponse.redirect(new URL("/", request.url), 303);

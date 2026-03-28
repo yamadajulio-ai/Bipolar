@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const selectFields = { id: true, email: true, name: true, onboarded: true, passwordHash: true } as const;
+    const selectFields = { id: true, email: true, name: true, onboarded: true, passwordHash: true, googleSub: true } as const;
 
     const displayName = [fullName?.givenName, fullName?.familyName]
       .filter(Boolean)
@@ -110,7 +110,11 @@ export async function POST(request: NextRequest) {
           // Prevents pre-hijacking attack vector.
           return NextResponse.json({ error: "account_exists" }, { status: 409 });
         }
-        // Safe: social-only account (no password = no pre-hijack vector)
+        // SECURITY: Block cross-provider linking — prevents social-to-social hijacking.
+        if (existingByEmail.googleSub) {
+          return NextResponse.json({ error: "account_exists" }, { status: 409 });
+        }
+        // Safe: no password AND no other social provider linked
         await prisma.user.update({
           where: { id: existingByEmail.id },
           data: {

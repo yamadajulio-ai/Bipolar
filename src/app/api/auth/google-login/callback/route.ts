@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
       return errorRedirect("email_not_verified");
     }
 
-    const googleSelectFields = { id: true, email: true, name: true, onboarded: true, passwordHash: true } as const;
+    const googleSelectFields = { id: true, email: true, name: true, onboarded: true, passwordHash: true, appleSub: true } as const;
 
     // 1. Find by googleSub (returning user)
     let user = await prisma.user.findUnique({
@@ -79,7 +79,12 @@ export async function GET(request: NextRequest) {
           // User must log in with password and link Google explicitly.
           return errorRedirect("account_exists");
         }
-        // Safe: social-only account (no password = no pre-hijack vector)
+        // SECURITY: Block cross-provider linking — prevents social-to-social hijacking.
+        // If account was created via Apple, don't auto-link Google (and vice versa).
+        if (existingByEmail.appleSub) {
+          return errorRedirect("account_exists");
+        }
+        // Safe: no password AND no other social provider linked
         await prisma.user.update({
           where: { id: existingByEmail.id },
           data: {
@@ -104,7 +109,7 @@ export async function GET(request: NextRequest) {
 
     // Session rotation: destroy pre-auth cookie before creating authenticated session
     const session = await getSession();
-    session.destroy();
+    await session.destroy();
 
     const freshSession = await getSession();
     freshSession.userId = user.id;

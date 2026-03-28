@@ -11,6 +11,13 @@ export default async function AdminOverviewPage() {
   if (!session.isLoggedIn) redirect("/login");
   if (!session.onboarded) redirect("/onboarding");
 
+  // RBAC: deny-by-default, require admin role (defense-in-depth — layout also checks)
+  const adminUser = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: { role: true },
+  });
+  if (adminUser?.role !== "admin") redirect("/hoje");
+
   // Audit log
   const headersList = await headers();
   const ip = headersList.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;

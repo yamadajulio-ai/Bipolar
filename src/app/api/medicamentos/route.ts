@@ -63,6 +63,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
   }
 
+  // Consent gate: require "health_data" scope (LGPD Art. 11)
+  const consent = await prisma.consent.findFirst({
+    where: { userId: session.userId, scope: "health_data", revokedAt: null },
+    select: { id: true },
+  });
+  if (!consent) {
+    return NextResponse.json(
+      { error: "Consentimento para dados de saúde não concedido. Acesse Privacidade para autorizar." },
+      { status: 403 },
+    );
+  }
+
   try {
     const body = await request.json();
     const parsed = createSchema.safeParse(body);

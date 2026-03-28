@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const selectFields = { id: true, email: true, name: true, onboarded: true, passwordHash: true } as const;
+    const selectFields = { id: true, email: true, name: true, onboarded: true, passwordHash: true, googleSub: true } as const;
 
     // Parse display name from Apple's user JSON (only sent on first consent)
     let displayName: string | undefined;
@@ -131,7 +131,11 @@ export async function POST(request: NextRequest) {
           // Prevents pre-hijacking attack vector.
           return errorRedirect("account_exists");
         }
-        // Safe: social-only account (no password = no pre-hijack vector)
+        // SECURITY: Block cross-provider linking — prevents social-to-social hijacking.
+        if (existingByEmail.googleSub) {
+          return errorRedirect("account_exists");
+        }
+        // Safe: no password AND no other social provider linked
         await prisma.user.update({
           where: { id: existingByEmail.id },
           data: {
@@ -158,7 +162,7 @@ export async function POST(request: NextRequest) {
 
     // Session rotation: destroy pre-auth cookie before creating authenticated session
     const session = await getSession();
-    session.destroy();
+    await session.destroy();
 
     const freshSession = await getSession();
     freshSession.userId = user.id;

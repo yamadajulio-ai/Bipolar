@@ -125,6 +125,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
   }
 
+  // Consent gate: require "health_data" scope (LGPD Art. 11)
+  const consent = await prisma.consent.findFirst({
+    where: { userId: session.userId, scope: "health_data", revokedAt: null },
+    select: { id: true },
+  });
+  if (!consent) {
+    return NextResponse.json(
+      { error: "Consentimento para dados de saúde não concedido. Acesse Privacidade para autorizar." },
+      { status: 403 },
+    );
+  }
+
   // Body size limit: reject payloads > 100KB (manual form data is tiny)
   const contentLength = request.headers.get("content-length");
   if (contentLength && parseInt(contentLength, 10) > 100_000) {

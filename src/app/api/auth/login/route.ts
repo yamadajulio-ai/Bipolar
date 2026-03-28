@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
     // Session rotation: destroy pre-auth cookie before creating authenticated session
     // Prevents session fixation — any pre-existing cookie is invalidated
     const session = await getSession();
-    session.destroy();
+    await session.destroy();
 
     const freshSession = await getSession();
     freshSession.userId = user.id;

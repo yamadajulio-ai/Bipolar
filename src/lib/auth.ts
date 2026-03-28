@@ -75,7 +75,7 @@ export async function getSession() {
           const { prisma } = await import("@/lib/db");
           const user = await prisma.user.findUnique({
             where: { id: session.userId },
-            select: { passwordChangedAt: true },
+            select: { passwordChangedAt: true, onboarded: true },
           });
           if (!user) {
             await session.destroy();
@@ -84,6 +84,11 @@ export async function getSession() {
           if (user.passwordChangedAt && user.passwordChangedAt.getTime() > session.createdAt) {
             await session.destroy();
             return session;
+          }
+          // Sync onboarded flag from DB → session (catches admin revocation within 5 min)
+          if (session.onboarded !== user.onboarded) {
+            session.onboarded = user.onboarded;
+            needsSave = true;
           }
         } catch {
           // Column may not exist pre-migration — skip check silently

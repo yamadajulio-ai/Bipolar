@@ -52,8 +52,13 @@ export async function verifyAppleIdentityToken(
   identityToken: string,
   nonce?: string,
 ): Promise<AppleUserInfo> {
-  const clientId = process.env.APPLE_CLIENT_ID;
-  if (!clientId) throw new Error("APPLE_CLIENT_ID not configured");
+  // Accept both web (Service ID) and native (App ID) audiences.
+  // Native iOS sends JWT with aud=APPLE_NATIVE_CLIENT_ID (bundle ID),
+  // web OAuth sends JWT with aud=APPLE_CLIENT_ID (Service ID).
+  const webClientId = process.env.APPLE_CLIENT_ID;
+  const nativeClientId = process.env.APPLE_NATIVE_CLIENT_ID;
+  const validAudiences = [webClientId, nativeClientId].filter(Boolean) as string[];
+  if (validAudiences.length === 0) throw new Error("APPLE_CLIENT_ID not configured");
 
   const keys = await getApplePublicKeys();
 
@@ -74,7 +79,7 @@ export async function verifyAppleIdentityToken(
       const key = await importJWK(jwk, jwk.alg || "RS256");
       const { payload } = await jwtVerify(identityToken, key, {
         issuer: APPLE_ISSUER,
-        audience: clientId,
+        audience: validAudiences,
       });
 
       // JWT verified successfully — now check nonce OUTSIDE the key loop

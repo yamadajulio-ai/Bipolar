@@ -1,106 +1,65 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod/v4";
 import * as Sentry from "@sentry/nextjs";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { checkRateLimit, getClientIp, maskIp } from "@/lib/security";
-import { verifyAppleIdentityToken, exchangeAppleCodeForTokens, getAppleAuthUrl } from "@/lib/apple/auth";
+import { verifyAppleIdentityToken, exchangeAppleCodeForTokens } from "@/lib/apple/auth";
 import { encrypt } from "@/lib/crypto";
-import crypto from "crypto";
 
 const CONSENT_VERSION = 1;
 
 /**
- * GET /api/auth/apple-login
+ * POST /api/auth/apple-login/callback
  *
- * Redirects to Apple OAuth for web-based Sign in with Apple.
- * Sets a state cookie for CSRF protection (same pattern as Google login).
- */
-export async function GET(request: NextRequest) {
-  const session = await getSession();
-  if (session.isLoggedIn) {
-    return NextResponse.redirect(new URL("/hoje", request.url));
-  }
-
-  const state = crypto.randomBytes(16).toString("hex");
-  const authUrl = getAppleAuthUrl(state);
-
-  const response = NextResponse.redirect(authUrl);
-  // sameSite: "none" is required because Apple sends a cross-origin POST (form_post).
-  // Lax cookies are NOT sent on cross-origin POST — the callback would always fail CSRF.
-  // Path-scoped to /api/auth/apple-login/callback to minimize exposure surface.
-  response.cookies.set("apple-login-state", state, {
-    httpOnly: true,
-    secure: true,
-    sameSite: "none",
-    maxAge: 600,
-    path: "/api/auth/apple-login/callback",
-  });
-
-  return response;
-}
-
-/**
- * POST /api/auth/apple-login
+ * Apple OAuth web callback — receives form_post from Apple's authorization server.
+ * Apple sends: code, id_token, state, and optionally user (JSON with name/email on first consent).
  *
- * Handles Sign in with Apple for native iOS (Capacitor plugin sends identityToken directly).
- * Validates the Apple identity token JWT, creates/links user, and establishes session.
+ * Flow: Apple → POST form_post → validate state → verify id_token → create/link user → redirect
  */
-
-const schema = z.object({
-  identityToken: z.string().min(100).max(10000),
-  authorizationCode: z.string().max(2000).optional(),
-  nonce: z.string().max(500).optional(),
-  fullName: z
-    .object({
-      givenName: z.string().max(200).nullable().optional(),
-      familyName: z.string().max(200).nullable().optional(),
-    })
-    .optional(),
-});
-
 export async function POST(request: NextRequest) {
   const ip = getClientIp(request);
-
-  const allowed = await checkRateLimit(`apple-login:${ip}`, 10, 900_000);
+  const allowed = await checkRateLimit(`apple-callback:${ip}`, 10, 900_000);
   if (!allowed) {
-    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+    return NextResponse.redirect(new URL("/login?error=rate_limited", request.url));
   }
 
-  let body: unknown;
+  const formData = await request.formData();
+
+  const idToken = formData.get("id_token") as string | null;
+  const code = formData.get("code") as string | null;
+  const state = formData.get("state") as string | null;
+  const storedState = request.cookies.get("apple-login-state")?.value;
+  // Apple sends user info as JSON string on first authorization only
+  const userJson = formData.get("user") as string | null;
+
+  // CSRF: validate state matches cookie
+  if (!state || !storedState || state !== storedState) {
+    return NextResponse.redirect(new URL("/login?error=csrf", request.url));
+  }
+
+  if (!idToken) {
+    return NextResponse.redirect(new URL("/login?error=no_token", request.url));
+  }
+
   try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "invalid_body" }, { status: 400 });
-  }
-
-  const parsed = schema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json({ error: "invalid_request" }, { status: 400 });
-  }
-
-  const { identityToken, authorizationCode, nonce, fullName } = parsed.data;
-
-  try {
-    // Verify Apple JWT against Apple's public keys (with nonce replay protection)
-    const appleUser = await verifyAppleIdentityToken(identityToken, nonce);
+    // Verify the id_token JWT directly (Apple includes it in the form_post)
+    const appleUser = await verifyAppleIdentityToken(idToken);
 
     if (!appleUser.email) {
-      return NextResponse.json({ error: "email_required" }, { status: 400 });
+      return NextResponse.redirect(new URL("/login?error=apple_login_failed", request.url));
     }
 
     if (!appleUser.emailVerified) {
-      return NextResponse.json({ error: "email_not_verified" }, { status: 400 });
+      return NextResponse.redirect(new URL("/login?error=email_not_verified", request.url));
     }
 
     // Normalize email for consistent DB lookups
     appleUser.email = appleUser.email.toLowerCase().trim();
 
-    // Exchange auth code for refresh token (needed for account deletion/revocation)
-    // Encrypt before storing — same pattern as Google refresh tokens
+    // Exchange authorization code for refresh token (needed for account deletion/revocation)
     let encryptedAppleRefreshToken: string | undefined;
-    if (authorizationCode) {
-      const tokens = await exchangeAppleCodeForTokens(authorizationCode);
+    if (code) {
+      const tokens = await exchangeAppleCodeForTokens(code, process.env.APPLE_REDIRECT_URI);
       if (tokens.refresh_token) {
         encryptedAppleRefreshToken = encrypt(tokens.refresh_token);
       }
@@ -111,10 +70,18 @@ export async function POST(request: NextRequest) {
 
     const selectFields = { id: true, email: true, name: true, onboarded: true } as const;
 
-    // Build display name from Apple's fullName (only sent on first sign-in)
-    const displayName = [fullName?.givenName, fullName?.familyName]
-      .filter(Boolean)
-      .join(" ") || undefined;
+    // Parse display name from Apple's user JSON (only sent on first consent)
+    let displayName: string | undefined;
+    if (userJson) {
+      try {
+        const userData = JSON.parse(userJson);
+        displayName = [userData.name?.firstName, userData.name?.lastName]
+          .filter(Boolean)
+          .join(" ") || undefined;
+      } catch {
+        // Invalid JSON — ignore, name is optional
+      }
+    }
 
     // 1. Find by appleSub (returning user)
     let user = await prisma.user.findUnique({
@@ -198,17 +165,17 @@ export async function POST(request: NextRequest) {
     freshSession.createdAt = Date.now();
     await freshSession.save();
 
-    return NextResponse.json({
-      ok: true,
-      redirect: user.onboarded ? "/hoje" : "/onboarding",
-    });
+    const redirectTo = user.onboarded ? "/hoje" : "/onboarding";
+    const response = NextResponse.redirect(new URL(redirectTo, request.url));
+    response.cookies.delete("apple-login-state");
+    return response;
   } catch (err) {
-    Sentry.captureException(err, { tags: { endpoint: "apple-login" } });
+    Sentry.captureException(err, { tags: { endpoint: "apple-login-callback" } });
     console.error(JSON.stringify({
-      event: "apple_login_error",
+      event: "apple_login_callback_error",
       errorType: err instanceof Error ? err.constructor.name : "Unknown",
       message: (err as Error).message?.slice(0, 200) || "Unknown",
     }));
-    return NextResponse.json({ error: "apple_login_failed" }, { status: 500 });
+    return NextResponse.redirect(new URL("/login?error=apple_login_failed", request.url));
   }
 }

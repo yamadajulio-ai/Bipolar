@@ -11,8 +11,10 @@ const oauthErrorMessages: Record<string, string> = {
   csrf: "Erro de segurança. Tente novamente.",
   no_code: "Erro na autenticação. Tente novamente.",
   no_token: "Erro na autenticação. Tente novamente.",
-  email_not_verified: "Seu e-mail do Google não está verificado.",
+  email_not_verified: "Seu e-mail não está verificado.",
   google_login_failed: "Erro ao entrar com Google. Tente novamente.",
+  apple_login_failed: "Erro ao entrar com Apple. Tente novamente.",
+  rate_limited: "Muitas tentativas. Aguarde alguns minutos.",
 };
 
 function LoginForm() {

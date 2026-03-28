@@ -69,6 +69,10 @@ function checkCsrf(request: NextRequest): NextResponse | null {
   // Only check mutating methods
   if (method === "GET" || method === "HEAD" || method === "OPTIONS") return null;
 
+  // Native app endpoints: auth via Bearer token, no CSRF needed.
+  // CSRF is a browser-cookie problem; native uses explicit Authorization header.
+  if (pathname.startsWith("/api/native/")) return null;
+
   // Allow Vercel Cron (no Origin header, but has cron secret)
   if (pathname.match(/^\/api\/cron(\/[^/]+)?$/)) return null;
 
@@ -78,6 +82,10 @@ function checkCsrf(request: NextRequest): NextResponse | null {
 
   // Allow WhatsApp webhook (Meta verifies via verify_token)
   if (pathname === "/api/whatsapp/webhook") return null;
+
+  // Allow Apple OAuth callback — Apple sends form_post from their servers (cross-origin).
+  // Protected by state cookie (CSRF), same pattern as Google OAuth callback.
+  if (pathname === "/api/auth/apple-login/callback") return null;
 
   // Allow logout via native form POST (no X-CSRF-Token header).
   // Protected by Sec-Fetch-Site same-origin check + session cookie.

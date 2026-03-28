@@ -35,9 +35,14 @@ export async function hasConsent(userId: string, scope: string): Promise<boolean
     }
 
     // No record at all — legacy account, auto-create
-    await prisma.consent.create({
-      data: { userId, scope, version: 1, ipAddress: "auto-migration" },
-    });
+    // Use try/catch for race condition: concurrent requests may both try to create
+    try {
+      await prisma.consent.create({
+        data: { userId, scope, version: 1, ipAddress: "auto-migration" },
+      });
+    } catch {
+      // Unique constraint violation — another request already created it, that's fine
+    }
     return true;
   }
 

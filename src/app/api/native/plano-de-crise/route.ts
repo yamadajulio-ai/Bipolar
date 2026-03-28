@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
   try {
     const auth = await getNativeAuth(request);
     if (!auth) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
     }
 
     const allowed = await checkRateLimit(`native-crisis-read:${auth.userId}`, 60, 60_000);
@@ -76,7 +76,7 @@ export async function PUT(request: NextRequest) {
   try {
     const auth = await getNativeAuth(request);
     if (!auth) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
     }
 
     const allowed = await checkRateLimit(`native-crisis-write:${auth.userId}`, 30, 60_000);

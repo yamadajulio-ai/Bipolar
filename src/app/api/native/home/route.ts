@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
   try {
     const auth = await getNativeAuth(request);
     if (!auth) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
     }
 
     // Rate limit: 60 reads per minute per user (heavy endpoint, ~15 queries)

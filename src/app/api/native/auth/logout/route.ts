@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     const auth = await getNativeAuth(request);
 
     if (!auth) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
     }
 
     await revokeSession(auth.sessionId);

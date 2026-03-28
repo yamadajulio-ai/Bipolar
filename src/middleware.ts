@@ -179,7 +179,7 @@ export async function middleware(request: NextRequest) {
 
   // API routes: CSRF check + onboarded gate + no-store for authenticated endpoints
   if (pathname.startsWith("/api/")) {
-    const csrfResponse = checkCsrf(request);
+    const csrfResponse = await checkCsrf(request);
     if (csrfResponse) return csrfResponse;
 
     // Onboarded gate: block pre-onboarding users from data-writing API routes.

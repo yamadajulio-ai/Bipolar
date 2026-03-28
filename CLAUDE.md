@@ -127,16 +127,18 @@
 - **Sleep composite**: regularidade 30%, duração 30%, qualidade 25%, HRV 15% (sub-pesos redistribuídos se dado ausente)
 
 ## Security — Arquitetura
-- **CSRF**: 2 camadas — Sec-Fetch-Site/Origin (middleware) + double-submit cookie (`__Host-csrf` + `X-CSRF-Token` header via `CsrfProvider` global interceptor)
+- **CSRF**: 2 camadas — Sec-Fetch-Site/Origin (middleware) + double-submit cookie (`__Host-csrf` + `X-CSRF-Token` header via `CsrfProvider` global interceptor). `checkCsrf()` corretamente `await`-ed no middleware (P0 fix 2026-03-28). 4 pontos de rejeição com `console.warn("[CSRF]")` structured logging.
 - **CSP**: enforced (não report-only) — `Content-Security-Policy` no `next.config.ts`
 - **Permissions-Policy**: `camera=(), geolocation=()` — microphone liberado (necessário para SOS voice mode)
 - **Step-up auth**: ações sensíveis (delete account, export) exigem re-confirmação de senha (email users) ou sessão recente <5min (Google/Apple OAuth)
 - **Session**: idle 7d + absolute 30d + sliding refresh 1h, iron-session encrypted, `Clear-Site-Data` no logout, session rotation no login (anti-fixation)
-- **Rate limiting**: DB-backed atômico (`$transaction`), per-endpoint, windowMs em milissegundos (não segundos)
+- **Rate limiting**: DB-backed atômico (`$transaction`), per-endpoint, windowMs em milissegundos (não segundos). **100% de rotas com rate limit** (cobertura completa após hardening 2026-03-28).
+- **getClientIp()**: utility padronizada (`cf-connecting-ip` → `x-forwarded-for[0]` → `x-real-ip` → `"unknown"`). Todas as rotas usam — zero raw `x-forwarded-for` parsing.
 - **Password reset tokens**: SHA-256 hash no DB, raw token só no e-mail
 - **OAuth refresh tokens**: AES-256-GCM (Google + Apple), revogação na exclusão de conta
 - **Apple Sign-In**: nonce replay protection (NonceMismatchError propaga imediatamente fora do key rotation loop)
 - **Sentry PII**: replays OFF, request data filtered, URL redaction, breadcrumb whitelist
+- **Error messages**: 100% pt-BR em todas as rotas (zero English leaking)
 
 ## SafetyNudge — Arquitetura
 - Componente: `src/components/insights/SafetyNudge.tsx`

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import * as Sentry from "@sentry/nextjs";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { maskIp, checkRateLimit } from "@/lib/security";
+import { maskIp, checkRateLimit, getClientIp } from "@/lib/security";
 
 /** Per-scope consent version. Bump when the consent text/terms for a scope change. */
 const SCOPE_VERSIONS: Record<string, number> = {
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Ação inválida" }, { status: 400 });
   }
 
-  const rawIp = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  const rawIp = getClientIp(request);
   const maskedIp = maskIp(rawIp);
 
   try {

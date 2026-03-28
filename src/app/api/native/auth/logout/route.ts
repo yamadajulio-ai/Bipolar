@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getNativeAuth, revokeSession } from "@/lib/native-auth";
-import { checkRateLimit } from "@/lib/security";
+import { checkRateLimit, getClientIp } from "@/lib/security";
 import * as Sentry from "@sentry/nextjs";
 
 /**
@@ -11,7 +11,7 @@ import * as Sentry from "@sentry/nextjs";
  */
 export async function POST(request: NextRequest) {
   try {
-    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+    const ip = getClientIp(request);
     const allowed = await checkRateLimit(`native-logout:${ip}`, 30, 60_000);
     if (!allowed) {
       return NextResponse.json({ error: "rate_limited" }, { status: 429 });

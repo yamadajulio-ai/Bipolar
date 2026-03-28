@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
-import { headers } from "next/headers";
 import * as Sentry from "@sentry/nextjs";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { maskIp, checkRateLimit } from "@/lib/security";
+import { maskIp, checkRateLimit, getClientIp } from "@/lib/security";
 
 const VALID_GOALS = new Set(["sleep", "detect", "consult", "routine", "learn"]);
 const VALID_PROFILES = new Set(["recent", "veteran", "caregiver"]);
@@ -59,8 +58,7 @@ export async function POST(request: Request) {
     : goal || undefined;
 
   try {
-    const headersList = await headers();
-    const rawIp = headersList.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    const rawIp = getClientIp(request);
     const maskedIp = maskIp(rawIp);
 
     // Use transaction to atomically update user + create consents

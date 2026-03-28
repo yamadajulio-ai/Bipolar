@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod/v4";
 import { prisma } from "@/lib/db";
-import { verifyPassword } from "@/lib/auth";
+import { hashPassword, verifyPassword } from "@/lib/auth";
 import { checkRateLimit, getClientIp } from "@/lib/security";
 import { createNativeSession } from "@/lib/native-auth";
 import * as Sentry from "@sentry/nextjs";
 
-const DUMMY_HASH = "$argon2id$v=19$m=19456,t=2,p=1$aaaaaaaaaaaaaaaaaaaaaaaa$bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+/** Pre-computed valid argon2id hash for constant-time comparison when user not found */
+const DUMMY_HASH_PROMISE = hashPassword("timing-equalization-dummy-value");
 
 const loginSchema = z.object({
   email: z.email("E-mail inválido"),
@@ -64,16 +65,11 @@ export async function POST(request: NextRequest) {
     });
 
     if (!user || !user.passwordHash) {
-      await verifyPassword(senha, DUMMY_HASH);
-      if (!user) {
-        return NextResponse.json(
-          { error: "E-mail ou senha incorretos." },
-          { status: 401 },
-        );
-      }
+      const dummyHash = await DUMMY_HASH_PROMISE;
+      await verifyPassword(senha, dummyHash);
       return NextResponse.json(
-        { error: "Esta conta usa login social. Use Sign in with Apple ou Google." },
-        { status: 400 },
+        { error: "E-mail ou senha incorretos." },
+        { status: 401 },
       );
     }
 

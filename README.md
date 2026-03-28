@@ -56,7 +56,7 @@ O Rede Bipolar oferece:
 - **zod v4** — validação de dados
 - **recharts** — gráficos e visualizações
 - **googleapis** — Google Calendar + OAuth
-- **xlsx (SheetJS)** — parser de planilhas Mobills
+- **exceljs** — parser de planilhas Mobills
 - **gray-matter + remark/rehype** — conteúdo markdown
 - **Web Audio API** — sons ambiente (sem dependências externas)
 - **Vitest** — testes unitários

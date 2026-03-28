@@ -2,7 +2,8 @@ import { SkeletonBlock, SkeletonCard } from "@/components/Skeleton";
 
 export default function ContaLoading() {
   return (
-    <div>
+    <div aria-busy="true">
+      <span className="sr-only" role="status">Carregando...</span>
       <SkeletonBlock className="h-8 w-32 mb-6" />
 
       {/* Profile section */}

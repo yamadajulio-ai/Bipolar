@@ -154,6 +154,17 @@ export async function PUT(request: NextRequest) {
           serverRev: newRev,
           updatedByDeviceId: deviceId ?? null,
         },
+        select: {
+          trustedContacts: true,
+          professionalName: true,
+          professionalPhone: true,
+          medications: true,
+          preferredHospital: true,
+          copingStrategies: true,
+          serverRev: true,
+          updatedByDeviceId: true,
+          updatedAt: true,
+        },
       });
 
       return { conflict: false as const, plan };

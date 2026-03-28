@@ -2,7 +2,8 @@ import { SkeletonBlock, SkeletonCard } from "@/components/Skeleton";
 
 export default function MaisLoading() {
   return (
-    <div>
+    <div aria-busy="true">
+      <span className="sr-only" role="status">Carregando...</span>
       <SkeletonBlock className="mb-6 h-8 w-20" />
 
       {/* Quick access */}

@@ -411,7 +411,7 @@ export default function SOSPage() {
                   offline
                 </span>
               </div>
-              <span className="text-sm text-blue-200">
+              <span className="text-sm text-blue-100">
                 Respiração 4-7-8 + aterramento 5-4-3-2-1
               </span>
             </button>
@@ -425,7 +425,7 @@ export default function SOSPage() {
             >
               <span className="text-lg font-bold">Preciso me acalmar</span>
               <br />
-              <span className="text-sm text-blue-200">
+              <span className="text-sm text-blue-100">
                 Respiração guiada 4-7-8
               </span>
             </button>
@@ -439,7 +439,7 @@ export default function SOSPage() {
             >
               <span className="text-lg font-bold">Estou muito ansioso(a)</span>
               <br />
-              <span className="text-sm text-indigo-200">
+              <span className="text-sm text-indigo-100">
                 Aterramento guiado passo a passo
               </span>
             </button>
@@ -454,7 +454,7 @@ export default function SOSPage() {
               >
                 <span className="text-lg font-bold">Preciso conversar com alguém</span>
                 <br />
-                <span className="text-sm text-teal-200">
+                <span className="text-sm text-teal-100">
                   Chat de acolhimento por texto ou voz
                 </span>
               </button>
@@ -468,7 +468,7 @@ export default function SOSPage() {
               >
                 <span className="text-lg font-bold text-white">Preciso conversar com alguém</span>
                 <br />
-                <span className="text-sm text-teal-200">
+                <span className="text-sm text-teal-100">
                   Chat online do CVV (cvv.org.br) — 24h, gratuito
                 </span>
               </a>

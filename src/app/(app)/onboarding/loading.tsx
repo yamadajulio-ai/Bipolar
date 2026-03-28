@@ -2,7 +2,8 @@ import { SkeletonBlock, SkeletonCard } from "@/components/Skeleton";
 
 export default function OnboardingLoading() {
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh]">
+    <div aria-busy="true" className="flex flex-col items-center justify-center min-h-[60vh]">
+      <span className="sr-only" role="status">Carregando...</span>
       {/* Progress dots */}
       <div className="flex gap-2 mb-8">
         {[1, 2, 3, 4].map((i) => (

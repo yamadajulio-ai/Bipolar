@@ -34,7 +34,7 @@ O sistema de insights é o módulo mais complexo: `computeInsights.ts` (2.585 li
 | **Lint / Format** | ESLint 9, Prettier 3 |
 | **Deploy** | Vercel Pro (push main → auto-deploy) |
 | **Content** | Markdown (gray-matter + remark + rehype) |
-| **Conteúdo** | xlsx (importação financeira) |
+| **Conteúdo** | exceljs (importação financeira) |
 | **Markdown** | remark → rehype-sanitize → rehype-stringify |
 | **Telefonia** | libphonenumber-js (WhatsApp E.164) |
 

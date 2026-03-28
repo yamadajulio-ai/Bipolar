@@ -18,7 +18,7 @@ export default function PublicLayout({
       <MetaPixel />
       <MicrosoftClarity />
       <GoogleAnalytics />
-      <div id="main-content">{children}</div>
+      <div id="main-content" tabIndex={-1} className="outline-none">{children}</div>
     </>
   );
 }

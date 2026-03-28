@@ -2,7 +2,8 @@ import { SkeletonBlock, SkeletonCard } from "@/components/Skeleton";
 
 export default function AvaliacaoSemanalLoading() {
   return (
-    <div>
+    <div aria-busy="true">
+      <span className="sr-only" role="status">Carregando...</span>
       <SkeletonBlock className="h-8 w-52 mb-1" />
       <SkeletonBlock className="h-4 w-64 mb-6" />
 

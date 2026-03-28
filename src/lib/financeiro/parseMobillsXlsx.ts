@@ -9,21 +9,29 @@ import type { ParsedTransaction } from "./parseMobillsCsv";
  */
 export async function parseMobillsXlsx(buffer: ArrayBuffer): Promise<ParsedTransaction[]> {
   const workbook = new ExcelJS.Workbook();
-  // exceljs.load accepts ArrayBuffer at runtime but types expect Buffer
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await workbook.xlsx.load(buffer as any);
+  try {
+    // exceljs.load accepts ArrayBuffer at runtime but types expect Buffer
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await workbook.xlsx.load(buffer as any);
+  } catch {
+    // Password-protected or corrupt files — return empty gracefully
+    return [];
+  }
 
   const sheet = workbook.worksheets[0];
   if (!sheet || sheet.rowCount < 2) return [];
 
+  const colCount = sheet.columnCount;
+
   // Convert sheet to array of arrays (formatted text values)
+  // Iterate by column index to avoid eachCell skipping leading empty cells
   const rows: string[][] = [];
   sheet.eachRow((row) => {
     const cells: string[] = [];
-    row.eachCell({ includeEmpty: true }, (cell) => {
-      // Get formatted text value (not raw) to match xlsx behavior
+    for (let col = 1; col <= colCount; col++) {
+      const cell = row.getCell(col);
       cells.push(cell.text ?? String(cell.value ?? ""));
-    });
+    }
     rows.push(cells);
   });
 

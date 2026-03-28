@@ -2,7 +2,8 @@ import { SkeletonBlock, SkeletonCard, SkeletonText } from "@/components/Skeleton
 
 export default function ComoUsarLoading() {
   return (
-    <div>
+    <div aria-busy="true">
+      <span className="sr-only" role="status">Carregando...</span>
       <SkeletonBlock className="h-8 w-36 mb-1" />
       <SkeletonBlock className="h-4 w-52 mb-6" />
 

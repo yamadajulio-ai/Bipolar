@@ -11,7 +11,7 @@ export function SkeletonBlock({ className = "" }: { className?: string }) {
 
 export function SkeletonCard({ children, className = "" }: { children?: React.ReactNode; className?: string }) {
   return (
-    <div className={`rounded-[var(--radius-card)] border border-border bg-surface p-4 shadow-[var(--shadow-card)] ${className}`}>
+    <div aria-hidden className={`rounded-[var(--radius-card)] border border-border bg-surface p-4 shadow-[var(--shadow-card)] ${className}`}>
       {children}
     </div>
   );
@@ -19,7 +19,7 @@ export function SkeletonCard({ children, className = "" }: { children?: React.Re
 
 export function SkeletonText({ lines = 1, className = "" }: { lines?: number; className?: string }) {
   return (
-    <div className={`space-y-2 ${className}`}>
+    <div aria-hidden className={`space-y-2 ${className}`}>
       {Array.from({ length: lines }).map((_, i) => (
         <SkeletonBlock
           key={i}

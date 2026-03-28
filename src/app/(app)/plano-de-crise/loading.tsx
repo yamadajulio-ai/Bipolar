@@ -2,7 +2,8 @@ import { SkeletonBlock, SkeletonCard, SkeletonText } from "@/components/Skeleton
 
 export default function PlanoDeCriseLoading() {
   return (
-    <div>
+    <div aria-busy="true">
+      <span className="sr-only" role="status">Carregando...</span>
       <SkeletonBlock className="h-8 w-44 mb-1" />
       <SkeletonBlock className="h-4 w-56 mb-6" />
 

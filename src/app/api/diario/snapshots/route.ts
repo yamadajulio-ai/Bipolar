@@ -372,5 +372,7 @@ export async function GET(request: NextRequest) {
     },
   });
 
-  return NextResponse.json(snapshots);
+  const res = NextResponse.json(snapshots);
+  res.headers.set("Cache-Control", "private, no-cache");
+  return res;
 }

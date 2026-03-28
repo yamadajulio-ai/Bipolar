@@ -30,8 +30,21 @@ export async function POST(request: NextRequest) {
     }
 
     const fileName = file.name.toLowerCase();
-    const isXlsx =
-      fileName.endsWith(".xlsx") || fileName.endsWith(".xls");
+
+    if (fileName.endsWith(".xls") && !fileName.endsWith(".xlsx")) {
+      return NextResponse.json(
+        {
+          errors: {
+            file: [
+              "Formato .xls não é suportado. Exporte novamente como .xlsx ou .csv.",
+            ],
+          },
+        },
+        { status: 400 },
+      );
+    }
+
+    const isXlsx = fileName.endsWith(".xlsx");
 
     let transactions;
     if (isXlsx) {

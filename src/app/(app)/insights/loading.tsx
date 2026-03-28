@@ -2,7 +2,8 @@ import { SkeletonBlock, SkeletonCard, SkeletonText } from "@/components/Skeleton
 
 export default function InsightsLoading() {
   return (
-    <div className="max-w-2xl mx-auto">
+    <div aria-busy="true" className="max-w-2xl mx-auto">
+      <span className="sr-only" role="status">Carregando...</span>
       <SkeletonBlock className="h-8 w-32 mb-1" />
       <SkeletonBlock className="h-4 w-64 mb-4" />
 

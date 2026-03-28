@@ -18,7 +18,7 @@ export default function AuthLayout({
       <MetaPixel />
       <MicrosoftClarity />
       <GoogleAnalytics />
-      <div id="main-content">
+      <div id="main-content" tabIndex={-1} className="outline-none">
         {children}
       </div>
     </>

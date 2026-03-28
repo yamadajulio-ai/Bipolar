@@ -20,8 +20,8 @@ export function ImportCSV({ onImported }: { onImported: () => void }) {
   function handleFileChange(file: File | null) {
     if (!file) return;
     const name = file.name.toLowerCase();
-    if (!name.endsWith(".csv") && !name.endsWith(".xlsx") && !name.endsWith(".xls")) {
-      setError("Formato não suportado. Use .csv, .xlsx ou .xls");
+    if (!name.endsWith(".csv") && !name.endsWith(".xlsx")) {
+      setError("Formato não suportado. Use .csv ou .xlsx");
       setSelectedFile(null);
       return;
     }
@@ -153,7 +153,7 @@ export function ImportCSV({ onImported }: { onImported: () => void }) {
         <input
           ref={fileRef}
           type="file"
-          accept=".csv,.xlsx,.xls"
+          accept=".csv,.xlsx"
           className="hidden"
           onChange={(e) => handleFileChange(e.target.files?.[0] || null)}
         />
@@ -173,7 +173,7 @@ export function ImportCSV({ onImported }: { onImported: () => void }) {
               Toque para escolher o arquivo
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
-              ou arraste aqui — CSV, XLSX ou XLS
+              ou arraste aqui — CSV ou XLSX
             </p>
           </div>
         )}

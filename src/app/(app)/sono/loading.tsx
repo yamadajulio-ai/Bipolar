@@ -2,7 +2,8 @@ import { SkeletonBlock, SkeletonCard } from "@/components/Skeleton";
 
 export default function SonoLoading() {
   return (
-    <div>
+    <div aria-busy="true">
+      <span className="sr-only" role="status">Carregando...</span>
       <div className="mb-6 flex items-center justify-between">
         <SkeletonBlock className="h-8 w-20" />
         <SkeletonBlock className="h-10 w-32 rounded-lg" />

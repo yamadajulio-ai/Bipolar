@@ -2,7 +2,8 @@ import { SkeletonBlock, SkeletonCard } from "@/components/Skeleton";
 
 export default function CognitivoLoading() {
   return (
-    <div className="mx-auto max-w-lg">
+    <div aria-busy="true" className="mx-auto max-w-lg">
+      <span className="sr-only" role="status">Carregando...</span>
       <SkeletonBlock className="h-7 w-44 mb-1" />
       <SkeletonBlock className="h-4 w-56 mb-6" />
 

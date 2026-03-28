@@ -18,6 +18,8 @@
 - Email: Postmark (transactional, DKIM+Return-Path verified, remetente `contato@suportebipolar.com`)
 - Integrações: Apple Health via Health Auto Export (HAE) + Cloudflare Worker proxy + `waitUntil()` background processing
 - `@vercel/functions` — `waitUntil()` for deferred background work (HAE import)
+- Observabilidade: Sentry (`@sentry/nextjs` v10, source maps, PII scrubbing)
+- MCP Servers: Sentry + GitHub (`.mcp.json`)
 
 ## Público-alvo
 - Brasileiros com transtorno bipolar
@@ -151,7 +153,7 @@
 - **OAuth refresh tokens**: AES-256-GCM (Google + Apple), revogação na exclusão de conta
 - **Apple Sign-In**: nonce replay protection (NonceMismatchError propaga imediatamente fora do key rotation loop)
 - **Cron purge**: `$transaction` atômico para AccessLog (90d) + RateLimit (expired) + PasswordResetToken (7d)
-- **Sentry PII**: replays OFF, request data filtered, URL redaction, breadcrumb whitelist
+- **Sentry**: `@sentry/nextjs` v10.42, `instrumentation.ts` (server+edge), `global-error.tsx`, source maps via `SENTRY_AUTH_TOKEN`, org `yamada-ai` / project `rede-bipolar`. PII: replays OFF, request data filtered, URL redaction, breadcrumb whitelist, exception message scrubbing (Prisma/PHI)
 - **Error messages**: 100% pt-BR em todas as rotas (zero English leaking)
 
 ## SafetyNudge — Arquitetura

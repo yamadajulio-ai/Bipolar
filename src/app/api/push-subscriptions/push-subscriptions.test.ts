@@ -108,7 +108,7 @@ describe("POST /api/push-subscriptions", () => {
 
   it("calls checkRateLimit with correct key", async () => {
     await POST(makeRequest("POST", validPayload));
-    expect(mockCheckRateLimit).toHaveBeenCalledWith("push_sub:user-1", 10);
+    expect(mockCheckRateLimit).toHaveBeenCalledWith("push_sub:user-1", 10, 900_000);
   });
 
   // ── Validation ────────────────────────────────────────────────────────

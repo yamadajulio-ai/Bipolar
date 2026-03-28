@@ -50,6 +50,8 @@ const mockEntryUpdate = vi.fn();
 const mockEntryUpdateMany = vi.fn();
 const mockEntryFindUnique = vi.fn();
 
+const mockConsentFindFirst = vi.fn().mockResolvedValue({ id: "consent-1" });
+
 const mockPrisma = {
   moodSnapshot: {
     findUnique: mockSnapshotFindUnique,
@@ -63,6 +65,9 @@ const mockPrisma = {
     update: mockEntryUpdate,
     updateMany: mockEntryUpdateMany,
     findUnique: mockEntryFindUnique,
+  },
+  consent: {
+    findFirst: mockConsentFindFirst,
   },
   // reprojectEntry uses $transaction — pass the same mock as tx client
   $transaction: vi.fn((cb: (tx: typeof mockPrisma) => Promise<unknown>) => cb(mockPrisma)),
@@ -339,7 +344,7 @@ describe("POST /api/diario/snapshots", () => {
   });
 
   it("returns 200 with deduplicated flag for duplicate clientRequestId", async () => {
-    mockSnapshotFindUnique.mockResolvedValueOnce({ id: "existing-snap", diaryEntryId: "entry-1" });
+    mockSnapshotFindUnique.mockResolvedValueOnce({ id: "existing-snap", diaryEntryId: "entry-1", capturedAt: new Date(), diaryEntry: { snapshotCount: 2 } });
 
     const res = await POST(makeRequest({
       mood: 3, energy: 3, anxiety: 2, irritability: 2,

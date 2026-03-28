@@ -368,7 +368,7 @@ export default function CheckinPage() {
                         setAnxiety(snap.anxiety);
                         setIrritability(snap.irritability);
                       }}
-                      className="mt-1 text-[11px] text-primary hover:underline"
+                      className="mt-1 text-[11px] text-primary hover:underline min-h-[44px] inline-flex items-center"
                     >
                       Editar ({minsLeft}min)
                     </button>
@@ -393,14 +393,14 @@ export default function CheckinPage() {
             <button
               type="button"
               onClick={() => { setMode("complete"); track({ name: "checkin_start", mode: "complete" }); }}
-              className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-dark transition-colors"
+              className="inline-flex items-center min-h-[44px] rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-dark transition-colors"
             >
               Fazer completo
             </button>
             <button
               type="button"
               onClick={() => setStreakBannerDismissed(true)}
-              className="text-xs text-muted hover:text-foreground transition-colors"
+              className="inline-flex items-center min-h-[44px] text-xs text-muted hover:text-foreground transition-colors"
             >
               Agora não
             </button>
@@ -448,7 +448,7 @@ export default function CheckinPage() {
           <button
             type="button"
             onClick={() => { setMode("complete"); track({ name: "checkin_start", mode: "complete" }); }}
-            className="w-full text-center text-sm text-primary hover:text-primary-dark transition-colors py-1"
+            className="w-full text-center text-sm text-primary hover:text-primary-dark transition-colors py-1 min-h-[44px] inline-flex items-center justify-center"
           >
             Registrar mais detalhes &rarr;
           </button>
@@ -456,7 +456,7 @@ export default function CheckinPage() {
           <button
             type="button"
             onClick={() => { setMode("minimal"); track({ name: "checkin_start", mode: "minimal" }); }}
-            className="w-full text-center text-sm text-muted hover:text-foreground transition-colors py-1"
+            className="w-full text-center text-sm text-muted hover:text-foreground transition-colors py-1 min-h-[44px] inline-flex items-center justify-center"
           >
             &larr; Modo rápido
           </button>
@@ -564,7 +564,7 @@ export default function CheckinPage() {
                     type="button"
                     onClick={() => setMedication(opt.value)}
                     aria-pressed={medication === opt.value}
-                    className={`flex-1 rounded-lg border px-2 py-2 text-xs font-medium transition-colors ${
+                    className={`flex-1 rounded-lg border px-2 py-2 text-xs font-medium transition-colors min-h-[44px] inline-flex items-center justify-center ${
                       medication === opt.value
                         ? "border-primary bg-primary text-white"
                         : "border-border bg-surface text-muted hover:border-primary/50"

@@ -5,7 +5,12 @@ import { headers } from "next/headers";
 import { maskIp, maskEmail } from "@/lib/security";
 import { Card } from "@/components/Card";
 import { Alert } from "@/components/Alert";
-import { AdminSOSChart } from "@/components/admin/AdminSOSChart";
+import dynamic from "next/dynamic";
+
+const AdminSOSChart = dynamic(
+  () => import("@/components/admin/AdminSOSChart").then((m) => m.AdminSOSChart),
+  { ssr: false, loading: () => <div className="h-[300px] animate-pulse rounded-lg bg-surface-alt" /> },
+);
 import { RevealPII } from "@/components/admin/RevealPII";
 
 const SOS_ACTION_LABELS: Record<string, string> = {

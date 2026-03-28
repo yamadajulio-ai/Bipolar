@@ -4,7 +4,12 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Card } from "@/components/Card";
 import { Alert } from "@/components/Alert";
-import { SleepChart } from "@/components/charts/SleepChart";
+import dynamic from "next/dynamic";
+
+const SleepChart = dynamic(
+  () => import("@/components/charts/SleepChart").then((m) => m.SleepChart),
+  { ssr: false, loading: () => <div className="h-[300px] animate-pulse rounded-lg bg-surface-alt" /> },
+);
 
 interface TrendData {
   totalLogs: number;
@@ -77,7 +82,7 @@ export default function TendenciasSonoPage() {
           <button
             key={option.value}
             onClick={() => setPeriod(option.value)}
-            className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${
+            className={`rounded-lg border px-3 py-1.5 min-h-[44px] text-sm font-medium transition-colors ${
               period === option.value
                 ? "border-primary bg-primary text-white"
                 : "border-border bg-surface text-muted hover:border-primary/50"

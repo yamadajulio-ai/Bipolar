@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export function Footer() {
   return (
-    <footer className="mt-auto border-t border-border-soft bg-surface dark:border-border-strong dark:bg-surface-raised">
+    <footer className="mt-auto border-t border-border-soft bg-surface print:hidden dark:border-border-strong dark:bg-surface-raised">
       <div className="mx-auto max-w-5xl px-4 py-6">
         <div className="mb-4 rounded-[var(--radius-card)] border border-border-soft bg-surface-raised/60 p-3 text-center text-sm text-primary-dark dark:border-border-strong dark:text-primary-light">
           <strong>Em crise ou risco imediato?</strong> Ligue agora: CVV{" "}

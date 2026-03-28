@@ -27,7 +27,7 @@ export function BottomNav() {
     <MotionConfig reducedMotion="user">
     <nav
       aria-label="Navegação principal"
-      className="fixed bottom-0 left-0 right-0 z-[var(--z-nav)] lg:hidden"
+      className="fixed bottom-0 left-0 right-0 z-[var(--z-nav)] print:hidden lg:hidden"
     >
       <div className="mx-auto max-w-lg px-4 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         <div

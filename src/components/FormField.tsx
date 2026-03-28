@@ -32,7 +32,7 @@ export function FormField({
   rows = 3,
 }: FormFieldProps) {
   const inputClasses =
-    "mt-1 block w-full rounded-md border border-control-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted hover:border-control-border-hover focus-visible:border-control-border-focus focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-control-border-focus aria-[invalid=true]:border-control-border-danger";
+    "mt-1 block w-full rounded-md border border-control-border bg-surface px-3 py-2 text-base text-foreground placeholder:text-muted hover:border-control-border-hover focus-visible:border-control-border-focus focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-control-border-focus aria-[invalid=true]:border-control-border-danger";
 
   return (
     <div className="mb-4">

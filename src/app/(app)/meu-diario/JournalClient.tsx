@@ -19,11 +19,11 @@ interface Props {
 // ── Zone config ──────────────────────────────────────────────
 
 const ZONE_LABELS: Record<string, { label: string; color: string; bg: string }> = {
-  depressao: { label: "Humor muito baixo", color: "text-blue-800 dark:text-blue-300", bg: "bg-blue-100 dark:bg-blue-900/50" },
-  depressao_leve: { label: "Humor baixo", color: "text-blue-700 dark:text-blue-300", bg: "bg-blue-50 dark:bg-blue-900/30" },
-  eutimia: { label: "Humor estável", color: "text-emerald-800 dark:text-emerald-300", bg: "bg-emerald-100 dark:bg-emerald-900/50" },
-  hipomania: { label: "Humor elevado", color: "text-amber-800 dark:text-amber-300", bg: "bg-amber-100 dark:bg-amber-900/50" },
-  mania: { label: "Humor muito elevado", color: "text-red-800 dark:text-red-300", bg: "bg-red-100 dark:bg-red-900/50" },
+  depressao: { label: "Humor muito baixo", color: "text-mood-depression-fg", bg: "bg-mood-depression-bg-subtle" },
+  depressao_leve: { label: "Humor baixo", color: "text-mood-depression-light-fg", bg: "bg-mood-depression-light-bg-subtle" },
+  eutimia: { label: "Humor estável", color: "text-mood-euthymia-fg", bg: "bg-mood-euthymia-bg-subtle" },
+  hipomania: { label: "Humor elevado", color: "text-mood-mania-fg", bg: "bg-mood-mania-bg-subtle" },
+  mania: { label: "Humor muito elevado", color: "text-mood-mania-high-fg", bg: "bg-mood-mania-high-bg-subtle" },
 };
 
 const DIARY_MAX = 5000;
@@ -131,13 +131,13 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
             <div className="flex flex-wrap gap-2">
               <a
                 href="tel:188"
-                className="rounded-lg bg-danger px-4 py-2 text-sm font-medium text-white"
+                className="rounded-lg bg-danger px-4 py-2 text-sm font-medium text-on-danger"
               >
                 CVV 188 (24h)
               </a>
               <a
                 href="tel:192"
-                className="rounded-lg bg-danger px-4 py-2 text-sm font-medium text-white"
+                className="rounded-lg bg-danger px-4 py-2 text-sm font-medium text-on-danger"
               >
                 SAMU 192
               </a>
@@ -247,7 +247,7 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
             <button
               key={f}
               onClick={() => journal.setFilter(f)}
-              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors min-h-[44px] ${
                 journal.filter === f
                   ? "bg-primary text-white"
                   : "bg-surface-alt text-muted hover:text-foreground"
@@ -259,7 +259,7 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
           <a
             href="/api/journal/export"
             download
-            className="ml-auto rounded-full px-3 py-1 text-xs font-medium bg-surface-alt text-muted hover:text-foreground"
+            className="ml-auto rounded-full px-3 py-1 text-xs font-medium bg-surface-alt text-muted hover:text-foreground min-h-[44px]"
             title="Exportar todas as entradas (JSON)"
           >
             Exportar
@@ -276,7 +276,7 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
               <button
                 onClick={journal.loadReflection}
                 disabled={journal.loadingReflection}
-                className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted hover:text-foreground disabled:opacity-50"
+                className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted hover:text-foreground disabled:opacity-50 min-h-[44px]"
               >
                 {journal.loadingReflection ? "Gerando..." : "Ver reflexão"}
               </button>
@@ -284,7 +284,7 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
             {journal.reflection && (
               <button
                 onClick={() => journal.setReflection(null)}
-                className="text-xs text-muted hover:text-foreground"
+                className="text-xs text-muted hover:text-foreground min-h-[44px]"
               >
                 Fechar
               </button>
@@ -416,13 +416,13 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
                   <div className="mt-2 flex gap-2">
                     <button
                       onClick={() => journal.handleEdit(entry.id)}
-                      className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white"
+                      className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white min-h-[44px]"
                     >
                       Salvar
                     </button>
                     <button
                       onClick={() => { journal.setEditingId(null); journal.setEditContent(""); }}
-                      className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted"
+                      className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted min-h-[44px]"
                     >
                       Cancelar
                     </button>
@@ -442,13 +442,13 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
                       journal.setEditingId(entry.id);
                       journal.setEditContent(entry.content);
                     }}
-                    className="text-xs text-muted hover:text-foreground"
+                    className="text-xs text-muted hover:text-foreground min-h-[44px]"
                   >
                     Editar
                   </button>
                   <button
                     onClick={() => journal.requestDelete(entry.id)}
-                    className="text-xs text-danger hover:text-danger-fg"
+                    className="text-xs text-danger hover:text-danger-fg min-h-[44px]"
                   >
                     Excluir
                   </button>
@@ -471,7 +471,7 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
       )}
       {/* Error banner */}
       {journal.errorMsg && (
-        <div className="fixed bottom-20 left-4 right-4 z-50 rounded-lg bg-danger p-3 text-center text-sm text-white shadow-[var(--shadow-float)]">
+        <div className="fixed bottom-20 left-4 right-4 z-50 rounded-lg bg-danger p-3 text-center text-sm text-on-danger shadow-[var(--shadow-float)]">
           <p>{journal.errorMsg}</p>
           <button
             onClick={() => journal.setErrorMsg(null)}
@@ -498,7 +498,7 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
               </button>
               <button
                 onClick={journal.confirmDelete}
-                className="flex-1 rounded-lg bg-danger py-2.5 text-sm font-medium text-white"
+                className="flex-1 rounded-lg bg-danger py-2.5 text-sm font-medium text-on-danger"
               >
                 Excluir
               </button>

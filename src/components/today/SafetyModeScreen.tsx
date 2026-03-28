@@ -42,9 +42,9 @@ export function SafetyModeScreen({ actions, onDismiss }: Props) {
                 aria-label={action.id === "call_192"
                   ? "Ligar SAMU 192 — emergência médica e psiquiátrica"
                   : "Ligar CVV 188 — apoio emocional 24 horas"}
-                className={`block w-full rounded-lg px-4 py-3 text-sm font-medium text-center transition-colors ${
+                className={`block w-full rounded-lg px-4 py-3 min-h-[44px] text-sm font-medium text-center transition-colors ${
                   action.id === "call_192"
-                    ? "bg-red-700 text-white hover:bg-red-600"
+                    ? "bg-red-700 text-on-danger hover:bg-red-600"
                     : "bg-white/10 text-foreground/80 hover:bg-white/20"
                 }`}
               >

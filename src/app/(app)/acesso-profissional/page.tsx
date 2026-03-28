@@ -350,7 +350,7 @@ export default function AcessoProfissionalPage() {
                     {!expired && (
                       <button
                         onClick={() => handleRevoke(acc.id)}
-                        className="rounded-lg border border-danger-border px-3 py-1.5 text-xs font-medium text-danger-fg hover:bg-danger-bg-subtle"
+                        className="rounded-lg border border-danger-border px-3 py-1.5 min-h-[44px] text-xs font-medium text-danger-fg hover:bg-danger-bg-subtle"
                       >
                         Revogar
                       </button>

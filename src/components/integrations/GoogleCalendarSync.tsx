@@ -93,7 +93,7 @@ export function GoogleCalendarSync({ isConnected: initialConnected }: Props) {
             <button
               onClick={handleDisconnect}
               disabled={disconnecting}
-              className="rounded bg-danger px-3 py-2.5 text-sm text-white disabled:opacity-50"
+              className="rounded bg-danger px-3 py-2.5 text-sm text-on-danger disabled:opacity-50"
             >
               {disconnecting ? "Removendo..." : "Confirmar"}
             </button>

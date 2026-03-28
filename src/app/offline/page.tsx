@@ -31,7 +31,7 @@ export default function OfflinePage() {
 
         <button
           onClick={() => window.location.reload()}
-          className="mb-6 rounded-lg bg-primary px-6 py-2 font-medium text-white hover:bg-primary-dark"
+          className="mb-6 rounded-lg bg-primary px-6 py-2 min-h-[44px] font-medium text-white hover:bg-primary-dark"
         >
           Tentar novamente
         </button>
@@ -57,13 +57,13 @@ export default function OfflinePage() {
             </li>
           </ul>
           <div className="mt-3 flex flex-wrap gap-2">
-            <a href="/sos" className="rounded-md bg-red-600 px-3 py-1.5 text-xs font-medium text-white no-underline">
+            <a href="/sos" aria-label="SOS — Preciso de ajuda agora" className="rounded-md bg-red-600 px-3 py-1.5 min-h-[44px] inline-flex items-center text-xs font-medium text-on-danger no-underline">
               SOS
             </a>
-            <a href="/exercicios/respiracao/caixa" className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground no-underline hover:bg-surface-alt">
+            <a href="/exercicios/respiracao/caixa" className="rounded-md border border-border px-3 py-1.5 min-h-[44px] inline-flex items-center text-xs font-medium text-foreground no-underline hover:bg-surface-alt">
               Respiração
             </a>
-            <a href="/sons" className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground no-underline hover:bg-surface-alt">
+            <a href="/sons" className="rounded-md border border-border px-3 py-1.5 min-h-[44px] inline-flex items-center text-xs font-medium text-foreground no-underline hover:bg-surface-alt">
               Sons
             </a>
           </div>
@@ -75,7 +75,7 @@ export default function OfflinePage() {
           </p>
           <p className="text-sm text-muted">
             CVV — Ligue{" "}
-            <a href="tel:188" className="font-bold text-primary underline">
+            <a href="tel:188" aria-label="Ligar CVV 188 — apoio emocional 24 horas" className="font-bold text-primary underline">
               188
             </a>{" "}
             (24h, gratuito)

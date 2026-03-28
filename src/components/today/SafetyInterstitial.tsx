@@ -114,7 +114,7 @@ export function SafetyInterstitial({ source, sourceAssessmentId, onComplete, onD
                   }}
                   className={`rounded-md px-3 py-2.5 text-xs font-medium transition-colors min-h-[44px] ${
                     asqAnswers[i] === true
-                      ? "bg-danger text-white"
+                      ? "bg-danger text-on-danger"
                       : "border border-orange-300 dark:border-orange-700 bg-surface dark:bg-orange-950/50 text-orange-800 dark:text-orange-200 hover:bg-orange-100 dark:hover:bg-orange-900/50"
                   }`}
                 >
@@ -179,7 +179,7 @@ export function SafetyInterstitial({ source, sourceAssessmentId, onComplete, onD
               submitScreening(asq);
               setStep("result_concern");
             }}
-            className="flex-1 rounded-lg bg-danger px-4 py-3 text-sm font-medium text-white hover:bg-danger/90"
+            className="flex-1 rounded-lg bg-danger px-4 py-3 text-sm font-medium text-on-danger hover:bg-danger/90"
           >
             Sim
           </button>
@@ -252,13 +252,15 @@ export function SafetyInterstitial({ source, sourceAssessmentId, onComplete, onD
       <div className="space-y-2">
         <a
           href="tel:192"
-          className="block w-full rounded-lg bg-danger px-4 py-3 text-sm font-medium text-white text-center hover:bg-danger/90"
+          aria-label="Ligar SAMU 192 — emergência médica e psiquiátrica"
+          className="block w-full rounded-lg bg-danger px-4 py-3 min-h-[44px] text-sm font-medium text-on-danger text-center hover:bg-danger/90"
         >
           Ligar SAMU 192
         </a>
         <a
           href="tel:188"
-          className="block w-full rounded-lg bg-surface/60 border border-danger-border px-4 py-3 text-sm font-medium text-danger-fg text-center hover:bg-danger-bg-subtle"
+          aria-label="Ligar CVV 188 — apoio emocional 24 horas"
+          className="block w-full rounded-lg bg-surface/60 border border-danger-border px-4 py-3 min-h-[44px] text-sm font-medium text-danger-fg text-center hover:bg-danger-bg-subtle"
         >
           Ligar CVV 188
         </a>

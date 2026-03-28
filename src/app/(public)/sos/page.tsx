@@ -105,7 +105,7 @@ export default function SOSPage() {
     <div className="mx-auto flex w-full max-w-lg items-center justify-between pb-3">
       <button
         onClick={() => setView("main")}
-        className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-gray-300 transition-colors hover:bg-gray-800 hover:text-white"
+        className="flex items-center gap-1.5 rounded-lg px-3 py-2 min-h-[44px] text-sm text-gray-300 transition-colors hover:bg-gray-800 hover:text-white"
         aria-label="Voltar para o SOS"
       >
         <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" aria-hidden="true">
@@ -115,7 +115,7 @@ export default function SOSPage() {
       </button>
       <Link
         href={isLoggedIn ? "/hoje" : "/"}
-        className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-gray-300 no-underline transition-colors hover:bg-gray-800 hover:text-white"
+        className="flex items-center gap-1.5 rounded-lg px-3 py-2 min-h-[44px] text-sm text-gray-300 no-underline transition-colors hover:bg-gray-800 hover:text-white"
       >
         <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" aria-hidden="true">
           <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
@@ -243,7 +243,7 @@ export default function SOSPage() {
                       setView("waiting188");
                     }, 1500);
                   }}
-                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-white/25 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-white/35"
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-white/25 px-4 py-2.5 min-h-[44px] text-sm font-medium text-white transition-colors hover:bg-white/35"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4" aria-hidden="true">
                     <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
@@ -255,7 +255,7 @@ export default function SOSPage() {
                     setView("chat");
                     logSOS("chat_while_waiting");
                   }}
-                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-white/10 px-4 py-2 text-xs text-white transition-colors hover:bg-white/20"
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-white/10 px-4 py-2 min-h-[44px] text-xs text-white transition-colors hover:bg-white/20"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-3.5 w-3.5" aria-hidden="true">
                     <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
@@ -279,7 +279,7 @@ export default function SOSPage() {
                   href={`tel:${c.phone}`}
                   onClick={() => logSOS("called_contact")}
                   aria-label={`Ligar para ${c.name}`}
-                  className="rounded-lg bg-white/20 px-4 py-2 text-sm font-medium text-white no-underline hover:bg-white/30"
+                  className="rounded-lg bg-white/20 px-4 py-2 min-h-[44px] text-sm font-medium text-white no-underline hover:bg-white/30"
                 >
                   Ligar
                 </a>
@@ -289,7 +289,7 @@ export default function SOSPage() {
                   rel="noopener noreferrer"
                   onClick={() => logSOS("called_contact")}
                   aria-label={`Enviar WhatsApp para ${c.name}`}
-                  className="rounded-lg bg-[#25D366]/80 px-4 py-2 text-sm font-medium text-white no-underline hover:bg-[#25D366]"
+                  className="rounded-lg bg-[#25D366]/80 px-4 py-2 min-h-[44px] text-sm font-medium text-white no-underline hover:bg-[#25D366]"
                 >
                   WhatsApp
                 </a>
@@ -330,7 +330,7 @@ export default function SOSPage() {
               rel="noopener noreferrer"
               onClick={() => logSOS("open_maps_upa")}
               aria-label="Abrir mapa para encontrar UPA 24h próxima"
-              className="mt-2 inline-block rounded-lg bg-red-800/60 px-4 py-2 text-sm text-white no-underline hover:bg-red-800"
+              className="mt-2 inline-block rounded-lg bg-red-800/60 px-4 py-2 min-h-[44px] text-sm text-on-danger no-underline hover:bg-red-800"
             >
               Abrir no mapa
             </a>
@@ -338,7 +338,7 @@ export default function SOSPage() {
 
           {/* Other emergency numbers */}
           <details className="rounded-xl bg-gray-800 p-4">
-            <summary className="cursor-pointer text-center text-sm font-medium text-gray-300 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 rounded-lg">
+            <summary className="cursor-pointer text-center text-sm font-medium text-gray-300 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 rounded-lg py-2 min-h-[44px]">
               Outros números de emergência
             </summary>
             <div className="mt-3 space-y-2">
@@ -346,7 +346,7 @@ export default function SOSPage() {
                 href="tel:190"
                 onClick={() => logSOS("called_190")}
                 aria-label="Ligar para a Polícia Militar 190"
-                className="block rounded-lg bg-gray-700 p-3 text-center no-underline transition-colors hover:bg-gray-600"
+                className="block rounded-lg bg-gray-700 p-3 min-h-[44px] text-center no-underline transition-colors hover:bg-gray-600"
               >
                 <span className="text-lg font-bold text-white">190</span>
                 <span className="ml-2 text-sm text-gray-300">Polícia Militar</span>
@@ -355,7 +355,7 @@ export default function SOSPage() {
                 href="tel:193"
                 onClick={() => logSOS("called_193")}
                 aria-label="Ligar para o Corpo de Bombeiros 193"
-                className="block rounded-lg bg-gray-700 p-3 text-center no-underline transition-colors hover:bg-gray-600"
+                className="block rounded-lg bg-gray-700 p-3 min-h-[44px] text-center no-underline transition-colors hover:bg-gray-600"
               >
                 <span className="text-lg font-bold text-white">193</span>
                 <span className="ml-2 text-sm text-gray-300">Corpo de Bombeiros</span>
@@ -364,7 +364,7 @@ export default function SOSPage() {
                 href="tel:180"
                 onClick={() => logSOS("called_180")}
                 aria-label="Ligar para a Central de Atendimento à Mulher 180"
-                className="block rounded-lg bg-gray-700 p-3 text-center no-underline transition-colors hover:bg-gray-600"
+                className="block rounded-lg bg-gray-700 p-3 min-h-[44px] text-center no-underline transition-colors hover:bg-gray-600"
               >
                 <span className="text-lg font-bold text-white">180</span>
                 <span className="ml-2 text-sm text-gray-300">Central da Mulher</span>
@@ -373,7 +373,7 @@ export default function SOSPage() {
                 href="tel:100"
                 onClick={() => logSOS("called_100")}
                 aria-label="Ligar para o Disque Direitos Humanos 100"
-                className="block rounded-lg bg-gray-700 p-3 text-center no-underline transition-colors hover:bg-gray-600"
+                className="block rounded-lg bg-gray-700 p-3 min-h-[44px] text-center no-underline transition-colors hover:bg-gray-600"
               >
                 <span className="text-lg font-bold text-white">100</span>
                 <span className="ml-2 text-sm text-gray-300">Disque Direitos Humanos</span>

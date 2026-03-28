@@ -30,7 +30,7 @@ export default function MeuDiarioError({
           </button>
           <a
             href="/sos"
-            className="block w-full rounded-[var(--radius-card)] bg-danger text-white py-3 font-medium hover:bg-danger/90 transition-colors"
+            className="block w-full rounded-[var(--radius-card)] bg-danger text-on-danger py-3 font-medium hover:bg-danger/90 transition-colors"
           >
             SOS — Preciso de ajuda
           </a>

@@ -79,7 +79,7 @@ export function AlertCard({ layer, reasons, actions, safety, syndrome }: Props) 
                 : action.label}
               className={`block w-full rounded-lg px-4 py-3 min-h-[44px] text-sm font-medium text-center transition-colors ${
                 action.variant === "warning"
-                  ? "bg-orange-600 dark:bg-orange-700 text-white hover:bg-orange-700 dark:hover:bg-orange-600"
+                  ? "bg-orange-700 dark:bg-orange-800 text-white hover:bg-orange-800 dark:hover:bg-orange-700"
                   : "bg-white/60 dark:bg-white/10 text-foreground hover:bg-white dark:hover:bg-white/20"
               }`}
             >

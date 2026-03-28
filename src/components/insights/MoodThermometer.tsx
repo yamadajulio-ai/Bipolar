@@ -11,17 +11,17 @@ interface Props {
 }
 
 const ZONE_COLORS: Record<string, { bg: string; text: string }> = {
-  depressao: { bg: "bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800", text: "text-blue-700 dark:text-blue-300" },
-  depressao_leve: { bg: "bg-sky-50 dark:bg-sky-950/50 border border-sky-200 dark:border-sky-800", text: "text-sky-700 dark:text-sky-300" },
-  eutimia: { bg: "bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800", text: "text-emerald-700 dark:text-emerald-300" },
-  hipomania: { bg: "bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800", text: "text-amber-700 dark:text-amber-300" },
-  mania: { bg: "bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800", text: "text-red-700 dark:text-red-300" },
+  depressao: { bg: "bg-mood-depression-bg-subtle border border-mood-depression-border", text: "text-mood-depression-fg" },
+  depressao_leve: { bg: "bg-mood-depression-light-bg-subtle border border-mood-depression-light-border", text: "text-mood-depression-light-fg" },
+  eutimia: { bg: "bg-mood-euthymia-bg-subtle border border-mood-euthymia-border", text: "text-mood-euthymia-fg" },
+  hipomania: { bg: "bg-mood-mania-bg-subtle border border-mood-mania-border", text: "text-mood-mania-fg" },
+  mania: { bg: "bg-mood-mania-high-bg-subtle border border-mood-mania-high-border", text: "text-mood-mania-high-fg" },
 };
 
 const INSTABILITY_LABELS: Record<string, { label: string; color: string }> = {
-  baixa: { label: "Baixa", color: "text-emerald-600 dark:text-emerald-400" },
-  moderada: { label: "Moderada", color: "text-amber-600 dark:text-amber-400" },
-  alta: { label: "Alta", color: "text-red-600 dark:text-red-400" },
+  baixa: { label: "Baixa", color: "text-success-fg" },
+  moderada: { label: "Moderada", color: "text-warning-fg" },
+  alta: { label: "Alta", color: "text-danger-fg" },
 };
 
 export function MoodThermometer({ data }: Props) {
@@ -33,10 +33,10 @@ export function MoodThermometer({ data }: Props) {
   return (
     <div className={`rounded-[var(--radius-card)] p-5 ${colors.bg}`}>
       <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-foreground/60">
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted">
           Termômetro de humor
         </h3>
-        <span className="text-xs text-foreground/50">
+        <span className="text-xs text-muted">
           {data.daysUsed} dias
         </span>
       </div>
@@ -96,7 +96,7 @@ export function MoodThermometer({ data }: Props) {
           <div className="h-6 w-6 rounded-full border-[3px] border-white dark:border-surface bg-foreground shadow-[var(--shadow-float)]" />
         </div>
       </div>
-      <div className="mb-4 flex justify-between text-[11px] text-foreground/50">
+      <div className="mb-4 flex justify-between text-[11px] text-muted">
         <span>Rebaixamento</span>
         <span>Padrão</span>
         <span>Ativação</span>
@@ -105,7 +105,7 @@ export function MoodThermometer({ data }: Props) {
       {/* Stats row */}
       <div className="mb-3 grid grid-cols-1 gap-2 text-center">
         <div>
-          <div className="text-xs text-foreground/60">Oscilação do humor</div>
+          <div className="text-xs text-muted">Oscilação do humor</div>
           <div className={`text-sm font-semibold ${instab.color}`}>
             {instab.label}
           </div>
@@ -115,7 +115,7 @@ export function MoodThermometer({ data }: Props) {
       {/* Contributing factors */}
       {data.factors.length > 0 && (
         <div className="rounded-lg bg-black/5 dark:bg-white/5 p-3">
-          <div className="mb-1 text-xs font-medium text-foreground/60">
+          <div className="mb-1 text-xs font-medium text-muted">
             Fatores recentes:
           </div>
           <div className="flex flex-wrap gap-1">
@@ -131,7 +131,7 @@ export function MoodThermometer({ data }: Props) {
         </div>
       )}
 
-      <p className="mt-3 text-center text-[11px] text-foreground/50">
+      <p className="mt-3 text-center text-[11px] text-muted">
         Indicador baseado nos seus registros recentes. Não substitui avaliação profissional.
       </p>
       {!data.baselineAvailable && (

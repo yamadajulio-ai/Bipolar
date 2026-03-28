@@ -44,7 +44,7 @@ export function OfflineCrisisCard() {
             >
               <div>
                 <p className="font-medium text-sm">{contact.name}</p>
-                <p className="text-xs text-muted-foreground">{contact.available}</p>
+                <p className="text-xs text-muted">{contact.available}</p>
               </div>
               <span className="text-xl font-bold text-red-600 dark:text-red-400">
                 {contact.phone}
@@ -54,7 +54,7 @@ export function OfflineCrisisCard() {
         </div>
         <button
           onClick={() => { shareContent(SHARE_PRESETS.crisisContacts).catch(() => {}); }}
-          className="mt-2 w-full text-sm text-muted-foreground underline"
+          className="mt-2 w-full text-sm text-muted underline"
         >
           Compartilhar contatos com alguém de confiança
         </button>
@@ -65,7 +65,7 @@ export function OfflineCrisisCard() {
         <h2 className="text-lg font-semibold text-foreground mb-3">
           Exercício de Aterramento (5-4-3-2-1)
         </h2>
-        <p className="text-sm text-muted-foreground mb-3">
+        <p className="text-sm text-muted mb-3">
           Respire fundo e identifique ao seu redor:
         </p>
         <div className="space-y-2">
@@ -92,7 +92,7 @@ export function OfflineCrisisCard() {
           </a>{' '}
           — é gratuito, confidencial e funciona 24 horas.
         </p>
-        <p className="text-xs text-muted-foreground mt-2">
+        <p className="text-xs text-muted mt-2">
           Este recurso funciona mesmo sem internet.
         </p>
       </section>

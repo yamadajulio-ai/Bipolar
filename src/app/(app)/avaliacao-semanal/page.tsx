@@ -489,7 +489,7 @@ export default function AvaliacaoSemanalPage() {
                 track({ name: "assessment_step", step: "phq9" });
                 setStep("phq9");
               }}
-              className="rounded-lg bg-primary px-6 py-2 text-sm font-medium text-white hover:bg-primary-dark disabled:opacity-50"
+              className="rounded-lg bg-primary px-6 py-2 min-h-[44px] text-sm font-medium text-white hover:bg-primary-dark disabled:opacity-50"
             >
               Próximo: Depressão
             </button>
@@ -547,7 +547,7 @@ export default function AvaliacaoSemanalPage() {
           <div className="flex justify-between">
             <button
               onClick={() => { setStepError(""); setStep("asrm"); }}
-              className="rounded-lg border border-border px-4 py-2 text-sm text-muted hover:border-primary/50"
+              className="rounded-lg border border-border px-4 py-2 min-h-[44px] text-sm text-muted hover:border-primary/50"
             >
               Voltar
             </button>
@@ -561,7 +561,7 @@ export default function AvaliacaoSemanalPage() {
                 track({ name: "assessment_step", step: "fast" });
                 setStep("fast");
               }}
-              className="rounded-lg bg-primary px-6 py-2 text-sm font-medium text-white hover:bg-primary-dark disabled:opacity-50"
+              className="rounded-lg bg-primary px-6 py-2 min-h-[44px] text-sm font-medium text-white hover:bg-primary-dark disabled:opacity-50"
             >
               Próximo: Funcionamento
             </button>
@@ -616,7 +616,7 @@ export default function AvaliacaoSemanalPage() {
           <div className="flex justify-between">
             <button
               onClick={() => { setStepError(""); setStep("phq9"); }}
-              className="rounded-lg border border-border px-4 py-2 text-sm text-muted hover:border-primary/50"
+              className="rounded-lg border border-border px-4 py-2 min-h-[44px] text-sm text-muted hover:border-primary/50"
             >
               Voltar
             </button>
@@ -630,7 +630,7 @@ export default function AvaliacaoSemanalPage() {
                 track({ name: "assessment_step", step: "review" });
                 setStep("review");
               }}
-              className="rounded-lg bg-primary px-6 py-2 text-sm font-medium text-white hover:bg-primary-dark disabled:opacity-50"
+              className="rounded-lg bg-primary px-6 py-2 min-h-[44px] text-sm font-medium text-white hover:bg-primary-dark disabled:opacity-50"
             >
               Revisar
             </button>
@@ -719,14 +719,14 @@ export default function AvaliacaoSemanalPage() {
           <div className="flex justify-between">
             <button
               onClick={() => setStep("fast")}
-              className="rounded-lg border border-border px-4 py-2 text-sm text-muted hover:border-primary/50"
+              className="rounded-lg border border-border px-4 py-2 min-h-[44px] text-sm text-muted hover:border-primary/50"
             >
               Voltar
             </button>
             <button
               onClick={handleSubmit}
               disabled={saving}
-              className="rounded-lg bg-primary px-6 py-2 text-sm font-medium text-white hover:bg-primary-dark disabled:opacity-50"
+              className="rounded-lg bg-primary px-6 py-2 min-h-[44px] text-sm font-medium text-white hover:bg-primary-dark disabled:opacity-50"
             >
               {saving ? "Salvando..." : "Salvar avaliação"}
             </button>

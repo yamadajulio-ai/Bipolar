@@ -71,7 +71,7 @@ export function Header({ isLoggedIn }: HeaderProps) {
   }
 
   return (
-    <header className="border-b border-border-soft bg-surface-glass shadow-[var(--shadow-float)] backdrop-blur-[var(--blur-chrome)] [contain:layout_style_paint] dark:border-border-strong">
+    <header className="border-b border-border-soft bg-surface-glass pt-[env(safe-area-inset-top)] shadow-[var(--shadow-float)] backdrop-blur-[var(--blur-chrome)] print:hidden [contain:layout_style_paint] dark:border-border-strong">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
         <Link
           href={isLoggedIn ? "/hoje" : "/"}
@@ -114,9 +114,10 @@ export function Header({ isLoggedIn }: HeaderProps) {
               <ThemeButton />
               <Link
                 href="/sos"
-                className="ml-1 inline-flex items-center gap-1.5 rounded-[var(--radius-pill)] bg-danger px-3 py-1.5 text-sm font-semibold text-white no-underline transition-colors hover:bg-danger/90"
+                className="ml-1 inline-flex items-center gap-1.5 rounded-[var(--radius-pill)] bg-danger px-3 py-1.5 min-h-[44px] text-sm font-semibold text-on-danger no-underline transition-colors hover:bg-danger/90"
+                aria-label="SOS — Preciso de ajuda agora"
               >
-                <AppIcon icon={ShieldAlert} size="sm" className="text-white" />
+                <AppIcon icon={ShieldAlert} size="sm" className="text-on-danger" />
                 SOS
               </Link>
               <form
@@ -140,9 +141,10 @@ export function Header({ isLoggedIn }: HeaderProps) {
               <ThemeButton />
               <Link
                 href="/sos"
-                className="inline-flex items-center gap-1 rounded-[var(--radius-pill)] bg-danger px-2.5 py-1.5 text-sm font-semibold text-white no-underline transition-colors hover:bg-danger/90"
+                className="inline-flex items-center gap-1 rounded-[var(--radius-pill)] bg-danger px-2.5 py-1.5 min-h-[44px] text-sm font-semibold text-on-danger no-underline transition-colors hover:bg-danger/90"
+                aria-label="SOS — Preciso de ajuda agora"
               >
-                <AppIcon icon={ShieldAlert} size="sm" className="text-white" />
+                <AppIcon icon={ShieldAlert} size="sm" className="text-on-danger" />
                 SOS
               </Link>
               <form
@@ -165,7 +167,8 @@ export function Header({ isLoggedIn }: HeaderProps) {
           <nav className="flex items-center gap-4 text-sm">
             <Link
               href="/sos"
-              className="inline-flex items-center gap-1 rounded-[var(--radius-pill)] bg-danger px-3 py-1.5 text-sm font-semibold text-white no-underline transition-colors hover:bg-danger/90"
+              className="inline-flex items-center gap-1 rounded-[var(--radius-pill)] bg-danger px-3 py-1.5 min-h-[44px] text-sm font-semibold text-on-danger no-underline transition-colors hover:bg-danger/90"
+              aria-label="SOS — Preciso de ajuda agora"
             >
               SOS
             </Link>
@@ -177,7 +180,7 @@ export function Header({ isLoggedIn }: HeaderProps) {
             </Link>
             <Link
               href="/cadastro"
-              className="rounded-[var(--radius-pill)] bg-primary px-4 py-1.5 text-sm text-white no-underline hover:bg-primary-dark"
+              className="rounded-[var(--radius-pill)] bg-primary px-4 py-1.5 text-sm text-on-primary no-underline hover:bg-primary-dark"
             >
               Criar conta
             </Link>

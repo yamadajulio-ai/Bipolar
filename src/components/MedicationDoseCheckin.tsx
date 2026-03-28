@@ -221,14 +221,14 @@ export function MedicationDoseCheckin({ date, onComplete, onTrackingStatus }: Pr
                   <button
                     onClick={() => logYesterdayDose(dose.scheduleId, "TAKEN")}
                     disabled={saving.has(dose.scheduleId)}
-                    className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-dark disabled:opacity-50"
+                    className="min-h-[44px] rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-dark disabled:opacity-50"
                   >
                     Tomei
                   </button>
                   <button
                     onClick={() => logYesterdayDose(dose.scheduleId, "MISSED")}
                     disabled={saving.has(dose.scheduleId)}
-                    className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted hover:bg-danger-bg-subtle hover:text-danger-fg hover:border-danger-border disabled:opacity-50"
+                    className="min-h-[44px] rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted hover:bg-danger-bg-subtle hover:text-danger-fg hover:border-danger-border disabled:opacity-50"
                   >
                     Não
                   </button>
@@ -389,14 +389,14 @@ function DoseRow({
         <button
           onClick={() => onLog(dose.scheduleId, "TAKEN")}
           disabled={saving}
-          className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-dark disabled:opacity-50"
+          className="min-h-[44px] rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-dark disabled:opacity-50"
         >
           Tomei
         </button>
         <button
           onClick={() => onLog(dose.scheduleId, "MISSED")}
           disabled={saving}
-          className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted hover:bg-danger-bg-subtle hover:text-danger-fg hover:border-danger-border disabled:opacity-50"
+          className="min-h-[44px] rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted hover:bg-danger-bg-subtle hover:text-danger-fg hover:border-danger-border disabled:opacity-50"
         >
           Não
         </button>

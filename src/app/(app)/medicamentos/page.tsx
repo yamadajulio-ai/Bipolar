@@ -289,7 +289,7 @@ export default function MedicamentosPage() {
                         <button
                           type="button"
                           onClick={() => removeSchedule(i)}
-                          className="text-xs text-muted hover:text-danger-fg"
+                          className="text-xs text-muted hover:text-danger-fg min-h-[44px]"
                         >
                           Remover
                         </button>
@@ -300,7 +300,7 @@ export default function MedicamentosPage() {
                 <button
                   type="button"
                   onClick={addSchedule}
-                  className="mt-2 text-xs text-primary hover:underline"
+                  className="mt-2 text-xs text-primary hover:underline min-h-[44px]"
                 >
                   + Adicionar horário
                 </button>
@@ -349,7 +349,7 @@ export default function MedicamentosPage() {
                   </p>
                   <button
                     onClick={() => handleReactivate(med.id)}
-                    className="text-xs text-primary hover:underline"
+                    className="text-xs text-primary hover:underline min-h-[44px]"
                   >
                     Reativar
                   </button>

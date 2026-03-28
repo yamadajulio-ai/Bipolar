@@ -93,7 +93,7 @@ export default function SonsPage() {
                   <button
                     key={opt.value}
                     onClick={() => setTimer(opt.value)}
-                    className={`rounded-lg border px-3 py-1 text-xs font-medium transition-colors ${
+                    className={`rounded-lg border px-3 py-1 min-h-[44px] text-xs font-medium transition-colors ${
                       timer === opt.value
                         ? "border-primary bg-primary text-white"
                         : "border-border bg-surface text-muted hover:border-primary/50"

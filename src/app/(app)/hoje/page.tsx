@@ -54,32 +54,32 @@ const energyLabels: Record<number, { text: string; color: string }> = {
 // Zone configuration: colors, labels, CTAs
 const ZONE_CONFIG = {
   depressao: {
-    bg: "bg-blue-900/10 border-blue-800/30 dark:bg-blue-900/20 dark:border-blue-700/40",
-    chip: "bg-blue-100 dark:bg-blue-900/50 text-blue-900 dark:text-blue-200 border border-blue-300 dark:border-blue-700",
+    bg: "bg-mood-depression-bg-subtle border-mood-depression-border",
+    chip: "bg-mood-depression-bg-subtle text-mood-depression-fg border border-mood-depression-border",
     label: "Atenção — sinais de depressão",
     icon: "↓",
   },
   depressao_leve: {
-    bg: "bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800",
-    chip: "bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-700",
+    bg: "bg-mood-depression-light-bg-subtle border-mood-depression-light-border",
+    chip: "bg-mood-depression-light-bg-subtle text-mood-depression-light-fg border border-mood-depression-light-border",
     label: "Observe — humor mais baixo",
     icon: "↓",
   },
   eutimia: {
-    bg: "bg-emerald-50/50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800",
-    chip: "bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-200 border border-emerald-200 dark:border-emerald-700",
+    bg: "bg-mood-euthymia-bg-subtle border-mood-euthymia-border",
+    chip: "bg-mood-euthymia-bg-subtle text-mood-euthymia-fg border border-mood-euthymia-border",
     label: "Estável",
     icon: "→",
   },
   hipomania: {
-    bg: "bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800",
-    chip: "bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-200 border border-amber-200 dark:border-amber-700",
+    bg: "bg-mood-mania-bg-subtle border-mood-mania-border",
+    chip: "bg-mood-mania-bg-subtle text-mood-mania-fg border border-mood-mania-border",
     label: "Observe — humor elevado",
     icon: "↑",
   },
   mania: {
-    bg: "bg-red-50 border-red-300 dark:bg-red-900/20 dark:border-red-800",
-    chip: "bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200 border border-red-300 dark:border-red-700",
+    bg: "bg-mood-mania-high-bg-subtle border-mood-mania-high-border",
+    chip: "bg-mood-mania-high-bg-subtle text-mood-mania-high-fg border border-mood-mania-high-border",
     label: "Atenção — sinais de mania",
     icon: "↑",
   },
@@ -87,18 +87,18 @@ const ZONE_CONFIG = {
 
 const RISK_CONFIG = {
   ok: {
-    bg: "bg-emerald-50/50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800",
-    chip: "bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-200 border border-emerald-200 dark:border-emerald-700",
+    bg: "bg-mood-euthymia-bg-subtle border-mood-euthymia-border",
+    chip: "bg-mood-euthymia-bg-subtle text-mood-euthymia-fg border border-mood-euthymia-border",
     label: "Estável",
   },
   atencao: {
-    bg: "bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800",
-    chip: "bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-200 border border-amber-200 dark:border-amber-700",
+    bg: "bg-mood-mania-bg-subtle border-mood-mania-border",
+    chip: "bg-mood-mania-bg-subtle text-mood-mania-fg border border-mood-mania-border",
     label: "Observe",
   },
   atencao_alta: {
-    bg: "bg-red-50 border-red-300 dark:bg-red-900/20 dark:border-red-800",
-    chip: "bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200 border border-red-300 dark:border-red-700",
+    bg: "bg-mood-mania-high-bg-subtle border-mood-mania-high-border",
+    chip: "bg-mood-mania-high-bg-subtle text-mood-mania-high-fg border border-mood-mania-high-border",
     label: "Atenção",
   },
 } as const;

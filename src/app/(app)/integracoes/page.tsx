@@ -560,13 +560,13 @@ export default function IntegraçõesPage() {
             <div className="flex gap-2">
               <button
                 onClick={() => handleToggle("health_auto_export")}
-                className="rounded border border-border px-3 py-1 text-sm"
+                className="rounded border border-border px-3 py-1 min-h-[44px] text-sm"
               >
                 {healthKey.enabled ? "Desativar" : "Ativar"}
               </button>
               <button
                 onClick={() => handleRevoke("health_auto_export")}
-                className="rounded border border-danger-border px-3 py-1 text-sm text-danger-fg"
+                className="rounded border border-danger-border px-3 py-1 min-h-[44px] text-sm text-danger-fg"
               >
                 Revogar chave
               </button>
@@ -693,13 +693,13 @@ export default function IntegraçõesPage() {
             <div className="flex gap-2">
               <button
                 onClick={() => handleToggle("health_connect")}
-                className="rounded border border-border px-3 py-1 text-sm"
+                className="rounded border border-border px-3 py-1 min-h-[44px] text-sm"
               >
                 {hcKey.enabled ? "Desativar" : "Ativar"}
               </button>
               <button
                 onClick={() => handleRevoke("health_connect")}
-                className="rounded border border-danger-border px-3 py-1 text-sm text-danger-fg"
+                className="rounded border border-danger-border px-3 py-1 min-h-[44px] text-sm text-danger-fg"
               >
                 Revogar chave
               </button>
@@ -724,7 +724,7 @@ export default function IntegraçõesPage() {
             <button
               onClick={handleClearSleepData}
               disabled={clearing}
-              className="rounded border border-danger-border px-3 py-1 text-xs text-danger-fg disabled:opacity-50"
+              className="rounded border border-danger-border px-3 py-1 min-h-[44px] text-xs text-danger-fg disabled:opacity-50"
             >
               {clearing ? "Limpando..." : "Limpar dados"}
             </button>
@@ -875,7 +875,7 @@ export default function IntegraçõesPage() {
               </button>
               <button
                 onClick={confirmPendingAction}
-                className="flex-1 rounded-lg bg-danger py-2.5 text-sm font-medium text-white"
+                className="flex-1 rounded-lg bg-danger py-2.5 text-sm font-medium text-on-danger"
               >
                 Confirmar
               </button>

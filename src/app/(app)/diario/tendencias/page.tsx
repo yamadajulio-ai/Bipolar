@@ -4,8 +4,16 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { Card } from "@/components/Card";
 import { PeriodSelector } from "@/components/charts/PeriodSelector";
-import { MoodSleepChart } from "@/components/charts/MoodSleepChart";
-import { MoodDistribution } from "@/components/charts/MoodDistribution";
+import dynamic from "next/dynamic";
+
+const MoodSleepChart = dynamic(
+  () => import("@/components/charts/MoodSleepChart").then((m) => m.MoodSleepChart),
+  { ssr: false, loading: () => <div className="h-[300px] animate-pulse rounded-lg bg-surface-alt" /> },
+);
+const MoodDistribution = dynamic(
+  () => import("@/components/charts/MoodDistribution").then((m) => m.MoodDistribution),
+  { ssr: false, loading: () => <div className="h-[300px] animate-pulse rounded-lg bg-surface-alt" /> },
+);
 import { AlertasPadrao } from "@/components/AlertasPadrao";
 import { MOOD_LABELS } from "@/lib/constants";
 

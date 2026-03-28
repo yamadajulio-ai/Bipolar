@@ -177,7 +177,7 @@ export default function ConsentimentosPage() {
                     </p>
                   )}
                 </div>
-                <div className="shrink-0 pt-0.5">
+                <div className="flex shrink-0 items-center min-h-[44px]">
                   {item.essential ? (
                     <div
                       className="h-6 w-11 rounded-full bg-primary/60 cursor-not-allowed relative"

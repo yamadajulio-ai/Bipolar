@@ -162,7 +162,7 @@ export default function LifeChartPage() {
                   type="button"
                   onClick={() => setEventType(t.key)}
                   aria-pressed={eventType === t.key}
-                  className={`rounded-full border px-3 py-1 text-xs transition-colors ${
+                  className={`min-h-[44px] rounded-full border px-3 py-1 text-xs transition-colors ${
                     eventType === t.key
                       ? "border-primary bg-primary/10 text-foreground"
                       : "border-border text-muted hover:border-primary/50"
@@ -264,7 +264,7 @@ export default function LifeChartPage() {
                         </div>
                         <button
                           onClick={() => setPendingDeleteId(evt.id)}
-                          className="text-xs opacity-50 hover:opacity-100"
+                          className="min-h-[44px] min-w-[44px] flex items-center justify-center text-xs opacity-50 hover:opacity-100"
                           aria-label="Remover evento"
                         >
                           ×
@@ -299,7 +299,7 @@ export default function LifeChartPage() {
               </button>
               <button
                 onClick={confirmDelete}
-                className="flex-1 rounded-lg bg-danger py-2.5 text-sm font-medium text-white"
+                className="flex-1 rounded-lg bg-danger py-2.5 text-sm font-medium text-on-danger"
               >
                 Remover
               </button>

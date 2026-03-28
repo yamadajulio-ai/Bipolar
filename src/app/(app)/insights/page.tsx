@@ -2,7 +2,12 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { Card } from "@/components/Card";
 import { Alert } from "@/components/Alert";
-import { InsightsCharts } from "@/components/planner/InsightsCharts";
+import dynamic from "next/dynamic";
+
+const InsightsCharts = dynamic(
+  () => import("@/components/planner/InsightsCharts").then((m) => m.InsightsCharts),
+  { ssr: false, loading: () => <div className="h-[300px] animate-pulse rounded-lg bg-surface-alt" /> },
+);
 import { NightHistorySelector } from "@/components/insights/NightHistorySelector";
 import { computeInsights, formatSleepDuration } from "@/lib/insights/computeInsights";
 import { SleepDayGroup } from "@/components/insights/SleepHistoryCard";

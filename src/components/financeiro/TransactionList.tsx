@@ -88,7 +88,7 @@ export function TransactionList({
               </button>
               <button
                 onClick={confirmDelete}
-                className="flex-1 rounded-lg bg-danger py-2.5 text-sm font-medium text-white"
+                className="flex-1 rounded-lg bg-danger py-2.5 text-sm font-medium text-on-danger"
               >
                 Excluir
               </button>

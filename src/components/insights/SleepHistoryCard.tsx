@@ -243,7 +243,7 @@ function SleepCycleRow({ log, index }: { log: SleepLog; index: number }) {
         <button
           onClick={handleToggle}
           disabled={toggling}
-          className={`mt-1.5 w-full rounded-md px-2 py-0.5 text-[11px] transition-colors ${
+          className={`mt-1.5 w-full rounded-md px-2 py-0.5 min-h-[44px] text-[11px] transition-colors ${
             excluded ? "bg-primary/10 text-primary hover:bg-primary/20" : "bg-surface-alt text-muted hover:bg-border"
           } disabled:opacity-50`}
         >
@@ -339,7 +339,7 @@ export function SleepHistoryCard({ log }: { log: SleepLog }) {
         <button
           onClick={handleToggle}
           disabled={toggling}
-          className={`mt-2 w-full rounded-md px-2 py-1 text-[11px] transition-colors ${
+          className={`mt-2 w-full rounded-md px-2 py-1 min-h-[44px] text-[11px] transition-colors ${
             excluded ? "bg-primary/10 text-primary hover:bg-primary/20" : "bg-surface-alt text-muted hover:bg-border"
           } disabled:opacity-50`}
         >

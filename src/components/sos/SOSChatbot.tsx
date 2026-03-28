@@ -229,7 +229,7 @@ export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
           {/* TTS toggle */}
           <button
             onClick={voice.toggleTTS}
-            className={`rounded-lg p-2 text-xs transition-colors ${
+            className={`rounded-lg p-2 min-h-[44px] min-w-[44px] text-xs transition-colors ${
               voice.ttsEnabled
                 ? "bg-blue-700 text-white"
                 : "bg-gray-800 text-gray-400 hover:bg-gray-700"
@@ -258,7 +258,7 @@ export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
           {voice.hasVoice && (
             <button
               onClick={voice.toggleHandsFree}
-              className={`rounded-lg px-2.5 py-2 text-xs font-medium transition-colors ${
+              className={`rounded-lg px-2.5 py-2 min-h-[44px] text-xs font-medium transition-colors ${
                 voice.handsFree
                   ? "bg-green-700 text-white animate-pulse"
                   : "bg-gray-800 text-gray-400 hover:bg-gray-700"
@@ -326,9 +326,9 @@ export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
                 )
               }
               disabled={streaming}
-              className={`shrink-0 rounded-full p-2.5 transition-colors ${
+              className={`shrink-0 rounded-full p-3 min-h-[44px] min-w-[44px] transition-colors ${
                 voice.listening
-                  ? "bg-red-600 text-white animate-pulse"
+                  ? "bg-red-600 text-on-danger animate-pulse"
                   : "bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white"
               } disabled:opacity-50`}
               aria-label={

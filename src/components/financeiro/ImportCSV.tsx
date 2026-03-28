@@ -116,7 +116,7 @@ export function ImportCSV({ onImported }: { onImported: () => void }) {
           <p className="mb-2 text-sm font-semibold text-foreground">
             Passo a passo para exportar do Mobills:
           </p>
-          <ol className="list-inside list-decimal space-y-1.5 text-sm text-muted-foreground">
+          <ol className="list-inside list-decimal space-y-1.5 text-sm text-muted">
             <li>Abra o app <strong>Mobills</strong> no celular</li>
             <li>Vá em <strong>Menu → Exportar dados</strong></li>
             <li>Escolha o período desejado (mês)</li>
@@ -124,7 +124,7 @@ export function ImportCSV({ onImported }: { onImported: () => void }) {
             <li>Envie o arquivo para você mesmo (email, WhatsApp, etc.)</li>
             <li>No computador ou celular, escolha o arquivo abaixo</li>
           </ol>
-          <p className="mt-2 text-xs text-muted-foreground">
+          <p className="mt-2 text-xs text-muted">
             Também funciona com qualquer planilha que tenha as colunas: Data, Descrição, Valor, Categoria, Conta
           </p>
         </div>
@@ -162,7 +162,7 @@ export function ImportCSV({ onImported }: { onImported: () => void }) {
           <div>
             <div className="mb-1 text-2xl">📄</div>
             <p className="text-sm font-medium text-foreground">{selectedFile.name}</p>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-1 text-xs text-muted">
               {(selectedFile.size / 1024).toFixed(1)} KB — Clique para trocar
             </p>
           </div>
@@ -172,7 +172,7 @@ export function ImportCSV({ onImported }: { onImported: () => void }) {
             <p className="text-sm font-medium text-foreground">
               Toque para escolher o arquivo
             </p>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-1 text-xs text-muted">
               ou arraste aqui — CSV ou XLSX
             </p>
           </div>

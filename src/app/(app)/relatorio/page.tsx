@@ -4,7 +4,12 @@ import { useState, useEffect, useCallback } from "react";
 import { Card } from "@/components/Card";
 import { Alert } from "@/components/Alert";
 import { MonthSelector } from "@/components/relatorio/MonthSelector";
-import { MonthlyReport } from "@/components/relatorio/MonthlyReport";
+import dynamic from "next/dynamic";
+
+const MonthlyReport = dynamic(
+  () => import("@/components/relatorio/MonthlyReport").then((m) => m.MonthlyReport),
+  { ssr: false, loading: () => <div className="h-[400px] animate-pulse rounded-lg bg-surface-alt" /> },
+);
 import { ContextualFeedbackButtons } from "@/components/feedback/ContextualFeedbackButtons";
 import { localYearMonth } from "@/lib/dateUtils";
 

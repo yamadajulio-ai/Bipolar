@@ -97,7 +97,7 @@ export function SimpleMode({
       {/* SOS button */}
       <Link
         href="/sos"
-        className="block w-full rounded-xl bg-danger text-white text-center py-5 text-lg font-medium hover:bg-danger/90 transition-colors no-underline shadow-sm"
+        className="block w-full rounded-xl bg-danger text-on-danger text-center py-5 text-lg font-medium hover:bg-danger/90 transition-colors no-underline shadow-sm"
       >
         SOS — Preciso de ajuda
       </Link>

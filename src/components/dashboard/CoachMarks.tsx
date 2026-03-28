@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
 const MARKS = [
   {
@@ -15,7 +15,7 @@ const MARKS = [
   {
     key: "safety_nudge",
     title: "Recursos de Segurança",
-    desc: "Se detectarmos sinais de risco, mostramos recursos de apoio aqui \u2014 CVV 188, SAMU 192, CAPS.",
+    desc: "Se detectarmos sinais de risco, mostramos recursos de apoio aqui — CVV 188, SAMU 192, CAPS.",
   },
   {
     key: "sos_button",
@@ -29,6 +29,8 @@ const STORAGE_KEY = "coach-marks-seen";
 export function CoachMarks() {
   const [dismissed, setDismissed] = useState(true);
   const [current, setCurrent] = useState(0);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const nextBtnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     try {
@@ -38,6 +40,47 @@ export function CoachMarks() {
       // localStorage unavailable (private browsing, etc.)
     }
   }, []);
+
+  // Auto-focus the primary button when dialog opens or step changes
+  useEffect(() => {
+    if (!dismissed) nextBtnRef.current?.focus();
+  }, [dismissed, current]);
+
+  // Focus trap: keep Tab cycling within the dialog
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Escape") {
+        dismiss();
+        return;
+      }
+      if (e.key !== "Tab") return;
+
+      const dialog = dialogRef.current;
+      if (!dialog) return;
+
+      const focusable = dialog.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusable.length === 0) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
 
   if (dismissed) return null;
 
@@ -59,8 +102,12 @@ export function CoachMarks() {
       role="dialog"
       aria-modal="true"
       aria-label="Dicas do painel"
+      onKeyDown={handleKeyDown}
     >
-      <div className="bg-surface dark:bg-surface-raised rounded-[var(--radius-card)] p-5 max-w-sm w-full shadow-[var(--shadow-float)] space-y-3 animate-in slide-in-from-bottom-4 duration-300">
+      <div
+        ref={dialogRef}
+        className="bg-surface dark:bg-surface-raised rounded-[var(--radius-card)] p-5 max-w-sm w-full shadow-[var(--shadow-float)] space-y-3 animate-in slide-in-from-bottom-4 duration-300"
+      >
         <p className="font-semibold text-foreground">{mark.title}</p>
         <p className="text-sm text-muted">{mark.desc}</p>
         <div className="flex justify-between items-center">
@@ -75,13 +122,14 @@ export function CoachMarks() {
               Pular
             </button>
             <button
+              ref={nextBtnRef}
               onClick={() => {
                 if (!isLast) setCurrent(current + 1);
                 else dismiss();
               }}
               className="text-sm font-medium text-primary dark:text-primary-light hover:text-primary-dark transition-colors"
             >
-              {isLast ? "Entendi!" : "Próximo \u2192"}
+              {isLast ? "Entendi!" : "Próximo →"}
             </button>
           </div>
         </div>

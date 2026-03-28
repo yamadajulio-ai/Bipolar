@@ -15,11 +15,11 @@
   --border: #d6deda;
   --border-soft: rgb(82 122 110 / 0.10);
   --border-strong: rgb(82 122 110 / 0.20);
-  --control-border: #c4cdc8;
-  --control-border-hover: #a3b0aa;
+  --control-border: #70837a;
+  --control-border-hover: #5d6e66;
   --control-border-focus: var(--primary);
   --control-border-danger: var(--danger);
-  --muted: #5f7a70;
+  --muted: #587369;
   --success: #4a7c59;
   --warning: #c4842d;
   --danger: #b53325;
@@ -30,6 +30,10 @@
 
   /* Extended tokens */
   --on-primary: #ffffff;
+  --on-danger: #ffffff;
+  --on-success: #ffffff;
+  --on-warning: #171411;
+  --on-info: #ffffff;
   --focus-ring: #527a6e;
   --overlay: rgba(0, 0, 0, 0.4);
   --halo: rgba(82, 122, 110, 0.18);
@@ -38,9 +42,15 @@
   --chart-axis: #9ca3af;
 
   /* Elevation system */
+  --shadow-sm: 0 1px 2px rgb(15 23 42 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(15 23 42 / 0.07), 0 2px 4px -2px rgb(15 23 42 / 0.05);
+  --shadow-lg: 0 10px 15px -3px rgb(15 23 42 / 0.08), 0 4px 6px -4px rgb(15 23 42 / 0.04);
   --shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 10px 24px -12px rgb(15 23 42 / 0.08);
   --shadow-raised: 0 12px 28px -14px rgb(15 23 42 / 0.14), 0 4px 10px rgb(15 23 42 / 0.05);
   --shadow-float: 0 24px 48px -24px rgb(15 23 42 / 0.22), 0 10px 20px -14px rgb(15 23 42 / 0.12);
+
+  /* Glass border */
+  --glass-border: rgb(255 255 255 / 0.18);
 
   /* Radius system */
   --radius-card: 18px;
@@ -64,6 +74,23 @@
   --info-fg: #0f766e;
   --info-border: #99f6e4;
 
+  /* Mood zone domain tokens */
+  --mood-depression-fg: #1e40af;
+  --mood-depression-bg-subtle: #dbeafe;
+  --mood-depression-border: #93c5fd;
+  --mood-depression-light-fg: #1d4ed8;
+  --mood-depression-light-bg-subtle: #eff6ff;
+  --mood-depression-light-border: #bfdbfe;
+  --mood-euthymia-fg: #065f46;
+  --mood-euthymia-bg-subtle: #d1fae5;
+  --mood-euthymia-border: #6ee7b7;
+  --mood-mania-fg: #92400e;
+  --mood-mania-bg-subtle: #fef3c7;
+  --mood-mania-border: #fcd34d;
+  --mood-mania-high-fg: #991b1b;
+  --mood-mania-high-bg-subtle: #fee2e2;
+  --mood-mania-high-border: #fca5a5;
+
   /* Typography scale */
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
@@ -81,8 +108,8 @@
   --z-sticky: 20;
   --z-overlay: 30;
   --z-modal: 40;
-  --z-toast: 60;
   --z-nav: 50;
+  --z-toast: 60;
 
   /* Motion tokens */
   --duration-fast: 150ms;
@@ -115,20 +142,24 @@
   --border: #766e66;
   --border-soft: rgb(255 255 255 / 0.06);
   --border-strong: rgb(255 255 255 / 0.12);
-  --control-border: #5c544c;
-  --control-border-hover: #7a716a;
+  --control-border: #8b8178;
+  --control-border-hover: #9d948d;
   --control-border-focus: var(--primary-light);
   --control-border-danger: var(--danger);
   --muted: #b9ada1;
   --success: #79af88;
   --warning: #d5a04e;
-  --danger: #d26c61;
+  --danger: #c05046;
   --info: #6f9c90;
 
   --link-fg: var(--primary-light);
 
   /* Extended tokens — dark */
-  --on-primary: #f3ece5;
+  --on-primary: #ffffff;
+  --on-danger: #ffffff;
+  --on-success: #171411;
+  --on-warning: #171411;
+  --on-info: #171411;
   --focus-ring: #7da399;
   --overlay: rgba(0, 0, 0, 0.6);
   --halo: rgba(125, 163, 153, 0.18);
@@ -136,7 +167,13 @@
   --chart-grid: #4f4740;
   --chart-axis: #b9ada1;
 
+  /* Glass border — dark */
+  --glass-border: rgb(255 255 255 / 0.08);
+
   /* Elevation — dark: less shadow, more border contrast */
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.15);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.20), 0 2px 4px -2px rgb(0 0 0 / 0.12);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.25), 0 4px 6px -4px rgb(0 0 0 / 0.15);
   --shadow-card: 0 1px 2px rgb(0 0 0 / 0.12), 0 6px 16px -8px rgb(0 0 0 / 0.18);
   --shadow-raised: 0 8px 24px -12px rgb(0 0 0 / 0.28), 0 2px 8px rgb(0 0 0 / 0.16);
   --shadow-float: 0 20px 40px -20px rgb(0 0 0 / 0.40), 0 8px 16px -10px rgb(0 0 0 / 0.24);
@@ -154,6 +191,23 @@
   --info-bg-subtle: rgba(20, 184, 166, 0.12);
   --info-fg: #5eead4;
   --info-border: rgba(20, 184, 166, 0.25);
+
+  /* Mood zone domain tokens — dark */
+  --mood-depression-fg: #93c5fd;
+  --mood-depression-bg-subtle: rgba(59, 130, 246, 0.15);
+  --mood-depression-border: rgba(59, 130, 246, 0.30);
+  --mood-depression-light-fg: #93c5fd;
+  --mood-depression-light-bg-subtle: rgba(59, 130, 246, 0.10);
+  --mood-depression-light-border: rgba(59, 130, 246, 0.20);
+  --mood-euthymia-fg: #6ee7b7;
+  --mood-euthymia-bg-subtle: rgba(16, 185, 129, 0.15);
+  --mood-euthymia-border: rgba(16, 185, 129, 0.30);
+  --mood-mania-fg: #fcd34d;
+  --mood-mania-bg-subtle: rgba(245, 158, 11, 0.15);
+  --mood-mania-border: rgba(245, 158, 11, 0.30);
+  --mood-mania-high-fg: #fca5a5;
+  --mood-mania-high-bg-subtle: rgba(239, 68, 68, 0.15);
+  --mood-mania-high-border: rgba(239, 68, 68, 0.30);
 
   /* Chart palette — dark */
   --chart-1: #7da399;
@@ -189,10 +243,15 @@
   --color-danger: var(--danger);
   --color-info: var(--info);
   --color-on-primary: var(--on-primary);
+  --color-on-danger: var(--on-danger);
+  --color-on-success: var(--on-success);
+  --color-on-warning: var(--on-warning);
+  --color-on-info: var(--on-info);
   --color-focus-ring: var(--focus-ring);
   --color-overlay: var(--overlay);
   --color-link-fg: var(--link-fg);
   --color-halo: var(--halo);
+  --color-halo-stroke: var(--halo-stroke);
   --color-chart-grid: var(--chart-grid);
   --color-chart-axis: var(--chart-axis);
   --color-chart-1: var(--chart-1);
@@ -213,14 +272,31 @@
   --color-info-bg-subtle: var(--info-bg-subtle);
   --color-info-fg: var(--info-fg);
   --color-info-border: var(--info-border);
+  --color-glass-border: var(--glass-border);
+  --color-mood-depression-fg: var(--mood-depression-fg);
+  --color-mood-depression-bg-subtle: var(--mood-depression-bg-subtle);
+  --color-mood-depression-border: var(--mood-depression-border);
+  --color-mood-depression-light-fg: var(--mood-depression-light-fg);
+  --color-mood-depression-light-bg-subtle: var(--mood-depression-light-bg-subtle);
+  --color-mood-depression-light-border: var(--mood-depression-light-border);
+  --color-mood-euthymia-fg: var(--mood-euthymia-fg);
+  --color-mood-euthymia-bg-subtle: var(--mood-euthymia-bg-subtle);
+  --color-mood-euthymia-border: var(--mood-euthymia-border);
+  --color-mood-mania-fg: var(--mood-mania-fg);
+  --color-mood-mania-bg-subtle: var(--mood-mania-bg-subtle);
+  --color-mood-mania-border: var(--mood-mania-border);
+  --color-mood-mania-high-fg: var(--mood-mania-high-fg);
+  --color-mood-mania-high-bg-subtle: var(--mood-mania-high-bg-subtle);
+  --color-mood-mania-high-border: var(--mood-mania-high-border);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --shadow-card: var(--shadow-card);
-  --shadow-raised: var(--shadow-raised);
-  --shadow-float: var(--shadow-float);
-  --radius-card: var(--radius-card);
-  --radius-panel: var(--radius-panel);
-  --radius-pill: var(--radius-pill);
+  /* Shadows: use via shadow-[var(--shadow-card)] etc. — not registered as
+     Tailwind utilities to avoid circular var() references. Available CSS
+     vars: --shadow-sm, --shadow-md, --shadow-lg, --shadow-card,
+     --shadow-raised, --shadow-float (defined in :root / .dark). */
+  /* Radius: use via rounded-[var(--radius-card)] etc. — not registered as
+     Tailwind utilities to avoid circular var() references. Available CSS
+     vars: --radius-card, --radius-panel, --radius-pill (defined in :root). */
 }
 
 body {
@@ -241,6 +317,15 @@ body {
   :focus-visible {
     outline: 2px solid var(--focus-ring);
     outline-offset: 2px;
+  }
+
+  /* Prevent iOS auto-zoom on input focus (requires 16px minimum) */
+  @media screen and (max-width: 1023px) {
+    input,
+    textarea,
+    select {
+      font-size: 16px;
+    }
   }
 
   /* Respect reduced motion */
@@ -264,6 +349,16 @@ body {
       --border-strong: var(--border);
     }
   }
+
+  /* Fallback for browsers without backdrop-filter support */
+  @supports not (backdrop-filter: blur(1px)) {
+    :root,
+    .dark {
+      --surface-glass: var(--surface);
+      --blur-chrome: 0px;
+      --glass-border: transparent;
+    }
+  }
 }
 
 /* Print styles — always force light mode for legibility + ink savings */
@@ -281,6 +376,10 @@ body {
     --border-strong: #d0d0d0;
     --control-border: #999999;
     --control-border-hover: #777777;
+    --on-danger: #ffffff;
+    --on-success: #ffffff;
+    --on-warning: #111111;
+    --on-info: #ffffff;
     --link-fg: #111111;
     --muted: #555555;
     --success-bg-subtle: #f0fdf4;
@@ -297,9 +396,32 @@ body {
     --info-border: #99f6e4;
     --chart-grid: #e5e7eb;
     --chart-axis: #9ca3af;
+    --shadow-sm: none;
+    --shadow-md: none;
+    --shadow-lg: none;
     --shadow-card: none;
     --shadow-raised: none;
     --shadow-float: none;
+    --glass-border: transparent;
+    --blur-chrome: 0px;
+    --on-primary: #ffffff;
+
+    /* Mood zones — force light values for print legibility */
+    --mood-depression-fg: #1e40af;
+    --mood-depression-bg-subtle: #dbeafe;
+    --mood-depression-border: #93c5fd;
+    --mood-depression-light-fg: #1d4ed8;
+    --mood-depression-light-bg-subtle: #eff6ff;
+    --mood-depression-light-border: #bfdbfe;
+    --mood-euthymia-fg: #065f46;
+    --mood-euthymia-bg-subtle: #d1fae5;
+    --mood-euthymia-border: #6ee7b7;
+    --mood-mania-fg: #92400e;
+    --mood-mania-bg-subtle: #fef3c7;
+    --mood-mania-border: #fcd34d;
+    --mood-mania-high-fg: #991b1b;
+    --mood-mania-high-bg-subtle: #fee2e2;
+    --mood-mania-high-border: #fca5a5;
   }
 
   html {

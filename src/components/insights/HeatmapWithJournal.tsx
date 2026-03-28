@@ -37,11 +37,11 @@ interface Props {
 // ── Zone labels ──────────────────────────────────────────────
 
 const ZONE_LABELS: Record<string, { label: string; color: string }> = {
-  depressao: { label: "Humor muito baixo", color: "text-blue-800 dark:text-blue-300" },
-  depressao_leve: { label: "Humor baixo", color: "text-blue-700 dark:text-blue-300" },
-  eutimia: { label: "Humor estável", color: "text-emerald-800 dark:text-emerald-300" },
-  hipomania: { label: "Humor elevado", color: "text-amber-800 dark:text-amber-300" },
-  mania: { label: "Humor muito elevado", color: "text-red-800 dark:text-red-300" },
+  depressao: { label: "Humor muito baixo", color: "text-mood-depression-fg" },
+  depressao_leve: { label: "Humor baixo", color: "text-mood-depression-light-fg" },
+  eutimia: { label: "Humor estável", color: "text-mood-euthymia-fg" },
+  hipomania: { label: "Humor elevado", color: "text-mood-mania-fg" },
+  mania: { label: "Humor muito elevado", color: "text-mood-mania-high-fg" },
 };
 
 const MOOD_LABELS: Record<number, string> = {

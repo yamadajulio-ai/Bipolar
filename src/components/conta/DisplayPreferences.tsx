@@ -48,7 +48,7 @@ export function DisplayPreferences() {
             <span className="text-sm text-muted">{label}</span>
             <button
               onClick={() => handleRestore(key)}
-              className="rounded bg-primary px-3 py-1 text-xs text-white hover:bg-primary/90"
+              className="rounded bg-primary px-3 py-1 min-h-[44px] text-xs text-white hover:bg-primary/90"
             >
               Mostrar novamente
             </button>

@@ -6,7 +6,25 @@ import { Card } from "@/components/Card";
 import { Alert } from "@/components/Alert";
 import { ImportCSV } from "@/components/financeiro/ImportCSV";
 import { TransactionList } from "@/components/financeiro/TransactionList";
-import { CategoryChart, MoodSpendingChart, SpendingTrendChart, YearlyComparisonChart } from "@/components/financeiro/FinanceCharts";
+import dynamic from "next/dynamic";
+
+const ChartSkeleton = () => <div className="h-[300px] animate-pulse rounded-lg bg-surface-alt" />;
+const CategoryChart = dynamic(
+  () => import("@/components/financeiro/FinanceCharts").then((m) => m.CategoryChart),
+  { ssr: false, loading: ChartSkeleton },
+);
+const MoodSpendingChart = dynamic(
+  () => import("@/components/financeiro/FinanceCharts").then((m) => m.MoodSpendingChart),
+  { ssr: false, loading: ChartSkeleton },
+);
+const SpendingTrendChart = dynamic(
+  () => import("@/components/financeiro/FinanceCharts").then((m) => m.SpendingTrendChart),
+  { ssr: false, loading: ChartSkeleton },
+);
+const YearlyComparisonChart = dynamic(
+  () => import("@/components/financeiro/FinanceCharts").then((m) => m.YearlyComparisonChart),
+  { ssr: false, loading: ChartSkeleton },
+);
 import { localToday, localYearMonth, shiftMonth } from "@/lib/dateUtils";
 
 type DataConfidence = "alta" | "media" | "baixa";

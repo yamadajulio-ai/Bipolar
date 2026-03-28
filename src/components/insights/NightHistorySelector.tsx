@@ -28,7 +28,7 @@ export function NightHistorySelector() {
           onClick={() => handleChange(opt.value)}
           aria-pressed={current === opt.value}
           aria-label={`Mostrar últimas ${opt.label}`}
-          className={`rounded-full px-3 py-2 text-xs font-medium transition-colors ${
+          className={`rounded-full px-3 py-2 min-h-[44px] text-xs font-medium transition-colors ${
             current === opt.value
               ? "bg-primary text-white"
               : "bg-black/5 text-muted hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/15"

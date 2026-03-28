@@ -1,12 +1,18 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/security";
 import * as Sentry from "@sentry/nextjs";
 
 export async function DELETE() {
   const session = await getSession();
   if (!session.isLoggedIn) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  }
+
+  const allowed = await checkRateLimit(`google_disconnect:${session.userId}`, 10, 60_000);
+  if (!allowed) {
+    return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
   }
 
   try {

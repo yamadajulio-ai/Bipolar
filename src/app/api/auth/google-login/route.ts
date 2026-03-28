@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { getLoginAuthUrl } from "@/lib/google/login-auth";
+import { checkRateLimit, getClientIp } from "@/lib/security";
 import crypto from "crypto";
 
 export async function GET(request: NextRequest) {
+  const ip = getClientIp(request);
+  const allowed = await checkRateLimit(`google-login:${ip}`, 10, 900_000);
+  if (!allowed) {
+    return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
+  }
+
   const session = await getSession();
   if (session.isLoggedIn) {
     return NextResponse.redirect(new URL("/hoje", request.url));

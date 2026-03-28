@@ -19,6 +19,11 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
+  const delAllowed = await checkRateLimit(`narrative_delete:${session.userId}`, 10, 60_000);
+  if (!delAllowed) {
+    return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
+  }
+
   const url = new URL(request.url);
   const narrativeId = url.searchParams.get("id");
 
@@ -54,6 +59,11 @@ export async function GET(_request: NextRequest) {
   const session = await getSession();
   if (!session.isLoggedIn) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  }
+
+  const readAllowed = await checkRateLimit(`narrative_read:${session.userId}`, 60, 60_000);
+  if (!readAllowed) {
+    return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
   }
 
   // Fetch latest attempt (any status) to detect if the most recent one failed

@@ -28,9 +28,9 @@ const variantStyles: Record<CardVariant, string> = {
     "relative overflow-hidden rounded-[var(--radius-card)] border border-border-soft",
     "bg-surface shadow-[var(--shadow-card)]",
     "dark:border-border-strong",
-    "transition-[transform,box-shadow] duration-200",
+    "transition-[transform,box-shadow] duration-[var(--duration-normal)]",
     "hover:-translate-y-px hover:shadow-[var(--shadow-raised)]",
-    "focus-visible:-translate-y-px focus-visible:shadow-[var(--shadow-raised)]",
+    "focus-within:-translate-y-px focus-within:shadow-[var(--shadow-raised)]",
     "active:scale-[0.985] active:shadow-[var(--shadow-card)]",
   ),
 };

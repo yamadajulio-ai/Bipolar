@@ -182,7 +182,7 @@ export default function FeedbackPage() {
               id="fb-category"
               value={category}
               onChange={(e) => setCategory(e.target.value as FeedbackCategory)}
-              className="w-full rounded-md border border-border bg-surface px-3 py-2.5 text-sm"
+              className="w-full rounded-md border border-control-border bg-surface px-3 py-2.5 text-sm"
             >
               {CATEGORY_OPTIONS.map((c) => (
                 <option key={c.value} value={c.value}>{c.label}</option>
@@ -210,7 +210,7 @@ export default function FeedbackPage() {
               aria-describedby="fb-message-hint fb-message-count"
               aria-invalid={errorMsg ? "true" : undefined}
               placeholder="Conte-nos o que pensa..."
-              className="w-full rounded-md border border-border bg-surface px-3 py-2.5 text-sm resize-y focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="w-full rounded-md border border-control-border bg-surface px-3 py-2.5 text-sm resize-y focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             />
             <p id="fb-message-count" className="mt-1 text-xs text-muted text-right" aria-live="polite">
               {message.length}/2000
@@ -226,7 +226,7 @@ export default function FeedbackPage() {
               id="fb-screen"
               value={screen}
               onChange={(e) => setScreen(e.target.value)}
-              className="w-full rounded-md border border-border bg-surface px-3 py-2.5 text-sm"
+              className="w-full rounded-md border border-control-border bg-surface px-3 py-2.5 text-sm"
             >
               {SCREEN_OPTIONS.map((s) => (
                 <option key={s.value} value={s.value}>{s.label}</option>

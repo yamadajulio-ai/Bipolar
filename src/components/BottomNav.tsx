@@ -27,7 +27,7 @@ export function BottomNav() {
     <MotionConfig reducedMotion="user">
     <nav
       aria-label="Navegação principal"
-      className="fixed bottom-0 left-0 right-0 z-50 lg:hidden"
+      className="fixed bottom-0 left-0 right-0 z-[var(--z-nav)] lg:hidden"
     >
       <div className="mx-auto max-w-lg px-4 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         <div
@@ -37,7 +37,7 @@ export function BottomNav() {
             "border border-border-soft dark:border-border-strong",
             "bg-surface-glass backdrop-blur-[var(--blur-chrome)]",
             "shadow-[var(--shadow-float)]",
-            "[contain:layout_style_paint] [will-change:transform]",
+            "[contain:layout_style_paint]",
           ].join(" ")}
         >
           {tabs.map((tab) => {

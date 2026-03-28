@@ -25,6 +25,9 @@
   --danger: #b53325;
   --info: #527a6e;
 
+  /* Link text — stronger than --primary for AA on all surfaces */
+  --link-fg: var(--primary-dark);
+
   /* Extended tokens */
   --on-primary: #ffffff;
   --focus-ring: #527a6e;
@@ -78,7 +81,7 @@
   --z-sticky: 20;
   --z-overlay: 30;
   --z-modal: 40;
-  --z-toast: 50;
+  --z-toast: 60;
   --z-nav: 50;
 
   /* Motion tokens */
@@ -121,6 +124,8 @@
   --warning: #d5a04e;
   --danger: #d26c61;
   --info: #6f9c90;
+
+  --link-fg: var(--primary-light);
 
   /* Extended tokens — dark */
   --on-primary: #f3ece5;
@@ -186,6 +191,7 @@
   --color-on-primary: var(--on-primary);
   --color-focus-ring: var(--focus-ring);
   --color-overlay: var(--overlay);
+  --color-link-fg: var(--link-fg);
   --color-halo: var(--halo);
   --color-chart-grid: var(--chart-grid);
   --color-chart-axis: var(--chart-axis);
@@ -225,7 +231,7 @@ body {
 
 @layer base {
   :where(a) {
-    color: var(--primary);
+    color: var(--link-fg);
   }
 
   :where(a):hover {
@@ -275,6 +281,7 @@ body {
     --border-strong: #d0d0d0;
     --control-border: #999999;
     --control-border-hover: #777777;
+    --link-fg: #111111;
     --muted: #555555;
     --success-bg-subtle: #f0fdf4;
     --success-fg: #15803d;
@@ -309,7 +316,11 @@ body {
     display: none !important;
   }
 
-  * {
+  /* Preserve colors only where meaning depends on them (badges, charts, status) */
+  [data-print-color],
+  .recharts-surface,
+  [role="progressbar"],
+  [role="alert"] {
     color-adjust: exact !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;

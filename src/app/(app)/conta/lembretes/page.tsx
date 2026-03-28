@@ -170,7 +170,7 @@ export default function LembretesPage() {
                 name="whatsappPhone"
                 placeholder="(11) 99999-9999"
                 defaultValue={settings?.whatsappPhone ?? ""}
-                className="mt-1 block w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted/50 focus-visible:border-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+                className="mt-1 block w-full rounded-lg border border-control-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted/50 focus-visible:border-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
                 maxLength={20}
               />
             </div>

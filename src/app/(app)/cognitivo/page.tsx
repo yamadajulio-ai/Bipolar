@@ -138,7 +138,7 @@ function HistoryCard({ entry }: { entry: HistoryEntry }) {
   const digitInfo = entry.digitSpan !== null ? getDigitLevel(entry.digitSpan) : null;
 
   return (
-    <div className="flex items-center justify-between rounded-lg border border-border bg-surface px-3 py-2">
+    <div className="flex items-center justify-between rounded-lg border border-control-border bg-surface px-3 py-2">
       <span className="text-xs text-muted">{dateStr}</span>
       <div className="flex gap-3">
         {reactionInfo && (

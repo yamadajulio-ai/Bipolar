@@ -156,7 +156,7 @@ export default function NovoSonoPage() {
               value={bedtime}
               onChange={(e) => setBedtime(e.target.value)}
               required
-              className="mt-1 block w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground focus-visible:border-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+              className="mt-1 block w-full rounded-md border border-control-border bg-surface px-3 py-2 text-sm text-foreground focus-visible:border-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
             />
           </div>
 
@@ -170,7 +170,7 @@ export default function NovoSonoPage() {
               value={wakeTime}
               onChange={(e) => setWakeTime(e.target.value)}
               required
-              className="mt-1 block w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground focus-visible:border-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+              className="mt-1 block w-full rounded-md border border-control-border bg-surface px-3 py-2 text-sm text-foreground focus-visible:border-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
             />
           </div>
 
@@ -213,7 +213,7 @@ export default function NovoSonoPage() {
               min={0}
               max={10}
               defaultValue={0}
-              className="mt-1 block w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground focus-visible:border-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+              className="mt-1 block w-full rounded-md border border-control-border bg-surface px-3 py-2 text-sm text-foreground focus-visible:border-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
             />
           </div>
 

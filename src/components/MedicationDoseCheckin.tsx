@@ -372,7 +372,7 @@ function DoseRow({
   onLog: (scheduleId: string, status: "TAKEN" | "MISSED") => void;
 }) {
   return (
-    <div className="flex items-center gap-2 rounded-md border border-border bg-surface px-3 py-2">
+    <div className="flex items-center gap-2 rounded-md border border-control-border bg-surface px-3 py-2">
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-foreground truncate">
           {dose.medicationName}

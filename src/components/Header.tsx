@@ -75,7 +75,7 @@ export function Header({ isLoggedIn }: HeaderProps) {
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
         <Link
           href={isLoggedIn ? "/hoje" : "/"}
-          className="flex items-center gap-2 text-lg font-semibold text-primary-dark no-underline"
+          className="flex items-center gap-2 text-lg font-semibold text-primary-dark dark:text-primary-light no-underline"
         >
           <Image
             src="/icon-192.png"

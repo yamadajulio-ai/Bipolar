@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     let transactions;
     if (isXlsx) {
       const buffer = await file.arrayBuffer();
-      transactions = parseMobillsXlsx(buffer);
+      transactions = await parseMobillsXlsx(buffer);
     } else {
       const content = await file.text();
       transactions = parseMobillsCsv(content);

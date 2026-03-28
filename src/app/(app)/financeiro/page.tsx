@@ -613,7 +613,7 @@ function ManualEntryForm({ onCreated }: { onCreated: () => void }) {
             min="0.01"
             required
             placeholder="0,00"
-            className="w-full rounded border border-border bg-surface px-3 py-2 text-sm"
+            className="w-full rounded border border-control-border bg-surface px-3 py-2 text-sm"
             autoFocus
           />
         </div>
@@ -622,7 +622,7 @@ function ManualEntryForm({ onCreated }: { onCreated: () => void }) {
           <select
             id="manual-type"
             name="type"
-            className="w-full rounded border border-border bg-surface px-3 py-2 text-sm"
+            className="w-full rounded border border-control-border bg-surface px-3 py-2 text-sm"
           >
             <option value="despesa">Despesa</option>
             <option value="receita">Receita</option>
@@ -642,7 +642,7 @@ function ManualEntryForm({ onCreated }: { onCreated: () => void }) {
             maxLength={100}
             list="category-suggestions"
             placeholder="Selecione ou digite"
-            className="w-full rounded border border-border bg-surface px-3 py-2 text-sm"
+            className="w-full rounded border border-control-border bg-surface px-3 py-2 text-sm"
           />
           <datalist id="category-suggestions">
             {COMMON_CATEGORIES.map((cat) => (
@@ -658,7 +658,7 @@ function ManualEntryForm({ onCreated }: { onCreated: () => void }) {
             type="date"
             defaultValue={todayStr}
             required
-            className="w-full rounded border border-border bg-surface px-3 py-2 text-sm"
+            className="w-full rounded border border-control-border bg-surface px-3 py-2 text-sm"
           />
         </div>
       </div>
@@ -673,7 +673,7 @@ function ManualEntryForm({ onCreated }: { onCreated: () => void }) {
           required
           maxLength={200}
           placeholder="Ex: Supermercado, Uber, etc."
-          className="w-full rounded border border-border bg-surface px-3 py-2 text-sm"
+          className="w-full rounded border border-control-border bg-surface px-3 py-2 text-sm"
         />
       </div>
 

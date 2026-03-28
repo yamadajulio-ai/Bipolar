@@ -148,7 +148,7 @@ export default function LifeChartPage() {
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="block w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground"
+              className="block w-full rounded-md border border-control-border bg-surface px-3 py-2 text-sm text-foreground"
             />
           </div>
 
@@ -182,7 +182,7 @@ export default function LifeChartPage() {
               onChange={(e) => setLabel(e.target.value)}
               maxLength={200}
               placeholder="Ex: Mudança de medicação"
-              className="block w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground"
+              className="block w-full rounded-md border border-control-border bg-surface px-3 py-2 text-sm text-foreground"
             />
           </div>
 
@@ -196,7 +196,7 @@ export default function LifeChartPage() {
               onChange={(e) => setNotes(e.target.value)}
               maxLength={500}
               rows={2}
-              className="block w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground"
+              className="block w-full rounded-md border border-control-border bg-surface px-3 py-2 text-sm text-foreground"
             />
           </div>
 

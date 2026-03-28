@@ -1,4 +1,4 @@
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import type { ParsedTransaction } from "./parseMobillsCsv";
 
 /**
@@ -7,25 +7,30 @@ import type { ParsedTransaction } from "./parseMobillsCsv";
  * Reads the first sheet and looks for the same columns as the CSV parser:
  * DATA/DATE, DESCRICAO/DESCRIPTION, VALOR/VALUE, CONTA/ACCOUNT, CATEGORIA/CATEGORY
  */
-export function parseMobillsXlsx(buffer: ArrayBuffer): ParsedTransaction[] {
-  const workbook = XLSX.read(buffer, { type: "array" });
-  const sheetName = workbook.SheetNames[0];
-  if (!sheetName) return [];
+export async function parseMobillsXlsx(buffer: ArrayBuffer): Promise<ParsedTransaction[]> {
+  const workbook = new ExcelJS.Workbook();
+  // exceljs.load accepts ArrayBuffer at runtime but types expect Buffer
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await workbook.xlsx.load(buffer as any);
 
-  const sheet = workbook.Sheets[sheetName];
-  if (!sheet) return [];
+  const sheet = workbook.worksheets[0];
+  if (!sheet || sheet.rowCount < 2) return [];
 
-  // Convert sheet to array of arrays (raw rows)
-  const rows: unknown[][] = XLSX.utils.sheet_to_json(sheet, {
-    header: 1,
-    raw: false, // get formatted strings so dates come as text
-    defval: "",
+  // Convert sheet to array of arrays (formatted text values)
+  const rows: string[][] = [];
+  sheet.eachRow((row) => {
+    const cells: string[] = [];
+    row.eachCell({ includeEmpty: true }, (cell) => {
+      // Get formatted text value (not raw) to match xlsx behavior
+      cells.push(cell.text ?? String(cell.value ?? ""));
+    });
+    rows.push(cells);
   });
 
   if (rows.length < 2) return [];
 
   // Parse header to find column indices
-  const headers = (rows[0] as string[]).map((h) => normalizeHeader(String(h)));
+  const headers = rows[0].map((h) => normalizeHeader(String(h)));
   const dateIdx = headers.findIndex((h) => h === "data" || h === "date");
   const descIdx = headers.findIndex(
     (h) => h === "descricao" || h === "description",

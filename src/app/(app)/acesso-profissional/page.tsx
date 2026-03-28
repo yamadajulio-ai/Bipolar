@@ -187,7 +187,7 @@ export default function AcessoProfissionalPage() {
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             placeholder="Ex: Dr. Silva"
-            className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm"
+            className="w-full rounded-lg border border-control-border bg-surface px-3 py-2 text-sm"
             maxLength={100}
           />
         </div>
@@ -199,7 +199,7 @@ export default function AcessoProfissionalPage() {
           <select
             value={expiresInDays}
             onChange={(e) => setExpiresInDays(Number(e.target.value))}
-            className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm"
+            className="w-full rounded-lg border border-control-border bg-surface px-3 py-2 text-sm"
           >
             <option value={7}>7 dias</option>
             <option value={30}>30 dias</option>

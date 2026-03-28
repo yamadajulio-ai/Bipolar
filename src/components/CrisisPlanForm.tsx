@@ -253,14 +253,14 @@ export function CrisisPlanForm({ initialData }: CrisisPlanFormProps) {
               value={contact.name}
               onChange={(e) => updateContact(i, "name", e.target.value)}
               placeholder="Nome"
-              className="flex-1 rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted focus-visible:border-primary focus-visible:outline-none"
+              className="flex-1 rounded-md border border-control-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted focus-visible:border-primary focus-visible:outline-none"
             />
             <input
               type="tel"
               value={contact.phone}
               onChange={(e) => updateContact(i, "phone", e.target.value)}
               placeholder="Telefone"
-              className="flex-1 rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted focus-visible:border-primary focus-visible:outline-none"
+              className="flex-1 rounded-md border border-control-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted focus-visible:border-primary focus-visible:outline-none"
             />
             <button
               type="button"
@@ -314,7 +314,7 @@ export function CrisisPlanForm({ initialData }: CrisisPlanFormProps) {
               value={med}
               onChange={(e) => updateMedication(i, e.target.value)}
               placeholder="Nome do medicamento"
-              className="flex-1 rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted focus-visible:border-primary focus-visible:outline-none"
+              className="flex-1 rounded-md border border-control-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted focus-visible:border-primary focus-visible:outline-none"
             />
             <button
               type="button"
@@ -359,7 +359,7 @@ export function CrisisPlanForm({ initialData }: CrisisPlanFormProps) {
               value={strategy}
               onChange={(e) => updateStrategy(i, e.target.value)}
               placeholder='Ex: "Ligar para minha mãe", "Respiração 4-7-8"'
-              className="flex-1 rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted focus-visible:border-primary focus-visible:outline-none"
+              className="flex-1 rounded-md border border-control-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted focus-visible:border-primary focus-visible:outline-none"
             />
             <button
               type="button"

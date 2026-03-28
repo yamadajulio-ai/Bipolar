@@ -709,7 +709,7 @@ export default function AvaliacaoSemanalPage() {
               onChange={(e) => setNotes(e.target.value)}
               maxLength={280}
               rows={2}
-              className="block w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground focus-visible:border-primary focus-visible:outline-none"
+              className="block w-full rounded-md border border-control-border bg-surface px-3 py-2 text-sm text-foreground focus-visible:border-primary focus-visible:outline-none"
               placeholder="Algo relevante sobre esta semana..."
             />
           </Card>

@@ -259,14 +259,14 @@ describe("POST /api/auth/cadastro", () => {
     expect(res.status).toBe(400);
   });
 
-  it("returns 400 with generic error for duplicate email (anti-enumeration)", async () => {
+  it("returns identical 201 response for duplicate email (anti-enumeration)", async () => {
     mockUserFindUnique.mockResolvedValueOnce({ id: "existing" });
     const res = await POST(makeRequest(validBody, "https://suportebipolar.com/api/auth/cadastro"));
-    expect(res.status).toBe(400);
+    // Must return same status code as real success — attacker cannot distinguish
+    expect(res.status).toBe(201);
     const body = await res.json();
-    // Generic message — must NOT reveal that the email already exists
-    expect(body.error).not.toContain("cadastrado");
-    expect(body.error).toBeDefined();
+    expect(body.success).toBe(true);
+    // No session cookie should be set (no actual login happened)
   });
 
   it("returns 201, creates user, and rotates session on success", async () => {

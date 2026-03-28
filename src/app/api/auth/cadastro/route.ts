@@ -71,10 +71,10 @@ export async function POST(request: NextRequest) {
     const passwordHash = await hashPassword(senha);
 
     if (existing) {
-      return NextResponse.json(
-        { error: "Não foi possível criar a conta. Verifique os dados e tente novamente." },
-        { status: 400 },
-      );
+      // Anti-enumeration: same status code + similar response shape as success.
+      // Attacker cannot distinguish "email taken" from "new account" by status code.
+      // The real success signal is the session cookie (httpOnly, not readable by JS).
+      return NextResponse.json({ success: true }, { status: 201 });
     }
     const user = await prisma.user.create({
       data: {

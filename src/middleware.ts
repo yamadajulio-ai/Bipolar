@@ -260,7 +260,9 @@ export async function middleware(request: NextRequest) {
  */
 async function ensureCsrfCookie(request: NextRequest, response: NextResponse): Promise<NextResponse> {
   const existingToken = request.cookies.get(CSRF_COOKIE_NAME)?.value;
-  if (!existingToken) {
+  // Replace missing or legacy (non-HMAC) tokens with new HMAC-signed format
+  const needsNewToken = !existingToken || !existingToken.includes(".");
+  if (needsNewToken) {
     const token = await generateCsrfToken();
     response.cookies.set(CSRF_COOKIE_NAME, token, {
       path: "/",

@@ -5,7 +5,7 @@ import { headers } from "next/headers";
 import { maskIp, maskEmail } from "@/lib/security";
 import { Card } from "@/components/Card";
 import { Alert } from "@/components/Alert";
-import { AdminSOSChartLazy as AdminSOSChart } from "@/components/admin/AdminSOSChartLazy";;
+import { AdminSOSChartLazy as AdminSOSChart } from "@/components/admin/AdminSOSChartLazy";
 import { RevealPII } from "@/components/admin/RevealPII";
 
 const SOS_ACTION_LABELS: Record<string, string> = {

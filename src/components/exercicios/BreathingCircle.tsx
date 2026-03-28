@@ -1,6 +1,18 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useSyncExternalStore } from "react";
+
+function useReducedMotion(): boolean {
+  return useSyncExternalStore(
+    (cb) => {
+      const mql = window.matchMedia("(prefers-reduced-motion: reduce)");
+      mql.addEventListener("change", cb);
+      return () => mql.removeEventListener("change", cb);
+    },
+    () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    () => false,
+  );
+}
 
 type Phase = "inhale" | "hold" | "exhale" | "holdAfter";
 
@@ -39,6 +51,7 @@ export function BreathingCircle({
   const [timeLeft, setTimeLeft] = useState(inhale);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const onCycleCompleteRef = useRef(onCycleComplete);
+  const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
     onCycleCompleteRef.current = onCycleComplete;
@@ -125,7 +138,7 @@ export function BreathingCircle({
             backgroundColor: phaseColors[phase],
             opacity: 0.2,
             transform: `scale(${getScale()})`,
-            transition: `transform ${phase === "inhale" ? inhale : phase === "exhale" ? exhale : 0.3}s ease-in-out`,
+            transition: prefersReducedMotion ? "none" : `transform ${phase === "inhale" ? inhale : phase === "exhale" ? exhale : 0.3}s ease-in-out`,
             position: "absolute",
           }}
         />
@@ -137,7 +150,7 @@ export function BreathingCircle({
             backgroundColor: phaseColors[phase],
             opacity: 0.4,
             transform: `scale(${getScale()})`,
-            transition: `transform ${phase === "inhale" ? inhale : phase === "exhale" ? exhale : 0.3}s ease-in-out`,
+            transition: prefersReducedMotion ? "none" : `transform ${phase === "inhale" ? inhale : phase === "exhale" ? exhale : 0.3}s ease-in-out`,
             position: "absolute",
           }}
         />
@@ -149,7 +162,7 @@ export function BreathingCircle({
             backgroundColor: phaseColors[phase],
             opacity: 0.8,
             transform: `scale(${getScale()})`,
-            transition: `transform ${phase === "inhale" ? inhale : phase === "exhale" ? exhale : 0.3}s ease-in-out`,
+            transition: prefersReducedMotion ? "none" : `transform ${phase === "inhale" ? inhale : phase === "exhale" ? exhale : 0.3}s ease-in-out`,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",

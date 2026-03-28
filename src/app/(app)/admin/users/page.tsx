@@ -222,7 +222,7 @@ export default async function AdminUsersPage({
                     </td>
                     <td className="py-2 pr-3 text-xs">{u.authProvider ?? "email"}</td>
                     <td className="py-2 pr-3">
-                      <span className={`text-xs ${u.onboarded ? "text-green-600" : "text-muted"}`}>
+                      <span className={`text-xs ${u.onboarded ? "text-green-600 dark:text-green-400" : "text-muted"}`}>
                         {u.onboarded ? "Sim" : "Não"}
                       </span>
                     </td>
@@ -245,17 +245,17 @@ export default async function AdminUsersPage({
                       {integrations.length > 0 ? integrations.join(", ") : "—"}
                     </td>
                     <td className="py-2 pr-3">
-                      <span className={`text-xs ${u._count.pushSubscriptions > 0 ? "text-green-600" : "text-muted"}`}>
+                      <span className={`text-xs ${u._count.pushSubscriptions > 0 ? "text-green-600 dark:text-green-400" : "text-muted"}`}>
                         {u._count.pushSubscriptions > 0 ? "Sim" : "Não"}
                       </span>
                     </td>
                     <td className="py-2 pr-3">
-                      <span className={`text-xs ${u.crisisPlan ? "text-green-600" : "text-muted"}`}>
+                      <span className={`text-xs ${u.crisisPlan ? "text-green-600 dark:text-green-400" : "text-muted"}`}>
                         {u.crisisPlan ? "Sim" : "Não"}
                       </span>
                     </td>
                     <td className="py-2">
-                      <span className={`text-xs ${u.professionalAccesses.length > 0 ? "text-green-600" : "text-muted"}`}>
+                      <span className={`text-xs ${u.professionalAccesses.length > 0 ? "text-green-600 dark:text-green-400" : "text-muted"}`}>
                         {u.professionalAccesses.length > 0 ? "Sim" : "Não"}
                       </span>
                     </td>

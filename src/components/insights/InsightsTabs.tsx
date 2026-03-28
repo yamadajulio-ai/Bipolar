@@ -16,7 +16,7 @@ export function InsightsTabs({ children }: { children: [React.ReactNode, React.R
   return (
     <div>
       {/* Tab bar */}
-      <div className="mb-6 flex rounded-xl bg-surface-alt p-1" role="tablist" aria-label="Camadas de insights">
+      <div className="mb-6 flex rounded-[var(--radius-card)] bg-surface-alt p-1" role="tablist" aria-label="Camadas de insights">
         {TABS.map((tab) => (
           <button
             key={tab.key}

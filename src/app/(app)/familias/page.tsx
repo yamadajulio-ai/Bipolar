@@ -288,9 +288,9 @@ export default function FamiliasPage() {
                   </div>
 
                   {/* When to seek help */}
-                  <div className="rounded-lg bg-amber-50 border border-amber-200 p-3">
-                    <p className="text-xs font-semibold text-amber-800 mb-1">Quando procurar ajuda profissional</p>
-                    <p className="text-xs text-amber-700">{mod.whenToSeekHelp}</p>
+                  <div className="rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 p-3">
+                    <p className="text-xs font-semibold text-amber-800 dark:text-amber-200 mb-1">Quando procurar ajuda profissional</p>
+                    <p className="text-xs text-amber-700 dark:text-amber-300">{mod.whenToSeekHelp}</p>
                   </div>
                 </div>
               )}
@@ -300,18 +300,18 @@ export default function FamiliasPage() {
       </div>
 
       {/* Emergency contacts */}
-      <Card className="mt-6 bg-red-50 border-red-200">
-        <h2 className="text-sm font-bold text-red-800 mb-2">Emergências</h2>
+      <Card className="mt-6 bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800">
+        <h2 className="text-sm font-bold text-red-800 dark:text-red-200 mb-2">Emergências</h2>
         <div className="grid grid-cols-3 gap-2 text-center">
-          <a href="tel:188" className="rounded-lg bg-white border border-red-200 p-2 no-underline">
+          <a href="tel:188" className="rounded-lg bg-surface border border-red-200 p-2 no-underline">
             <p className="text-lg font-bold text-red-700">188</p>
             <p className="text-[11px] text-red-600">CVV (24h)</p>
           </a>
-          <a href="tel:192" className="rounded-lg bg-white border border-red-200 p-2 no-underline">
+          <a href="tel:192" className="rounded-lg bg-surface border border-red-200 p-2 no-underline">
             <p className="text-lg font-bold text-red-700">192</p>
             <p className="text-[11px] text-red-600">SAMU</p>
           </a>
-          <a href="tel:190" className="rounded-lg bg-white border border-red-200 p-2 no-underline">
+          <a href="tel:190" className="rounded-lg bg-surface border border-red-200 p-2 no-underline">
             <p className="text-lg font-bold text-red-700">190</p>
             <p className="text-[11px] text-red-600">Polícia</p>
           </a>

@@ -157,7 +157,7 @@ export default async function AdminCompliancePage({
         </Card>
         <Card>
           <p className="text-xs text-muted">PIN failures (7d)</p>
-          <p className={`text-2xl font-bold ${pinFailures > 0 ? "text-amber-600" : ""}`}>
+          <p className={`text-2xl font-bold ${pinFailures > 0 ? "text-amber-600 dark:text-amber-400" : ""}`}>
             {pinFailures}
           </p>
         </Card>

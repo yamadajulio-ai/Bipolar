@@ -115,7 +115,7 @@ export function SafetyInterstitial({ source, sourceAssessmentId, onComplete, onD
                   className={`rounded-md px-3 py-2.5 text-xs font-medium transition-colors min-h-[44px] ${
                     asqAnswers[i] === true
                       ? "bg-red-600 text-white"
-                      : "border border-orange-300 dark:border-orange-700 bg-white dark:bg-orange-950/50 text-orange-800 dark:text-orange-200 hover:bg-orange-100 dark:hover:bg-orange-900/50"
+                      : "border border-orange-300 dark:border-orange-700 bg-surface dark:bg-orange-950/50 text-orange-800 dark:text-orange-200 hover:bg-orange-100 dark:hover:bg-orange-900/50"
                   }`}
                 >
                   Sim
@@ -130,7 +130,7 @@ export function SafetyInterstitial({ source, sourceAssessmentId, onComplete, onD
                   className={`rounded-md px-3 py-2.5 text-xs font-medium transition-colors min-h-[44px] ${
                     asqAnswers[i] === false
                       ? "bg-emerald-600 text-white"
-                      : "border border-orange-300 dark:border-orange-700 bg-white dark:bg-orange-950/50 text-orange-800 dark:text-orange-200 hover:bg-orange-100 dark:hover:bg-orange-900/50"
+                      : "border border-orange-300 dark:border-orange-700 bg-surface dark:bg-orange-950/50 text-orange-800 dark:text-orange-200 hover:bg-orange-100 dark:hover:bg-orange-900/50"
                   }`}
                 >
                   Não
@@ -438,7 +438,7 @@ function BssaFlow({
             aria-label={`${opt.label} — ${currentQ.label}`}
             onClick={() => handleAnswer(opt.value)}
             disabled={saving}
-            className="block w-full rounded-lg border border-orange-300 dark:border-orange-700 bg-white dark:bg-orange-950/50 px-4 py-3 text-sm text-left text-orange-900 dark:text-orange-200 hover:bg-orange-100 dark:hover:bg-orange-900/50 transition-colors disabled:opacity-50 min-h-[44px]"
+            className="block w-full rounded-lg border border-orange-300 dark:border-orange-700 bg-surface dark:bg-orange-950/50 px-4 py-3 text-sm text-left text-orange-900 dark:text-orange-200 hover:bg-orange-100 dark:hover:bg-orange-900/50 transition-colors disabled:opacity-50 min-h-[44px]"
           >
             {opt.label}
           </button>

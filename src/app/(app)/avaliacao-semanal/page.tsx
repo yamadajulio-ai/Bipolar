@@ -293,12 +293,12 @@ export default function AvaliacaoSemanalPage() {
             Avaliação semanal salva!
           </p>
           {asrmTotal >= 6 && (
-            <p className="mt-2 text-sm text-amber-400">
+            <p className="mt-2 text-sm text-amber-600 dark:text-amber-400">
               Sinais de humor elevado detectados (pontuação {asrmTotal}) — pode ser útil compartilhar esse resultado com seu profissional de saúde.
             </p>
           )}
           {phq9Total >= 10 && (
-            <p className="mt-2 text-sm text-blue-400">
+            <p className="mt-2 text-sm text-blue-600 dark:text-blue-400">
               Sinais de humor baixo detectados (pontuação {phq9Total}) — considere compartilhar esse resultado na sua próxima consulta.
             </p>
           )}
@@ -475,7 +475,7 @@ export default function AvaliacaoSemanalPage() {
             </Card>
           ))}
           {stepError && step === "asrm" && (
-            <p className="text-sm text-red-400">{stepError}</p>
+            <p className="text-sm text-red-600 dark:text-red-400">{stepError}</p>
           )}
           <div className="flex justify-between">
             <div />
@@ -542,7 +542,7 @@ export default function AvaliacaoSemanalPage() {
           {showSafetyNudge && <SafetyNudge phq9Item9={phq9Item9} compact />}
 
           {stepError && step === "phq9" && (
-            <p className="text-sm text-red-400">{stepError}</p>
+            <p className="text-sm text-red-600 dark:text-red-400">{stepError}</p>
           )}
           <div className="flex justify-between">
             <button
@@ -611,7 +611,7 @@ export default function AvaliacaoSemanalPage() {
             </Card>
           ))}
           {stepError && step === "fast" && (
-            <p className="text-sm text-red-400">{stepError}</p>
+            <p className="text-sm text-red-600 dark:text-red-400">{stepError}</p>
           )}
           <div className="flex justify-between">
             <button
@@ -649,16 +649,16 @@ export default function AvaliacaoSemanalPage() {
                 <div className="text-xs text-muted">Mania</div>
                 <div
                   className={`text-xl font-bold ${
-                    asrmTotal >= 6 ? "text-amber-400" : "text-green-400"
+                    asrmTotal >= 6 ? "text-amber-600 dark:text-amber-400" : "text-green-600 dark:text-green-400"
                   }`}
                 >
                   {asrmTotal}
                   <span className="text-xs font-normal text-muted">/20</span>
                 </div>
                 {asrmTotal >= 6 ? (
-                  <div className="text-[11px] text-amber-400">Acima do ponto de atenção — vale mencionar na consulta</div>
+                  <div className="text-[11px] text-amber-600 dark:text-amber-400">Acima do ponto de atenção — vale mencionar na consulta</div>
                 ) : (
-                  <div className="text-[11px] text-green-400">Sem sinais significativos</div>
+                  <div className="text-[11px] text-green-600 dark:text-green-400">Sem sinais significativos</div>
                 )}
               </div>
               <div>
@@ -666,12 +666,12 @@ export default function AvaliacaoSemanalPage() {
                 <div
                   className={`text-xl font-bold ${
                     phq9Total >= 15
-                      ? "text-red-400"
+                      ? "text-red-600 dark:text-red-400"
                       : phq9Total >= 10
-                        ? "text-amber-400"
+                        ? "text-amber-600 dark:text-amber-400"
                         : phq9Total >= 5
-                          ? "text-blue-400"
-                          : "text-green-400"
+                          ? "text-blue-600 dark:text-blue-400"
+                          : "text-green-600 dark:text-green-400"
                   }`}
                 >
                   {phq9Total}
@@ -709,7 +709,7 @@ export default function AvaliacaoSemanalPage() {
               onChange={(e) => setNotes(e.target.value)}
               maxLength={280}
               rows={2}
-              className="block w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
+              className="block w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground focus-visible:border-primary focus-visible:outline-none"
               placeholder="Algo relevante sobre esta semana..."
             />
           </Card>

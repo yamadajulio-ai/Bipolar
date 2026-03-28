@@ -98,7 +98,7 @@ export default function RecuperarSenhaPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="seu@email.com"
-                    className="w-full rounded-[var(--radius-card)] border border-border-soft bg-surface px-4 py-2.5 text-sm text-foreground placeholder-muted focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-border-strong"
+                    className="w-full rounded-[var(--radius-card)] border border-border-soft bg-surface px-4 py-2.5 text-sm text-foreground placeholder-muted focus-visible:border-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary dark:border-border-strong"
                     style={{ minHeight: "44px" }}
                   />
                 </div>

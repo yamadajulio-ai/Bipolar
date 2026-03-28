@@ -35,7 +35,7 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Toolti
   // Round expense for privacy
   const roundedExp = Math.round(point.expense / 10) * 10;
   return (
-    <div className="rounded-lg bg-surface px-3 py-2 text-xs text-foreground shadow-lg border border-border">
+    <div className="rounded-lg bg-surface px-3 py-2 text-xs text-foreground shadow-[var(--shadow-float)] border border-border">
       <p className="font-medium">{point.date}</p>
       {point.expense > 0 && <p>Gastos: ~R${roundedExp.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ".")}</p>}
       {point.mood != null && <p>Humor: {point.mood}/5</p>}

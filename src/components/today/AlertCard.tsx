@@ -92,8 +92,8 @@ export function AlertCard({ layer, reasons, actions, safety, syndrome }: Props) 
               aria-label={action.label}
               className={`block w-full rounded-lg px-4 py-3 min-h-[44px] text-sm font-medium text-center transition-colors ${
                 action.variant === "warning"
-                  ? "border border-orange-300 dark:border-orange-700 bg-white dark:bg-orange-950/40 text-orange-800 dark:text-orange-200 hover:bg-orange-50 dark:hover:bg-orange-900/40"
-                  : "border border-border bg-white dark:bg-surface text-foreground hover:bg-surface dark:hover:bg-surface-alt"
+                  ? "border border-orange-300 dark:border-orange-700 bg-surface dark:bg-orange-950/40 text-orange-800 dark:text-orange-200 hover:bg-orange-50 dark:hover:bg-orange-900/40"
+                  : "border border-border bg-surface dark:bg-surface text-foreground hover:bg-surface-alt dark:hover:bg-surface-alt"
               }`}
             >
               {action.label}

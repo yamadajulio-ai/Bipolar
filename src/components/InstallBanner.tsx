@@ -41,7 +41,7 @@ export function InstallBanner() {
 
   return (
     <div
-      className="fixed bottom-4 left-4 right-4 z-40 mx-auto max-w-sm rounded-lg border border-border bg-surface p-4 shadow-lg"
+      className="fixed bottom-4 left-4 right-4 z-40 mx-auto max-w-sm rounded-lg border border-border bg-surface p-4 shadow-[var(--shadow-float)]"
       role="status"
     >
       <div className="flex items-start justify-between gap-2">

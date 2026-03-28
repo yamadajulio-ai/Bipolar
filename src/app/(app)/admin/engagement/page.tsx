@@ -227,7 +227,7 @@ export default async function AdminEngagementPage() {
                           <td className="py-2 pr-3">{total}</td>
                           <td className="py-2 pr-3">{val.yes}</td>
                           <td className="py-2">
-                            <span className={rate >= 70 ? "text-green-600" : rate >= 40 ? "text-amber-600" : "text-red-600"}>
+                            <span className={rate >= 70 ? "text-green-600 dark:text-green-400" : rate >= 40 ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400"}>
                               {rate}%
                             </span>
                           </td>

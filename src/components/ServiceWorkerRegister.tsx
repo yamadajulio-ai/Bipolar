@@ -37,7 +37,7 @@ export function ServiceWorkerRegister() {
 
   return (
     <div
-      className="fixed bottom-4 left-4 right-4 z-50 mx-auto max-w-sm rounded-lg bg-surface border border-border p-3 shadow-lg flex items-center justify-between gap-3"
+      className="fixed bottom-4 left-4 right-4 z-50 mx-auto max-w-sm rounded-lg bg-surface border border-border p-3 shadow-[var(--shadow-float)] flex items-center justify-between gap-3"
       role="status"
     >
       <p className="text-sm text-foreground">Nova versão disponível</p>

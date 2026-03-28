@@ -477,7 +477,7 @@ export default function IntegraçõesPage() {
         {healthKey ? (
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <span className={`inline-block h-2 w-2 rounded-full ${healthKey.enabled ? "bg-green-400" : "bg-gray-400"}`} />
+              <span className={`inline-block h-2 w-2 rounded-full ${healthKey.enabled ? "bg-green-400" : "bg-muted"}`} />
               <span className="text-sm">{healthKey.enabled ? "Ativo" : "Desativado"}</span>
             </div>
 
@@ -602,7 +602,7 @@ export default function IntegraçõesPage() {
         {hcKey ? (
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <span className={`inline-block h-2 w-2 rounded-full ${hcKey.enabled ? "bg-green-400" : "bg-gray-400"}`} />
+              <span className={`inline-block h-2 w-2 rounded-full ${hcKey.enabled ? "bg-green-400" : "bg-muted"}`} />
               <span className="text-sm">{hcKey.enabled ? "Ativo" : "Desativado"}</span>
             </div>
 
@@ -860,7 +860,7 @@ export default function IntegraçõesPage() {
 
       {pendingAction && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-xs rounded-[var(--radius-card)] bg-surface p-6 shadow-lg">
+          <div className="w-full max-w-xs rounded-[var(--radius-card)] bg-surface p-6 shadow-[var(--shadow-float)]">
             <p className="mb-4 text-sm font-medium text-foreground">
               {pendingAction.type === "revoke"
                 ? `Revogar a chave? O ${pendingAction.label} vai parar de enviar dados.`

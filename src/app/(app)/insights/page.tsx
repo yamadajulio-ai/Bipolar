@@ -898,7 +898,7 @@ export default async function InsightsPage({
                         <div className="relative mb-1 w-full" style={{ height: "60px" }}>
                           <div
                             className={`absolute bottom-0 w-full rounded-t ${
-                              isPeak ? "bg-amber-500" : isTrough ? "bg-blue-500" : "bg-gray-500"
+                              isPeak ? "bg-amber-500" : isTrough ? "bg-blue-500" : "bg-muted"
                             }`}
                             style={{ height: `${Math.max(10, heightPct)}%` }}
                           />

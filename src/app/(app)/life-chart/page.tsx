@@ -21,7 +21,7 @@ const EVENT_TYPE_COLORS: Record<string, string> = {
   hospitalization: "bg-red-700/20 text-red-200 border-red-800",
   therapy: "bg-green-500/20 text-green-300 border-green-700",
   menstrual: "bg-pink-500/20 text-pink-300 border-pink-700",
-  other: "bg-gray-500/20 text-gray-300 border-gray-700",
+  other: "bg-foreground/10 text-muted border-border-strong",
 };
 
 export default function LifeChartPage() {
@@ -285,7 +285,7 @@ export default function LifeChartPage() {
 
       {pendingDeleteId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-xs rounded-[var(--radius-card)] bg-surface p-6 shadow-lg">
+          <div className="w-full max-w-xs rounded-[var(--radius-card)] bg-surface p-6 shadow-[var(--shadow-float)]">
             <p className="mb-4 text-sm font-medium text-foreground">
               Remover este evento? Esta ação não pode ser desfeita.
             </p>

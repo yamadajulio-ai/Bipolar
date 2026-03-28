@@ -522,7 +522,7 @@ export default function CheckinPage() {
                 step={0.5}
                 value={sleepHours}
                 onChange={(e) => setSleepHours(e.target.value)}
-                className="block w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                className="block w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground focus-visible:border-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
               />
             )}
           </Card>
@@ -609,7 +609,7 @@ export default function CheckinPage() {
               onChange={(e) => setNote(e.target.value)}
               maxLength={280}
               rows={2}
-              className="block w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
+              className="block w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground focus-visible:border-primary focus-visible:outline-none"
               placeholder="Algo que queira registrar..."
             />
           </Card>

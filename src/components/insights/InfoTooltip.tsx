@@ -54,7 +54,7 @@ export function InfoTooltip({ title, content, tip }: Props) {
         ?
       </button>
       {open && (
-        <div id={tooltipId} role="tooltip" className="absolute left-1/2 top-full z-50 mt-1.5 w-64 -translate-x-1/2 rounded-lg border border-border bg-surface p-3 shadow-lg">
+        <div id={tooltipId} role="tooltip" className="absolute left-1/2 top-full z-50 mt-1.5 w-64 -translate-x-1/2 rounded-lg border border-border bg-surface p-3 shadow-[var(--shadow-float)]">
           <p className="mb-1 text-xs font-semibold text-foreground">{title}</p>
           <p className="text-[11px] leading-relaxed text-foreground/60">{content}</p>
           {tip && (

@@ -1,11 +1,33 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Alert } from "@/components/Alert";
 
 export default function RedefinirSenhaPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-surface-alt px-4">
+          <div className="w-full max-w-md">
+            <div className="mb-6 text-center">
+              <span className="text-xl font-bold text-foreground">Suporte Bipolar</span>
+              <p className="mt-2 text-sm text-muted">Criar nova senha</p>
+            </div>
+            <div className="rounded-[var(--radius-card)] border border-border-soft bg-surface p-6 shadow-[var(--shadow-card)] dark:border-border-strong">
+              <div className="h-48 animate-pulse rounded-lg bg-surface-alt" />
+            </div>
+          </div>
+        </div>
+      }
+    >
+      <RedefinirSenhaContent />
+    </Suspense>
+  );
+}
+
+function RedefinirSenhaContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token") || "";
 
@@ -128,7 +150,7 @@ export default function RedefinirSenhaPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Mínimo 8 caracteres"
-                    className="w-full rounded-[var(--radius-card)] border border-border-soft bg-surface px-4 py-2.5 text-sm text-foreground placeholder-muted focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-border-strong"
+                    className="w-full rounded-[var(--radius-card)] border border-border-soft bg-surface px-4 py-2.5 text-sm text-foreground placeholder-muted focus-visible:border-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary dark:border-border-strong"
                     style={{ minHeight: "44px" }}
                   />
                 </div>
@@ -146,7 +168,7 @@ export default function RedefinirSenhaPage() {
                     value={confirm}
                     onChange={(e) => setConfirm(e.target.value)}
                     placeholder="Repita a senha"
-                    className="w-full rounded-[var(--radius-card)] border border-border-soft bg-surface px-4 py-2.5 text-sm text-foreground placeholder-muted focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-border-strong"
+                    className="w-full rounded-[var(--radius-card)] border border-border-soft bg-surface px-4 py-2.5 text-sm text-foreground placeholder-muted focus-visible:border-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary dark:border-border-strong"
                     style={{ minHeight: "44px" }}
                   />
                 </div>

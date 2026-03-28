@@ -141,12 +141,12 @@ export function ImportCSV({ onImported }: { onImported: () => void }) {
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") fileRef.current?.click(); }}
         aria-label="Área para selecionar ou arrastar arquivo de importação"
         className={`
-          cursor-pointer rounded-xl border-2 border-dashed p-6 text-center transition-all
+          cursor-pointer rounded-[var(--radius-card)] border-2 border-dashed p-6 text-center transition-all
           ${isDragging
             ? "border-primary bg-primary/10 dark:bg-primary/20"
             : selectedFile
               ? "border-green-400 bg-green-50 dark:border-green-600 dark:bg-green-950/30"
-              : "border-gray-300 bg-gray-50 hover:border-primary/50 hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-800/50 dark:hover:border-primary/50 dark:hover:bg-gray-800"
+              : "border-border-soft bg-surface-alt hover:border-primary/50 hover:bg-surface dark:border-border-strong dark:bg-surface-raised/50 dark:hover:border-primary/50 dark:hover:bg-surface-raised"
           }
         `}
       >
@@ -187,7 +187,7 @@ export function ImportCSV({ onImported }: { onImported: () => void }) {
           mt-3 w-full rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition-all
           ${selectedFile && !loading
             ? "bg-primary hover:bg-primary/90 active:scale-[0.98]"
-            : "cursor-not-allowed bg-gray-300 dark:bg-gray-600"
+            : "cursor-not-allowed bg-border-soft dark:bg-border-strong"
           }
         `}
       >

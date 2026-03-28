@@ -37,7 +37,7 @@ export function SleepRoutineChecklist({ selected, onChange }: SleepRoutineCheckl
               type="checkbox"
               checked={selected.includes(routine.key)}
               onChange={() => handleToggle(routine.key)}
-              className="rounded border-border text-primary focus:ring-primary"
+              className="rounded border-border text-primary focus-visible:ring-primary"
             />
             <span className={routine.negative ? "text-foreground" : "text-foreground"}>
               {routine.label}

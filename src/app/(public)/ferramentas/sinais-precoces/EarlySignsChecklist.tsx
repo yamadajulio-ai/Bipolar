@@ -82,7 +82,7 @@ export function EarlySignsChecklist() {
                 type="checkbox"
                 checked={checked.has(s.key)}
                 onChange={() => toggle(s.key)}
-                className="mt-0.5 h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                className="mt-0.5 h-4 w-4 rounded border-border text-primary focus-visible:ring-primary"
               />
               <span className="text-sm text-foreground/80">{s.label}</span>
             </label>

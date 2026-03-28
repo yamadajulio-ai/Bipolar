@@ -212,7 +212,7 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
               : "Um pensamento rápido..."
           }
           rows={draft.tab === "DIARY" ? 6 : 3}
-          className="w-full rounded-lg border border-border bg-surface p-3 text-sm text-foreground placeholder:text-muted/60 resize-none focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+          className="w-full rounded-lg border border-border bg-surface p-3 text-sm text-foreground placeholder:text-muted/60 resize-none focus-visible:border-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
           maxLength={maxChars}
         />
 
@@ -410,7 +410,7 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
                     value={journal.editContent}
                     onChange={(e) => journal.setEditContent(e.target.value.slice(0, editMaxChars))}
                     rows={entry.type === "DIARY" ? 5 : 2}
-                    className="w-full rounded-lg border border-border bg-surface p-3 text-sm resize-none focus:border-primary focus:outline-none"
+                    className="w-full rounded-lg border border-border bg-surface p-3 text-sm resize-none focus-visible:border-primary focus-visible:outline-none"
                     maxLength={editMaxChars}
                   />
                   <div className="mt-2 flex gap-2">
@@ -471,7 +471,7 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
       )}
       {/* Error banner */}
       {journal.errorMsg && (
-        <div className="fixed bottom-20 left-4 right-4 z-50 rounded-lg bg-red-600 p-3 text-center text-sm text-white shadow-lg">
+        <div className="fixed bottom-20 left-4 right-4 z-50 rounded-lg bg-red-600 p-3 text-center text-sm text-white shadow-[var(--shadow-float)]">
           <p>{journal.errorMsg}</p>
           <button
             onClick={() => journal.setErrorMsg(null)}
@@ -485,7 +485,7 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
       {/* Delete confirmation */}
       {journal.pendingDeleteId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-xs rounded-[var(--radius-card)] bg-surface p-6 shadow-lg">
+          <div className="w-full max-w-xs rounded-[var(--radius-card)] bg-surface p-6 shadow-[var(--shadow-float)]">
             <p className="mb-4 text-sm font-medium text-foreground">
               Tem certeza? Esta ação é permanente.
             </p>

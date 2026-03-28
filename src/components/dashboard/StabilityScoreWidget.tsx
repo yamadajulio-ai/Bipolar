@@ -110,7 +110,7 @@ export function StabilityScoreWidget({ stability }: { stability: StabilityScore 
           </div>
 
           {stability.deltaVsBaseline != null && stability.deltaVsBaseline !== 0 && (
-            <p className={`text-[11px] ${stability.deltaVsBaseline > 0 ? "text-emerald-600" : "text-red-500"}`}>
+            <p className={`text-[11px] ${stability.deltaVsBaseline > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
               {stability.deltaVsBaseline > 0 ? "+" : ""}{stability.deltaVsBaseline} vs. média anterior
             </p>
           )}

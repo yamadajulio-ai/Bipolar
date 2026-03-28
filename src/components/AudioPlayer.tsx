@@ -73,12 +73,12 @@ export function AudioPlayer({ track }: { track: AudioTrack }) {
           aria-label={playing ? "Pausar" : "Reproduzir"}
         >
           {playing ? (
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" aria-hidden="true">
               <rect x="2" y="1" width="4" height="12" rx="1" />
               <rect x="8" y="1" width="4" height="12" rx="1" />
             </svg>
           ) : (
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" aria-hidden="true">
               <polygon points="2,0 14,7 2,14" />
             </svg>
           )}

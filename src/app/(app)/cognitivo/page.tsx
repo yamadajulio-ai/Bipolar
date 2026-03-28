@@ -218,19 +218,19 @@ function getTrend(pastValues: number[], current: number, lowerIsBetter: boolean)
 // ── Results Screen ──────────────────────────────────────────
 
 function getReactionLevel(ms: number): { label: string; color: string; emoji: string; detail: string } {
-  if (ms < 250) return { label: "Excelente", color: "text-green-500", emoji: "🟢", detail: "Sua velocidade de processamento está acima da média. Reflexos muito rápidos." };
-  if (ms < 350) return { label: "Bom", color: "text-green-400", emoji: "🟢", detail: "Dentro da faixa esperada para adultos saudáveis (250–350ms). Boa velocidade de processamento." };
-  if (ms < 500) return { label: "Normal", color: "text-amber-400", emoji: "🟡", detail: "Ligeiramente acima da média, mas dentro do aceitável. Fadiga, sono ou medicação podem influenciar." };
-  if (ms < 700) return { label: "Lento", color: "text-orange-400", emoji: "🟠", detail: "Acima do esperado. Pode indicar fadiga, efeito de medicação sedativa, ou lentificação cognitiva — comum em episódios depressivos." };
-  return { label: "Muito lento", color: "text-red-400", emoji: "🔴", detail: "Significativamente acima do esperado. Considere se está com fadiga intensa, efeito de medicação, ou em fase depressiva. Vale relatar ao profissional." };
+  if (ms < 250) return { label: "Excelente", color: "text-green-700 dark:text-green-500", emoji: "🟢", detail: "Sua velocidade de processamento está acima da média. Reflexos muito rápidos." };
+  if (ms < 350) return { label: "Bom", color: "text-green-600 dark:text-green-400", emoji: "🟢", detail: "Dentro da faixa esperada para adultos saudáveis (250–350ms). Boa velocidade de processamento." };
+  if (ms < 500) return { label: "Normal", color: "text-amber-600 dark:text-amber-400", emoji: "🟡", detail: "Ligeiramente acima da média, mas dentro do aceitável. Fadiga, sono ou medicação podem influenciar." };
+  if (ms < 700) return { label: "Lento", color: "text-orange-600 dark:text-orange-400", emoji: "🟠", detail: "Acima do esperado. Pode indicar fadiga, efeito de medicação sedativa, ou lentificação cognitiva — comum em episódios depressivos." };
+  return { label: "Muito lento", color: "text-red-600 dark:text-red-400", emoji: "🔴", detail: "Significativamente acima do esperado. Considere se está com fadiga intensa, efeito de medicação, ou em fase depressiva. Vale relatar ao profissional." };
 }
 
 function getDigitLevel(span: number): { label: string; color: string; emoji: string; detail: string } {
-  if (span >= 9) return { label: "Excelente", color: "text-green-500", emoji: "🟢", detail: "Memória de trabalho acima da média. Capacidade excelente de retenção de informações." };
-  if (span >= 7) return { label: "Bom", color: "text-green-400", emoji: "🟢", detail: "Dentro da média (7±2, Miller 1956). Memória de trabalho funcionando bem." };
-  if (span >= 5) return { label: "Normal", color: "text-amber-400", emoji: "🟡", detail: "Ligeiramente abaixo da média geral, mas dentro do esperado para pessoas com transtorno bipolar em fase estável (~6, Bora et al. 2009)." };
-  if (span >= 4) return { label: "Abaixo da média", color: "text-orange-400", emoji: "🟠", detail: "Abaixo do esperado. Pode estar relacionado a episódio atual, efeito de medicação, ou fadiga. Acompanhe a evolução." };
-  return { label: "Reduzido", color: "text-red-400", emoji: "🔴", detail: "Significativamente abaixo da média. Vários fatores podem influenciar (sono, medicação, fadiga, entre outros). Compartilhe este resultado com seu profissional de saúde." };
+  if (span >= 9) return { label: "Excelente", color: "text-green-700 dark:text-green-500", emoji: "🟢", detail: "Memória de trabalho acima da média. Capacidade excelente de retenção de informações." };
+  if (span >= 7) return { label: "Bom", color: "text-green-600 dark:text-green-400", emoji: "🟢", detail: "Dentro da média (7±2, Miller 1956). Memória de trabalho funcionando bem." };
+  if (span >= 5) return { label: "Normal", color: "text-amber-600 dark:text-amber-400", emoji: "🟡", detail: "Ligeiramente abaixo da média geral, mas dentro do esperado para pessoas com transtorno bipolar em fase estável (~6, Bora et al. 2009)." };
+  if (span >= 4) return { label: "Abaixo da média", color: "text-orange-600 dark:text-orange-400", emoji: "🟠", detail: "Abaixo do esperado. Pode estar relacionado a episódio atual, efeito de medicação, ou fadiga. Acompanhe a evolução." };
+  return { label: "Reduzido", color: "text-red-600 dark:text-red-400", emoji: "🔴", detail: "Significativamente abaixo da média. Vários fatores podem influenciar (sono, medicação, fadiga, entre outros). Compartilhe este resultado com seu profissional de saúde." };
 }
 
 function GaugeBar({ value, min, max, zones }: { value: number; min: number; max: number; zones: { end: number; color: string }[] }) {
@@ -247,7 +247,7 @@ function GaugeBar({ value, min, max, zones }: { value: number; min: number; max:
         })}
       </div>
       <div
-        className="absolute top-[-4px] h-5 w-1 rounded-full bg-foreground shadow-md"
+        className="absolute top-[-4px] h-5 w-1 rounded-full bg-foreground shadow-[var(--shadow-raised)]"
         style={{ left: `calc(${pct}% - 2px)` }}
         aria-label={`Seu resultado: ${value}`}
       />
@@ -537,11 +537,11 @@ function ReactionTimeTask({ onComplete, onBack }: { onComplete: (ms: number) => 
         aria-label="Área do teste de tempo de reação. Toque quando mudar para verde."
         className={`flex h-64 w-full cursor-pointer items-center justify-center rounded-[var(--radius-card)] text-center transition-colors ${
           phase === "ready"
-            ? "bg-red-900/50"
+            ? "bg-red-100 dark:bg-red-900/50"
             : phase === "go"
-              ? "bg-green-600"
+              ? "bg-green-100 dark:bg-green-600"
               : phase === "tooEarly"
-                ? "bg-amber-900/50"
+                ? "bg-amber-100 dark:bg-amber-900/50"
                 : "bg-gray-800 dark:bg-gray-900"
         }`}
       >
@@ -696,7 +696,7 @@ function DigitSpanTask({ onComplete, onBack }: { onComplete: (span: number) => v
         )}
         {phase === "feedback" && (
           <div className="text-center">
-            <span className={`text-3xl ${correct ? "text-green-400" : "text-red-400"}`}>
+            <span className={`text-3xl ${correct ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
               {correct ? "Correto!" : "Errado"}
             </span>
             {!correct && (

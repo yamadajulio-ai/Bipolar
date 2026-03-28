@@ -128,7 +128,7 @@ export function CalendarHeatmap({ data, metric, onDaySelect, selectedDate }: Pro
                 tabIndex={day?.hasEntry ? 0 : undefined}
                 aria-label={day?.hasEntry ? getTooltipText(day) : undefined}
                 className={`h-[12px] w-[12px] rounded-sm ${getCellColor(day)} ${
-                  day?.hasEntry ? "cursor-pointer hover:ring-1 hover:ring-foreground/30 focus:ring-1 focus:ring-foreground/30 focus:outline-none" : ""
+                  day?.hasEntry ? "cursor-pointer hover:ring-1 hover:ring-foreground/30 focus-visible:ring-1 focus-visible:ring-foreground/30 focus-visible:outline-none" : ""
                 } ${day && selectedDate === day.date ? "ring-2 ring-primary" : ""}`}
                 onMouseEnter={(e) => {
                   if (day?.hasEntry) {

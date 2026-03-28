@@ -93,7 +93,7 @@ export function MoodThermometer({ data }: Props) {
           className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2"
           style={{ left: `${data.position}%` }}
         >
-          <div className="h-6 w-6 rounded-full border-[3px] border-white dark:border-surface bg-foreground shadow-lg" />
+          <div className="h-6 w-6 rounded-full border-[3px] border-white dark:border-surface bg-foreground shadow-[var(--shadow-float)]" />
         </div>
       </div>
       <div className="mb-4 flex justify-between text-[11px] text-foreground/50">

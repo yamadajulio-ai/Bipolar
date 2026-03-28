@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    return NextResponse.json(tests);
+    return NextResponse.json(tests, { headers: { "Cache-Control": "private, no-cache" } });
   } catch (err) {
     Sentry.captureException(err, { tags: { endpoint: "cognitivo" } });
     return NextResponse.json(

@@ -15,7 +15,7 @@ const diarioSchema = z.object({
   anxietyLevel: z.number().int().min(1).max(5).optional(),
   irritability: z.number().int().min(1).max(5).optional(),
   tookMedication: z.enum(["sim", "nao", "nao_sei"]).optional(),
-  warningSigns: z.string().optional(), // JSON array
+  warningSigns: z.string().max(2000).optional(), // JSON array
 });
 
 export async function GET(request: NextRequest) {
@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
     },
   });
 
-  return NextResponse.json(entries);
+  return NextResponse.json(entries, { headers: { "Cache-Control": "private, no-cache" } });
 }
 
 export async function POST(request: NextRequest) {

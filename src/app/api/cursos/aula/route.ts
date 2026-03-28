@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Aula não encontrada" }, { status: 404 });
     }
 
-    return NextResponse.json(lesson);
+    return NextResponse.json(lesson, { headers: { "Cache-Control": "private, no-cache" } });
   } catch (err) {
     Sentry.captureException(err, { tags: { endpoint: "cursos_aula" } });
     return NextResponse.json(

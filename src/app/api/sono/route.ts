@@ -42,7 +42,7 @@ const sleepLogSchema = z.object({
   awakenings: z.number().int().min(0).max(10).optional(),
   hrv: z.number().int().min(1).max(300).optional(),
   heartRate: z.number().int().min(20).max(250).optional(),
-  preRoutine: z.string().optional(),
+  preRoutine: z.string().max(500).optional(),
   notes: z.string().max(280).optional(),
 }).check(
   z.refine(
@@ -109,7 +109,9 @@ export async function GET(request: NextRequest) {
     },
   });
 
-  return NextResponse.json(logs);
+  return NextResponse.json(logs, {
+    headers: { "Cache-Control": "private, no-cache" },
+  });
 }
 
 export async function POST(request: NextRequest) {

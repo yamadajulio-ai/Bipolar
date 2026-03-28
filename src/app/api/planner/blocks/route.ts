@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
       orderBy: { startAt: "asc" },
     });
 
-    return NextResponse.json(blocks);
+    return NextResponse.json(blocks, { headers: { "Cache-Control": "private, no-cache" } });
   } catch (err) {
     Sentry.captureException(err, { tags: { endpoint: "planner" } });
     return NextResponse.json({ error: "Erro interno" }, { status: 500 });

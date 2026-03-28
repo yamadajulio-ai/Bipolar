@@ -33,7 +33,9 @@ export async function GET() {
       select: { id: true, service: true, apiKey: true, enabled: true, createdAt: true },
     });
 
-    return NextResponse.json(keys);
+    return NextResponse.json(keys, {
+      headers: { "Cache-Control": "no-store" },
+    });
   } catch (err) {
     Sentry.captureException(err, { tags: { endpoint: "integ_settings" } });
     return NextResponse.json({ error: "Erro ao buscar integrações" }, { status: 500 });

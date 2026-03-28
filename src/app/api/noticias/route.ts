@@ -24,7 +24,9 @@ export async function GET(request: NextRequest) {
     const filtered = source && validSources.includes(source) ? source : undefined;
 
     const articles = await getNews(filtered);
-    return NextResponse.json(articles);
+    return NextResponse.json(articles, {
+      headers: { "Cache-Control": "private, no-cache" },
+    });
   } catch (err) {
     Sentry.captureException(err, { tags: { endpoint: "noticias" } });
     return NextResponse.json(

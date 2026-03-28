@@ -6,12 +6,12 @@ import { checkRateLimit } from "@/lib/security";
 import * as Sentry from "@sentry/nextjs";
 
 const crisisPlanSchema = z.object({
-  trustedContacts: z.string().optional(),
+  trustedContacts: z.string().max(5000).optional(),
   professionalName: z.string().max(200).optional(),
   professionalPhone: z.string().max(20).optional(),
-  medications: z.string().optional(),
+  medications: z.string().max(5000).optional(),
   preferredHospital: z.string().max(200).optional(),
-  copingStrategies: z.string().optional(),
+  copingStrategies: z.string().max(5000).optional(),
 });
 
 export async function GET() {
@@ -39,7 +39,7 @@ export async function GET() {
       },
     });
 
-    return NextResponse.json(plan);
+    return NextResponse.json(plan, { headers: { "Cache-Control": "private, no-cache" } });
   } catch (err) {
     Sentry.captureException(err, { tags: { endpoint: "crisisplan" } });
     return NextResponse.json(
@@ -99,6 +99,7 @@ export async function PUT(request: NextRequest) {
         medications: parsed.data.medications ?? null,
         preferredHospital: parsed.data.preferredHospital ?? null,
         copingStrategies: parsed.data.copingStrategies ?? null,
+        serverRev: { increment: 1 },
       },
       create: {
         userId: session.userId,

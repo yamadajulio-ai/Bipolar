@@ -46,6 +46,7 @@ export async function POST(request: NextRequest) {
   const tokenHash = hashToken(token);
   const resetToken = await prisma.passwordResetToken.findUnique({
     where: { token: tokenHash },
+    select: { id: true, email: true, usedAt: true, expiresAt: true },
   });
 
   if (!resetToken || resetToken.usedAt || resetToken.expiresAt.getTime() < Date.now()) {

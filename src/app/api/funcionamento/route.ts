@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    return NextResponse.json(assessments);
+    return NextResponse.json(assessments, { headers: { "Cache-Control": "private, no-cache" } });
   } catch (err) {
     Sentry.captureException(err, { tags: { endpoint: "funcionamento" } });
     return NextResponse.json(

@@ -35,7 +35,7 @@ export async function GET(
       return NextResponse.json({ error: "Bloco não encontrado" }, { status: 404 });
     }
 
-    return NextResponse.json(block);
+    return NextResponse.json(block, { headers: { "Cache-Control": "private, no-cache" } });
   } catch (err) {
     Sentry.captureException(err, { tags: { endpoint: "planner_block" } });
     return NextResponse.json({ error: "Erro interno" }, { status: 500 });

@@ -52,7 +52,9 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    return NextResponse.json(events);
+    return NextResponse.json(events, {
+      headers: { "Cache-Control": "private, no-cache" },
+    });
   } catch (err) {
     Sentry.captureException(err, { tags: { endpoint: "lifechart" } });
     return NextResponse.json(

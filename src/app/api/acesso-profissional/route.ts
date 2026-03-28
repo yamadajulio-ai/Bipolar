@@ -51,7 +51,9 @@ export async function GET() {
     orderBy: { createdAt: "desc" },
   });
 
-  return NextResponse.json(accesses);
+  return NextResponse.json(accesses, {
+    headers: { "Cache-Control": "no-store" },
+  });
   } catch (err) {
     Sentry.captureException(err, { tags: { endpoint: "acesso_prof" } });
     return NextResponse.json({ error: "Erro ao buscar acessos" }, { status: 500 });

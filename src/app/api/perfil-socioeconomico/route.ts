@@ -37,7 +37,7 @@ export async function GET() {
       },
     });
 
-    return NextResponse.json(profile);
+    return NextResponse.json(profile, { headers: { "Cache-Control": "private, no-cache" } });
   } catch (err) {
     Sentry.captureException(err, { tags: { endpoint: "perfil" } });
     return NextResponse.json(

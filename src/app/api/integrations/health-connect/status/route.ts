@@ -26,7 +26,9 @@ export async function GET() {
   });
 
   if (!integration) {
-    return NextResponse.json({ configured: false, records: [], healthMetrics: [] });
+    return NextResponse.json({ configured: false, records: [], healthMetrics: [] }, {
+      headers: { "Cache-Control": "private, no-cache" },
+    });
   }
 
   const sleepLogs = await prisma.sleepLog.findMany({
@@ -67,6 +69,8 @@ export async function GET() {
       value: m.value,
       unit: m.unit,
     })),
+  }, {
+    headers: { "Cache-Control": "private, no-cache" },
   });
   } catch (err) {
     Sentry.captureException(err, { tags: { endpoint: "hc_status" } });

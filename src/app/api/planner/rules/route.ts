@@ -50,7 +50,7 @@ export async function GET() {
       });
     }
 
-    return NextResponse.json(rules);
+    return NextResponse.json(rules, { headers: { "Cache-Control": "private, no-cache" } });
   } catch (err) {
     Sentry.captureException(err, { tags: { endpoint: "planner_rules" } });
     return NextResponse.json({ error: "Erro interno" }, { status: 500 });

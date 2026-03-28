@@ -114,12 +114,13 @@ async function updateLegacyMedication(tx: TxClient, userId: string, date: string
       startDate: { lte: date },
       OR: [{ endDate: null }, { endDate: { gte: date } }],
     },
-    include: {
+    select: {
       schedules: {
         where: {
           effectiveFrom: { lte: date },
           OR: [{ effectiveTo: null }, { effectiveTo: { gte: date } }],
         },
+        select: { id: true },
       },
     },
   });
@@ -129,6 +130,7 @@ async function updateLegacyMedication(tx: TxClient, userId: string, date: string
 
   const logs = await tx.medicationLog.findMany({
     where: { userId, date, scheduleId: { in: allScheduleIds } },
+    select: { status: true },
   });
 
   let legacy: string;

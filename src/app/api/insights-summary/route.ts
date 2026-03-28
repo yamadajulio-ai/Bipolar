@@ -61,7 +61,7 @@ export async function GET() {
       avgDurationFormatted: insights.sleep.avgDuration !== null
         ? formatSleepDuration(insights.sleep.avgDuration)
         : null,
-    });
+    }, { headers: { "Cache-Control": "private, no-cache" } });
   } catch (err) {
     Sentry.captureException(err, { tags: { endpoint: "insights_summary" } });
     return NextResponse.json(

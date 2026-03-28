@@ -46,11 +46,12 @@ async function reprojectWithRetry(
 }
 
 const snapshotSchema = z.object({
+  feeling: z.number().int().min(1).max(5).optional(),
   mood: z.number().int().min(1).max(5),
   energy: z.number().int().min(1).max(5),
   anxiety: z.number().int().min(1).max(5).optional(),
   irritability: z.number().int().min(1).max(5).optional(),
-  warningSignsNow: z.string().optional(),
+  warningSignsNow: z.string().max(2000).optional(),
   note: z.string().max(280).optional(),
   clientRequestId: z.string().min(1).max(100),
 
@@ -61,11 +62,12 @@ const snapshotSchema = z.object({
 
 const editSchema = z.object({
   snapshotId: z.string().min(1),
+  feeling: z.number().int().min(1).max(5).optional(),
   mood: z.number().int().min(1).max(5).optional(),
   energy: z.number().int().min(1).max(5).optional(),
   anxiety: z.number().int().min(1).max(5).optional(),
   irritability: z.number().int().min(1).max(5).optional(),
-  warningSignsNow: z.string().optional(),
+  warningSignsNow: z.string().max(2000).optional(),
   note: z.string().max(280).optional(),
 });
 
@@ -77,6 +79,16 @@ async function reprojectEntry(entryId: string, dailyUpdate?: Record<string, unkn
     const allSnapshots = await tx.moodSnapshot.findMany({
       where: { diaryEntryId: entryId },
       orderBy: { capturedAt: "asc" },
+      select: {
+        capturedAt: true,
+        feeling: true,
+        mood: true,
+        energy: true,
+        anxiety: true,
+        irritability: true,
+        warningSignsNow: true,
+        note: true,
+      },
     });
 
     const projection = projectSnapshots(allSnapshots);
@@ -84,6 +96,7 @@ async function reprojectEntry(entryId: string, dailyUpdate?: Record<string, unkn
       await tx.diaryEntry.update({
         where: { id: entryId },
         data: {
+          feeling: projection.feeling,
           mood: projection.mood,
           energyLevel: projection.energyLevel,
           anxietyLevel: projection.anxietyLevel,
@@ -168,6 +181,7 @@ export async function POST(request: NextRequest) {
       create: {
         userId: session.userId,
         date: todayStr,
+        feeling: parsed.data.feeling ?? null,
         mood: parsed.data.mood,
         sleepHours: parsed.data.sleepHours ?? 0,
         energyLevel: parsed.data.energy,
@@ -188,6 +202,7 @@ export async function POST(request: NextRequest) {
         capturedAt: now,
         localDate: todayStr,
         clientRequestId: parsed.data.clientRequestId,
+        feeling: parsed.data.feeling ?? null,
         mood: parsed.data.mood,
         energy: parsed.data.energy,
         anxiety: parsed.data.anxiety ?? null,
@@ -251,6 +266,13 @@ export async function PATCH(request: NextRequest) {
     // Fetch the snapshot
     const snapshot = await prisma.moodSnapshot.findUnique({
       where: { id: parsed.data.snapshotId },
+      select: {
+        id: true,
+        userId: true,
+        diaryEntryId: true,
+        receivedAt: true,
+        localDate: true,
+      },
     });
 
     if (!snapshot || snapshot.userId !== session.userId) {
@@ -289,6 +311,7 @@ export async function PATCH(request: NextRequest) {
 
     // Build update
     const updateData: Record<string, unknown> = {};
+    if (parsed.data.feeling !== undefined) updateData.feeling = parsed.data.feeling;
     if (parsed.data.mood !== undefined) updateData.mood = parsed.data.mood;
     if (parsed.data.energy !== undefined) updateData.energy = parsed.data.energy;
     if (parsed.data.anxiety !== undefined) updateData.anxiety = parsed.data.anxiety;
@@ -339,6 +362,7 @@ export async function GET(request: NextRequest) {
       id: true,
       capturedAt: true,
       receivedAt: true,
+      feeling: true,
       mood: true,
       energy: true,
       anxiety: true,

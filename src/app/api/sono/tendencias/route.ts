@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
 
   try {
   const { searchParams } = new URL(request.url);
-  const days = parseInt(searchParams.get("days") || "30", 10);
+  const days = Math.min(Math.max(parseInt(searchParams.get("days") || "30", 10) || 30, 1), 365);
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - days);
   const cutoffStr = localDateStr(cutoff);
@@ -26,6 +26,7 @@ export async function GET(request: NextRequest) {
     where: {
       userId: session.userId,
       date: { gte: cutoffStr },
+      excluded: false,
     },
     orderBy: { date: "asc" },
     select: {
@@ -47,6 +48,8 @@ export async function GET(request: NextRequest) {
       bedtimeVariance: 0,
       alerts: [],
       logs: [],
+    }, {
+      headers: { "Cache-Control": "private, no-cache" },
     });
   }
 
@@ -105,6 +108,8 @@ export async function GET(request: NextRequest) {
       awakenings: l.awakenings,
       bedtime: l.bedtime,
     })),
+  }, {
+    headers: { "Cache-Control": "private, no-cache" },
   });
   } catch (err) {
     Sentry.captureException(err, { tags: { endpoint: "sono_tendencias" } });

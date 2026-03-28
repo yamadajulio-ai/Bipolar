@@ -60,6 +60,8 @@ export async function GET(request: NextRequest) {
     enabled: integration.enabled,
     recentSleepLogs: recentLogs,
     totalHealthMetrics: metricsCount,
+  }, {
+    headers: { "Cache-Control": "private, no-cache" },
   });
 }
 

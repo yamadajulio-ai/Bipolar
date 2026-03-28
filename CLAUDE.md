@@ -49,10 +49,8 @@
   2. **Causa**: onde estava o erro no código (arquivo, linha, lógica errada)
   3. **Correção**: o que foi alterado e por quê
   - Um bloco por problema. Usar linguagem direta, sem enrolação.
-- **NUNCA implementar features novas sem auditoria do GPT Pro antes.** Toda feature nova deve ser planejada, auditada e aprovada pelo GPT Pro antes de qualquer código ser escrito. Isso garante qualidade e alinhamento com o padrão do projeto.
-- **NUNCA dar sugestão/opinião própria pura.** Sempre consultar o modelo mais avançado disponível (o3 da OpenAI via API) para análise e recomendação. O usuário quer a melhor qualidade possível e confia na análise de modelos especializados.
-- **Prompts de auditoria GPT Pro**: Prompts DEVEM ser **self-contained** — o GPT Pro deve conseguir auditar SEM pedir mais contexto. Isso significa: incluir TODO o código-fonte dos arquivos relevantes (completo, não truncado), testes, e contexto de mudanças. Salvar em arquivo `.txt` na Desktop para o usuário copiar (Ctrl+A, Ctrl+C) e colar no GPT Pro. Nunca gerar prompt que dependa de follow-up — cada ida ao GPT Pro é cara em tempo.
-- **Auto-revisão exaustiva antes do GPT Pro**: Antes de montar QUALQUER prompt de auditoria para o GPT Pro, o Claude DEVE fazer múltiplas rodadas de auto-análise crítica — revisando não apenas o código recém-implementado, mas TODAS as áreas do projeto que possam ter sido afetadas ou que estejam em aberto. Isso inclui: edge cases, segurança, cobertura de testes, robustez, acessibilidade, touch targets, dark mode, e qualquer gap que possa existir. Corrigir TUDO antes de gerar o prompt. O Claude busca e encontra problemas muito mais rápido que o GPT Pro — cada problema que o Claude pega sozinho economiza uma ida cara ao GPT Pro. O prompt de auditoria só deve ser montado quando o Claude estiver confiante de que não há mais issues conhecidos.
+- **Quando usar GPT Pro**: Auditorias do GPT Pro são úteis para revisão pós-implementação, mas NÃO são gate obrigatório antes de implementar. O Claude pode implementar diretamente e usar GPT Pro depois para validar qualidade.
+- **Prompts de auditoria GPT Pro** (quando solicitado): Prompts DEVEM ser **self-contained** — o GPT Pro deve conseguir auditar SEM pedir mais contexto. Incluir código-fonte completo, testes, e contexto de mudanças.
 - **NUNCA ignorar NADA das respostas do GPT Pro.** Quando o GPT Pro devolver uma auditoria, o Claude DEVE analisar TODOS os pontos levantados, um por um, sem pular nenhum. Cada achado, cada risco, cada sugestão — mesmo os que parecem menores ou "nice-to-have" — deve ser endereçado: ou implementado, ou justificado por que não se aplica com evidência concreta. Zero tolerância para ignorar pontos. Se o GPT Pro levantou, é porque importa. Tratar cada resposta do GPT Pro como checklist obrigatório onde TODO item precisa de resolução documentada.
 - **Auto-análise crítica pós-implementação obrigatória**: Após QUALQUER implementação ou correção, o Claude DEVE fazer análise crítica exaustiva de tudo que acabou de implementar, buscando falhas, bugs, edge cases, inconsistências, problemas de segurança, acessibilidade e integração. Repetir a análise quantas vezes forem necessárias até não encontrar mais falhas. Só considerar o trabalho "feito" quando a última rodada de análise retornar zero problemas. Corrigir cada problema encontrado antes de seguir para a próxima tarefa. Isso é um gate obrigatório — não pode ser pulado.
 
@@ -76,15 +74,18 @@
 
 ## Design System — Phase 1 (Foundation + Chrome)
 - **Tokens CSS** em `globals.css`: elevation (shadow-card/raised/float), radius (card 18px, panel 24px, pill 999px), surfaces (surface/raised/glass), borders (soft 10%/strong 20%), blur-chrome 18px, halo, halo-stroke
-- **4 camadas de elevação**: Canvas (background) → Surface (cards) → Raised (glaze overlay) → Float (backdrop-blur nav/header)
-- **Card.tsx**: 4 variantes (surface, raised, hero, interactive) com GlazeOverlay radial gradient
-- **BottomNav**: floating dock com glassmorphism + `motion.span layoutId="nav-pill"` + `MotionConfig reducedMotion="user"`
-- **Header**: glassmorphism chrome, Lucide icons (Sun/MoonStar/LogOut/ShieldAlert), touch targets 44px
+- **Semantic status tokens**: success/warning/danger/info com `-bg-subtle`, `-fg`, `-border` (light+dark+print)
+- **Control border tokens**: `--control-border`, `--control-border-hover`, `--control-border-focus`, `--control-border-danger`
+- **Phase 2 foundation tokens**: typography scale (6 sizes), z-index scale (7 layers), motion (3 durations + 4 easings), chart palette (6 series)
+- **4 camadas de elevação**: Canvas (background) → Surface (cards) → Raised (glaze overlay) → Float (backdrop-blur nav/header, shadow-float)
+- **Card.tsx**: 4 variantes (surface, raised, hero, interactive) com GlazeOverlay + focus-visible lift
+- **BottomNav**: floating dock com glassmorphism + `motion.span layoutId="nav-pill"` + `MotionConfig reducedMotion="user"` + `contain:layout_style_paint` + WCAG AA contrast (text-muted inativo, text-primary-dark ativo, 12px labels)
+- **Header**: glassmorphism chrome + shadow-float + contain hint, Lucide icons (Sun/MoonStar/LogOut/ShieldAlert), touch targets 44px
 - **AppIcon**: wrapper padronizado para Lucide icons (sm 16px, md 20px, lg 24px)
-- **Regra de radius**: `--radius-card` (18px) para containers/cards, `rounded-lg` (8px) para botões pequenos/interativos, `rounded-md` (6px) para inputs
+- **Regra de radius**: `--radius-card` (18px) para containers/cards, `rounded-lg` (8px) para botões pequenos/interativos, `rounded-md` (6px) para inputs. Zero `rounded-2xl` hardcoded.
 - **Dark mode**: 100% tokenizado no app autenticado. Zero `dark:*-gray` hardcoded.
 - **Print**: todas as shadows → none, surfaces → white, cores → preto
-- **Acessibilidade**: touch targets ≥44px, aria-hidden em decorativos, prefers-reduced-motion, aria-labelledby linkage correto
+- **Acessibilidade**: touch targets ≥44px, aria-hidden em decorativos, prefers-reduced-motion, prefers-reduced-transparency fallback, aria-labelledby linkage correto
 - **Landing pages públicas**: ainda Phase 1 legacy (deferred para Phase 2/3)
 
 ## iOS App Store — Estratégia B+
@@ -96,7 +97,7 @@
 - **Mac Mini M4**: recebido — pronto para Xcode build + TestFlight
 - **Review risks**: Guideline 4.2 (mitigado por 9 pilares nativos), 1.4.1 (copy de suporte), 5.1.1(ix) (conta individual), demo account
 - **Review Notes**: `docs/app-store-review-notes.md`
-- **Sign in with Apple**: flow nativo via @capacitor-community/apple-sign-in, nonce replay protection (NonceMismatchError), refresh token AES-256-GCM, revogação na exclusão de conta
+- **Sign in with Apple**: nativo (Capacitor plugin) + **web OAuth** (form_post callback). Service ID `com.suportebipolar.web`, App ID `com.suportebipolar.app`. Dual audience JWT verification, sameSite:none state cookie, nonce replay protection, refresh token AES-256-GCM, revogação na exclusão de conta
 - **Privacy**: trackers bloqueados no WebView (`"Capacitor" in window`), privacyMode default ON, PrivacyInfo.xcprivacy, notificações genéricas no lock screen
 - **Pendentes para TestFlight**: remover server.url, substituir TEAM_ID no AASA, configurar entitlements no Xcode, testar plugin Apple v7/Cap v8 em device real
 

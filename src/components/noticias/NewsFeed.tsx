@@ -35,13 +35,13 @@ function formatDate(dateStr: string) {
 function SourceBadge({ source }: { source: string }) {
   if (source === "pubmed") {
     return (
-      <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
+      <span className="inline-flex items-center rounded-full bg-info-bg-subtle px-2 py-0.5 text-xs font-medium text-info-fg">
         PubMed
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+    <span className="inline-flex items-center rounded-full bg-success-bg-subtle px-2 py-0.5 text-xs font-medium text-success-fg">
       Notícia
     </span>
   );

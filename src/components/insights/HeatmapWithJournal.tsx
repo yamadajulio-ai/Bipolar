@@ -37,11 +37,11 @@ interface Props {
 // ── Zone labels ──────────────────────────────────────────────
 
 const ZONE_LABELS: Record<string, { label: string; color: string }> = {
-  depressao: { label: "Humor muito baixo", color: "text-blue-800" },
-  depressao_leve: { label: "Humor baixo", color: "text-blue-700" },
-  eutimia: { label: "Humor estável", color: "text-emerald-800" },
-  hipomania: { label: "Humor elevado", color: "text-amber-800" },
-  mania: { label: "Humor muito elevado", color: "text-red-800" },
+  depressao: { label: "Humor muito baixo", color: "text-blue-800 dark:text-blue-300" },
+  depressao_leve: { label: "Humor baixo", color: "text-blue-700 dark:text-blue-300" },
+  eutimia: { label: "Humor estável", color: "text-emerald-800 dark:text-emerald-300" },
+  hipomania: { label: "Humor elevado", color: "text-amber-800 dark:text-amber-300" },
+  mania: { label: "Humor muito elevado", color: "text-red-800 dark:text-red-300" },
 };
 
 const MOOD_LABELS: Record<number, string> = {
@@ -184,7 +184,7 @@ export function HeatmapWithJournal({ heatmapData, diaryEntries, journalEntries }
                         className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
                           j.type === "DIARY"
                             ? "bg-primary/10 text-primary"
-                            : "bg-amber-100 text-amber-800"
+                            : "bg-warning-bg-subtle text-warning-fg"
                         }`}
                       >
                         {j.type === "DIARY" ? "Diário" : "Insight"}

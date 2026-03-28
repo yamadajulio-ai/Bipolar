@@ -17,7 +17,7 @@ export default function NotFound() {
         </Link>
         <Link
           href="/sos"
-          className="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-600 no-underline hover:bg-red-50"
+          className="rounded-lg border border-danger-border px-4 py-2 text-sm font-medium text-danger-fg no-underline hover:bg-danger-bg-subtle"
         >
           SOS — Preciso de ajuda
         </Link>

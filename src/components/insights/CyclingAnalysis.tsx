@@ -22,7 +22,7 @@ export function CyclingAnalysis({ data }: Props) {
           Análise de Ciclagem
         </h3>
         {data.isRapidCycling && (
-          <span className="rounded-full bg-red-100 border border-red-200 px-2.5 py-0.5 text-xs font-medium text-red-700">
+          <span className="rounded-full bg-danger-bg-subtle border border-danger-border px-2.5 py-0.5 text-xs font-medium text-danger-fg">
             Possível ciclagem rápida
           </span>
         )}
@@ -73,7 +73,7 @@ export function CyclingAnalysis({ data }: Props) {
       </div>
 
       {data.isRapidCycling && (
-        <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-xs text-red-800">
+        <div className="rounded-lg bg-danger-bg-subtle border border-danger-border p-3 text-xs text-danger-fg">
           O padrão de episódios sugere possível ciclagem rápida (≥4 episódios/ano).
           Esse pode ser um tema para discutir com seu psiquiatra na próxima consulta.
         </div>

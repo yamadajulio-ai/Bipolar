@@ -17,8 +17,8 @@ interface Props {
 const STATE_BADGES: Record<string, { label: string; className: string }> = {
   learning: { label: "Coletando dados", className: "bg-surface-alt text-muted border border-border" },
   noSignal: { label: "Sem sinal claro", className: "bg-surface-alt text-muted border border-border" },
-  watch: { label: "Vale observar", className: "bg-amber-100 text-amber-800 border border-amber-200" },
-  strong: { label: "Acompanhar de perto", className: "bg-amber-200 text-amber-900 border border-amber-300" },
+  watch: { label: "Vale observar", className: "bg-warning-bg-subtle text-warning-fg border border-warning-border" },
+  strong: { label: "Acompanhar de perto", className: "bg-warning-bg-subtle text-warning-fg border border-warning-border font-semibold" },
 };
 
 export function SpendingMoodInsightCard({ data }: Props) {

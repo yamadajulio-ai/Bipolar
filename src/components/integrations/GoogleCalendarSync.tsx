@@ -115,7 +115,7 @@ export function GoogleCalendarSync({ isConnected: initialConnected }: Props) {
       </div>
 
       {syncResult && (
-        <p className="text-sm text-green-600">
+        <p className="text-sm text-success-fg">
           Sincronizado: {syncResult.pulled} eventos importados
           {syncResult.errors > 0 && `, ${syncResult.errors} erros`}
         </p>

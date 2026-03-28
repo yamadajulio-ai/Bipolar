@@ -503,15 +503,15 @@ export default function OnboardingPage() {
             <p>Lembre-se:</p>
             <ul className="space-y-1 text-left">
               <li className="flex items-start gap-2">
-                <span className="text-green-500 mt-0.5">✓</span>
+                <span className="text-success-fg mt-0.5">✓</span>
                 <span>O <strong>SOS</strong> (botão vermelho) está sempre acessível — até sem login. CVV: 188</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-green-500 mt-0.5">✓</span>
+                <span className="text-success-fg mt-0.5">✓</span>
                 <span>Este app é uma ferramenta de acompanhamento e <strong>não substitui</strong> avaliação profissional</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-green-500 mt-0.5">✓</span>
+                <span className="text-success-fg mt-0.5">✓</span>
                 <span>Seus dados são <strong>privados</strong>, protegidos pela LGPD e nunca compartilhados sem sua autorização</span>
               </li>
             </ul>

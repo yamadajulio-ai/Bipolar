@@ -84,7 +84,7 @@ export function SafetyModeScreen({ actions, onDismiss }: Props) {
       {/* Quick access cards */}
       <div className="space-y-3">
         <Link href="/plano-de-crise" className="block no-underline" aria-label="Revisar plano de crise — seu plano de segurança personalizado">
-          <div className="rounded-[var(--radius-card)] border border-red-200 bg-red-50/30 hover:bg-red-50 transition-colors p-5">
+          <div className="rounded-[var(--radius-card)] border border-danger-border bg-danger-bg-subtle/30 hover:bg-danger-bg-subtle transition-colors p-5">
             <div className="flex items-center gap-4">
               <span className="text-2xl" aria-hidden="true">&#128737;</span>
               <div>
@@ -96,12 +96,12 @@ export function SafetyModeScreen({ actions, onDismiss }: Props) {
         </Link>
 
         <Link href="/sos" className="block no-underline" aria-label="SOS — preciso de ajuda agora — grounding e contatos de emergência">
-          <div className="rounded-[var(--radius-card)] border border-red-300 bg-red-100/50 hover:bg-red-100 transition-colors p-5">
+          <div className="rounded-[var(--radius-card)] border border-danger-border bg-danger-bg-subtle/50 hover:bg-danger-bg-subtle transition-colors p-5">
             <div className="flex items-center gap-4">
               <span className="text-2xl" aria-hidden="true">&#127384;</span>
               <div>
-                <p className="font-semibold text-red-800">SOS — Preciso de ajuda agora</p>
-                <p className="text-xs text-red-700 mt-0.5">Grounding, contatos de emergência, CVV 188</p>
+                <p className="font-semibold text-danger-fg">SOS — Preciso de ajuda agora</p>
+                <p className="text-xs text-danger-fg/80 mt-0.5">Grounding, contatos de emergência, CVV 188</p>
               </div>
             </div>
           </div>

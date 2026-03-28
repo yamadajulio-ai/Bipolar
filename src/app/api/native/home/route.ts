@@ -294,7 +294,7 @@ export async function GET(request: NextRequest) {
 
     // Guard: if user was deleted between auth check and data fetch
     if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return NextResponse.json({ error: "Usuário não encontrado" }, { status: 404 });
     }
 
     // === Response ===

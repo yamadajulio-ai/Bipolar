@@ -132,7 +132,7 @@ export default async function PlanoDeCrisePage() {
             rel="noopener noreferrer"
             className="no-underline"
           >
-            <Card className="text-center transition-colors hover:border-warning/50">
+            <Card className="text-center transition-colors hover:border-warning-border">
               <p className="text-3xl font-bold text-warning">UPA</p>
               <p className="text-sm font-medium text-foreground">Encontrar no mapa</p>
               <p className="text-xs text-muted">

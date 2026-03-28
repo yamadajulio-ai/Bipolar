@@ -8,9 +8,9 @@ interface Props {
 }
 
 const LEVEL_CONFIG = {
-  baixo: { bg: "bg-emerald-50 border border-emerald-200", badge: "bg-emerald-100 text-emerald-700", label: "Risco baixo" },
-  moderado: { bg: "bg-amber-50 border border-amber-200", badge: "bg-amber-100 text-amber-700", label: "Risco moderado" },
-  elevado: { bg: "bg-red-50 border border-red-200", badge: "bg-red-100 text-red-700", label: "Risco elevado" },
+  baixo: { bg: "bg-success-bg-subtle border border-success-border", badge: "bg-success-bg-subtle text-success-fg", label: "Risco baixo" },
+  moderado: { bg: "bg-warning-bg-subtle border border-warning-border", badge: "bg-warning-bg-subtle text-warning-fg", label: "Risco moderado" },
+  elevado: { bg: "bg-danger-bg-subtle border border-danger-border", badge: "bg-danger-bg-subtle text-danger-fg", label: "Risco elevado" },
 };
 
 export function EpisodePrediction({ data }: Props) {
@@ -75,8 +75,8 @@ export function EpisodePrediction({ data }: Props) {
       {expanded && (
         <div id={panelId} className="mb-3 space-y-2">
           {data.maniaSignals.length > 0 && (
-            <div className="rounded-lg bg-amber-100/60 border border-amber-200/50 p-2.5">
-              <p className="mb-1 text-[11px] font-semibold text-amber-700">Sinais de ativação</p>
+            <div className="rounded-lg bg-warning-bg-subtle/60 border border-warning-border/50 p-2.5">
+              <p className="mb-1 text-[11px] font-semibold text-warning-fg">Sinais de ativação</p>
               <ul className="space-y-0.5">
                 {data.maniaSignals.map((s, i) => (
                   <li key={i} className="text-xs text-foreground/70">• {s}</li>
@@ -85,8 +85,8 @@ export function EpisodePrediction({ data }: Props) {
             </div>
           )}
           {data.depressionSignals.length > 0 && (
-            <div className="rounded-lg bg-blue-100/60 border border-blue-200/50 p-2.5">
-              <p className="mb-1 text-[11px] font-semibold text-blue-700">Sinais de rebaixamento</p>
+            <div className="rounded-lg bg-info-bg-subtle/60 border border-info-border/50 p-2.5">
+              <p className="mb-1 text-[11px] font-semibold text-info-fg">Sinais de rebaixamento</p>
               <ul className="space-y-0.5">
                 {data.depressionSignals.map((s, i) => (
                   <li key={i} className="text-xs text-foreground/70">• {s}</li>

@@ -53,7 +53,7 @@ export function TransactionList({
             <div className="ml-3 flex items-center gap-2">
               <span
                 className={`text-sm font-semibold whitespace-nowrap ${
-                  tx.amount >= 0 ? "text-green-600" : "text-red-600"
+                  tx.amount >= 0 ? "text-success-fg" : "text-danger-fg"
                 }`}
               >
                 {tx.amount >= 0 ? "+" : ""}R$ {formatAmount(tx.amount)}
@@ -61,7 +61,7 @@ export function TransactionList({
               <button
                 onClick={() => setPendingDeleteId(tx.id)}
                 disabled={deleting === tx.id}
-                className="rounded p-1 text-muted hover:bg-red-50 hover:text-red-500 transition-colors disabled:opacity-50"
+                className="rounded p-1 text-muted hover:bg-danger-bg-subtle hover:text-danger-fg transition-colors disabled:opacity-50"
                 title="Excluir transação"
               >
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -88,7 +88,7 @@ export function TransactionList({
               </button>
               <button
                 onClick={confirmDelete}
-                className="flex-1 rounded-lg bg-red-600 py-2.5 text-sm font-medium text-white"
+                className="flex-1 rounded-lg bg-danger py-2.5 text-sm font-medium text-white"
               >
                 Excluir
               </button>

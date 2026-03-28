@@ -81,7 +81,7 @@ export function SafetyInterstitial({ source, sourceAssessmentId, onComplete, onD
           </button>
           <button
             onClick={onDefer}
-            className="flex-1 rounded-lg border border-orange-300 px-4 py-3 text-sm font-medium text-orange-800 hover:bg-orange-100"
+            className="flex-1 rounded-lg border border-orange-300 dark:border-orange-700 px-4 py-3 text-sm font-medium text-orange-800 dark:text-orange-200 hover:bg-orange-100 dark:hover:bg-orange-900/50"
           >
             Lembrar em 15 min
           </button>
@@ -103,7 +103,7 @@ export function SafetyInterstitial({ source, sourceAssessmentId, onComplete, onD
         <div className="space-y-4">
           {ASQ_QUESTIONS.map((q, i) => (
             <div key={i} className="flex items-start gap-3">
-              <p className="text-sm text-orange-900 flex-1">{q}</p>
+              <p className="text-sm text-orange-900 dark:text-orange-200 flex-1">{q}</p>
               <div className="flex gap-1.5 shrink-0">
                 <button
                   aria-label={`Sim — ${q}`}
@@ -179,7 +179,7 @@ export function SafetyInterstitial({ source, sourceAssessmentId, onComplete, onD
               submitScreening(asq);
               setStep("result_concern");
             }}
-            className="flex-1 rounded-lg bg-red-600 px-4 py-3 text-sm font-medium text-white hover:bg-red-700"
+            className="flex-1 rounded-lg bg-danger px-4 py-3 text-sm font-medium text-white hover:bg-danger/90"
           >
             Sim
           </button>
@@ -188,7 +188,7 @@ export function SafetyInterstitial({ source, sourceAssessmentId, onComplete, onD
               setAsqQ5(false);
               setStep("bssa");
             }}
-            className="flex-1 rounded-lg border border-red-300 px-4 py-3 text-sm font-medium text-red-800 hover:bg-red-100"
+            className="flex-1 rounded-lg border border-danger-border px-4 py-3 text-sm font-medium text-danger-fg hover:bg-danger-bg-subtle"
           >
             Não
           </button>
@@ -252,13 +252,13 @@ export function SafetyInterstitial({ source, sourceAssessmentId, onComplete, onD
       <div className="space-y-2">
         <a
           href="tel:192"
-          className="block w-full rounded-lg bg-red-700 px-4 py-3 text-sm font-medium text-white text-center hover:bg-red-600"
+          className="block w-full rounded-lg bg-danger px-4 py-3 text-sm font-medium text-white text-center hover:bg-danger/90"
         >
           Ligar SAMU 192
         </a>
         <a
           href="tel:188"
-          className="block w-full rounded-lg bg-white/60 border border-red-300 px-4 py-3 text-sm font-medium text-red-800 text-center hover:bg-red-100"
+          className="block w-full rounded-lg bg-surface/60 border border-danger-border px-4 py-3 text-sm font-medium text-danger-fg text-center hover:bg-danger-bg-subtle"
         >
           Ligar CVV 188
         </a>
@@ -428,7 +428,7 @@ function BssaFlow({
       <p className="text-xs text-orange-600 dark:text-orange-400 mb-1">
         Pergunta {currentVisibleIndex + 1} de {visibleQuestions.length}
       </p>
-      <h3 className="text-sm font-semibold text-orange-900 mb-4">
+      <h3 className="text-sm font-semibold text-orange-900 dark:text-orange-200 mb-4">
         {currentQ.label}
       </h3>
       <div className="space-y-2">

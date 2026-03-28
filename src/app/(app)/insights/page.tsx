@@ -54,9 +54,9 @@ const SOURCE_LABELS: Record<string, string> = {
 
 function ConfidenceBadge({ confidence }: { confidence: DataConfidence }) {
   const config: Record<DataConfidence, { label: string; color: string }> = {
-    baixa: { label: "Poucos dados", color: "bg-red-100 text-red-800 border border-red-200" },
-    media: { label: "Dados moderados", color: "bg-amber-100 text-amber-800 border border-amber-200" },
-    alta: { label: "Dados suficientes", color: "bg-emerald-100 text-emerald-800 border border-emerald-200" },
+    baixa: { label: "Poucos dados", color: "bg-danger-bg-subtle text-danger-fg border border-danger-border" },
+    media: { label: "Dados moderados", color: "bg-warning-bg-subtle text-warning-fg border border-warning-border" },
+    alta: { label: "Dados suficientes", color: "bg-success-bg-subtle text-success-fg border border-success-border" },
   };
   const c = config[confidence];
   return (
@@ -75,9 +75,9 @@ function CorrelationBadge({ result }: { result: CorrelationResult }) {
   };
   const strengthColors: Record<string, string> = {
     muito_fraca: "text-muted",
-    fraca: "text-blue-600",
-    moderada: "text-amber-600",
-    forte: "text-red-600",
+    fraca: "text-info-fg",
+    moderada: "text-warning-fg",
+    forte: "text-danger-fg",
   };
   return (
     <span className={`text-xs font-medium ${strengthColors[result.strength] || "text-muted"}`}>
@@ -350,7 +350,7 @@ export default async function InsightsPage({
                   {insights.risk.factors.slice(0, 4).map((f, i) => {
                     const isProtective = f.toLowerCase().includes("protetor") || f.toLowerCase().includes("boa adesão");
                     return (
-                      <li key={i} className={`text-xs flex items-start gap-1.5 ${isProtective ? "text-emerald-700" : "text-foreground/70"}`}>
+                      <li key={i} className={`text-xs flex items-start gap-1.5 ${isProtective ? "text-success-fg" : "text-foreground/70"}`}>
                         <span className="mt-0.5 flex-shrink-0">{isProtective ? "✅" : "⚠️"}</span>
                         {f}
                       </li>
@@ -522,8 +522,8 @@ export default async function InsightsPage({
             {insights.sleep.sleepHeadline && (
               <p className={`mb-2 text-sm font-semibold ${
                 insights.sleep.sleepHeadline.startsWith("Atenção")
-                  ? "text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5"
-                  : "text-emerald-700"
+                  ? "text-warning-fg bg-warning-bg-subtle border border-warning-border rounded-lg px-3 py-1.5"
+                  : "text-success-fg"
               }`}>
                 {insights.sleep.sleepHeadline}
               </p>
@@ -692,10 +692,10 @@ export default async function InsightsPage({
             {insights.mood.moodHeadline && (
               <p className={`mb-2 text-sm font-semibold ${
                 insights.mood.moodHeadline.includes("elevado") || insights.mood.moodHeadline.includes("oscilação")
-                  ? "text-amber-800"
+                  ? "text-warning-fg"
                   : insights.mood.moodHeadline.includes("queda")
-                    ? "text-blue-700"
-                    : "text-emerald-700"
+                    ? "text-info-fg"
+                    : "text-success-fg"
               }`}>
                 {insights.mood.moodHeadline}
               </p>
@@ -781,7 +781,7 @@ export default async function InsightsPage({
                         ))}
                       </ul>
                     ) : (
-                      <p className="mt-1 text-sm font-bold text-emerald-600">Nenhum</p>
+                      <p className="mt-1 text-sm font-bold text-success-fg">Nenhum</p>
                     )}
                   </Card>
                 </div>

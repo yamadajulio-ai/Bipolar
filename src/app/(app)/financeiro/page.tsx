@@ -490,7 +490,7 @@ function CorrelationCard({ label, corr, description }: { label: string; corr: Co
   const strengthColors = {
     muito_fraca: "text-muted",
     fraca: "text-amber-600",
-    moderada: "text-orange-600",
+    moderada: "text-orange-600 dark:text-orange-400",
     forte: "text-danger-fg",
   };
 
@@ -730,9 +730,9 @@ function CategoryClassification({ data }: { data: { category: string; total: num
           <p className="text-xs text-info-fg">{fixoPct}%</p>
         </div>
         <div className="flex-1 rounded bg-orange-50 dark:bg-orange-950/30 p-2 text-center">
-          <p className="text-xs text-orange-600">Variável</p>
-          <p className="font-bold text-orange-700">R$ {variavelTotal.toFixed(0)}</p>
-          <p className="text-xs text-orange-500">{100 - fixoPct}%</p>
+          <p className="text-xs text-orange-600 dark:text-orange-400">Variável</p>
+          <p className="font-bold text-orange-700 dark:text-orange-300">R$ {variavelTotal.toFixed(0)}</p>
+          <p className="text-xs text-orange-500 dark:text-orange-400">{100 - fixoPct}%</p>
         </div>
       </div>
       <p className="mt-1.5 text-xs text-muted">

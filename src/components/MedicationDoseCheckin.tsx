@@ -322,8 +322,8 @@ export function MedicationDoseCheckin({ date, onComplete, onTrackingStatus }: Pr
                   }
                   className={`flex items-center gap-2 text-xs rounded-md px-2.5 py-1.5 w-full text-left transition-colors ${
                     dose.status === "TAKEN"
-                      ? "bg-emerald-50 text-emerald-700 active:bg-emerald-100"
-                      : "bg-red-50 text-red-700 active:bg-red-100"
+                      ? "bg-success-bg-subtle text-success-fg active:bg-success-bg-subtle/80"
+                      : "bg-danger-bg-subtle text-danger-fg active:bg-danger-bg-subtle/80"
                   }`}
                 >
                   <span>{dose.status === "TAKEN" ? "✓" : "✗"}</span>

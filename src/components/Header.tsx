@@ -114,7 +114,7 @@ export function Header({ isLoggedIn }: HeaderProps) {
               <ThemeButton />
               <Link
                 href="/sos"
-                className="ml-1 inline-flex items-center gap-1.5 rounded-[var(--radius-pill)] bg-red-600 px-3 py-1.5 text-sm font-semibold text-white no-underline transition-colors hover:bg-red-700"
+                className="ml-1 inline-flex items-center gap-1.5 rounded-[var(--radius-pill)] bg-danger px-3 py-1.5 text-sm font-semibold text-white no-underline transition-colors hover:bg-danger/90"
               >
                 <AppIcon icon={ShieldAlert} size="sm" className="text-white" />
                 SOS
@@ -140,7 +140,7 @@ export function Header({ isLoggedIn }: HeaderProps) {
               <ThemeButton />
               <Link
                 href="/sos"
-                className="inline-flex items-center gap-1 rounded-[var(--radius-pill)] bg-red-600 px-2.5 py-1.5 text-sm font-semibold text-white no-underline transition-colors hover:bg-red-700"
+                className="inline-flex items-center gap-1 rounded-[var(--radius-pill)] bg-danger px-2.5 py-1.5 text-sm font-semibold text-white no-underline transition-colors hover:bg-danger/90"
               >
                 <AppIcon icon={ShieldAlert} size="sm" className="text-white" />
                 SOS
@@ -165,7 +165,7 @@ export function Header({ isLoggedIn }: HeaderProps) {
           <nav className="flex items-center gap-4 text-sm">
             <Link
               href="/sos"
-              className="inline-flex items-center gap-1 rounded-[var(--radius-pill)] bg-red-600 px-3 py-1.5 text-sm font-semibold text-white no-underline transition-colors hover:bg-red-700"
+              className="inline-flex items-center gap-1 rounded-[var(--radius-pill)] bg-danger px-3 py-1.5 text-sm font-semibold text-white no-underline transition-colors hover:bg-danger/90"
             >
               SOS
             </Link>

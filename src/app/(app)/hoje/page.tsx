@@ -405,9 +405,9 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
   const hasHae = !!haeKey;
   const hasFinancial = !!financialTx;
   const missingIntegrations = [
-    !hasHae && { label: "Wearable", href: "/integracoes", bg: "bg-red-50 hover:bg-red-100", textColor: "text-red-700" },
-    !hasGoogleCal && { label: "Google Agenda", href: "/agenda-rotina", bg: "bg-blue-50 hover:bg-blue-100", textColor: "text-blue-700" },
-    !hasFinancial && { label: "Mobills", href: "/financeiro", bg: "bg-green-50 hover:bg-green-100", textColor: "text-green-700" },
+    !hasHae && { label: "Wearable", href: "/integracoes", bg: "bg-danger-bg-subtle hover:bg-danger-bg-subtle/80", textColor: "text-danger-fg" },
+    !hasGoogleCal && { label: "Google Agenda", href: "/agenda-rotina", bg: "bg-info-bg-subtle hover:bg-info-bg-subtle/80", textColor: "text-info-fg" },
+    !hasFinancial && { label: "Mobills", href: "/financeiro", bg: "bg-success-bg-subtle hover:bg-success-bg-subtle/80", textColor: "text-success-fg" },
   ].filter(Boolean) as { label: string; href: string; bg: string; textColor: string }[];
 
   // === Chart data (7d) ===
@@ -613,7 +613,7 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
             {visibleTasks.map((t, i) => (
               <Link key={i} href={t.href} className="flex items-center gap-3 no-underline group">
                 <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[11px] ${
-                  t.done ? "bg-emerald-100 border-emerald-300 text-emerald-700" : "border-border text-transparent group-hover:border-primary"
+                  t.done ? "bg-success-bg-subtle border-success-border text-success-fg" : "border-border text-transparent group-hover:border-primary"
                 }`}>
                   {t.done ? "✓" : ""}
                 </span>
@@ -787,7 +787,7 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
           {visibleTasks.map((t, i) => (
             <Link key={i} href={t.href} className="flex items-center gap-3 no-underline group">
               <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[11px] ${
-                t.done ? "bg-emerald-100 border-emerald-300 text-emerald-700" : "border-border text-transparent group-hover:border-primary"
+                t.done ? "bg-success-bg-subtle border-success-border text-success-fg" : "border-border text-transparent group-hover:border-primary"
               }`}>
                 {t.done ? "✓" : ""}
               </span>
@@ -939,21 +939,21 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
           </div>
           <div className="grid grid-cols-3 gap-2 text-center">
             {avgSteps !== null && (
-              <div className="rounded-lg bg-blue-50/70 p-2">
-                <p className="text-base font-semibold text-blue-700">{avgSteps.toLocaleString("pt-BR")}</p>
-                <p className="text-[11px] text-blue-600">Passos/dia</p>
+              <div className="rounded-lg bg-info-bg-subtle/70 p-2">
+                <p className="text-base font-semibold text-info-fg">{avgSteps.toLocaleString("pt-BR")}</p>
+                <p className="text-[11px] text-info-fg/80">Passos/dia</p>
               </div>
             )}
             {avgHrv !== null && (
-              <div className="rounded-lg bg-purple-50/70 p-2">
-                <p className="text-base font-semibold text-purple-700">{avgHrv} ms</p>
-                <p className="text-[11px] text-purple-600">HRV</p>
+              <div className="rounded-lg bg-purple-50/70 dark:bg-purple-950/70 p-2">
+                <p className="text-base font-semibold text-purple-700 dark:text-purple-300">{avgHrv} ms</p>
+                <p className="text-[11px] text-purple-600 dark:text-purple-400">HRV</p>
               </div>
             )}
             {avgHr !== null && (
-              <div className="rounded-lg bg-red-50/70 p-2">
-                <p className="text-base font-semibold text-red-700">{avgHr} bpm</p>
-                <p className="text-[11px] text-red-600">FC repouso</p>
+              <div className="rounded-lg bg-danger-bg-subtle/70 p-2">
+                <p className="text-base font-semibold text-danger-fg">{avgHr} bpm</p>
+                <p className="text-[11px] text-danger-fg/80">FC repouso</p>
               </div>
             )}
           </div>

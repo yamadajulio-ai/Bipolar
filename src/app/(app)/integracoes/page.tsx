@@ -281,8 +281,8 @@ export default function IntegraçõesPage() {
 
       {/* Error banner with retry */}
       {fetchError && (
-        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-center">
-          <p className="text-sm text-red-700">{fetchError}</p>
+        <div className="mb-4 rounded-lg border border-danger-border bg-danger-bg-subtle p-4 text-center">
+          <p className="text-sm text-danger-fg">{fetchError}</p>
           <button
             onClick={() => {
               const controller = new AbortController();
@@ -290,7 +290,7 @@ export default function IntegraçõesPage() {
               const timeout = setTimeout(() => controller.abort(), 30000);
               loadAll(controller.signal).finally(() => clearTimeout(timeout));
             }}
-            className="mt-2 text-sm text-red-600 underline hover:text-red-800"
+            className="mt-2 text-sm text-danger-fg underline hover:text-danger"
           >
             Tentar novamente
           </button>
@@ -300,7 +300,7 @@ export default function IntegraçõesPage() {
       {/* Wearables Compatíveis */}
       <Card className="mb-6">
         <div className="flex items-center gap-3 mb-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-success-bg-subtle text-success-fg">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><rect x="6" y="2" width="12" height="20" rx="3"/><circle cx="12" cy="12" r="3"/><path d="M12 6v2"/></svg>
           </div>
           <div>
@@ -338,55 +338,55 @@ export default function IntegraçõesPage() {
                   <td className="py-1.5 pr-2 font-medium text-foreground">Xiaomi Smart Band 9 Active</td>
                   <td className="py-1.5 pr-2">R$200–300</td>
                   <td className="py-1.5 pr-2">Mi Fitness</td>
-                  <td className="py-1.5 pr-2 text-green-600">&#10003;</td>
-                  <td className="py-1.5 pr-2 text-green-600">&#10003;</td>
+                  <td className="py-1.5 pr-2 text-success-fg">&#10003;</td>
+                  <td className="py-1.5 pr-2 text-success-fg">&#10003;</td>
                   <td className="py-1.5 pr-2 text-muted">&#8212;</td>
-                  <td className="py-1.5 text-green-600">&#10003;</td>
+                  <td className="py-1.5 text-success-fg">&#10003;</td>
                 </tr>
                 <tr className="border-b border-emerald-100 dark:border-emerald-900/50">
                   <td className="py-1.5 pr-2 font-medium text-foreground">Redmi Watch 5 Active</td>
                   <td className="py-1.5 pr-2">R$200–300</td>
                   <td className="py-1.5 pr-2">Mi Fitness</td>
-                  <td className="py-1.5 pr-2 text-green-600">&#10003;</td>
-                  <td className="py-1.5 pr-2 text-green-600">&#10003;</td>
+                  <td className="py-1.5 pr-2 text-success-fg">&#10003;</td>
+                  <td className="py-1.5 pr-2 text-success-fg">&#10003;</td>
                   <td className="py-1.5 pr-2 text-muted">&#8212;</td>
-                  <td className="py-1.5 text-green-600">&#10003;</td>
+                  <td className="py-1.5 text-success-fg">&#10003;</td>
                 </tr>
                 <tr className="border-b border-emerald-100 dark:border-emerald-900/50">
                   <td className="py-1.5 pr-2 font-medium text-foreground">HUAWEI Band 9</td>
                   <td className="py-1.5 pr-2">R$300–450</td>
                   <td className="py-1.5 pr-2">Huawei Health</td>
-                  <td className="py-1.5 pr-2 text-green-600">&#10003;</td>
-                  <td className="py-1.5 pr-2 text-green-600">&#10003;</td>
+                  <td className="py-1.5 pr-2 text-success-fg">&#10003;</td>
+                  <td className="py-1.5 pr-2 text-success-fg">&#10003;</td>
                   <td className="py-1.5 pr-2 text-amber-500">~</td>
-                  <td className="py-1.5 text-green-600">&#10003;</td>
+                  <td className="py-1.5 text-success-fg">&#10003;</td>
                 </tr>
                 <tr className="border-b border-emerald-100 dark:border-emerald-900/50">
                   <td className="py-1.5 pr-2 font-medium text-foreground">Amazfit Bip 6</td>
                   <td className="py-1.5 pr-2">R$300–450</td>
                   <td className="py-1.5 pr-2">Zepp</td>
-                  <td className="py-1.5 pr-2 text-green-600">&#10003;</td>
-                  <td className="py-1.5 pr-2 text-green-600">&#10003;</td>
+                  <td className="py-1.5 pr-2 text-success-fg">&#10003;</td>
+                  <td className="py-1.5 pr-2 text-success-fg">&#10003;</td>
                   <td className="py-1.5 pr-2 text-amber-500">~</td>
-                  <td className="py-1.5 text-green-600">&#10003;</td>
+                  <td className="py-1.5 text-success-fg">&#10003;</td>
                 </tr>
                 <tr className="border-b border-emerald-100 dark:border-emerald-900/50">
                   <td className="py-1.5 pr-2 font-medium text-foreground">Amazfit Active 2</td>
                   <td className="py-1.5 pr-2">R$700–1.000</td>
                   <td className="py-1.5 pr-2">Zepp</td>
-                  <td className="py-1.5 pr-2 text-green-600">&#10003;</td>
-                  <td className="py-1.5 pr-2 text-green-600">&#10003;</td>
+                  <td className="py-1.5 pr-2 text-success-fg">&#10003;</td>
+                  <td className="py-1.5 pr-2 text-success-fg">&#10003;</td>
                   <td className="py-1.5 pr-2 text-amber-500">~</td>
-                  <td className="py-1.5 text-green-600">&#10003;</td>
+                  <td className="py-1.5 text-success-fg">&#10003;</td>
                 </tr>
                 <tr>
                   <td className="py-1.5 pr-2 font-medium text-foreground">Apple Watch SE 3</td>
                   <td className="py-1.5 pr-2">R$2.500–3.500</td>
                   <td className="py-1.5 pr-2">Nativo</td>
-                  <td className="py-1.5 pr-2 text-green-600">&#10003;</td>
-                  <td className="py-1.5 pr-2 text-green-600">&#10003;</td>
-                  <td className="py-1.5 pr-2 text-green-600">&#10003;</td>
-                  <td className="py-1.5 text-green-600">&#10003;</td>
+                  <td className="py-1.5 pr-2 text-success-fg">&#10003;</td>
+                  <td className="py-1.5 pr-2 text-success-fg">&#10003;</td>
+                  <td className="py-1.5 pr-2 text-success-fg">&#10003;</td>
+                  <td className="py-1.5 text-success-fg">&#10003;</td>
                 </tr>
               </tbody>
             </table>
@@ -566,7 +566,7 @@ export default function IntegraçõesPage() {
               </button>
               <button
                 onClick={() => handleRevoke("health_auto_export")}
-                className="rounded border border-red-300 px-3 py-1 text-sm text-red-600"
+                className="rounded border border-danger-border px-3 py-1 text-sm text-danger-fg"
               >
                 Revogar chave
               </button>
@@ -586,7 +586,7 @@ export default function IntegraçõesPage() {
       {/* Health Connect (Android) */}
       <Card className="mb-6">
         <div className="flex items-center gap-3 mb-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 text-green-700">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-success-bg-subtle text-success-fg">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><path d="M5 16V8a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v8"/><path d="M7 20h10"/><path d="M9 16v4"/><path d="M15 16v4"/><rect x="2" y="10" width="20" height="6" rx="2"/></svg>
           </div>
           <div>
@@ -699,7 +699,7 @@ export default function IntegraçõesPage() {
               </button>
               <button
                 onClick={() => handleRevoke("health_connect")}
-                className="rounded border border-red-300 px-3 py-1 text-sm text-red-600"
+                className="rounded border border-danger-border px-3 py-1 text-sm text-danger-fg"
               >
                 Revogar chave
               </button>
@@ -724,7 +724,7 @@ export default function IntegraçõesPage() {
             <button
               onClick={handleClearSleepData}
               disabled={clearing}
-              className="rounded border border-red-300 px-3 py-1 text-xs text-red-600 disabled:opacity-50"
+              className="rounded border border-danger-border px-3 py-1 text-xs text-danger-fg disabled:opacity-50"
             >
               {clearing ? "Limpando..." : "Limpar dados"}
             </button>
@@ -817,7 +817,7 @@ export default function IntegraçõesPage() {
         </p>
 
         {importResult && (
-          <div className={`mb-3 rounded px-3 py-2 text-sm ${importResult.ok ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
+          <div className={`mb-3 rounded px-3 py-2 text-sm ${importResult.ok ? "bg-success-bg-subtle text-success-fg" : "bg-danger-bg-subtle text-danger-fg"}`}>
             {importResult.message}
           </div>
         )}
@@ -875,7 +875,7 @@ export default function IntegraçõesPage() {
               </button>
               <button
                 onClick={confirmPendingAction}
-                className="flex-1 rounded-lg bg-red-600 py-2.5 text-sm font-medium text-white"
+                className="flex-1 rounded-lg bg-danger py-2.5 text-sm font-medium text-white"
               >
                 Confirmar
               </button>

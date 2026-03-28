@@ -194,7 +194,7 @@ export default function MedicamentosPage() {
                 </div>
                 <button
                   onClick={() => handleDeactivate(med.id)}
-                  className="text-xs text-muted hover:text-red-600 transition-colors shrink-0 ml-2"
+                  className="text-xs text-muted hover:text-danger-fg transition-colors shrink-0 ml-2"
                 >
                   Desativar
                 </button>
@@ -289,7 +289,7 @@ export default function MedicamentosPage() {
                         <button
                           type="button"
                           onClick={() => removeSchedule(i)}
-                          className="text-xs text-muted hover:text-red-600"
+                          className="text-xs text-muted hover:text-danger-fg"
                         >
                           Remover
                         </button>

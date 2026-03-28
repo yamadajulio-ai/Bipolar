@@ -19,11 +19,11 @@ interface Props {
 // ── Zone config ──────────────────────────────────────────────
 
 const ZONE_LABELS: Record<string, { label: string; color: string; bg: string }> = {
-  depressao: { label: "Humor muito baixo", color: "text-blue-800", bg: "bg-blue-100" },
-  depressao_leve: { label: "Humor baixo", color: "text-blue-700", bg: "bg-blue-50" },
-  eutimia: { label: "Humor estável", color: "text-emerald-800", bg: "bg-emerald-100" },
-  hipomania: { label: "Humor elevado", color: "text-amber-800", bg: "bg-amber-100" },
-  mania: { label: "Humor muito elevado", color: "text-red-800", bg: "bg-red-100" },
+  depressao: { label: "Humor muito baixo", color: "text-blue-800 dark:text-blue-300", bg: "bg-blue-100 dark:bg-blue-900/50" },
+  depressao_leve: { label: "Humor baixo", color: "text-blue-700 dark:text-blue-300", bg: "bg-blue-50 dark:bg-blue-900/30" },
+  eutimia: { label: "Humor estável", color: "text-emerald-800 dark:text-emerald-300", bg: "bg-emerald-100 dark:bg-emerald-900/50" },
+  hipomania: { label: "Humor elevado", color: "text-amber-800 dark:text-amber-300", bg: "bg-amber-100 dark:bg-amber-900/50" },
+  mania: { label: "Humor muito elevado", color: "text-red-800 dark:text-red-300", bg: "bg-red-100 dark:bg-red-900/50" },
 };
 
 const DIARY_MAX = 5000;
@@ -378,7 +378,7 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
                     className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
                       entry.type === "DIARY"
                         ? "bg-primary/10 text-primary"
-                        : "bg-amber-100 text-amber-800"
+                        : "bg-warning-bg-subtle text-warning-fg"
                     }`}
                   >
                     {entry.type === "DIARY" ? "Diário" : "Insight"}
@@ -410,7 +410,7 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
                     value={journal.editContent}
                     onChange={(e) => journal.setEditContent(e.target.value.slice(0, editMaxChars))}
                     rows={entry.type === "DIARY" ? 5 : 2}
-                    className="w-full rounded-lg border border-border bg-surface p-3 text-sm resize-none focus-visible:border-primary focus-visible:outline-none"
+                    className="w-full rounded-lg border border-control-border bg-surface p-3 text-sm resize-none focus-visible:border-control-border-focus focus-visible:outline-none"
                     maxLength={editMaxChars}
                   />
                   <div className="mt-2 flex gap-2">

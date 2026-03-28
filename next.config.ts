@@ -77,6 +77,8 @@ const nextConfig: NextConfig = {
 };
 
 export default withSentryConfig(nextConfig, {
+  org: "yamada-ai",
+  project: "rede-bipolar",
   silent: true,
   disableLogger: true,
 });

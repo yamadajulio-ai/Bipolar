@@ -4,12 +4,7 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { maskIp } from "@/lib/security";
 import { Card } from "@/components/Card";
-import dynamic from "next/dynamic";
-
-const AdminActivityChart = dynamic(
-  () => import("@/components/admin/AdminActivityChart").then((m) => m.AdminActivityChart),
-  { ssr: false, loading: () => <div className="h-[300px] animate-pulse rounded-lg bg-surface-alt" /> },
-);
+import { AdminActivityChartLazy as AdminActivityChart } from "@/components/admin/AdminActivityChartLazy";
 
 export default async function AdminOverviewPage() {
   const session = await getSession();

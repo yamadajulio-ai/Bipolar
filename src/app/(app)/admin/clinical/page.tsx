@@ -6,12 +6,7 @@ import { maskIp } from "@/lib/security";
 import { localDateStr } from "@/lib/dateUtils";
 import { Card } from "@/components/Card";
 import { Alert } from "@/components/Alert";
-import dynamic from "next/dynamic";
-
-const AdminMoodChart = dynamic(
-  () => import("@/components/admin/AdminMoodChart").then((m) => m.AdminMoodChart),
-  { ssr: false, loading: () => <div className="h-[300px] animate-pulse rounded-lg bg-surface-alt" /> },
-);
+import { AdminMoodChartLazy as AdminMoodChart } from "@/components/admin/AdminMoodChartLazy";
 
 // Small-cohort suppression: n < 10 to prevent re-identification (GPT Pro P0)
 const MIN_COHORT = 10;

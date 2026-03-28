@@ -1,10 +1,47 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getIronSession } from "iron-session";
 import {
   CSRF_COOKIE_NAME,
   CSRF_HEADER_NAME,
   generateCsrfToken,
   validateCsrfToken,
 } from "@/lib/security";
+
+/** Minimal session type for middleware (avoids importing auth.ts which pulls in argon2/bcrypt) */
+interface MiddlewareSessionData {
+  isLoggedIn?: boolean;
+  onboarded?: boolean;
+}
+
+const sessionOptions = {
+  password: process.env.SESSION_SECRET!,
+  cookieName: "suporte-bipolar-session",
+  cookieOptions: {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax" as const,
+    maxAge: 60 * 60 * 24 * 30,
+    path: "/",
+  },
+};
+
+/** API paths exempt from onboarded check (auth flows, webhooks, public endpoints) */
+const ONBOARD_EXEMPT_PREFIXES = [
+  "/api/auth/",
+  "/api/cron/",
+  "/api/native/",
+  "/api/integrations/",
+  "/api/whatsapp/",
+  "/api/acesso-profissional/",
+  "/api/sos/",
+];
+const ONBOARD_EXEMPT_EXACT = [
+  "/api/health",
+  "/api/meta-events",
+  "/api/consentimentos",
+  "/api/display-preferences",
+  "/api/safety-screening",
+];
 
 const protectedPaths = [
   "/app",
@@ -135,7 +172,7 @@ function checkCsrf(request: NextRequest): NextResponse | null {
 const LEGACY_HOSTS = ["redebipolar.com", "www.redebipolar.com", "redebipolar.com.br", "www.redebipolar.com.br"];
 const CANONICAL_ORIGIN = "https://suportebipolar.com";
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Redirect legacy domains to canonical domain (301 permanent)
@@ -152,10 +189,28 @@ export function middleware(request: NextRequest) {
     return ensureCsrfCookie(request, response);
   }
 
-  // API routes: CSRF check + no-store for authenticated endpoints
+  // API routes: CSRF check + onboarded gate + no-store for authenticated endpoints
   if (pathname.startsWith("/api/")) {
     const csrfResponse = checkCsrf(request);
     if (csrfResponse) return csrfResponse;
+
+    // Onboarded gate: block pre-onboarding users from data-writing API routes.
+    // Without this, social login users who haven't completed onboarding (no LGPD consent)
+    // could access API routes directly and write health data.
+    const isExempt =
+      ONBOARD_EXEMPT_PREFIXES.some((p) => pathname.startsWith(p)) ||
+      ONBOARD_EXEMPT_EXACT.some((p) => pathname === p);
+
+    if (!isExempt) {
+      const response = NextResponse.next();
+      const session = await getIronSession<MiddlewareSessionData>(request, response, sessionOptions);
+      if (session.isLoggedIn && !session.onboarded) {
+        return NextResponse.json(
+          { error: "Complete o onboarding antes de acessar esta funcionalidade." },
+          { status: 403 },
+        );
+      }
+    }
 
     // Public API endpoints that may be cached (health check, webhooks)
     const publicApiPaths = ["/api/health", "/api/whatsapp/webhook", "/api/meta-events"];

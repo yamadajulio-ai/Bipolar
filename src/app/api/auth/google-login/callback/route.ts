@@ -2,39 +2,59 @@ import { NextRequest, NextResponse } from "next/server";
 import * as Sentry from "@sentry/nextjs";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { maskIp } from "@/lib/security";
+import { checkRateLimit, getClientIp } from "@/lib/security";
 import { exchangeLoginCodeForTokens, getGoogleUserInfo } from "@/lib/google/login-auth";
 
-const CONSENT_VERSION = 1;
-
 export async function GET(request: NextRequest) {
+  /** Helper: redirect to login with error + always clean up state cookie */
+  function errorRedirect(error: string): NextResponse {
+    const response = NextResponse.redirect(new URL(`/login?error=${error}`, request.url));
+    response.cookies.delete("google-login-state");
+    return response;
+  }
+
+  // Rate limit FIRST — before parsing any request data
+  const ip = getClientIp(request);
+  const allowed = await checkRateLimit(`google-callback:${ip}`, 10, 900_000);
+  if (!allowed) {
+    return errorRedirect("rate_limited");
+  }
+
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
   const storedState = request.cookies.get("google-login-state")?.value;
 
+  // Validate field sizes
+  if (code && code.length > 2000) {
+    return errorRedirect("invalid_request");
+  }
+  if (state && state.length > 200) {
+    return errorRedirect("invalid_request");
+  }
+
   if (!state || !storedState || state !== storedState) {
-    return NextResponse.redirect(new URL("/login?error=csrf", request.url));
+    return errorRedirect("csrf");
   }
 
   if (!code) {
-    return NextResponse.redirect(new URL("/login?error=no_code", request.url));
+    return errorRedirect("no_code");
   }
 
   try {
     const tokens = await exchangeLoginCodeForTokens(code);
     if (!tokens.access_token) {
-      return NextResponse.redirect(new URL("/login?error=no_token", request.url));
+      return errorRedirect("no_token");
     }
 
     const googleUser = await getGoogleUserInfo(tokens.access_token);
 
-    if (!googleUser.verified_email) {
-      return NextResponse.redirect(new URL("/login?error=email_not_verified", request.url));
-    }
+    // Normalize email for consistent DB lookups
+    googleUser.email = googleUser.email.toLowerCase().trim();
 
-    const rawIp = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-    const maskedIp = maskIp(rawIp);
+    if (!googleUser.verified_email) {
+      return errorRedirect("email_not_verified");
+    }
 
     const googleSelectFields = { id: true, email: true, name: true, onboarded: true } as const;
 
@@ -52,43 +72,24 @@ export async function GET(request: NextRequest) {
       });
 
       if (user) {
-        // Link Google account to existing user + ensure consents exist
-        await prisma.$transaction([
-          prisma.user.update({
-            where: { id: user.id },
-            data: {
-              googleSub: googleUser.id,
-              name: user.name || googleUser.name,
-            },
-          }),
-          // Backfill essential consents if missing (user may have signed up before consent step)
-          prisma.consent.createMany({
-            data: [
-              { userId: user.id, scope: "health_data", version: CONSENT_VERSION, ipAddress: maskedIp },
-              { userId: user.id, scope: "terms_of_use", version: CONSENT_VERSION, ipAddress: maskedIp },
-            ],
-            skipDuplicates: true,
-          }),
-        ]);
+        // Link Google account to existing user
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            googleSub: googleUser.id,
+            name: user.name || googleUser.name,
+          },
+        });
       } else {
-        // 3. Create new user (no password) + essential consents atomically
-        user = await prisma.$transaction(async (tx) => {
-          const newUser = await tx.user.create({
-            data: {
-              email: googleUser.email,
-              authProvider: "google",
-              googleSub: googleUser.id,
-              name: googleUser.name,
-            },
-            select: googleSelectFields,
-          });
-          await tx.consent.createMany({
-            data: [
-              { userId: newUser.id, scope: "health_data", version: CONSENT_VERSION, ipAddress: maskedIp },
-              { userId: newUser.id, scope: "terms_of_use", version: CONSENT_VERSION, ipAddress: maskedIp },
-            ],
-          });
-          return newUser;
+        // 3. Create new user (no password) — consents collected explicitly in onboarding
+        user = await prisma.user.create({
+          data: {
+            email: googleUser.email,
+            authProvider: "google",
+            googleSub: googleUser.id,
+            name: googleUser.name,
+          },
+          select: googleSelectFields,
         });
       }
     }
@@ -113,6 +114,6 @@ export async function GET(request: NextRequest) {
   } catch (err) {
     Sentry.captureException(err, { tags: { endpoint: "google-login-callback" } });
     console.error(JSON.stringify({ event: "google_login_callback_error", errorType: err instanceof Error ? err.constructor.name : "Unknown", message: (err as Error).message?.slice(0, 200) || "Unknown" }));
-    return NextResponse.redirect(new URL("/login?error=google_login_failed", request.url));
+    return errorRedirect("google_login_failed");
   }
 }

@@ -3,12 +3,10 @@ import { z } from "zod/v4";
 import * as Sentry from "@sentry/nextjs";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { checkRateLimit, getClientIp, maskIp } from "@/lib/security";
+import { checkRateLimit, getClientIp } from "@/lib/security";
 import { verifyAppleIdentityToken, exchangeAppleCodeForTokens, getAppleAuthUrl } from "@/lib/apple/auth";
 import { encrypt } from "@/lib/crypto";
 import crypto from "crypto";
-
-const CONSENT_VERSION = 1;
 
 /**
  * GET /api/auth/apple-login
@@ -106,9 +104,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const rawIp = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-    const maskedIp = maskIp(rawIp);
-
     const selectFields = { id: true, email: true, name: true, onboarded: true } as const;
 
     // Build display name from Apple's fullName (only sent on first sign-in)
@@ -144,43 +139,25 @@ export async function POST(request: NextRequest) {
 
       if (user) {
         // Link Apple account to existing user
-        await prisma.$transaction([
-          prisma.user.update({
-            where: { id: user.id },
-            data: {
-              appleSub: appleUser.sub,
-              appleRefreshToken: encryptedAppleRefreshToken || undefined,
-              name: user.name || displayName,
-            },
-          }),
-          prisma.consent.createMany({
-            data: [
-              { userId: user.id, scope: "health_data", version: CONSENT_VERSION, ipAddress: maskedIp },
-              { userId: user.id, scope: "terms_of_use", version: CONSENT_VERSION, ipAddress: maskedIp },
-            ],
-            skipDuplicates: true,
-          }),
-        ]);
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            appleSub: appleUser.sub,
+            appleRefreshToken: encryptedAppleRefreshToken || undefined,
+            name: user.name || displayName,
+          },
+        });
       } else {
-        // 3. Create new user (no password) + consents atomically
-        user = await prisma.$transaction(async (tx) => {
-          const newUser = await tx.user.create({
-            data: {
-              email: appleUser.email,
-              authProvider: "apple",
-              appleSub: appleUser.sub,
-              appleRefreshToken: encryptedAppleRefreshToken || undefined,
-              name: displayName,
-            },
-            select: selectFields,
-          });
-          await tx.consent.createMany({
-            data: [
-              { userId: newUser.id, scope: "health_data", version: CONSENT_VERSION, ipAddress: maskedIp },
-              { userId: newUser.id, scope: "terms_of_use", version: CONSENT_VERSION, ipAddress: maskedIp },
-            ],
-          });
-          return newUser;
+        // 3. Create new user (no password) — consents collected explicitly in onboarding
+        user = await prisma.user.create({
+          data: {
+            email: appleUser.email,
+            authProvider: "apple",
+            appleSub: appleUser.sub,
+            appleRefreshToken: encryptedAppleRefreshToken || undefined,
+            name: displayName,
+          },
+          select: selectFields,
         });
       }
     }

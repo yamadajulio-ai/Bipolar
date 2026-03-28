@@ -6,7 +6,7 @@ import { checkRateLimit } from "@/lib/security";
 import * as Sentry from "@sentry/nextjs";
 
 const exerciseSessionSchema = z.object({
-  exerciseType: z.string().min(1, "Tipo de exercício é obrigatório"),
+  exerciseType: z.string().min(1, "Tipo de exercício é obrigatório").max(100),
   durationSecs: z.number().int().min(1, "Duração deve ser pelo menos 1 segundo"),
 });
 

@@ -154,12 +154,14 @@ describe("POST /api/auth/login", () => {
     expect(res.status).toBe(401);
   });
 
-  it("returns 400 for social-only account (no passwordHash)", async () => {
+  it("returns 401 with generic error for social-only account (anti-enumeration)", async () => {
     mockUserFindUnique.mockResolvedValueOnce({ id: "u1", email: "g@test.com", passwordHash: null, onboarded: true });
     const res = await POST(makeRequest({ email: "g@test.com", senha: "12345678" }));
-    expect(res.status).toBe(400);
+    // Must NOT reveal that the account is social-only (anti-enumeration)
+    expect(res.status).toBe(401);
     const body = await res.json();
-    expect(body.error).toContain("Google");
+    expect(body.error).not.toContain("Google");
+    expect(body.error).toBe("E-mail ou senha incorretos.");
   });
 
   it("returns 401 for wrong password", async () => {
@@ -257,12 +259,14 @@ describe("POST /api/auth/cadastro", () => {
     expect(res.status).toBe(400);
   });
 
-  it("returns 409 for duplicate email", async () => {
+  it("returns 400 with generic error for duplicate email (anti-enumeration)", async () => {
     mockUserFindUnique.mockResolvedValueOnce({ id: "existing" });
     const res = await POST(makeRequest(validBody, "https://suportebipolar.com/api/auth/cadastro"));
-    expect(res.status).toBe(409);
+    expect(res.status).toBe(400);
     const body = await res.json();
-    expect(body.error).toContain("já está cadastrado");
+    // Generic message — must NOT reveal that the email already exists
+    expect(body.error).not.toContain("cadastrado");
+    expect(body.error).toBeDefined();
   });
 
   it("returns 201, creates user, and rotates session on success", async () => {

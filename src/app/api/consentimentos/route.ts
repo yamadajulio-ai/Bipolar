@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { maskIp, checkRateLimit } from "@/lib/security";
@@ -29,20 +30,25 @@ export async function GET() {
     return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
   }
 
-  const consents = await prisma.consent.findMany({
-    where: { userId: session.userId, revokedAt: null },
-    select: { scope: true, version: true, grantedAt: true },
-    orderBy: { grantedAt: "asc" },
-  });
+  try {
+    const consents = await prisma.consent.findMany({
+      where: { userId: session.userId, revokedAt: null },
+      select: { scope: true, version: true, grantedAt: true },
+      orderBy: { grantedAt: "asc" },
+    });
 
-  // Attach currentVersion so the frontend can detect stale consents needing re-acceptance
-  const enriched = consents.map((c) => ({
-    ...c,
-    currentVersion: SCOPE_VERSIONS[c.scope] ?? 1,
-    needsReaccept: (SCOPE_VERSIONS[c.scope] ?? 1) > c.version,
-  }));
+    // Attach currentVersion so the frontend can detect stale consents needing re-acceptance
+    const enriched = consents.map((c) => ({
+      ...c,
+      currentVersion: SCOPE_VERSIONS[c.scope] ?? 1,
+      needsReaccept: (SCOPE_VERSIONS[c.scope] ?? 1) > c.version,
+    }));
 
-  return NextResponse.json({ consents: enriched, scopeVersions: SCOPE_VERSIONS });
+    return NextResponse.json({ consents: enriched, scopeVersions: SCOPE_VERSIONS });
+  } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "consentimentos" } });
+    return NextResponse.json({ error: "Erro interno." }, { status: 500 });
+  }
 }
 
 // POST — grant or revoke a consent
@@ -81,42 +87,47 @@ export async function POST(request: NextRequest) {
   const rawIp = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
   const maskedIp = maskIp(rawIp);
 
-  if (action === "grant") {
-    // Check if there's a revoked consent for this scope — re-activate it
-    const existing = await prisma.consent.findFirst({
-      where: { userId: session.userId, scope },
-      select: { id: true, revokedAt: true, version: true },
-      orderBy: { grantedAt: "desc" },
-    });
-
-    const scopeVersion = SCOPE_VERSIONS[scope] ?? 1;
-
-    if (existing?.revokedAt) {
-      // Re-grant: update existing record with current version
-      await prisma.consent.update({
-        where: { id: existing.id },
-        data: { revokedAt: null, grantedAt: new Date(), version: scopeVersion, ipAddress: maskedIp },
+  try {
+    if (action === "grant") {
+      // Check if there's a revoked consent for this scope — re-activate it
+      const existing = await prisma.consent.findFirst({
+        where: { userId: session.userId, scope },
+        select: { id: true, revokedAt: true, version: true },
+        orderBy: { grantedAt: "desc" },
       });
-    } else if (existing && !existing.revokedAt && existing.version < scopeVersion) {
-      // Active but stale version — re-accept bumps version
-      await prisma.consent.update({
-        where: { id: existing.id },
-        data: { grantedAt: new Date(), version: scopeVersion, ipAddress: maskedIp },
-      });
-    } else if (!existing) {
-      // First time granting this scope
-      await prisma.consent.create({
-        data: { userId: session.userId, scope, version: scopeVersion, ipAddress: maskedIp },
+
+      const scopeVersion = SCOPE_VERSIONS[scope] ?? 1;
+
+      if (existing?.revokedAt) {
+        // Re-grant: update existing record with current version
+        await prisma.consent.update({
+          where: { id: existing.id },
+          data: { revokedAt: null, grantedAt: new Date(), version: scopeVersion, ipAddress: maskedIp },
+        });
+      } else if (existing && !existing.revokedAt && existing.version < scopeVersion) {
+        // Active but stale version — re-accept bumps version
+        await prisma.consent.update({
+          where: { id: existing.id },
+          data: { grantedAt: new Date(), version: scopeVersion, ipAddress: maskedIp },
+        });
+      } else if (!existing) {
+        // First time granting this scope
+        await prisma.consent.create({
+          data: { userId: session.userId, scope, version: scopeVersion, ipAddress: maskedIp },
+        });
+      }
+      // else: already active at current version, no-op
+    } else {
+      // Revoke: set revokedAt on active consent
+      await prisma.consent.updateMany({
+        where: { userId: session.userId, scope, revokedAt: null },
+        data: { revokedAt: new Date() },
       });
     }
-    // else: already active at current version, no-op
-  } else {
-    // Revoke: set revokedAt on active consent
-    await prisma.consent.updateMany({
-      where: { userId: session.userId, scope, revokedAt: null },
-      data: { revokedAt: new Date() },
-    });
-  }
 
-  return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "consentimentos" } });
+    return NextResponse.json({ error: "Erro interno." }, { status: 500 });
+  }
 }

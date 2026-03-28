@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { timingSafeEqual } from "crypto";
 import * as Sentry from "@sentry/nextjs";
 import { prisma } from "@/lib/db";
 import { sendPush, type PushPayload, type PushResult } from "@/lib/web-push";
@@ -69,8 +70,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ skipped: true, reason: "kill_switch" });
   }
 
-  const authHeader = request.headers.get("authorization");
-  if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  const authHeader = request.headers.get("authorization") ?? "";
+  const expected = `Bearer ${process.env.CRON_SECRET ?? ""}`;
+  if (!process.env.CRON_SECRET || authHeader.length !== expected.length || !timingSafeEqual(Buffer.from(authHeader), Buffer.from(expected))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

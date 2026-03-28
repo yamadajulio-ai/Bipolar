@@ -3,10 +3,11 @@ import * as Sentry from "@sentry/nextjs";
 import { prisma } from "@/lib/db";
 import { getSession, verifyPassword } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/security";
+import { revokeAllUserSessions } from "@/lib/native-auth";
 import { z } from "zod/v4";
 
 const bodySchema = z.object({
-  password: z.string().min(1, "Senha obrigatória").optional(),
+  password: z.string().min(1, "Senha obrigatória").max(128).optional(),
 });
 
 /**
@@ -105,6 +106,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Revoke all native sessions before cascade delete — prevents stale access tokens
+    // from being valid during the 15-min token lifetime window
+    await revokeAllUserSessions(userId).catch((err) => {
+      Sentry.captureException(err, { level: "warning", tags: { endpoint: "excluir-conta", action: "revoke-native-sessions" } });
+    });
+
     await prisma.user.delete({ where: { id: userId } });
   } catch (err) {
     Sentry.captureException(err, { tags: { endpoint: "excluir-conta" } });
@@ -113,6 +120,8 @@ export async function POST(request: NextRequest) {
 
   session.destroy();
 
-  // Redirect to landing page after deletion
-  return NextResponse.redirect(new URL("/", request.url), 303);
+  // Clear all browser-side data (LGPD Art. 18 — complete data elimination)
+  const response = NextResponse.redirect(new URL("/", request.url), 303);
+  response.headers.set("Clear-Site-Data", '"cache", "cookies", "storage"');
+  return response;
 }

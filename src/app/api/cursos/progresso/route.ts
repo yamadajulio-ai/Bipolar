@@ -6,8 +6,8 @@ import { checkRateLimit } from "@/lib/security";
 import * as Sentry from "@sentry/nextjs";
 
 const progressSchema = z.object({
-  courseSlug: z.string().min(1),
-  lessonSlug: z.string().min(1),
+  courseSlug: z.string().min(1).max(200),
+  lessonSlug: z.string().min(1).max(200),
 });
 
 export async function GET() {

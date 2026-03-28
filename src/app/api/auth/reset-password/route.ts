@@ -4,6 +4,8 @@ import { createHash } from "crypto";
 import { prisma } from "@/lib/db";
 import { hashPassword } from "@/lib/auth";
 import { checkRateLimit, getClientIp } from "@/lib/security";
+import { revokeAllUserSessions } from "@/lib/native-auth";
+import * as Sentry from "@sentry/nextjs";
 
 /** Hash token with SHA-256 to match stored hash */
 function hashToken(token: string): string {
@@ -56,16 +58,23 @@ export async function POST(request: NextRequest) {
   // Hash new password and update user
   const passwordHash = await hashPassword(password);
 
-  await prisma.$transaction([
-    prisma.user.update({
+  const updatedUser = await prisma.$transaction(async (tx) => {
+    const user = await tx.user.update({
       where: { email: resetToken.email },
       data: { passwordHash, passwordChangedAt: new Date() },
-    }),
-    prisma.passwordResetToken.update({
+      select: { id: true },
+    });
+    await tx.passwordResetToken.update({
       where: { id: resetToken.id },
       data: { usedAt: new Date() },
-    }),
-  ]);
+    });
+    return user;
+  });
+
+  // Revoke all native app sessions (password changed → force re-login)
+  await revokeAllUserSessions(updatedUser.id).catch((err) => {
+    Sentry.captureException(err, { level: "warning", tags: { endpoint: "reset-password", action: "revoke-native-sessions" } });
+  });
 
   return NextResponse.json({ ok: true });
 }

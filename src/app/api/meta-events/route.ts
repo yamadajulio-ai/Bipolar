@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { sendMetaEvent } from "@/lib/meta-capi";
-import { getClientIp } from "@/lib/security";
+import { getClientIp, checkRateLimit, maskIp } from "@/lib/security";
 
 /** Whitelist de eventos padrão da Meta — nunca aceitar nomes arbitrários */
 const ALLOWED_EVENTS = new Set([
@@ -44,6 +45,13 @@ function isValidSourceUrl(url: string): boolean {
  * - Custom data: whitelist de campos permitidos
  */
 export async function POST(request: NextRequest) {
+  // Rate limit: 30 events per minute per IP
+  const rawIp = getClientIp(request);
+  const rlAllowed = await checkRateLimit(`meta-events:${rawIp}`, 30, 60_000);
+  if (!rlAllowed) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  }
+
   try {
     const body = await request.json();
     const { eventName, eventId, sourceUrl, customData } = body;
@@ -82,9 +90,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Extrair dados do request para user_data
-    const rawIp = getClientIp(request);
-    const ipAddress = rawIp === "unknown" ? undefined : rawIp;
+    // Mask IP before sending to Meta — minimize PII exposure (LGPD)
+    const ipAddress = rawIp === "unknown" ? undefined : (maskIp(rawIp) ?? undefined);
     const userAgent = request.headers.get("user-agent") || undefined;
 
     // Cookies do Meta Pixel (_fbc, _fbp)
@@ -103,7 +110,8 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({ ok: true });
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "meta-events" } });
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 }

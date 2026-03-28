@@ -9,8 +9,14 @@ function getKey(): Buffer {
   if (!key) {
     throw new Error("TOKEN_ENCRYPTION_KEY env var is required");
   }
-  // Key must be 32 bytes (64 hex chars) for AES-256
-  return Buffer.from(key, "hex");
+  if (key.length !== 64 || !/^[0-9a-fA-F]{64}$/.test(key)) {
+    throw new Error("TOKEN_ENCRYPTION_KEY must be exactly 64 hex characters (32 bytes for AES-256)");
+  }
+  const buf = Buffer.from(key, "hex");
+  if (buf.length !== 32) {
+    throw new Error("TOKEN_ENCRYPTION_KEY decoded to wrong length");
+  }
+  return buf;
 }
 
 /**

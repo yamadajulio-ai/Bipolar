@@ -2,11 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import * as Sentry from "@sentry/nextjs";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { checkRateLimit, getClientIp, maskIp } from "@/lib/security";
+import { checkRateLimit, getClientIp } from "@/lib/security";
 import { verifyAppleIdentityToken, exchangeAppleCodeForTokens } from "@/lib/apple/auth";
 import { encrypt } from "@/lib/crypto";
-
-const CONSENT_VERSION = 1;
 
 /**
  * POST /api/auth/apple-login/callback
@@ -32,13 +30,34 @@ export async function POST(request: NextRequest) {
   // Apple sends user info as JSON string on first authorization only
   const userJson = formData.get("user") as string | null;
 
+  /** Helper: redirect to login with error + always clean up state cookie */
+  function errorRedirect(error: string): NextResponse {
+    const response = NextResponse.redirect(new URL(`/login?error=${error}`, request.url));
+    response.cookies.delete("apple-login-state");
+    return response;
+  }
+
+  // Validate field sizes (parity with POST schema limits)
+  if (idToken && idToken.length > 10000) {
+    return errorRedirect("invalid_request");
+  }
+  if (code && code.length > 2000) {
+    return errorRedirect("invalid_request");
+  }
+  if (state && state.length > 200) {
+    return errorRedirect("invalid_request");
+  }
+  if (userJson && userJson.length > 5000) {
+    return errorRedirect("invalid_request");
+  }
+
   // CSRF: validate state matches cookie
   if (!state || !storedState || state !== storedState) {
-    return NextResponse.redirect(new URL("/login?error=csrf", request.url));
+    return errorRedirect("csrf");
   }
 
   if (!idToken) {
-    return NextResponse.redirect(new URL("/login?error=no_token", request.url));
+    return errorRedirect("no_token");
   }
 
   try {
@@ -46,11 +65,11 @@ export async function POST(request: NextRequest) {
     const appleUser = await verifyAppleIdentityToken(idToken);
 
     if (!appleUser.email) {
-      return NextResponse.redirect(new URL("/login?error=apple_login_failed", request.url));
+      return errorRedirect("apple_login_failed");
     }
 
     if (!appleUser.emailVerified) {
-      return NextResponse.redirect(new URL("/login?error=email_not_verified", request.url));
+      return errorRedirect("email_not_verified");
     }
 
     // Normalize email for consistent DB lookups
@@ -64,9 +83,6 @@ export async function POST(request: NextRequest) {
         encryptedAppleRefreshToken = encrypt(tokens.refresh_token);
       }
     }
-
-    const rawIp = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-    const maskedIp = maskIp(rawIp);
 
     const selectFields = { id: true, email: true, name: true, onboarded: true } as const;
 
@@ -111,43 +127,25 @@ export async function POST(request: NextRequest) {
 
       if (user) {
         // Link Apple account to existing user
-        await prisma.$transaction([
-          prisma.user.update({
-            where: { id: user.id },
-            data: {
-              appleSub: appleUser.sub,
-              appleRefreshToken: encryptedAppleRefreshToken || undefined,
-              name: user.name || displayName,
-            },
-          }),
-          prisma.consent.createMany({
-            data: [
-              { userId: user.id, scope: "health_data", version: CONSENT_VERSION, ipAddress: maskedIp },
-              { userId: user.id, scope: "terms_of_use", version: CONSENT_VERSION, ipAddress: maskedIp },
-            ],
-            skipDuplicates: true,
-          }),
-        ]);
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            appleSub: appleUser.sub,
+            appleRefreshToken: encryptedAppleRefreshToken || undefined,
+            name: user.name || displayName,
+          },
+        });
       } else {
-        // 3. Create new user (no password) + consents atomically
-        user = await prisma.$transaction(async (tx) => {
-          const newUser = await tx.user.create({
-            data: {
-              email: appleUser.email,
-              authProvider: "apple",
-              appleSub: appleUser.sub,
-              appleRefreshToken: encryptedAppleRefreshToken || undefined,
-              name: displayName,
-            },
-            select: selectFields,
-          });
-          await tx.consent.createMany({
-            data: [
-              { userId: newUser.id, scope: "health_data", version: CONSENT_VERSION, ipAddress: maskedIp },
-              { userId: newUser.id, scope: "terms_of_use", version: CONSENT_VERSION, ipAddress: maskedIp },
-            ],
-          });
-          return newUser;
+        // 3. Create new user (no password) — consents collected explicitly in onboarding
+        user = await prisma.user.create({
+          data: {
+            email: appleUser.email,
+            authProvider: "apple",
+            appleSub: appleUser.sub,
+            appleRefreshToken: encryptedAppleRefreshToken || undefined,
+            name: displayName,
+          },
+          select: selectFields,
         });
       }
     }
@@ -176,6 +174,6 @@ export async function POST(request: NextRequest) {
       errorType: err instanceof Error ? err.constructor.name : "Unknown",
       message: (err as Error).message?.slice(0, 200) || "Unknown",
     }));
-    return NextResponse.redirect(new URL("/login?error=apple_login_failed", request.url));
+    return errorRedirect("apple_login_failed");
   }
 }

@@ -6,7 +6,7 @@ import { prisma } from "@/lib/db";
 import { maskIp } from "@/lib/security";
 
 // ── Zod schemas for Meta WhatsApp Cloud API webhook payload ─────
-const whatsappTextSchema = z.object({ body: z.string() });
+const whatsappTextSchema = z.object({ body: z.string().max(4096) });
 
 const whatsappMessageSchema = z.object({
   id: z.string().optional(),

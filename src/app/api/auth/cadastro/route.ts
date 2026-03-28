@@ -6,9 +6,9 @@ import { getSession, hashPassword } from "@/lib/auth";
 import { maskIp, checkRateLimit, getClientIp } from "@/lib/security";
 
 const cadastroSchema = z.object({
-  email: z.email("E-mail inválido"),
-  senha: z.string().min(8, "Senha deve ter no mínimo 8 caracteres"),
-  confirmarSenha: z.string(),
+  email: z.email("E-mail inválido").max(254),
+  senha: z.string().min(8, "Senha deve ter no mínimo 8 caracteres").max(128),
+  confirmarSenha: z.string().max(128),
   ageGate: z.literal(true, "Você deve ter 18 anos ou mais"),
   healthConsent: z.literal(true, "Consentimento de dados de saúde obrigatório"),
 }).check(
@@ -49,16 +49,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ errors: fieldErrors }, { status: 400 });
     }
 
-    const { email, senha } = parsed.data;
+    const { email: rawEmail, senha } = parsed.data;
+    const email = rawEmail.toLowerCase().trim();
 
+    // Check if email already exists — use generic error to prevent account enumeration
+    // (in a health app, confirming account existence leaks sensitive info)
     const existing = await prisma.user.findUnique({
       where: { email },
       select: { id: true },
     });
     if (existing) {
       return NextResponse.json(
-        { error: "Este e-mail já está cadastrado." },
-        { status: 409 },
+        { error: "Não foi possível criar a conta. Verifique os dados e tente novamente." },
+        { status: 400 },
       );
     }
 

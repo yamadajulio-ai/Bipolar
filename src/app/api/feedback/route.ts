@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod/v4";
+import * as Sentry from "@sentry/nextjs";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/security";
@@ -45,25 +46,30 @@ export async function POST(request: NextRequest) {
   const rawMessage = parsed.data.message.trim();
   const crisisTier = detectCrisis(rawMessage);
 
-  // Store raw validated text — React handles escaping on render
-  const feedback = await prisma.feedback.create({
-    data: {
-      userId: session.userId,
-      category: parsed.data.category,
-      message: rawMessage,
-      screen: parsed.data.screen ?? null,
-      canContact: parsed.data.canContact,
-      priority: crisisTier !== "none" ? "high" : "normal",
-      route: parsed.data.route ?? null,
-      appVersion: parsed.data.appVersion ?? null,
-      clientType: parsed.data.clientType ?? null,
-    },
-  });
+  try {
+    // Store raw validated text — React handles escaping on render
+    const feedback = await prisma.feedback.create({
+      data: {
+        userId: session.userId,
+        category: parsed.data.category,
+        message: rawMessage,
+        screen: parsed.data.screen ?? null,
+        canContact: parsed.data.canContact,
+        priority: crisisTier !== "none" ? "high" : "normal",
+        route: parsed.data.route ?? null,
+        appVersion: parsed.data.appVersion ?? null,
+        clientType: parsed.data.clientType ?? null,
+      },
+    });
 
-  // Don't expose crisis boolean directly — return neutral follow-up signal
-  return NextResponse.json({
-    ok: true,
-    id: feedback.id,
-    followUp: crisisTier !== "none" ? "support" : null,
-  }, { headers: HEADERS });
+    // Don't expose crisis boolean directly — return neutral follow-up signal
+    return NextResponse.json({
+      ok: true,
+      id: feedback.id,
+      followUp: crisisTier !== "none" ? "support" : null,
+    }, { headers: HEADERS });
+  } catch (err) {
+    Sentry.captureException(err, { tags: { endpoint: "feedback" } });
+    return NextResponse.json({ error: "Erro interno." }, { status: 500, headers: HEADERS });
+  }
 }

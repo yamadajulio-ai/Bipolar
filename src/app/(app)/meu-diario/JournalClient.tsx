@@ -530,7 +530,7 @@ function MoodBadge({
     <div className="flex items-center gap-1.5">
       {mixed && (
         <span
-          className="rounded-full bg-purple-100 px-1.5 py-0.5 text-[11px] font-medium text-purple-800"
+          className="rounded-full bg-purple-100 dark:bg-purple-900/50 px-1.5 py-0.5 text-[11px] font-medium text-purple-800 dark:text-purple-200"
           title="Sinais de mania e depressão ao mesmo tempo"
         >
           Sinais mistos

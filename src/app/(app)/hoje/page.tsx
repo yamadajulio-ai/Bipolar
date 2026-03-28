@@ -669,7 +669,7 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
                 {heroLabel}
               </span>
               {thermometer?.mixedFeatures && (
-                <span className="ml-2 inline-block rounded-full px-2 py-0.5 text-[11px] font-bold bg-purple-100 text-purple-800 border border-purple-200">
+                <span className="ml-2 inline-block rounded-full px-2 py-0.5 text-[11px] font-bold bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-200 border border-purple-200 dark:border-purple-700">
                   Humor e energia em direções opostas
                 </span>
               )}

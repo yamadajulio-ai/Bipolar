@@ -68,14 +68,14 @@ export function SafetyInterstitial({ source, sourceAssessmentId, onComplete, onD
         <h3 className="text-base font-bold text-orange-900 dark:text-orange-200 mb-2">
           Triagem de segurança
         </h3>
-        <p className="text-sm text-orange-800 mb-4">
+        <p className="text-sm text-orange-800 dark:text-orange-300 mb-4">
           Você marcou um sinal que merece cuidado. São perguntas rápidas para entender qual apoio faz sentido agora.
           Suas respostas são confidenciais.
         </p>
         <div className="flex gap-2">
           <button
             onClick={() => setStep("asq")}
-            className="flex-1 rounded-lg bg-orange-600 px-4 py-3 text-sm font-medium text-white hover:bg-orange-700"
+            className="flex-1 rounded-lg bg-orange-600 dark:bg-orange-700 px-4 py-3 text-sm font-medium text-white hover:bg-orange-700 dark:hover:bg-orange-600"
           >
             Começar agora
           </button>

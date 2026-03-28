@@ -358,7 +358,7 @@ export default function IntegraçõesPage() {
                   <td className="py-1.5 pr-2">Huawei Health</td>
                   <td className="py-1.5 pr-2 text-success-fg">&#10003;</td>
                   <td className="py-1.5 pr-2 text-success-fg">&#10003;</td>
-                  <td className="py-1.5 pr-2 text-amber-500">~</td>
+                  <td className="py-1.5 pr-2 text-warning-fg">~</td>
                   <td className="py-1.5 text-success-fg">&#10003;</td>
                 </tr>
                 <tr className="border-b border-emerald-100 dark:border-emerald-900/50">
@@ -367,7 +367,7 @@ export default function IntegraçõesPage() {
                   <td className="py-1.5 pr-2">Zepp</td>
                   <td className="py-1.5 pr-2 text-success-fg">&#10003;</td>
                   <td className="py-1.5 pr-2 text-success-fg">&#10003;</td>
-                  <td className="py-1.5 pr-2 text-amber-500">~</td>
+                  <td className="py-1.5 pr-2 text-warning-fg">~</td>
                   <td className="py-1.5 text-success-fg">&#10003;</td>
                 </tr>
                 <tr className="border-b border-emerald-100 dark:border-emerald-900/50">
@@ -376,7 +376,7 @@ export default function IntegraçõesPage() {
                   <td className="py-1.5 pr-2">Zepp</td>
                   <td className="py-1.5 pr-2 text-success-fg">&#10003;</td>
                   <td className="py-1.5 pr-2 text-success-fg">&#10003;</td>
-                  <td className="py-1.5 pr-2 text-amber-500">~</td>
+                  <td className="py-1.5 pr-2 text-warning-fg">~</td>
                   <td className="py-1.5 text-success-fg">&#10003;</td>
                 </tr>
                 <tr>
@@ -392,7 +392,7 @@ export default function IntegraçõesPage() {
             </table>
           </div>
           <p className="text-xs text-muted">
-            <strong>&#10003;</strong> = confiável &nbsp; <strong className="text-amber-500">~</strong> = cobertura variável (validar antes) &nbsp; <strong className="text-muted">&#8212;</strong> = não disponível
+            <strong>&#10003;</strong> = confiável &nbsp; <strong className="text-warning-fg">~</strong> = cobertura variável (validar antes) &nbsp; <strong className="text-muted">&#8212;</strong> = não disponível
           </p>
           <p className="text-xs text-muted">
             Preços de referência do varejo brasileiro (mar/2026). Podem variar por loja e promoção.

@@ -156,7 +156,7 @@ export default function MedicamentosPage() {
     <div className="mx-auto max-w-lg">
       <h1 className="mb-2 text-2xl font-bold">Meus Medicamentos</h1>
       <p className="mb-6 text-sm text-muted">
-        Cadastre seus medicamentos e horários para acompanhar a adesão por dose no check-in.
+        Cadastre seus medicamentos e horários para acompanhar a adesão por dose no check-in. Este recurso não substitui orientação médica.
       </p>
 
       {success && <Alert variant="success" className="mb-4">{success}</Alert>}

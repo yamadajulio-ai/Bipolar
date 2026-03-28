@@ -122,7 +122,7 @@ export default function LifeChartPage() {
         <div>
           <h1 className="text-2xl font-bold">Life Chart</h1>
           <p className="text-sm text-muted">
-            Registre eventos importantes da sua vida que podem influenciar o humor
+            Registre eventos importantes da sua vida que podem influenciar o humor. Este recurso não substitui avaliação profissional.
           </p>
         </div>
         <button

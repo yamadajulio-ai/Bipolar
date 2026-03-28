@@ -123,7 +123,7 @@ export default function FinanceiroPage() {
         <div>
           <h1 className="text-2xl font-bold">Financeiro</h1>
           <p className="text-sm text-muted">
-            Controle de gastos — importante para a sua estabilidade.
+            Controle de gastos — importante para a sua estabilidade. Este recurso não substitui avaliação profissional.
           </p>
         </div>
         <div className="flex items-center gap-1">

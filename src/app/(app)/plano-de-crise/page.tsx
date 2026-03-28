@@ -14,7 +14,8 @@ export default async function PlanoDeCrisePage() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <h1 className="mb-4 text-2xl font-bold">Plano de Crise</h1>
+      <h1 className="mb-2 text-2xl font-bold">Plano de Crise</h1>
+      <p className="mb-4 text-sm text-muted">Este recurso não substitui avaliação profissional.</p>
 
       <Alert variant="danger" className="mb-6">
         <strong>Em crise ou risco imediato?</strong> Ligue agora:{" "}

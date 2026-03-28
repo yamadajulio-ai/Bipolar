@@ -221,7 +221,7 @@ function getReactionLevel(ms: number): { label: string; color: string; emoji: st
   if (ms < 250) return { label: "Excelente", color: "text-green-700 dark:text-green-500", emoji: "🟢", detail: "Sua velocidade de processamento está acima da média. Reflexos muito rápidos." };
   if (ms < 350) return { label: "Bom", color: "text-green-600 dark:text-green-400", emoji: "🟢", detail: "Dentro da faixa esperada para adultos saudáveis (250–350ms). Boa velocidade de processamento." };
   if (ms < 500) return { label: "Normal", color: "text-amber-600 dark:text-amber-400", emoji: "🟡", detail: "Ligeiramente acima da média, mas dentro do aceitável. Fadiga, sono ou medicação podem influenciar." };
-  if (ms < 700) return { label: "Lento", color: "text-orange-600 dark:text-orange-400", emoji: "🟠", detail: "Acima do esperado. Pode indicar fadiga, efeito de medicação sedativa, ou lentificação cognitiva — comum em episódios depressivos." };
+  if (ms < 700) return { label: "Lento", color: "text-orange-600 dark:text-orange-400", emoji: "🟠", detail: "Acima do esperado. Pode indicar fadiga, efeito de medicação sedativa, ou lentificação cognitiva (raciocínio mais lento) — comum em episódios depressivos." };
   return { label: "Muito lento", color: "text-red-600 dark:text-red-400", emoji: "🔴", detail: "Significativamente acima do esperado. Considere se está com fadiga intensa, efeito de medicação, ou em fase depressiva. Vale relatar ao profissional." };
 }
 
@@ -408,8 +408,8 @@ function ResultsScreen({ result, history, onBack, onReset, onSaved }: { result: 
           <h4 className="text-xs font-semibold mb-1">O que pode influenciar seus resultados:</h4>
           <ul className="space-y-0.5 text-[11px] text-muted">
             <li>• <strong>Sono:</strong> privação de sono reduz velocidade e memória</li>
-            <li>• <strong>Humor:</strong> episódios depressivos causam lentificação cognitiva</li>
-            <li>• <strong>Medicação:</strong> estabilizadores e antipsicóticos podem afetar tempo de reação</li>
+            <li>• <strong>Humor:</strong> episódios depressivos podem causar lentificação cognitiva (raciocínio mais lento)</li>
+            <li>• <strong>Medicação:</strong> alguns medicamentos (como estabilizadores de humor e antipsicóticos) podem afetar tempo de reação</li>
             <li>• <strong>Hora do dia:</strong> o desempenho cognitivo varia ao longo do dia</li>
             <li>• <strong>Prática:</strong> refazer o teste regularmente ajuda a acompanhar tendências</li>
           </ul>

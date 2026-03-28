@@ -26,7 +26,7 @@ const MODULES: PlaybookModule[] = [
       "O transtorno bipolar é uma condição de saúde — não uma escolha ou falha de caráter. Entender o que acontece no cérebro ajuda a ter empatia e reduzir julgamentos.",
     keyPoints: [
       "O transtorno bipolar envolve alterações no humor, energia e sono que vão além do normal",
-      "Existem diferentes tipos: Bipolar I, II e ciclotimia — cada um com características próprias",
+      "Existem diferentes tipos: Bipolar I, II e ciclotimia (forma mais leve, com oscilações menos intensas) — cada um com características próprias",
       "O tratamento combina medicação e rotina — ambos são essenciais",
       "Episódios podem ser precedidos por sinais de alerta, como mudanças no sono",
       "A pessoa com transtorno bipolar não controla os episódios — apoio sem julgamento faz diferença",

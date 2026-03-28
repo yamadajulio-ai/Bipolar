@@ -4,8 +4,9 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { QuickBreathing } from "@/components/sos/QuickBreathing";
 import { SOSChatbot } from "@/components/sos/SOSChatbot";
+import { DeescalationKit } from "@/components/sos/DeescalationKit";
 
-type View = "main" | "breathing" | "grounding" | "chat" | "waiting188";
+type View = "main" | "breathing" | "grounding" | "chat" | "waiting188" | "deescalation";
 
 const VIEW_LABELS: Record<View, string> = {
   main: "Tela principal de emergência",
@@ -13,6 +14,7 @@ const VIEW_LABELS: Record<View, string> = {
   grounding: "Exercício de aterramento",
   chat: "Companheiro de espera",
   waiting188: "Espera acompanhada do 188",
+  deescalation: "Kit de desescalada",
 };
 
 interface TrustedContact {
@@ -142,6 +144,16 @@ export default function SOSPage() {
         {subViewHeader}
         {liveRegion}
         <StepByStepGrounding onClose={() => setView("main")} />
+      </div>
+    );
+  }
+
+  if (view === "deescalation") {
+    return (
+      <div className={wrapperClass}>
+        {subViewHeader}
+        {liveRegion}
+        <DeescalationKit onClose={() => setView("main")} />
       </div>
     );
   }
@@ -385,6 +397,25 @@ export default function SOSPage() {
             Ferramentas rápidas (1–3 min)
           </p>
           <div className="space-y-3">
+            {/* De-escalation kit — bundles breathing + grounding, works offline */}
+            <button
+              onClick={() => {
+                setView("deescalation");
+                logSOS("breathing");
+              }}
+              className="w-full rounded-xl bg-gradient-to-r from-blue-800 to-indigo-800 p-5 text-left transition-opacity hover:opacity-90"
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-bold">Kit de desescalada</span>
+                <span className="rounded-full bg-emerald-800/60 px-2 py-0.5 text-xs font-medium text-emerald-300">
+                  offline
+                </span>
+              </div>
+              <span className="text-sm text-blue-200">
+                Respiração 4-7-8 + aterramento 5-4-3-2-1
+              </span>
+            </button>
+
             <button
               onClick={() => {
                 setView("breathing");

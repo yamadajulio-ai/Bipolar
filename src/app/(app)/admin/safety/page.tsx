@@ -176,8 +176,8 @@ export default async function AdminSafetyPage() {
                       <td className="py-2 pr-3 text-xs">
                         <span className={`inline-block rounded px-1.5 py-0.5 text-xs font-medium ${
                           ev.action === "called_188" || ev.action === "called_192"
-                            ? "bg-red-100 dark:bg-red-950/40 text-red-700 dark:text-red-300"
-                            : "bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300"
+                            ? "bg-danger-bg-subtle text-danger-fg"
+                            : "bg-warning-bg-subtle text-warning-fg"
                         }`}>
                           {SOS_ACTION_LABELS[ev.action] ?? ev.action}
                         </span>
@@ -252,13 +252,13 @@ export default async function AdminSafetyPage() {
       <div className="grid grid-cols-2 gap-3">
         <Card>
           <p className="text-xs text-muted">Total (todos os tempos)</p>
-          <p className={`text-2xl font-bold ${highPriorityCount > 0 ? "text-red-600 dark:text-red-400" : ""}`}>
+          <p className={`text-2xl font-bold ${highPriorityCount > 0 ? "text-danger-fg" : ""}`}>
             {highPriorityCount}
           </p>
         </Card>
         <Card>
           <p className="text-xs text-muted">Últimos 30 dias</p>
-          <p className={`text-2xl font-bold ${highPriority30d > 0 ? "text-red-600 dark:text-red-400" : ""}`}>
+          <p className={`text-2xl font-bold ${highPriority30d > 0 ? "text-danger-fg" : ""}`}>
             {highPriority30d}
           </p>
         </Card>

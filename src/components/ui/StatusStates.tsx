@@ -20,12 +20,12 @@ interface ErrorStateProps {
 
 export function ErrorState({ message = "Algo deu errado.", onRetry }: ErrorStateProps) {
   return (
-    <div className="rounded-[var(--radius-card)] border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950 p-4 text-center space-y-2" role="alert">
-      <p className="text-red-700 dark:text-red-300 text-sm font-medium">{message}</p>
+    <div className="rounded-[var(--radius-card)] border border-danger-border bg-danger-bg-subtle p-4 text-center space-y-2" role="alert">
+      <p className="text-danger-fg text-sm font-medium">{message}</p>
       {onRetry && (
         <button
           onClick={onRetry}
-          className="text-sm text-red-600 dark:text-red-400 underline hover:text-red-800 dark:hover:text-red-200 min-h-[44px]"
+          className="text-sm text-danger-fg underline hover:opacity-80 min-h-[44px]"
         >
           Tentar novamente
         </button>

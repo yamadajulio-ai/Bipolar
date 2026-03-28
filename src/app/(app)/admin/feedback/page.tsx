@@ -101,7 +101,7 @@ export default async function AdminFeedbackPage({
         </Card>
         <Card>
           <p className="text-xs text-muted">Sinal de risco</p>
-          <p className="text-2xl font-bold text-red-600 dark:text-red-400">{highPriorityCount}</p>
+          <p className="text-2xl font-bold text-danger-fg">{highPriorityCount}</p>
         </Card>
         <Card>
           <p className="text-xs text-muted">Feedback contextual</p>
@@ -125,7 +125,7 @@ export default async function AdminFeedbackPage({
               {label}
             </a>
           ))}
-          <a href="/admin/feedback?priority=high" className={`px-2 py-1 rounded ${priorityFilter === "high" ? "bg-red-600 text-white" : "bg-red-50 text-red-700"}`}>
+          <a href="/admin/feedback?priority=high" className={`px-2 py-1 rounded ${priorityFilter === "high" ? "bg-red-600 text-white" : "bg-danger-bg-subtle text-danger-fg"}`}>
             Sinal de risco
           </a>
         </div>
@@ -142,9 +142,9 @@ export default async function AdminFeedbackPage({
             <div className="flex-1">
               <div className="flex flex-wrap items-center gap-2 mb-1">
                 <span className={`inline-block rounded px-1.5 py-0.5 text-xs font-medium ${
-                  fb.category === "bug" ? "bg-red-100 dark:bg-red-950/40 text-red-700 dark:text-red-300" :
-                  fb.category === "suggestion" ? "bg-blue-100 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300" :
-                  fb.category === "praise" ? "bg-green-100 dark:bg-green-950/40 text-green-700 dark:text-green-300" :
+                  fb.category === "bug" ? "bg-danger-bg-subtle text-danger-fg" :
+                  fb.category === "suggestion" ? "bg-info-bg-subtle text-info-fg" :
+                  fb.category === "praise" ? "bg-success-bg-subtle text-success-fg" :
                   "bg-surface-alt text-muted"
                 }`}>
                   {FEEDBACK_CATEGORY_LABELS[fb.category as keyof typeof FEEDBACK_CATEGORY_LABELS] ?? fb.category}
@@ -158,7 +158,7 @@ export default async function AdminFeedbackPage({
                   <span className="text-xs text-muted">Tela: {fb.screen}</span>
                 )}
                 {fb.canContact && (
-                  <span className="text-xs text-green-600 dark:text-green-400">Aceita contato</span>
+                  <span className="text-xs text-success-fg">Aceita contato</span>
                 )}
               </div>
               <p className="text-sm whitespace-pre-wrap break-words">{fb.message}</p>
@@ -217,7 +217,7 @@ export default async function AdminFeedbackPage({
                     <td className="py-2 pr-4">{entry.total}</td>
                     <td className="py-2 pr-4">{entry.yes}</td>
                     <td className="py-2">
-                      <span className={entry.positiveRate >= 70 ? "text-green-600 dark:text-green-400" : entry.positiveRate >= 40 ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400"}>
+                      <span className={entry.positiveRate >= 70 ? "text-success-fg" : entry.positiveRate >= 40 ? "text-warning-fg" : "text-danger-fg"}>
                         {entry.positiveRate}%
                       </span>
                     </td>

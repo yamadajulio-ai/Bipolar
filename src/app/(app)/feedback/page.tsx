@@ -161,8 +161,8 @@ export default function FeedbackPage() {
         Sua opinião é essencial para melhorarmos o Suporte Bipolar.
       </p>
 
-      <Card className="mb-4 border-amber-200 bg-amber-50/50">
-        <p className="text-xs text-amber-800 leading-relaxed">
+      <Card className="mb-4 border-warning-border bg-warning-bg-subtle">
+        <p className="text-xs text-warning-fg leading-relaxed">
           Este canal <strong>não é monitorado em tempo real</strong>.
           Em risco imediato, ligue <strong>CVV 188</strong> ou <strong>SAMU 192</strong>.{" "}
           <Link href="/sos" className="underline font-medium">

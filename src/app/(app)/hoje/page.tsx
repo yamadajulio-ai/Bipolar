@@ -695,7 +695,7 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
           {combinedPatterns.length > 0 && (
             <div className="mb-3 space-y-1">
               {combinedPatterns.slice(0, 2).map((p, i) => (
-                <div key={i} className={`text-xs rounded px-2 py-1 ${p.variant === "danger" ? "bg-red-100/60 text-red-800" : p.variant === "warning" ? "bg-amber-100/60 text-amber-800" : "bg-blue-100/60 text-blue-800"}`}>
+                <div key={i} className={`text-xs rounded px-2 py-1 ${p.variant === "danger" ? "bg-danger-bg-subtle text-danger-fg" : p.variant === "warning" ? "bg-warning-bg-subtle text-warning-fg" : "bg-info-bg-subtle text-info-fg"}`}>
                   <span className="font-medium">{p.title}:</span> {p.message}
                 </div>
               ))}
@@ -734,7 +734,7 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
 
       {/* === SINAIS DE GASTOS (when financial anomaly detected) === */}
       {hasFinancialSignal && hasFinancial && (
-        <Card className={`border ${hasFinancialWithContext ? "border-amber-300 bg-amber-50/50" : "border-border bg-surface-alt/50"}`}>
+        <Card className={`border ${hasFinancialWithContext ? "border-warning-border bg-warning-bg-subtle" : "border-border bg-surface-alt/50"}`}>
           <div className="flex items-start justify-between mb-2">
             <h2 className="text-sm font-semibold text-foreground">Sinais de gastos</h2>
             <Link href="/financeiro" className="text-xs text-primary hover:underline">Detalhes</Link>
@@ -748,7 +748,7 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
             ))}
           </div>
           {hasFinancialWithContext && (
-            <p className="mt-2 text-xs text-amber-700">
+            <p className="mt-2 text-xs text-warning-fg">
               Mudanças nos gastos junto com alterações de sono ou energia podem ser um sinal comportamental. Observe e converse com seu profissional se persistir.
             </p>
           )}
@@ -835,9 +835,9 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
               {todayMedExpected > 0 ? (
                 <>
                   <p className={`text-sm font-semibold mt-0.5 ${
-                    todayMedTaken === todayMedExpected ? "text-emerald-700" :
-                    todayMedTaken > 0 ? "text-amber-600" :
-                    todayMedMissed > 0 ? "text-red-600" : "text-muted"
+                    todayMedTaken === todayMedExpected ? "text-success-fg" :
+                    todayMedTaken > 0 ? "text-warning-fg" :
+                    todayMedMissed > 0 ? "text-danger-fg" : "text-muted"
                   }`}>
                     {todayMedTaken === todayMedExpected
                       ? "Todas tomadas"
@@ -855,8 +855,8 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
                 </>
               ) : (
                 <p className={`text-sm font-semibold mt-0.5 ${
-                  todayEntry.tookMedication === "sim" ? "text-emerald-700" :
-                  todayEntry.tookMedication === "nao" ? "text-red-600" : "text-amber-600"
+                  todayEntry.tookMedication === "sim" ? "text-success-fg" :
+                  todayEntry.tookMedication === "nao" ? "text-danger-fg" : "text-warning-fg"
                 }`}>
                   {todayEntry.tookMedication === "sim" ? "Já tomou" :
                    todayEntry.tookMedication === "nao" ? "Não tomou" : "Ainda não"}

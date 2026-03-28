@@ -48,13 +48,13 @@ export default async function CursoPage({
                 <span className="text-xs text-muted">
                   {completedSlugs.size} de {lessons.length} aulas concluídas
                 </span>
-                <span className={`text-xs font-bold ${isComplete ? "text-green-600" : "text-muted"}`}>
+                <span className={`text-xs font-bold ${isComplete ? "text-success-fg" : "text-muted"}`}>
                   {isComplete ? "Completo!" : `${pct}%`}
                 </span>
               </div>
               <div className="h-2.5 w-full rounded-full bg-black/10">
                 <div
-                  className={`h-2.5 rounded-full transition-all ${isComplete ? "bg-green-500" : "bg-primary"}`}
+                  className={`h-2.5 rounded-full transition-all ${isComplete ? "bg-success" : "bg-primary"}`}
                   style={{ width: `${Math.max(pct > 0 ? 3 : 0, pct)}%` }}
                   role="progressbar"
                   aria-valuenow={pct}
@@ -85,7 +85,7 @@ export default async function CursoPage({
                 <div className="flex items-center gap-3">
                   <span className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${
                     done
-                      ? "bg-green-100 text-green-700"
+                      ? "bg-success-bg-subtle text-success-fg"
                       : "bg-surface-alt text-muted"
                   }`}>
                     {done ? "✓" : lesson.lessonNumber}

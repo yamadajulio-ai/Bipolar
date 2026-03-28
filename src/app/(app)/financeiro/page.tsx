@@ -152,9 +152,9 @@ export default function FinanceiroPage() {
         </div>
       </div>
 
-      <div className="mb-6 flex items-center gap-2 rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/30 px-4 py-2.5">
+      <div className="mb-6 flex items-center gap-2 rounded-lg border border-success-border bg-success-bg-subtle px-4 py-2.5">
         <Image src="/mobills-logo.png" alt="Mobills" width={20} height={20} className="shrink-0" />
-        <span className="text-sm font-medium text-green-700 dark:text-green-300">Compatível com Mobills — exporte CSV e importe abaixo</span>
+        <span className="text-sm font-medium text-success-fg">Compatível com Mobills — exporte CSV e importe abaixo</span>
       </div>
 
       {/* Sustained increase alert (7d >= 1.8x baseline) */}
@@ -196,10 +196,10 @@ export default function FinanceiroPage() {
                   {a.date.slice(8)}/{a.date.slice(5, 7)} — R$ {a.spending.toFixed(2)}
                   {a.type === "spending_spike" ? " (valor atípico)" : " (muitas transações)"}
                   {a.mood !== null && a.mood >= 4 && (
-                    <span className="text-red-600 dark:text-red-400 font-medium"> + humor alto ({a.mood}/5)</span>
+                    <span className="text-danger-fg font-medium"> + humor alto ({a.mood}/5)</span>
                   )}
                   {a.energy !== null && a.energy >= 4 && (
-                    <span className="text-red-600 dark:text-red-400 font-medium"> + energia alta ({a.energy}/5)</span>
+                    <span className="text-danger-fg font-medium"> + energia alta ({a.energy}/5)</span>
                   )}
                 </li>
               ))}
@@ -269,19 +269,19 @@ export default function FinanceiroPage() {
           <SummaryCard
             label="Receita"
             value={summary.totalIncome}
-            color="text-green-600"
+            color="text-success-fg"
             change={summary.comparison?.incomeChange}
           />
           <SummaryCard
             label="Despesa"
             value={summary.totalExpense}
-            color="text-red-600"
+            color="text-danger-fg"
             change={summary.comparison?.expenseChange}
             invertChange
           />
           <Card>
             <p className="text-xs text-muted">Saldo</p>
-            <p className={`text-xl font-bold ${summary.balance >= 0 ? "text-green-600" : "text-red-600"}`}>
+            <p className={`text-xl font-bold ${summary.balance >= 0 ? "text-success-fg" : "text-danger-fg"}`}>
               R$ {summary.balance.toFixed(2)}
             </p>
           </Card>
@@ -346,8 +346,8 @@ export default function FinanceiroPage() {
                     <span>
                       <span className="text-muted">R$ {c.previous.toFixed(0)}</span>
                       <span className="mx-1 text-muted">&rarr;</span>
-                      <span className="text-red-600 font-medium">R$ {c.current.toFixed(0)}</span>
-                      <span className="ml-1 text-xs text-red-500">(+{c.changePct.toFixed(0)}%)</span>
+                      <span className="text-danger-fg font-medium">R$ {c.current.toFixed(0)}</span>
+                      <span className="ml-1 text-xs text-danger-fg">(+{c.changePct.toFixed(0)}%)</span>
                     </span>
                   </li>
                 ))}
@@ -425,7 +425,7 @@ export default function FinanceiroPage() {
                 {summary.comparison && summary.comparison.expenseChange !== null && (
                   <li>
                     Despesas{" "}
-                    <strong className={summary.comparison.expenseChange > 0 ? "text-red-600" : "text-green-600"}>
+                    <strong className={summary.comparison.expenseChange > 0 ? "text-danger-fg" : "text-success-fg"}>
                       {summary.comparison.expenseChange > 0 ? "+" : ""}
                       {summary.comparison.expenseChange.toFixed(0)}%
                     </strong>{" "}
@@ -467,9 +467,9 @@ export default function FinanceiroPage() {
 
 function ConfidenceBadge({ confidence }: { confidence: DataConfidence }) {
   const colors = {
-    alta: "bg-green-100 dark:bg-green-950/40 text-green-700 dark:text-green-300",
-    media: "bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300",
-    baixa: "bg-red-100 dark:bg-red-950/40 text-red-700 dark:text-red-300",
+    alta: "bg-success-bg-subtle text-success-fg",
+    media: "bg-warning-bg-subtle text-warning-fg",
+    baixa: "bg-danger-bg-subtle text-danger-fg",
   };
   const labels = { alta: "Alta", media: "Média", baixa: "Baixa" };
   return (
@@ -490,7 +490,7 @@ function CorrelationCard({ label, corr, description }: { label: string; corr: Co
     muito_fraca: "text-muted",
     fraca: "text-amber-600",
     moderada: "text-orange-600",
-    forte: "text-red-600",
+    forte: "text-danger-fg",
   };
 
   return (
@@ -527,7 +527,7 @@ function SummaryCard({
   invertChange?: boolean;
 }) {
   const changeColor = change != null
-    ? (invertChange ? (change > 0 ? "text-red-600 dark:text-red-400" : "text-green-600 dark:text-green-400") : (change > 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"))
+    ? (invertChange ? (change > 0 ? "text-danger-fg" : "text-success-fg") : (change > 0 ? "text-success-fg" : "text-danger-fg"))
     : "";
 
   return (
@@ -677,7 +677,7 @@ function ManualEntryForm({ onCreated }: { onCreated: () => void }) {
         />
       </div>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-danger-fg">{error}</p>}
 
       <button
         type="submit"
@@ -723,10 +723,10 @@ function CategoryClassification({ data }: { data: { category: string; total: num
     <div className="mt-3 pt-3 border-t border-border">
       <h4 className="text-xs font-medium text-muted mb-1.5">Fixo vs Variável</h4>
       <div className="flex gap-2 text-sm">
-        <div className="flex-1 rounded bg-blue-50 dark:bg-blue-950/30 p-2 text-center">
-          <p className="text-xs text-blue-600">Fixo</p>
-          <p className="font-bold text-blue-700">R$ {fixoTotal.toFixed(0)}</p>
-          <p className="text-xs text-blue-500">{fixoPct}%</p>
+        <div className="flex-1 rounded bg-info-bg-subtle p-2 text-center">
+          <p className="text-xs text-info-fg">Fixo</p>
+          <p className="font-bold text-info-fg">R$ {fixoTotal.toFixed(0)}</p>
+          <p className="text-xs text-info-fg">{fixoPct}%</p>
         </div>
         <div className="flex-1 rounded bg-orange-50 dark:bg-orange-950/30 p-2 text-center">
           <p className="text-xs text-orange-600">Variável</p>
@@ -767,13 +767,13 @@ function AlertFeedbackButtons({ alertType, alertDate }: { alertType: string; ale
       <span className="text-xs text-muted">Este alerta foi útil?</span>
       <button
         onClick={() => send(true)}
-        className="rounded border border-green-300 dark:border-green-700 px-2 py-0.5 text-xs text-green-700 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-950/30"
+        className="rounded border border-success-border px-2 py-0.5 text-xs text-success-fg hover:bg-success-bg-subtle"
       >
         Sim
       </button>
       <button
         onClick={() => send(false)}
-        className="rounded border border-red-300 dark:border-red-700 px-2 py-0.5 text-xs text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/30"
+        className="rounded border border-danger-border px-2 py-0.5 text-xs text-danger-fg hover:bg-danger-bg-subtle"
       >
         Não
       </button>

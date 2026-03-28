@@ -208,12 +208,12 @@ export function ImportCSV({ onImported }: { onImported: () => void }) {
 
       {/* Success */}
       {result && (
-        <div className="mt-3 rounded-lg border border-green-200 bg-green-50 p-3 dark:border-green-800 dark:bg-green-950/30">
-          <p className="text-sm font-medium text-green-700 dark:text-green-400">
+        <div className="mt-3 rounded-lg border border-success-border bg-success-bg-subtle p-3">
+          <p className="text-sm font-medium text-success-fg">
             {result.imported} {result.imported === 1 ? "transação importada" : "transações importadas"} com sucesso!
           </p>
           {result.skipped > 0 && (
-            <p className="mt-0.5 text-xs text-green-600 dark:text-green-500">
+            <p className="mt-0.5 text-xs text-success-fg">
               {result.skipped} {result.skipped === 1 ? "duplicata ignorada" : "duplicatas ignoradas"}
             </p>
           )}
@@ -222,8 +222,8 @@ export function ImportCSV({ onImported }: { onImported: () => void }) {
 
       {/* Error */}
       {error && (
-        <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-950/30">
-          <p className="text-sm font-medium text-red-700 dark:text-red-400">{error}</p>
+        <div className="mt-3 rounded-lg border border-danger-border bg-danger-bg-subtle p-3">
+          <p className="text-sm font-medium text-danger-fg">{error}</p>
         </div>
       )}
     </div>

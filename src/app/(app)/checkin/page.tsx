@@ -7,7 +7,7 @@ import Link from "next/link";
 import { Card } from "@/components/Card";
 import { Alert } from "@/components/Alert";
 import { ScaleSelector } from "@/components/ScaleSelector";
-import { MOOD_LABELS, ENERGY_LABELS, ANXIETY_LABELS, IRRITABILITY_LABELS, MEDICATION_OPTIONS, WARNING_SIGNS } from "@/lib/constants";
+import { FEELING_LABELS, MOOD_LABELS, ENERGY_LABELS, ANXIETY_LABELS, IRRITABILITY_LABELS, MEDICATION_OPTIONS, WARNING_SIGNS } from "@/lib/constants";
 import { MedicationDoseCheckin } from "@/components/MedicationDoseCheckin";
 import { track } from "@/lib/telemetry";
 import { hapticSuccess } from "@/lib/capacitor/haptics";
@@ -19,6 +19,7 @@ type CheckinMode = "minimal" | "complete";
 interface SnapshotEntry {
   id: string;
   capturedAt: string;
+  feeling: number | null;
   mood: number;
   energy: number;
   anxiety: number;
@@ -29,6 +30,7 @@ export default function CheckinPage() {
   const router = useRouter();
   const redirectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [mode, setMode] = useState<CheckinMode>("minimal");
+  const [feeling, setFeeling] = useState(3);
   const [mood, setMood] = useState(3);
   const [energy, setEnergy] = useState(3);
   const [anxiety, setAnxiety] = useState<number | null>(null);
@@ -72,6 +74,7 @@ export default function CheckinPage() {
       const saved = sessionStorage.getItem(DRAFT_KEY);
       if (saved) {
         const draft = JSON.parse(saved);
+        if (typeof draft.feeling === "number") setFeeling(draft.feeling);
         if (typeof draft.mood === "number") setMood(draft.mood);
         if (typeof draft.energy === "number") setEnergy(draft.energy);
         if (typeof draft.anxiety === "number") setAnxiety(draft.anxiety);
@@ -100,12 +103,12 @@ export default function CheckinPage() {
       try {
         sessionStorage.setItem(
           DRAFT_KEY,
-          JSON.stringify({ mood, energy, anxiety, irritability, warningSigns: selectedSigns, note, mode }),
+          JSON.stringify({ feeling, mood, energy, anxiety, irritability, warningSigns: selectedSigns, note, mode }),
         );
       } catch { /* storage full — ignore */ }
     }, 500);
     return () => clearTimeout(timer);
-  }, [mood, energy, anxiety, irritability, selectedSigns, note, mode, DRAFT_KEY]);
+  }, [feeling, mood, energy, anxiety, irritability, selectedSigns, note, mode, DRAFT_KEY]);
 
   // Load today's existing snapshots
   useEffect(() => {
@@ -180,6 +183,7 @@ export default function CheckinPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             snapshotId: editingSnapshotId,
+            feeling,
             mood,
             energy,
             anxiety,
@@ -208,6 +212,7 @@ export default function CheckinPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            feeling,
             mood,
             energy,
             ...(anxiety !== null ? { anxiety } : {}),
@@ -277,15 +282,15 @@ export default function CheckinPage() {
     const snapshotCount = todaySnapshots.length + (editingSnapshotId ? 0 : 1);
     return (
       <div className="mx-auto max-w-lg space-y-4">
-        <div className="rounded-[var(--radius-card)] bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 p-6 text-center space-y-3">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/50">
-            <svg className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+        <div className="rounded-[var(--radius-card)] bg-success-bg-subtle border border-success-border p-6 text-center space-y-3">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-success-bg-subtle">
+            <svg className="w-6 h-6 text-success-fg" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <p className="text-lg font-semibold text-green-700 dark:text-green-300">Registrado!</p>
+          <p className="text-lg font-semibold text-success-fg">Registrado!</p>
           {snapshotCount > 0 && (
-            <p className="text-sm text-green-600 dark:text-green-400">
+            <p className="text-sm text-success-fg">
               {snapshotCount} {snapshotCount === 1 ? "registro" : "registros"} hoje
             </p>
           )}
@@ -347,6 +352,7 @@ export default function CheckinPage() {
                 >
                   <p className="text-xs font-medium text-foreground">{time}</p>
                   <div className="flex gap-2 mt-1 text-[11px] text-muted">
+                    {snap.feeling && <span title="Sentimento">S:{snap.feeling}</span>}
                     <span title="Humor">H:{snap.mood}</span>
                     <span title="Energia">E:{snap.energy}</span>
                     <span title="Ansiedade">A:{snap.anxiety}</span>
@@ -356,6 +362,7 @@ export default function CheckinPage() {
                     <button
                       onClick={() => {
                         setEditingSnapshotId(snap.id);
+                        if (snap.feeling) setFeeling(snap.feeling);
                         setMood(snap.mood);
                         setEnergy(snap.energy);
                         setAnxiety(snap.anxiety);
@@ -406,6 +413,16 @@ export default function CheckinPage() {
       )}
 
       <div className="space-y-5">
+        {/* Feeling — subjective well-being */}
+        <Card>
+          <ScaleSelector
+            label="Como você se sente?"
+            value={feeling}
+            onChange={setFeeling}
+            labels={FEELING_LABELS}
+          />
+        </Card>
+
         {/* Mood */}
         <Card>
           <ScaleSelector

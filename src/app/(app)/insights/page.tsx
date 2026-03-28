@@ -337,10 +337,10 @@ export default async function InsightsPage({
                 <h2 className="text-base font-semibold">Status Geral</h2>
                 <span className={`rounded-full border px-3 py-1 text-xs font-bold ${
                   insights.risk.level === "ok"
-                    ? "bg-green-100 border-green-300 text-green-800"
+                    ? "bg-success-bg-subtle border-success-border text-success-fg"
                     : insights.risk.level === "atencao"
-                      ? "bg-amber-100 border-amber-300 text-amber-800"
-                      : "bg-red-100 border-red-300 text-red-800"
+                      ? "bg-warning-bg-subtle border-warning-border text-warning-fg"
+                      : "bg-danger-bg-subtle border-danger-border text-danger-fg"
                 }`}>
                   {insights.risk.level === "ok" ? "Estável" : insights.risk.level === "atencao" ? "Atenção" : "Atenção alta"}
                 </span>

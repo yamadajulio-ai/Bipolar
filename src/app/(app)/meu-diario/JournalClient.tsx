@@ -120,12 +120,12 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
     <div className="space-y-6">
       {/* SOS Banner — supportive, never accusatory */}
       {journal.showSOS && (
-        <Card className="border-red-300 bg-red-50">
+        <Card className="border-danger-border bg-danger-bg-subtle">
           <div className="space-y-3">
-            <p className="font-semibold text-red-900">
+            <p className="font-semibold text-danger-fg">
               Você não está sozinho.
             </p>
-            <p className="text-sm text-red-800">
+            <p className="text-sm text-danger-fg">
               Sua entrada foi salva. Se estiver precisando de apoio agora, há pessoas prontas para ouvir você:
             </p>
             <div className="flex flex-wrap gap-2">
@@ -143,18 +143,18 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
               </a>
               <a
                 href="/sos"
-                className="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-800"
+                className="rounded-lg border border-danger-border px-4 py-2 text-sm font-medium text-danger-fg"
               >
                 Meu plano SOS
               </a>
             </div>
             <button
               onClick={() => journal.setShowSOS(false)}
-              className="text-xs text-red-500 hover:text-red-700 mt-1"
+              className="text-xs text-danger hover:text-danger-fg mt-1"
             >
               Fechar esta mensagem
             </button>
-            <p className="text-[11px] text-red-600/70 italic">
+            <p className="text-[11px] text-danger/70 italic">
               Esta é uma sugestão automática — não substitui avaliação profissional.
             </p>
           </div>
@@ -165,13 +165,13 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
       <Card>
         {/* Draft restored banner */}
         {draft.draftRestored && (
-          <div className="mb-3 flex items-center justify-between rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
-            <p className="text-xs text-amber-800">
+          <div className="mb-3 flex items-center justify-between rounded-lg bg-warning-bg-subtle border border-warning-border px-3 py-2">
+            <p className="text-xs text-warning-fg">
               Rascunho recuperado automaticamente.
             </p>
             <button
               onClick={draft.discardDraft}
-              className="text-xs text-amber-600 hover:text-amber-800 font-medium ml-2"
+              className="text-xs text-warning hover:text-warning-fg font-medium ml-2"
             >
               Descartar
             </button>
@@ -220,7 +220,7 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
           <span className="text-xs text-muted">
             {draft.content.length}/{maxChars}
             {draft.tab === "QUICK_INSIGHT" && draft.content.length > 250 && (
-              <span className="ml-2 text-amber-600">
+              <span className="ml-2 text-warning">
                 Texto longo? <button
                   onClick={() => { draft.setTab("DIARY"); }}
                   className="underline"
@@ -448,7 +448,7 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
                   </button>
                   <button
                     onClick={() => journal.requestDelete(entry.id)}
-                    className="text-xs text-red-500 hover:text-red-700"
+                    className="text-xs text-danger hover:text-danger-fg"
                   >
                     Excluir
                   </button>

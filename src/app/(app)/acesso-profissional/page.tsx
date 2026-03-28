@@ -284,7 +284,7 @@ export default function AcessoProfissionalPage() {
         </label>
 
         {error && (
-          <p className="mb-3 text-xs text-red-600 dark:text-red-400">
+          <p className="mb-3 text-xs text-danger-fg">
             {error}
           </p>
         )}
@@ -350,7 +350,7 @@ export default function AcessoProfissionalPage() {
                     {!expired && (
                       <button
                         onClick={() => handleRevoke(acc.id)}
-                        className="rounded-lg border border-red-300 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/30"
+                        className="rounded-lg border border-danger-border px-3 py-1.5 text-xs font-medium text-danger-fg hover:bg-danger-bg-subtle"
                       >
                         Revogar
                       </button>

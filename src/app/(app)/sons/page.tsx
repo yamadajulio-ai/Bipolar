@@ -107,7 +107,7 @@ export default function SonsPage() {
 
             <button
               onClick={() => setActiveSound(null)}
-              className="w-full rounded-lg border border-danger px-4 py-2 text-sm font-medium text-danger hover:bg-red-50"
+              className="w-full rounded-lg border border-danger px-4 py-2 text-sm font-medium text-danger hover:bg-danger-bg-subtle"
             >
               Parar som
             </button>

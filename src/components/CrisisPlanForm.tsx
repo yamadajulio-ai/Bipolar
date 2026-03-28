@@ -193,8 +193,8 @@ export function CrisisPlanForm({ initialData }: CrisisPlanFormProps) {
     <form onSubmit={handleSubmit} className="space-y-6">
       {hasConsent !== null && (
         <Card className={hasConsent
-          ? "border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-950/30"
-          : "border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30"
+          ? "border-success-border bg-success-bg-subtle"
+          : "border-warning-border bg-warning-bg-subtle"
         }>
           <div className="flex items-start gap-3">
             <input
@@ -209,7 +209,7 @@ export function CrisisPlanForm({ initialData }: CrisisPlanFormProps) {
               {hasConsent ? (
                 <>
                   <strong className="flex items-center gap-1.5">
-                    <svg className="h-4 w-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                    <svg className="h-4 w-4 text-success-fg" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
                     {justGranted ? "Autorização concedida!" : "Armazenamento autorizado"}

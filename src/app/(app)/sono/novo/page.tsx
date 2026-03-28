@@ -106,13 +106,13 @@ export default function NovoSonoPage() {
   if (success) {
     return (
       <div className="mx-auto max-w-lg space-y-4">
-        <div className="rounded-[var(--radius-card)] bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 p-6 text-center space-y-3">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/50">
-            <svg className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+        <div className="rounded-[var(--radius-card)] bg-success-bg-subtle border border-success-border p-6 text-center space-y-3">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-success-bg-subtle">
+            <svg className="w-6 h-6 text-success-fg" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <p className="text-lg font-semibold text-green-700 dark:text-green-300">Registrado!</p>
+          <p className="text-lg font-semibold text-success-fg">Registrado!</p>
           <p className="text-sm text-muted">Que tal fazer um check-in de humor?</p>
           <Link
             href="/checkin"

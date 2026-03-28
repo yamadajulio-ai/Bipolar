@@ -284,6 +284,10 @@ body {
     --danger-fg: #b91c1c;
     --info-bg-subtle: #f0fdfa;
     --info-fg: #0f766e;
+    --success-border: #bbf7d0;
+    --warning-border: #fde68a;
+    --danger-border: #fecaca;
+    --info-border: #99f6e4;
     --chart-grid: #e5e7eb;
     --chart-axis: #9ca3af;
     --shadow-card: none;

@@ -3,6 +3,7 @@ import * as Sentry from "@sentry/nextjs";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { checkRateLimit } from "@/lib/security";
+import { hasConsent } from "@/lib/consent";
 import { parseHealthConnectPayload } from "@/lib/integrations/healthConnect";
 import {
   mergeWearableNights,
@@ -45,11 +46,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Consent gate: verify key owner still has "health_data" consent (LGPD Art. 11)
-  const getConsent = await prisma.consent.findFirst({
-    where: { userId: integration.userId, scope: "health_data", revokedAt: null },
-    select: { id: true },
-  });
-  if (!getConsent) {
+  if (!(await hasConsent(integration.userId, "health_data"))) {
     return NextResponse.json(
       { status: "error", message: "Consentimento para dados de saúde revogado pelo usuário." },
       { status: 403 },
@@ -108,11 +105,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Consent gate: verify key owner still has "health_data" consent (LGPD Art. 11)
-  const consent = await prisma.consent.findFirst({
-    where: { userId: integration.userId, scope: "health_data", revokedAt: null },
-    select: { id: true },
-  });
-  if (!consent) {
+  if (!(await hasConsent(integration.userId, "health_data"))) {
     return NextResponse.json(
       { error: "Consentimento para dados de saúde revogado pelo usuário." },
       { status: 403 },

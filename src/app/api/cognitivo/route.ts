@@ -3,6 +3,7 @@ import { z } from "zod/v4";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/security";
+import { hasConsent } from "@/lib/consent";
 import * as Sentry from "@sentry/nextjs";
 
 const cognitiveTestSchema = z.object({
@@ -64,11 +65,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Consent gate: require "health_data" scope (LGPD Art. 11)
-  const consent = await prisma.consent.findFirst({
-    where: { userId: session.userId, scope: "health_data", revokedAt: null },
-    select: { id: true },
-  });
-  if (!consent) {
+  if (!(await hasConsent(session.userId, "health_data"))) {
     return NextResponse.json(
       { error: "Consentimento para dados de saúde não concedido. Acesse Privacidade para autorizar." },
       { status: 403 },

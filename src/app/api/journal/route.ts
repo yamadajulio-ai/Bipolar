@@ -6,6 +6,7 @@ import { getSession } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/security";
 import { captureMoodSnapshot } from "@/lib/journal/mood-snapshot";
 import { detectCrisisContent } from "@/lib/journal/crisis-detection";
+import { hasConsent } from "@/lib/consent";
 
 // ── Validation ──────────────────────────────────────────────────
 
@@ -46,11 +47,7 @@ export async function POST(request: NextRequest) {
   const { type, content, aiUseAllowed, idempotencyKey } = parsed.data;
 
   // Enforce consent — server-side gate (cannot be bypassed by skipping UI)
-  const consent = await prisma.consent.findFirst({
-    where: { userId: session.userId, scope: "journal_data", revokedAt: null },
-    select: { id: true },
-  });
-  if (!consent) {
+  if (!(await hasConsent(session.userId, "journal_data"))) {
     return NextResponse.json(
       { error: "Consentimento do diário não concedido. Acesse /meu-diario para autorizar." },
       { status: 403 },

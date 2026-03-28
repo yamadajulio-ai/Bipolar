@@ -12,6 +12,7 @@ import {
   MERGE_SELECT,
   type ExistingRecord,
 } from "@/lib/sleepMerge";
+import { hasConsent } from "@/lib/consent";
 import * as Sentry from "@sentry/nextjs";
 
 /** Validate that a YYYY-MM-DD string is a real calendar date */
@@ -126,11 +127,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Consent gate: require "health_data" scope (LGPD Art. 11)
-  const consent = await prisma.consent.findFirst({
-    where: { userId: session.userId, scope: "health_data", revokedAt: null },
-    select: { id: true },
-  });
-  if (!consent) {
+  if (!(await hasConsent(session.userId, "health_data"))) {
     return NextResponse.json(
       { error: "Consentimento para dados de saúde não concedido. Acesse Privacidade para autorizar." },
       { status: 403 },

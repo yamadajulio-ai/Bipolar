@@ -4,6 +4,7 @@ import type { SnapshotInput } from "./projectSnapshots";
 
 function makeSnapshot(overrides: Partial<SnapshotInput> & { capturedAt: Date }): SnapshotInput {
   return {
+    feeling: null,
     mood: 3,
     energy: 3,
     anxiety: 2,

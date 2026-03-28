@@ -52,6 +52,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
 
+  // Server-side consent gate: only send to Meta CAPI if user accepted analytics cookies.
+  // Do not trust front-end alone for consent enforcement (LGPD/health context).
+  const analyticsConsent = request.cookies.get("cookie_consent_analytics")?.value;
+  if (analyticsConsent !== "true") {
+    return NextResponse.json({ ok: true, skipped: "no_consent" });
+  }
+
   try {
     const body = await request.json();
     const { eventName, eventId, sourceUrl, customData } = body;
@@ -70,11 +77,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid event ID" }, { status: 400 });
     }
 
-    // Validar e sanitizar source URL
+    // Validar e sanitizar source URL (referer fallback also validated against domain whitelist)
+    const referer = request.headers.get("referer");
     const safeSourceUrl =
       sourceUrl && isValidSourceUrl(sourceUrl)
         ? sourceUrl
-        : request.headers.get("referer") || "https://suportebipolar.com";
+        : (referer && isValidSourceUrl(referer) ? referer : "https://suportebipolar.com");
 
     // Sanitizar customData — aceitar apenas campos permitidos com valores string
     let safeCustomData: Record<string, string> | undefined;

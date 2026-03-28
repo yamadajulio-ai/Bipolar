@@ -15,10 +15,17 @@ import { encrypt } from "@/lib/crypto";
  * Flow: Apple → POST form_post → validate state → verify id_token → create/link user → redirect
  */
 export async function POST(request: NextRequest) {
+  /** Helper: redirect to login with error + always clean up state cookie */
+  function errorRedirect(error: string): NextResponse {
+    const response = NextResponse.redirect(new URL(`/login?error=${error}`, request.url));
+    response.cookies.delete("apple-login-state");
+    return response;
+  }
+
   const ip = getClientIp(request);
   const allowed = await checkRateLimit(`apple-callback:${ip}`, 10, 900_000);
   if (!allowed) {
-    return NextResponse.redirect(new URL("/login?error=rate_limited", request.url));
+    return errorRedirect("rate_limited");
   }
 
   const formData = await request.formData();
@@ -29,13 +36,6 @@ export async function POST(request: NextRequest) {
   const storedState = request.cookies.get("apple-login-state")?.value;
   // Apple sends user info as JSON string on first authorization only
   const userJson = formData.get("user") as string | null;
-
-  /** Helper: redirect to login with error + always clean up state cookie */
-  function errorRedirect(error: string): NextResponse {
-    const response = NextResponse.redirect(new URL(`/login?error=${error}`, request.url));
-    response.cookies.delete("apple-login-state");
-    return response;
-  }
 
   // Validate field sizes (parity with POST schema limits)
   if (idToken && idToken.length > 10000) {
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const selectFields = { id: true, email: true, name: true, onboarded: true } as const;
+    const selectFields = { id: true, email: true, name: true, onboarded: true, passwordHash: true } as const;
 
     // Parse display name from Apple's user JSON (only sent on first consent)
     let displayName: string | undefined;
@@ -120,21 +120,27 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       // 2. Find by email (link existing account)
-      user = await prisma.user.findUnique({
+      const existingByEmail = await prisma.user.findUnique({
         where: { email: appleUser.email },
         select: selectFields,
       });
 
-      if (user) {
-        // Link Apple account to existing user
+      if (existingByEmail) {
+        if (existingByEmail.passwordHash) {
+          // SECURITY: Don't auto-link social provider to password-created account.
+          // Prevents pre-hijacking attack vector.
+          return errorRedirect("account_exists");
+        }
+        // Safe: social-only account (no password = no pre-hijack vector)
         await prisma.user.update({
-          where: { id: user.id },
+          where: { id: existingByEmail.id },
           data: {
             appleSub: appleUser.sub,
             appleRefreshToken: encryptedAppleRefreshToken || undefined,
-            name: user.name || displayName,
+            name: existingByEmail.name || displayName,
           },
         });
+        user = existingByEmail;
       } else {
         // 3. Create new user (no password) — consents collected explicitly in onboarding
         user = await prisma.user.create({

@@ -10,6 +10,7 @@ export interface SessionData {
   onboarded?: boolean;
   lastActive?: number;
   createdAt?: number; // Absolute session lifetime tracking
+  lastRevocationCheck?: number; // Last time we verified session wasn't revoked
 }
 
 // Session sliding window: expire after 7 days of inactivity, refresh stamp every 1h
@@ -17,6 +18,13 @@ const INACTIVITY_TIMEOUT = 7 * 24 * 60 * 60 * 1000;
 const REFRESH_INTERVAL = 60 * 60 * 1000;
 // Absolute session lifetime: 30 days max regardless of activity (matches cookie maxAge)
 const ABSOLUTE_LIFETIME = 30 * 24 * 60 * 60 * 1000;
+// Revocation check: verify session hasn't been invalidated (every 5 min, independent of refresh)
+const REVOCATION_CHECK_INTERVAL = 5 * 60 * 1000;
+
+// Fail fast: validate SESSION_SECRET on module load (prevents cryptic 500s at runtime)
+if (!process.env.SESSION_SECRET || process.env.SESSION_SECRET.length < 32) {
+  throw new Error("SESSION_SECRET must be set and at least 32 characters");
+}
 
 const baseCookieOptions = {
   httpOnly: true,
@@ -57,9 +65,11 @@ export async function getSession() {
       return session;
     }
 
-    // Sliding refresh: update lastActive stamp every ~1h
-    if (!session.lastActive || now - session.lastActive > REFRESH_INTERVAL) {
-      // Check if password was changed after session creation (invalidate stale sessions)
+    let needsSave = false;
+
+    // Revocation check: verify user still exists and session wasn't invalidated (every 5 min)
+    // Decoupled from refresh to ensure web sessions are revoked within 5 min of password change/deletion.
+    if (!session.lastRevocationCheck || now - session.lastRevocationCheck > REVOCATION_CHECK_INTERVAL) {
       if (session.createdAt) {
         try {
           const { prisma } = await import("@/lib/db");
@@ -67,7 +77,11 @@ export async function getSession() {
             where: { id: session.userId },
             select: { passwordChangedAt: true },
           });
-          if (user?.passwordChangedAt && user.passwordChangedAt.getTime() > session.createdAt) {
+          if (!user) {
+            await session.destroy();
+            return session;
+          }
+          if (user.passwordChangedAt && user.passwordChangedAt.getTime() > session.createdAt) {
             await session.destroy();
             return session;
           }
@@ -75,8 +89,17 @@ export async function getSession() {
           // Column may not exist pre-migration — skip check silently
         }
       }
+      session.lastRevocationCheck = now;
+      needsSave = true;
+    }
 
+    // Sliding refresh: update lastActive stamp every ~1h
+    if (!session.lastActive || now - session.lastActive > REFRESH_INTERVAL) {
       session.lastActive = now;
+      needsSave = true;
+    }
+
+    if (needsSave) {
       try { await session.save(); } catch { /* Server Component — read-only cookies, skip */ }
     }
 

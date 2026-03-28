@@ -65,9 +65,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Senha incorreta." }, { status: 403 });
     }
   } else {
-    // OAuth users (Google/Apple): require recent authentication (< 5 min)
+    // OAuth users (Google/Apple): require fresh login (session created < 5 min ago).
+    // Uses createdAt (login time), not lastActive (activity time) — true reauthentication.
     const REAUTH_WINDOW = 5 * 60 * 1000;
-    if (!session.lastActive || Date.now() - session.lastActive > REAUTH_WINDOW) {
+    if (!session.createdAt || Date.now() - session.createdAt > REAUTH_WINDOW) {
       return NextResponse.json(
         { error: "Faça login novamente antes de excluir a conta.", requiresReauth: true },
         { status: 403 },
@@ -85,7 +86,11 @@ export async function POST(request: NextRequest) {
       try {
         const { decrypt } = await import("@/lib/crypto");
         const token = decrypt(googleAccount.refreshToken);
-        await fetch(`https://oauth2.googleapis.com/revoke?token=${token}`, { method: "POST" });
+        await fetch("https://oauth2.googleapis.com/revoke", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: `token=${encodeURIComponent(token)}`,
+        });
       } catch {
         Sentry.captureMessage("Failed to revoke Google token on account deletion", { level: "warning" });
       }

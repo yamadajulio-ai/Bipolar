@@ -62,9 +62,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Senha incorreta." }, { status: 403 });
     }
   } else {
-    // Google OAuth users: require recent authentication (< 5 min)
+    // OAuth users: require fresh login (session created < 5 min ago).
+    // Uses createdAt (login time), not lastActive (activity time) — true reauthentication.
     const REAUTH_WINDOW = 5 * 60 * 1000;
-    if (!session.lastActive || Date.now() - session.lastActive > REAUTH_WINDOW) {
+    if (!session.createdAt || Date.now() - session.createdAt > REAUTH_WINDOW) {
       return NextResponse.json(
         { error: "Faça login novamente antes de exportar seus dados.", requiresReauth: true },
         { status: 403 },

@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const selectFields = { id: true, email: true, name: true, onboarded: true } as const;
+    const selectFields = { id: true, email: true, name: true, onboarded: true, passwordHash: true } as const;
 
     const displayName = [fullName?.givenName, fullName?.familyName]
       .filter(Boolean)
@@ -99,21 +99,27 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       // 2. Find by email (link existing account)
-      user = await prisma.user.findUnique({
+      const existingByEmail = await prisma.user.findUnique({
         where: { email: appleUser.email },
         select: selectFields,
       });
 
-      if (user) {
-        // Link Apple account to existing user
+      if (existingByEmail) {
+        if (existingByEmail.passwordHash) {
+          // SECURITY: Don't auto-link social provider to password-created account.
+          // Prevents pre-hijacking attack vector.
+          return NextResponse.json({ error: "account_exists" }, { status: 409 });
+        }
+        // Safe: social-only account (no password = no pre-hijack vector)
         await prisma.user.update({
-          where: { id: user.id },
+          where: { id: existingByEmail.id },
           data: {
             appleSub: appleUser.sub,
             appleRefreshToken: encryptedAppleRefreshToken || undefined,
-            name: user.name || displayName,
+            name: existingByEmail.name || displayName,
           },
         });
+        user = existingByEmail;
       } else {
         // 3. Create new user — consents collected explicitly in onboarding
         user = await prisma.user.create({

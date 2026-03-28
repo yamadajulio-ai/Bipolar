@@ -36,7 +36,13 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = await request.json();
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Dados inválidos." }, { status: 400 });
+    }
+
     const parsed = cadastroSchema.safeParse(body);
 
     if (!parsed.success) {
@@ -58,16 +64,18 @@ export async function POST(request: NextRequest) {
       where: { email },
       select: { id: true },
     });
+
+    // Timing equalization: ALWAYS hash the password regardless of whether user exists.
+    // Prevents timing side-channel that distinguishes "email taken" from "new email".
+    const ip = maskIp(rawIp);
+    const passwordHash = await hashPassword(senha);
+
     if (existing) {
       return NextResponse.json(
         { error: "Não foi possível criar a conta. Verifique os dados e tente novamente." },
         { status: 400 },
       );
     }
-
-    const ip = maskIp(rawIp);
-
-    const passwordHash = await hashPassword(senha);
     const user = await prisma.user.create({
       data: {
         email,

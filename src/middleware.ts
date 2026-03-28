@@ -124,10 +124,6 @@ function checkCsrf(request: NextRequest): NextResponse | null {
   // Protected by state cookie (CSRF), same pattern as Google OAuth callback.
   if (pathname === "/api/auth/apple-login/callback") return null;
 
-  // Allow logout via native form POST (no X-CSRF-Token header).
-  // Protected by Sec-Fetch-Site same-origin check + session cookie.
-  if (pathname === "/api/auth/logout") return null;
-
   // Allow professional access — token must match exact format (auth'd via token+PIN)
   if (isProfessionalAccessCsrfExempt(pathname)) return null;
 
@@ -179,14 +175,6 @@ export async function middleware(request: NextRequest) {
   const host = request.headers.get("host")?.toLowerCase().replace(/:.*$/, "");
   if (host && LEGACY_HOSTS.includes(host)) {
     return NextResponse.redirect(`${CANONICAL_ORIGIN}${pathname}${request.nextUrl.search}`, 301);
-  }
-
-  // Admin pages: no-store, never cache (LGPD P0)
-  if (pathname.startsWith("/admin")) {
-    const response = NextResponse.next();
-    response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
-    response.headers.set("Pragma", "no-cache");
-    return ensureCsrfCookie(request, response);
   }
 
   // API routes: CSRF check + onboarded gate + no-store for authenticated endpoints
@@ -249,6 +237,16 @@ export async function middleware(request: NextRequest) {
   const isLanding = landingPaths.includes(pathname);
   if (isLanding && sessionCookie) {
     return NextResponse.redirect(new URL("/hoje", request.url));
+  }
+
+  // Admin pages: no-store, never cache (LGPD P0)
+  // Placed AFTER session check — /admin is in protectedPaths, so unauthenticated users
+  // are already redirected to /login above. This block only applies cache headers.
+  if (pathname.startsWith("/admin")) {
+    const response = NextResponse.next();
+    response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
+    response.headers.set("Pragma", "no-cache");
+    return ensureCsrfCookie(request, response);
   }
 
   return ensureCsrfCookie(request, NextResponse.next());

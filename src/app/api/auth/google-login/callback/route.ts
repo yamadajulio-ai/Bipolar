@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
       return errorRedirect("email_not_verified");
     }
 
-    const googleSelectFields = { id: true, email: true, name: true, onboarded: true } as const;
+    const googleSelectFields = { id: true, email: true, name: true, onboarded: true, passwordHash: true } as const;
 
     // 1. Find by googleSub (returning user)
     let user = await prisma.user.findUnique({
@@ -66,20 +66,28 @@ export async function GET(request: NextRequest) {
 
     if (!user) {
       // 2. Find by email (link existing account)
-      user = await prisma.user.findUnique({
+      const existingByEmail = await prisma.user.findUnique({
         where: { email: googleUser.email },
         select: googleSelectFields,
       });
 
-      if (user) {
-        // Link Google account to existing user
+      if (existingByEmail) {
+        if (existingByEmail.passwordHash) {
+          // SECURITY: Don't auto-link social provider to password-created account.
+          // This prevents pre-hijacking: attacker registers victim's email with password,
+          // then victim's Google login would attach to attacker's account.
+          // User must log in with password and link Google explicitly.
+          return errorRedirect("account_exists");
+        }
+        // Safe: social-only account (no password = no pre-hijack vector)
         await prisma.user.update({
-          where: { id: user.id },
+          where: { id: existingByEmail.id },
           data: {
             googleSub: googleUser.id,
-            name: user.name || googleUser.name,
+            name: existingByEmail.name || googleUser.name,
           },
         });
+        user = existingByEmail;
       } else {
         // 3. Create new user (no password) — consents collected explicitly in onboarding
         user = await prisma.user.create({

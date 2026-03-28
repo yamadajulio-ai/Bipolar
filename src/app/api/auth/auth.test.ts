@@ -346,7 +346,7 @@ describe("POST /api/auth/export", () => {
   });
 
   it("returns 403 (requiresReauth) for OAuth user with stale session", async () => {
-    resetSession({ lastActive: Date.now() - 10 * 60 * 1000 }); // 10 min ago
+    resetSession({ createdAt: Date.now() - 10 * 60 * 1000, lastActive: Date.now() }); // created 10 min ago
     mockUserFindUnique.mockResolvedValueOnce({
       id: "user-1", email: "g@test.com", name: null, authProvider: "google",
       passwordHash: null, createdAt: new Date(),
@@ -357,8 +357,8 @@ describe("POST /api/auth/export", () => {
     expect(body.requiresReauth).toBe(true);
   });
 
-  it("returns 200 for OAuth user with fresh session (<5 min)", async () => {
-    resetSession({ lastActive: Date.now() - 2 * 60 * 1000 }); // 2 min ago
+  it("returns 200 for OAuth user with fresh login (<5 min)", async () => {
+    resetSession({ createdAt: Date.now() - 2 * 60 * 1000, lastActive: Date.now() }); // created 2 min ago
     mockUserFindUnique.mockResolvedValueOnce({
       id: "user-1", email: "g@test.com", name: null, authProvider: "google",
       passwordHash: null, createdAt: new Date(),
@@ -417,8 +417,8 @@ describe("POST /api/auth/excluir-conta", () => {
     expect(res.headers.get("Location")).toContain("/");
   });
 
-  it("returns 403 (requiresReauth) for OAuth user with stale session", async () => {
-    resetSession({ lastActive: Date.now() - 10 * 60 * 1000 });
+  it("returns 403 (requiresReauth) for OAuth user with stale login", async () => {
+    resetSession({ createdAt: Date.now() - 10 * 60 * 1000, lastActive: Date.now() });
     mockUserFindUnique.mockResolvedValueOnce({ passwordHash: null, authProvider: "google" });
     const res = await POST(makeRequest({}, url));
     expect(res.status).toBe(403);
@@ -426,8 +426,8 @@ describe("POST /api/auth/excluir-conta", () => {
     expect(body.requiresReauth).toBe(true);
   });
 
-  it("deletes user for OAuth user with fresh session and revokes Google tokens", async () => {
-    resetSession({ lastActive: Date.now() - 1000 });
+  it("deletes user for OAuth user with fresh login and revokes Google tokens", async () => {
+    resetSession({ createdAt: Date.now() - 1000, lastActive: Date.now() });
     mockUserFindUnique.mockResolvedValueOnce({ passwordHash: null, authProvider: "google" });
     mockGoogleAccountFindUnique.mockResolvedValueOnce({ refreshToken: "encrypted-token" });
 
@@ -448,7 +448,7 @@ describe("POST /api/auth/excluir-conta", () => {
   });
 
   it("still deletes user if Google token revocation fails", async () => {
-    resetSession({ lastActive: Date.now() - 1000 });
+    resetSession({ createdAt: Date.now() - 1000, lastActive: Date.now() });
     mockUserFindUnique.mockResolvedValueOnce({ passwordHash: null, authProvider: "google" });
     mockGoogleAccountFindUnique.mockResolvedValueOnce({ refreshToken: "encrypted-token" });
 

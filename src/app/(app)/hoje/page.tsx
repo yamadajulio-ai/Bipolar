@@ -1,4 +1,5 @@
 import { getSession } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { localToday, localDateStr } from "@/lib/dateUtils";
 import { pullGoogleCalendar } from "@/lib/google/sync";
@@ -106,6 +107,8 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
   const params = await searchParams;
   const dismissCrisis = params.full === "1";
   const session = await getSession();
+  if (!session.isLoggedIn) redirect("/login");
+  if (!session.onboarded) redirect("/onboarding");
   const now = new Date();
   const today = localToday();
   // Use proper BRT boundaries (America/Sao_Paulo = UTC-3)

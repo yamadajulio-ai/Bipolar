@@ -155,9 +155,10 @@ export default function MedicamentosPage() {
   return (
     <div className="mx-auto max-w-lg">
       <h1 className="mb-2 text-2xl font-bold">Meus Medicamentos</h1>
-      <p className="mb-6 text-sm text-muted">
-        Cadastre seus medicamentos e horários para acompanhar a adesão por dose no check-in. Este recurso não substitui orientação médica.
+      <p className="text-sm text-muted">
+        Cadastre seus medicamentos e horários para acompanhar a adesão por dose no check-in.
       </p>
+      <p className="mb-6 text-xs text-muted italic">Este recurso não substitui orientação médica.</p>
 
       {success && <Alert variant="success" className="mb-4">{success}</Alert>}
       {error && !showForm && <Alert variant="danger" className="mb-4">{error}</Alert>}
@@ -228,7 +229,7 @@ export default function MedicamentosPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Ex: Rivotril, Depakote, Latuda"
-                className="block w-full rounded-md border border-control-border bg-surface px-3 py-2 text-sm text-foreground focus-visible:border-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+                className="block w-full rounded-md border border-control-border bg-surface px-3 py-2 text-sm text-foreground focus-visible:border-control-border-focus focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-control-border-focus"
               />
             </div>
 
@@ -242,7 +243,7 @@ export default function MedicamentosPage() {
                 value={dosageText}
                 onChange={(e) => setDosageText(e.target.value)}
                 placeholder="Ex: 2mg, 500mg"
-                className="block w-full rounded-md border border-control-border bg-surface px-3 py-2 text-sm text-foreground focus-visible:border-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+                className="block w-full rounded-md border border-control-border bg-surface px-3 py-2 text-sm text-foreground focus-visible:border-control-border-focus focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-control-border-focus"
               />
             </div>
 
@@ -256,7 +257,7 @@ export default function MedicamentosPage() {
                 value={instructions}
                 onChange={(e) => setInstructions(e.target.value)}
                 placeholder="Ex: Tomar com alimento"
-                className="block w-full rounded-md border border-control-border bg-surface px-3 py-2 text-sm text-foreground focus-visible:border-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+                className="block w-full rounded-md border border-control-border bg-surface px-3 py-2 text-sm text-foreground focus-visible:border-control-border-focus focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-control-border-focus"
               />
             </div>
 
@@ -265,7 +266,7 @@ export default function MedicamentosPage() {
                 type="checkbox"
                 checked={isAsNeeded}
                 onChange={(e) => setIsAsNeeded(e.target.checked)}
-                className="rounded border-border"
+                className="rounded border-control-border"
               />
               <span className="text-foreground">Uso sob demanda (SOS/se necessário)</span>
             </label>
@@ -282,7 +283,7 @@ export default function MedicamentosPage() {
                         type="time"
                         value={time}
                         onChange={(e) => updateSchedule(i, e.target.value)}
-                        className="flex-1 rounded-md border border-control-border bg-surface px-3 py-2 text-sm text-foreground focus-visible:border-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+                        className="flex-1 rounded-md border border-control-border bg-surface px-3 py-2 text-sm text-foreground focus-visible:border-control-border-focus focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-control-border-focus"
                       />
                       {schedules.length > 1 && (
                         <button

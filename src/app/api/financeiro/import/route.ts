@@ -29,6 +29,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (file.size > 10 * 1024 * 1024) {
+      return NextResponse.json(
+        { errors: { file: ["Arquivo muito grande. Tamanho máximo: 10MB."] } },
+        { status: 400 },
+      );
+    }
+
     const fileName = file.name.toLowerCase();
 
     if (fileName.endsWith(".xls") && !fileName.endsWith(".xlsx")) {
@@ -84,7 +91,7 @@ export async function POST(request: NextRequest) {
           amount: tx.amount,
           category: tx.category,
           account: tx.account,
-          source: "mobills_csv",
+          source: isXlsx ? "mobills_xlsx" : "mobills_csv",
         })),
         skipDuplicates: true,
       });

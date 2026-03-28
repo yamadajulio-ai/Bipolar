@@ -859,7 +859,7 @@ export default function IntegraçõesPage() {
       </Card>
 
       {pendingAction && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-overlay p-4">
           <div className="w-full max-w-xs rounded-[var(--radius-card)] bg-surface p-6 shadow-[var(--shadow-float)]">
             <p className="mb-4 text-sm font-medium text-foreground">
               {pendingAction.type === "revoke"

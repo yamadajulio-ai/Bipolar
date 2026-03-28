@@ -72,9 +72,9 @@ export function DeleteAccountButton() {
   return (
     <div className="space-y-2">
       {error && (
-        <p className="text-sm text-danger" role="alert">{error}</p>
+        <p className="text-sm text-danger-fg" role="alert">{error}</p>
       )}
-      <p className="text-sm font-medium text-danger">
+      <p className="text-sm font-medium text-danger-fg">
         Tem certeza? Todos os dados serão excluídos permanentemente.
       </p>
 

@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
     },
   });
 
-  return NextResponse.json(entries, { headers: { "Cache-Control": "private, no-cache" } });
+  return NextResponse.json(entries, { headers: { "Cache-Control": "private, no-store" } });
 }
 
 export async function POST(request: NextRequest) {

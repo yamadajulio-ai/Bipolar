@@ -150,7 +150,7 @@ function RedefinirSenhaContent() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Mínimo 8 caracteres"
-                    className="w-full rounded-[var(--radius-card)] border border-border-soft bg-surface px-4 py-2.5 text-sm text-foreground placeholder-muted focus-visible:border-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary dark:border-border-strong"
+                    className="w-full rounded-[var(--radius-card)] border border-border-soft bg-surface px-4 py-2.5 text-sm text-foreground placeholder-muted focus-visible:border-control-border-focus focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-control-border-focus dark:border-border-strong"
                     style={{ minHeight: "44px" }}
                   />
                 </div>
@@ -168,7 +168,7 @@ function RedefinirSenhaContent() {
                     value={confirm}
                     onChange={(e) => setConfirm(e.target.value)}
                     placeholder="Repita a senha"
-                    className="w-full rounded-[var(--radius-card)] border border-border-soft bg-surface px-4 py-2.5 text-sm text-foreground placeholder-muted focus-visible:border-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary dark:border-border-strong"
+                    className="w-full rounded-[var(--radius-card)] border border-border-soft bg-surface px-4 py-2.5 text-sm text-foreground placeholder-muted focus-visible:border-control-border-focus focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-control-border-focus dark:border-border-strong"
                     style={{ minHeight: "44px" }}
                   />
                 </div>

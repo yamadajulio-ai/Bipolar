@@ -271,9 +271,9 @@ export default function SOSPage() {
             <div key={i} className="rounded-xl bg-amber-700 p-5 text-center">
               <span className="text-2xl font-bold text-white">{c.name}</span>
               <br />
-              <span className="text-lg text-amber-100">{c.phone}</span>
+              <span className="text-lg text-white">{c.phone}</span>
               <br />
-              <span className="text-sm text-amber-200">Contato de confiança</span>
+              <span className="text-sm text-white">Contato de confiança</span>
               <div className="mt-3 flex gap-2 justify-center">
                 <a
                   href={`tel:${c.phone}`}

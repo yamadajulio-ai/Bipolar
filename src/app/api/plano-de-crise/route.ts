@@ -39,7 +39,7 @@ export async function GET() {
       },
     });
 
-    return NextResponse.json(plan, { headers: { "Cache-Control": "private, no-cache" } });
+    return NextResponse.json(plan, { headers: { "Cache-Control": "private, no-store" } });
   } catch (err) {
     Sentry.captureException(err, { tags: { endpoint: "crisisplan" } });
     return NextResponse.json(

@@ -27,8 +27,8 @@ vi.mock("@/lib/security", () => ({
   maskIp: vi.fn(() => "1.2.3.0"),
   CSRF_COOKIE_NAME: "__Host-csrf",
   CSRF_HEADER_NAME: "x-csrf-token",
-  generateCsrfToken: vi.fn(() => "test-csrf-token"),
-  validateCsrfToken: vi.fn(() => true),
+  generateCsrfToken: vi.fn(() => Promise.resolve("test-csrf-token")),
+  validateCsrfToken: vi.fn(() => Promise.resolve(true)),
 }));
 
 vi.mock("@sentry/nextjs", () => ({

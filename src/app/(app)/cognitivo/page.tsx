@@ -678,7 +678,7 @@ function DigitSpanTask({ onComplete, onBack }: { onComplete: (span: number) => v
               onChange={(e) => setUserInput(e.target.value.replace(/\D/g, ""))}
               maxLength={sequenceLength}
               autoFocus
-              className="mx-auto block w-48 rounded-lg border border-border bg-surface px-4 py-3 text-center text-2xl font-bold tracking-[0.3em] text-foreground"
+              className="mx-auto block w-48 rounded-lg border border-control-border bg-surface px-4 py-3 text-center text-2xl font-bold tracking-[0.3em] text-foreground"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && userInput.length === sequenceLength) {
                   handleSubmit();

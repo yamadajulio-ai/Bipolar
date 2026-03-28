@@ -76,8 +76,8 @@ export default function AterramentoPage() {
           </div>
         ) : (
           <div className="text-center py-6">
-            <div className="rounded-lg border border-success/30 bg-success/10 p-4 mb-4">
-              <p className="text-lg font-semibold text-success">Exercício concluído!</p>
+            <div className="rounded-lg border border-success-border bg-success-bg-subtle p-4 mb-4">
+              <p className="text-lg font-semibold text-success-fg">Exercício concluído!</p>
               <p className="text-sm text-muted mt-1">
                 {saving ? "Salvando sessão..." : "Sessão registrada com sucesso."}
               </p>

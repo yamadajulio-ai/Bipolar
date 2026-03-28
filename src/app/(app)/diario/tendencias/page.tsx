@@ -91,7 +91,7 @@ export default function TendenciasPage() {
       )}
 
       {error && (
-        <p className="py-8 text-center text-danger">{error}</p>
+        <p className="py-8 text-center text-danger-fg">{error}</p>
       )}
 
       {!loading && !error && data && (

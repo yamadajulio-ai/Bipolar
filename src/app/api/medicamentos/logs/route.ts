@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     const scheduleIds = [...new Set(parsed.data.logs.map((l) => l.scheduleId))];
     const schedules = await prisma.medicationSchedule.findMany({
       where: { id: { in: scheduleIds } },
-      include: { medication: { select: { userId: true, id: true } } },
+      select: { id: true, timeLocal: true, medication: { select: { userId: true, id: true } } },
     });
 
     const scheduleMap = new Map(schedules.map((s) => [s.id, s]));

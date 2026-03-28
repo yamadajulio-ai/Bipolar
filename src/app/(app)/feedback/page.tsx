@@ -210,7 +210,7 @@ export default function FeedbackPage() {
               aria-describedby="fb-message-hint fb-message-count"
               aria-invalid={errorMsg ? "true" : undefined}
               placeholder="Conte-nos o que pensa..."
-              className="w-full rounded-md border border-control-border bg-surface px-3 py-2.5 text-sm resize-y focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="w-full rounded-md border border-control-border bg-surface px-3 py-2.5 text-sm resize-y focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
             />
             <p id="fb-message-count" className="mt-1 text-xs text-muted text-right" aria-live="polite">
               {message.length}/2000
@@ -241,7 +241,7 @@ export default function FeedbackPage() {
               type="checkbox"
               checked={canContact}
               onChange={(e) => setCanContact(e.target.checked)}
-              className="mt-1 h-4 w-4 rounded border-border focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="mt-1 h-4 w-4 rounded border-control-border focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
             />
             <label htmlFor="fb-contact" className="text-sm text-muted">
               Posso entrar em contato sobre este feedback?
@@ -259,7 +259,7 @@ export default function FeedbackPage() {
           <button
             type="submit"
             disabled={status === "sending" || message.trim().length < 10}
-            className="w-full rounded-lg bg-primary py-3 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            className="w-full rounded-lg bg-primary py-3 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
           >
             {status === "sending" ? "Enviando..." : "Enviar feedback"}
           </button>

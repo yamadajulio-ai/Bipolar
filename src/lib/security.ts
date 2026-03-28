@@ -108,33 +108,92 @@ export function sanitizeInput(input: string): string {
     .trim();
 }
 
-// ── CSRF Double-Submit Cookie ────────────────────────────────
+// ── CSRF Double-Submit Cookie (HMAC-signed) ─────────────────
 
 /** Cookie name: __Host- prefix enforces Secure + no Domain + Path=/ */
 export const CSRF_COOKIE_NAME = "__Host-csrf";
 export const CSRF_HEADER_NAME = "x-csrf-token";
 
 /**
- * Generate a cryptographically random CSRF token (32 bytes → 64 hex chars).
- * Works in Edge Runtime (uses Web Crypto API).
+ * Encode bytes to hex string (Edge Runtime compatible — no Buffer).
  */
-export function generateCsrfToken(): string {
-  const bytes = new Uint8Array(32);
-  crypto.getRandomValues(bytes);
+function toHex(bytes: Uint8Array): string {
   return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 /**
- * Validate CSRF: cookie value must match X-CSRF-Token header.
- * Returns true if valid, false if mismatch or missing.
+ * Import SESSION_SECRET as HMAC key for Web Crypto API.
+ * Cached per isolate — no re-import on every call.
  */
-export function validateCsrfToken(cookieValue: string | undefined, headerValue: string | null): boolean {
+let _csrfKey: CryptoKey | null = null;
+async function getCsrfKey(): Promise<CryptoKey> {
+  if (_csrfKey) return _csrfKey;
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) throw new Error("SESSION_SECRET is required for CSRF");
+  const enc = new TextEncoder();
+  _csrfKey = await crypto.subtle.importKey(
+    "raw",
+    enc.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+  false,
+    ["sign", "verify"],
+  );
+  return _csrfKey;
+}
+
+/**
+ * Generate an HMAC-signed CSRF token: `nonce.signature`
+ * - nonce: 32 random bytes (hex)
+ * - signature: HMAC-SHA256(SESSION_SECRET, nonce) (hex)
+ * Works in Edge Runtime (Web Crypto API).
+ */
+export async function generateCsrfToken(): Promise<string> {
+  const nonceBytes = new Uint8Array(32);
+  crypto.getRandomValues(nonceBytes);
+  const nonce = toHex(nonceBytes);
+
+  const key = await getCsrfKey();
+  const enc = new TextEncoder();
+  const sig = await crypto.subtle.sign("HMAC", key, enc.encode(nonce));
+  const sigHex = toHex(new Uint8Array(sig));
+
+  return `${nonce}.${sigHex}`;
+}
+
+/**
+ * Validate CSRF: cookie and header must match, and signature must be valid.
+ * 1. Cookie value === header value (constant-time)
+ * 2. HMAC signature on nonce is valid (prevents token forgery)
+ */
+export async function validateCsrfToken(
+  cookieValue: string | undefined,
+  headerValue: string | null,
+): Promise<boolean> {
   if (!cookieValue || !headerValue) return false;
   if (cookieValue.length !== headerValue.length) return false;
-  // Constant-time comparison to prevent timing attacks
+
+  // Constant-time comparison: cookie must equal header
   let mismatch = 0;
   for (let i = 0; i < cookieValue.length; i++) {
     mismatch |= cookieValue.charCodeAt(i) ^ headerValue.charCodeAt(i);
   }
-  return mismatch === 0;
+  if (mismatch !== 0) return false;
+
+  // Verify HMAC signature
+  const dotIdx = cookieValue.indexOf(".");
+  if (dotIdx === -1) return false;
+  const nonce = cookieValue.slice(0, dotIdx);
+  const sigHex = cookieValue.slice(dotIdx + 1);
+
+  // Basic format check
+  if (nonce.length !== 64 || sigHex.length !== 64) return false;
+
+  try {
+    const key = await getCsrfKey();
+    const enc = new TextEncoder();
+    const sigBytes = new Uint8Array(sigHex.match(/.{2}/g)!.map((h) => parseInt(h, 16)));
+    return crypto.subtle.verify("HMAC", key, sigBytes, enc.encode(nonce));
+  } catch {
+    return false;
+  }
 }

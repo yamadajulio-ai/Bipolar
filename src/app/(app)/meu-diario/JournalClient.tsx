@@ -171,7 +171,7 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
             </p>
             <button
               onClick={draft.discardDraft}
-              className="text-xs text-warning hover:text-warning-fg font-medium ml-2"
+              className="text-xs text-warning-fg hover:text-foreground font-medium ml-2"
             >
               Descartar
             </button>
@@ -212,7 +212,7 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
               : "Um pensamento rápido..."
           }
           rows={draft.tab === "DIARY" ? 6 : 3}
-          className="w-full rounded-lg border border-border bg-surface p-3 text-sm text-foreground placeholder:text-muted/60 resize-none focus-visible:border-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+          className="w-full rounded-lg border border-control-border bg-surface p-3 text-sm text-foreground placeholder:text-muted/60 resize-none focus-visible:border-control-border-focus focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-control-border-focus"
           maxLength={maxChars}
         />
 
@@ -220,7 +220,7 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
           <span className="text-xs text-muted">
             {draft.content.length}/{maxChars}
             {draft.tab === "QUICK_INSIGHT" && draft.content.length > 250 && (
-              <span className="ml-2 text-warning">
+              <span className="ml-2 text-warning-fg">
                 Texto longo? <button
                   onClick={() => { draft.setTab("DIARY"); }}
                   className="underline"
@@ -471,7 +471,7 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
       )}
       {/* Error banner */}
       {journal.errorMsg && (
-        <div className="fixed bottom-20 left-4 right-4 z-50 rounded-lg bg-red-600 p-3 text-center text-sm text-white shadow-[var(--shadow-float)]">
+        <div className="fixed bottom-20 left-4 right-4 z-50 rounded-lg bg-danger p-3 text-center text-sm text-white shadow-[var(--shadow-float)]">
           <p>{journal.errorMsg}</p>
           <button
             onClick={() => journal.setErrorMsg(null)}
@@ -484,7 +484,7 @@ export function JournalClient({ initialEntries, hasConsent }: Props) {
 
       {/* Delete confirmation */}
       {journal.pendingDeleteId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-overlay p-4">
           <div className="w-full max-w-xs rounded-[var(--radius-card)] bg-surface p-6 shadow-[var(--shadow-float)]">
             <p className="mb-4 text-sm font-medium text-foreground">
               Tem certeza? Esta ação é permanente.

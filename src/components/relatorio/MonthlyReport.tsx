@@ -74,7 +74,7 @@ export function MonthlyReport({ data }: MonthlyReportProps) {
         <p className="mt-2 text-xs text-muted print:text-[11px]">
           Gerado em {new Date().toLocaleDateString("pt-BR")} — Suporte Bipolar
         </p>
-        <p className="mt-1 text-xs text-warning print:text-[11px]">
+        <p className="mt-1 text-xs text-warning-fg print:text-[11px]">
           Este relatório é educacional e não substitui avaliação profissional.
         </p>
       </div>

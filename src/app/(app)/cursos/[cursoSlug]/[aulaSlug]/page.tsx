@@ -112,7 +112,7 @@ export default function AulaPage() {
 
       <div className="text-center">
         {marked ? (
-          <p className="text-success font-medium">Aula marcada como concluída!</p>
+          <p className="text-success-fg font-medium">Aula marcada como concluída!</p>
         ) : (
           <button
             onClick={markComplete}

@@ -28,7 +28,7 @@ export function SleepRoutineChecklist({ selected, onChange }: SleepRoutineCheckl
             className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm cursor-pointer transition-colors ${
               selected.includes(routine.key)
                 ? routine.negative
-                  ? "border-warning/50 bg-warning/10"
+                  ? "border-warning-border bg-warning-bg-subtle"
                   : "border-primary/50 bg-primary/10"
                 : "border-border bg-surface hover:border-border/80"
             }`}
@@ -37,13 +37,13 @@ export function SleepRoutineChecklist({ selected, onChange }: SleepRoutineCheckl
               type="checkbox"
               checked={selected.includes(routine.key)}
               onChange={() => handleToggle(routine.key)}
-              className="rounded border-border text-primary focus-visible:ring-primary"
+              className="rounded border-control-border text-primary focus-visible:ring-control-border-focus"
             />
             <span className={routine.negative ? "text-foreground" : "text-foreground"}>
               {routine.label}
             </span>
             {routine.negative && (
-              <span className="ml-auto text-xs text-warning">negativo</span>
+              <span className="ml-auto text-xs text-warning-fg">negativo</span>
             )}
           </label>
         ))}

@@ -99,7 +99,7 @@ function isProfessionalAccessCsrfExempt(pathname: string): boolean {
 }
 
 /** CSRF: Reject cross-origin mutating requests to /api (defense-in-depth). */
-function checkCsrf(request: NextRequest): NextResponse | null {
+async function checkCsrf(request: NextRequest): Promise<NextResponse | null> {
   const { method, headers } = request;
   const pathname = request.nextUrl.pathname;
 
@@ -157,7 +157,7 @@ function checkCsrf(request: NextRequest): NextResponse | null {
   // Cookie is set on every response; client must echo it in X-CSRF-Token header.
   const csrfCookie = request.cookies.get(CSRF_COOKIE_NAME)?.value;
   const csrfHeader = headers.get(CSRF_HEADER_NAME);
-  if (!validateCsrfToken(csrfCookie, csrfHeader)) {
+  if (!(await validateCsrfToken(csrfCookie, csrfHeader))) {
     return NextResponse.json({ error: "Token CSRF inválido" }, { status: 403 });
   }
 
@@ -246,10 +246,10 @@ export async function middleware(request: NextRequest) {
     const response = NextResponse.next();
     response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
     response.headers.set("Pragma", "no-cache");
-    return ensureCsrfCookie(request, response);
+    return await ensureCsrfCookie(request, response);
   }
 
-  return ensureCsrfCookie(request, NextResponse.next());
+  return await ensureCsrfCookie(request, NextResponse.next());
 }
 
 /**
@@ -258,10 +258,10 @@ export async function middleware(request: NextRequest) {
  * Cookie is SameSite=Lax and NOT httpOnly so client JS can read it
  * and echo it in X-CSRF-Token header on mutating requests.
  */
-function ensureCsrfCookie(request: NextRequest, response: NextResponse): NextResponse {
+async function ensureCsrfCookie(request: NextRequest, response: NextResponse): Promise<NextResponse> {
   const existingToken = request.cookies.get(CSRF_COOKIE_NAME)?.value;
   if (!existingToken) {
-    const token = generateCsrfToken();
+    const token = await generateCsrfToken();
     response.cookies.set(CSRF_COOKIE_NAME, token, {
       path: "/",
       secure: true,

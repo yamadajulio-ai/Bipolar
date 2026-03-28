@@ -36,7 +36,7 @@ export function AchievementGrid({ achievements, hidden, onToggleHide }: Achievem
         <h3 className="text-sm font-semibold text-foreground">Conquistas</h3>
         <button
           onClick={handleHide}
-          className="text-[11px] text-muted hover:text-foreground min-h-11 px-2 py-2"
+          className="text-[11px] text-muted hover:text-foreground min-h-11 min-w-11 px-2 py-2"
           aria-label="Esconder conquistas"
         >
           Esconder

@@ -123,7 +123,7 @@ export default function FinanceiroPage() {
         <div>
           <h1 className="text-2xl font-bold">Financeiro</h1>
           <p className="text-sm text-muted">
-            Controle de gastos — importante para a sua estabilidade. Este recurso não substitui avaliação profissional.
+            Controle de gastos — importante para a sua estabilidade.
           </p>
         </div>
         <div className="flex items-center gap-1">
@@ -139,7 +139,7 @@ export default function FinanceiroPage() {
             type="month"
             value={month}
             onChange={(e) => setMonth(e.target.value)}
-            className="rounded border border-border bg-surface px-2 py-1 text-sm"
+            className="rounded border border-control-border bg-surface px-2 py-1 text-sm"
           />
           <button
             onClick={() => setMonth(shiftMonth(month, 1))}
@@ -151,6 +151,7 @@ export default function FinanceiroPage() {
           </button>
         </div>
       </div>
+      <p className="mb-4 text-xs text-muted italic">Este recurso não substitui avaliação profissional.</p>
 
       <div className="mb-6 flex items-center gap-2 rounded-lg border border-success-border bg-success-bg-subtle px-4 py-2.5">
         <Image src="/mobills-logo.png" alt="Mobills" width={20} height={20} className="shrink-0" />
@@ -431,17 +432,17 @@ export default function FinanceiroPage() {
                     </strong>{" "}
                     em relação ao mês anterior
                     {Math.abs(summary.comparison.expenseChange) > 30 && (
-                      <span className="text-warning"> — variação significativa</span>
+                      <span className="text-warning-fg"> — variação significativa</span>
                     )}
                   </li>
                 )}
                 {summary.nightTransactions > 0 && (
-                  <li className="text-warning">
+                  <li className="text-warning-fg">
                     {summary.nightTransactions} transação(ões) registrada(s) entre 00h e 06h — gastos noturnos merecem atenção.
                   </li>
                 )}
                 {summary.moodCorrelation.filter((d) => d.mood !== null && d.mood >= 4 && d.spending > summary.dailyMedian).length > 0 && (
-                  <li className="text-warning">
+                  <li className="text-warning-fg">
                     Foram identificados dias com humor elevado e gastos acima da mediana — padrão que merece atenção clínica.
                   </li>
                 )}

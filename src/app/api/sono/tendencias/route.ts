@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
       alerts: [],
       logs: [],
     }, {
-      headers: { "Cache-Control": "private, no-cache" },
+      headers: { "Cache-Control": "private, no-store" },
     });
   }
 
@@ -109,7 +109,7 @@ export async function GET(request: NextRequest) {
       bedtime: l.bedtime,
     })),
   }, {
-    headers: { "Cache-Control": "private, no-cache" },
+    headers: { "Cache-Control": "private, no-store" },
   });
   } catch (err) {
     Sentry.captureException(err, { tags: { endpoint: "sono_tendencias" } });

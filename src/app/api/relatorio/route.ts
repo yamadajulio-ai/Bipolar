@@ -169,6 +169,6 @@ export async function GET(request: NextRequest) {
       label: e.label,
     })),
   });
-  response.headers.set("Cache-Control", "private, no-cache");
+  response.headers.set("Cache-Control", "private, no-store");
   return response;
 }

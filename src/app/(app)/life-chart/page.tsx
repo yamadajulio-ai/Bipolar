@@ -122,8 +122,9 @@ export default function LifeChartPage() {
         <div>
           <h1 className="text-2xl font-bold">Life Chart</h1>
           <p className="text-sm text-muted">
-            Registre eventos importantes da sua vida que podem influenciar o humor. Este recurso não substitui avaliação profissional.
+            Registre eventos importantes da sua vida que podem influenciar o humor.
           </p>
+          <p className="text-xs text-muted italic">Este recurso não substitui avaliação profissional.</p>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
@@ -284,7 +285,7 @@ export default function LifeChartPage() {
       </p>
 
       {pendingDeleteId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-overlay p-4">
           <div className="w-full max-w-xs rounded-[var(--radius-card)] bg-surface p-6 shadow-[var(--shadow-float)]">
             <p className="mb-4 text-sm font-medium text-foreground">
               Remover este evento? Esta ação não pode ser desfeita.

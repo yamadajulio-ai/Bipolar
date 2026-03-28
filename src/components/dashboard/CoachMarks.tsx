@@ -55,7 +55,7 @@ export function CoachMarks() {
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/30 flex items-end justify-center p-4"
+      className="fixed inset-0 z-50 bg-overlay flex items-end justify-center p-4"
       role="dialog"
       aria-modal="true"
       aria-label="Dicas do painel"

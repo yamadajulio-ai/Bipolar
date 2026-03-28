@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
     },
     alerts,
   }, {
-    headers: { "Cache-Control": "private, no-cache" },
+    headers: { "Cache-Control": "private, no-store" },
   });
   } catch (err) {
     Sentry.captureException(err, { tags: { endpoint: "diario_tendencias" } });

@@ -66,7 +66,7 @@ export async function GET() {
       whatsappEnabled: commPref?.whatsapp ?? false,
       whatsappPhone: user?.whatsappPhone ?? "",
     }, {
-      headers: { "Cache-Control": "private, no-cache" },
+      headers: { "Cache-Control": "private, no-store" },
     });
   } catch (err) {
     Sentry.captureException(err, { tags: { endpoint: "lembretes" } });

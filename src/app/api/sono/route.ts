@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
   });
 
   return NextResponse.json(logs, {
-    headers: { "Cache-Control": "private, no-cache" },
+    headers: { "Cache-Control": "private, no-store" },
   });
 }
 

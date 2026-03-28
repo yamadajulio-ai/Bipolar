@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     // Rate limit refresh attempts (prevents brute-force token guessing)
     if (!(await checkRateLimit(`native-refresh:${ip}`, 30, 60 * 1000))) {
       return NextResponse.json(
-        { error: "Too many refresh attempts." },
+        { error: "Muitas tentativas de atualização." },
         { status: 429 },
       );
     }
@@ -32,13 +32,13 @@ export async function POST(request: NextRequest) {
     try {
       body = await request.json();
     } catch {
-      return NextResponse.json({ error: "invalid_body" }, { status: 400 });
+      return NextResponse.json({ error: "Corpo da requisição inválido." }, { status: 400 });
     }
     const parsed = refreshSchema.safeParse(body);
 
     if (!parsed.success) {
       return NextResponse.json(
-        { error: "Missing refresh token." },
+        { error: "Token de atualização ausente." },
         { status: 400 },
       );
     }

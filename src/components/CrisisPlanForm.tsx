@@ -203,7 +203,7 @@ export function CrisisPlanForm({ initialData }: CrisisPlanFormProps) {
               checked={hasConsent}
               onChange={hasConsent ? undefined : grantConsent}
               disabled={consentLoading || hasConsent}
-              className="mt-1 h-4 w-4 rounded border-border text-primary focus-visible:ring-primary"
+              className="mt-1 h-4 w-4 rounded border-control-border text-primary focus-visible:ring-control-border-focus"
             />
             <label htmlFor="consent-crisis-plan" className="text-sm text-foreground">
               {hasConsent ? (
@@ -265,7 +265,7 @@ export function CrisisPlanForm({ initialData }: CrisisPlanFormProps) {
             <button
               type="button"
               onClick={() => removeContact(i)}
-              className="rounded-md px-3 py-2 text-sm text-danger hover:bg-danger/10"
+              className="rounded-md px-3 py-2 text-sm text-danger hover:bg-danger-bg-subtle"
             >
               Remover
             </button>
@@ -319,7 +319,7 @@ export function CrisisPlanForm({ initialData }: CrisisPlanFormProps) {
             <button
               type="button"
               onClick={() => removeMedication(i)}
-              className="rounded-md px-3 py-2 text-sm text-danger hover:bg-danger/10"
+              className="rounded-md px-3 py-2 text-sm text-danger hover:bg-danger-bg-subtle"
             >
               Remover
             </button>
@@ -364,7 +364,7 @@ export function CrisisPlanForm({ initialData }: CrisisPlanFormProps) {
             <button
               type="button"
               onClick={() => removeStrategy(i)}
-              className="rounded-md px-3 py-2 text-sm text-danger hover:bg-danger/10"
+              className="rounded-md px-3 py-2 text-sm text-danger hover:bg-danger-bg-subtle"
             >
               Remover
             </button>

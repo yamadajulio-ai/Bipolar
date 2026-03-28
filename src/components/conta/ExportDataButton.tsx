@@ -54,7 +54,7 @@ export function ExportDataButton() {
 
   return (
     <div className="space-y-2">
-      {error && <p className="text-sm text-danger" role="alert">{error}</p>}
+      {error && <p className="text-sm text-danger-fg" role="alert">{error}</p>}
 
       {showPassword && (
         <div>

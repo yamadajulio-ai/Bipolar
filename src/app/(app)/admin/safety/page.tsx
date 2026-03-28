@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { maskIp, maskEmail } from "@/lib/security";
 import { Card } from "@/components/Card";
@@ -18,6 +19,8 @@ const SOS_ACTION_LABELS: Record<string, string> = {
 
 export default async function AdminSafetyPage() {
   const session = await getSession();
+  if (!session.isLoggedIn) redirect("/login");
+  if (!session.onboarded) redirect("/onboarding");
 
   const headersList = await headers();
   const ip = headersList.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;

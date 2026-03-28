@@ -164,10 +164,10 @@ export async function POST(request: NextRequest) {
     // Idempotency: if clientRequestId already exists, return existing
     const existing = await prisma.moodSnapshot.findUnique({
       where: { clientRequestId: parsed.data.clientRequestId },
-      select: { id: true, diaryEntryId: true },
+      select: { id: true, diaryEntryId: true, capturedAt: true, diaryEntry: { select: { snapshotCount: true } } },
     });
     if (existing) {
-      return NextResponse.json({ id: existing.id, deduplicated: true }, { status: 200 });
+      return NextResponse.json({ id: existing.id, snapshotCount: existing.diaryEntry.snapshotCount ?? 1, capturedAt: existing.capturedAt, deduplicated: true }, { status: 200 });
     }
 
     // Upsert DiaryEntry for today (creates if first check-in)
@@ -323,15 +323,26 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "Nenhum campo para atualizar" }, { status: 400 });
     }
 
-    await prisma.moodSnapshot.update({
+    const updated = await prisma.moodSnapshot.update({
       where: { id: snapshot.id },
       data: updateData,
+      select: {
+        id: true,
+        capturedAt: true,
+        feeling: true,
+        mood: true,
+        energy: true,
+        anxiety: true,
+        irritability: true,
+        warningSignsNow: true,
+        note: true,
+      },
     });
 
     // Re-project
     await reprojectWithRetry(snapshot.diaryEntryId);
 
-    return NextResponse.json({ updated: true });
+    return NextResponse.json({ updated: true, snapshot: updated });
   } catch (err) {
     Sentry.captureException(err, { tags: { endpoint: "diario/snapshots/patch" } });
     return NextResponse.json(
@@ -373,6 +384,6 @@ export async function GET(request: NextRequest) {
   });
 
   const res = NextResponse.json(snapshots);
-  res.headers.set("Cache-Control", "private, no-cache");
+  res.headers.set("Cache-Control", "private, no-store");
   return res;
 }

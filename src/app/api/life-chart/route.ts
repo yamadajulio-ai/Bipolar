@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json(events, {
-      headers: { "Cache-Control": "private, no-cache" },
+      headers: { "Cache-Control": "private, no-store" },
     });
   } catch (err) {
     Sentry.captureException(err, { tags: { endpoint: "lifechart" } });

@@ -72,7 +72,7 @@ export function FormField({
           aria-describedby={error ? `${name}-error` : undefined}
         />
       )}
-      {error && <p id={`${name}-error`} className="mt-1 text-xs text-danger" role="alert">{error}</p>}
+      {error && <p id={`${name}-error`} className="mt-1 text-xs text-danger-fg" role="alert">{error}</p>}
     </div>
   );
 }

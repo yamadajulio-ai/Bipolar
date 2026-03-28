@@ -1,11 +1,14 @@
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { maskIp } from "@/lib/security";
 import { Card } from "@/components/Card";
 
 export default async function AdminEngagementPage() {
   const session = await getSession();
+  if (!session.isLoggedIn) redirect("/login");
+  if (!session.onboarded) redirect("/onboarding");
 
   const headersList = await headers();
   const ip = headersList.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;

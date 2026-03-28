@@ -39,7 +39,7 @@
 | Gráficos | Recharts | 3.7.0 |
 | Markdown | remark + rehype + gray-matter | — |
 | Google API | googleapis | 171.4.0 |
-| XLSX Parser | SheetJS (xlsx) | 0.18.5 |
+| XLSX Parser | ExcelJS (exceljs) | 4.x |
 | Linguagem | TypeScript | 5.x |
 | Package Manager | pnpm | — |
 | Testes | Vitest | 4.0.18 |
@@ -127,7 +127,7 @@ Redução drástica de entrada manual:
 - **sourceType propagado no pipeline** — campo adicionado em PlannerBlockData, ExpandedOccurrence, SerializedBlock, hydrate(), applyException()
 - **Alertas cross-source ignorados** — conflitos app↔google e noites tardias de blocos Google não geram alerta
 - **Badges de alerta condensados** — "3 Conflitos" em vez de 3 badges individuais "Conflito"
-- **Importação XLSX do Mobills** — suporte a arquivos .xlsx/.xls além de .csv (SheetJS), detecção automática de formato, parser com suporte a datas Excel serial e formato R$
+- **Importação XLSX do Mobills** — suporte a arquivos .xlsx/.xls além de .csv (ExcelJS), detecção automática de formato, parser com suporte a datas Excel serial e formato R$
 - Migration: `lastSyncAt` + unique index `PlannerBlock_userId_googleEventId_key`
 
 ### v3.3.1 — 28/02/2026 (Rebrand)
@@ -446,7 +446,7 @@ rede-bipolar/
 2. Upload via página /financeiro → POST /api/financeiro/import
 3. API detecta formato pelo nome do arquivo (.csv vs .xlsx/.xls)
 4. **CSV**: Parser detecta delimitador (; ou ,) e formato numérico brasileiro (1.234,56)
-5. **XLSX**: SheetJS lê a planilha, converte para array de arrays, detecta colunas por header
+5. **XLSX**: ExcelJS lê a planilha, converte para array de arrays, detecta colunas por header
 6. Parse de datas dd/MM/yyyy → YYYY-MM-DD (também suporta serial Excel e YYYY-MM-DD)
 7. Valores negativos entre parênteses suportados, prefixo R$ removido automaticamente
 8. Detecção de duplicatas via unique constraint (userId, date, description, amount)
@@ -454,7 +454,7 @@ rede-bipolar/
 
 **Arquivos:**
 - `src/lib/financeiro/parseMobillsCsv.ts` — Parser CSV
-- `src/lib/financeiro/parseMobillsXlsx.ts` — Parser XLSX (SheetJS)
+- `src/lib/financeiro/parseMobillsXlsx.ts` — Parser XLSX (ExcelJS)
 - `src/app/api/financeiro/import/route.ts` — Endpoint de import (detecta formato automaticamente)
 - `src/app/api/financeiro/route.ts` — CRUD transações
 - `src/app/api/financeiro/resumo/route.ts` — Resumo financeiro

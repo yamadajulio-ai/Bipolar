@@ -170,15 +170,15 @@ export async function rotateRefreshToken(
         where: { tokenFamily: descendant.tokenFamily },
         data: { revokedAt: new Date() },
       });
-      return { error: "Token reuse detected — all sessions revoked", status: 401 };
+      return { error: "Reutilização de token detectada — todas as sessões revogadas", status: 401 };
     }
 
-    return { error: "Invalid refresh token", status: 401 };
+    return { error: "Token inválido", status: 401 };
   }
 
   // Case 2: Session is revoked
   if (session.revokedAt) {
-    return { error: "Session revoked", status: 401 };
+    return { error: "Sessão revogada", status: 401 };
   }
 
   // Case 2b: Refresh token expired (30-day absolute lifetime)
@@ -188,7 +188,7 @@ export async function rotateRefreshToken(
       where: { id: session.id },
       data: { revokedAt: new Date() },
     }).catch(() => {});
-    return { error: "Session expired", status: 401 };
+    return { error: "Sessão expirada", status: 401 };
   }
 
   // Case 3: Valid token — rotate atomically
@@ -209,7 +209,7 @@ export async function rotateRefreshToken(
 
   // Race condition: another request already rotated this token
   if (count === 0) {
-    return { error: "Token already rotated (concurrent request)", status: 401 };
+    return { error: "Token já rotacionado (requisição concorrente)", status: 401 };
   }
 
   const accessToken = encodeAccessToken({

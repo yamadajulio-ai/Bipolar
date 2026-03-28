@@ -122,7 +122,7 @@ export default function LembretesPage() {
                 type="checkbox"
                 name="enabled"
                 defaultChecked={settings?.enabled ?? true}
-                className="h-4 w-4 rounded border-border"
+                className="h-4 w-4 rounded border-control-border"
               />
               Lembretes ativados
             </label>
@@ -131,7 +131,7 @@ export default function LembretesPage() {
                 type="checkbox"
                 name="privacyMode"
                 defaultChecked={settings?.privacyMode ?? true}
-                className="h-4 w-4 rounded border-border"
+                className="h-4 w-4 rounded border-control-border"
               />
               Modo privado
             </label>
@@ -147,7 +147,7 @@ export default function LembretesPage() {
                 type="checkbox"
                 name="whatsappEnabled"
                 defaultChecked={settings?.whatsappEnabled ?? false}
-                className="h-4 w-4 rounded border-border"
+                className="h-4 w-4 rounded border-control-border"
               />
               Receber lembretes também por WhatsApp
             </label>
@@ -170,7 +170,7 @@ export default function LembretesPage() {
                 name="whatsappPhone"
                 placeholder="(11) 99999-9999"
                 defaultValue={settings?.whatsappPhone ?? ""}
-                className="mt-1 block w-full rounded-lg border border-control-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted/50 focus-visible:border-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+                className="mt-1 block w-full rounded-lg border border-control-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted/50 focus-visible:border-control-border-focus focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-control-border-focus"
                 maxLength={20}
               />
             </div>

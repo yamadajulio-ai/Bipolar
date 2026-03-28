@@ -103,7 +103,7 @@ export default async function CursoPage({
                       <p className="text-xs text-muted">{lesson.description}</p>
                     )}
                   </div>
-                  {done && <span className="ml-auto text-success text-sm">Concluída</span>}
+                  {done && <span className="ml-auto text-success-fg text-sm">Concluída</span>}
                 </div>
               </Card>
             </Link>

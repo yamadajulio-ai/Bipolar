@@ -13,7 +13,8 @@ export default async function AdminFeedbackPage({
   searchParams: Promise<{ category?: string; priority?: string; page?: string }>;
 }) {
   const session = await getSession();
-  if (!session.isLoggedIn) redirect("/hoje");
+  if (!session.isLoggedIn) redirect("/login");
+  if (!session.onboarded) redirect("/onboarding");
 
   // RBAC: deny-by-default, require admin role
   const user = await prisma.user.findUnique({

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { maskIp } from "@/lib/security";
 import { Card } from "@/components/Card";
@@ -7,6 +8,8 @@ import { AdminActivityChart } from "@/components/admin/AdminActivityChart";
 
 export default async function AdminOverviewPage() {
   const session = await getSession();
+  if (!session.isLoggedIn) redirect("/login");
+  if (!session.onboarded) redirect("/onboarding");
 
   // Audit log
   const headersList = await headers();

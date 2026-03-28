@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
       pending: 0,
       doses: [],
     };
-    return NextResponse.json(summary, { headers: { "Cache-Control": "private, no-cache" } });
+    return NextResponse.json(summary, { headers: { "Cache-Control": "private, no-store" } });
   }
 
   // Get existing logs for this date
@@ -128,5 +128,5 @@ export async function GET(request: NextRequest) {
   else state = "PARTIAL";
 
   const summary: MedicationDaySummary = { date, state, expected, taken, missed, pending, doses };
-  return NextResponse.json(summary, { headers: { "Cache-Control": "private, no-cache" } });
+  return NextResponse.json(summary, { headers: { "Cache-Control": "private, no-store" } });
 }

@@ -151,11 +151,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (err) {
     Sentry.captureException(err, { tags: { endpoint: "native-apple-login" } });
-    console.error(JSON.stringify({
-      event: "native_apple_login_error",
-      errorType: err instanceof Error ? err.constructor.name : "Unknown",
-      message: (err as Error).message?.slice(0, 200) || "Unknown",
-    }));
     return NextResponse.json({ error: "apple_login_failed" }, { status: 500 });
   }
 }

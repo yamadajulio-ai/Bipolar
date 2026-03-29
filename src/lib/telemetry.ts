@@ -3,6 +3,7 @@
  * All analytics/Sentry events should go through these helpers
  * to ensure consistent naming and properties.
  */
+import * as Sentry from "@sentry/nextjs";
 
 // ── Event catalog ──────────────────────────────────────────────
 export type TelemetryEvent =
@@ -86,7 +87,6 @@ export function track(event: TelemetryEvent): void {
 
   // Server-side or production: Sentry breadcrumb
   try {
-    const Sentry = require("@sentry/nextjs");
     Sentry.addBreadcrumb({
       category: "telemetry",
       message: event.name,
@@ -107,7 +107,6 @@ export function trackError(event: {
   extra?: Record<string, unknown>;
 }): void {
   try {
-    const Sentry = require("@sentry/nextjs");
     Sentry.captureMessage(event.name, {
       level: "warning",
       tags: {

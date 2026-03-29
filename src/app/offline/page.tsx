@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 
 export default function OfflinePage() {
   return (
@@ -60,9 +61,9 @@ export default function OfflinePage() {
             <a href="/sos" aria-label="SOS — Preciso de ajuda agora" className="rounded-md bg-red-600 px-3 py-1.5 min-h-[44px] inline-flex items-center text-xs font-medium text-on-danger no-underline">
               SOS
             </a>
-            <a href="/exercicios/respiracao/caixa" className="rounded-md border border-border px-3 py-1.5 min-h-[44px] inline-flex items-center text-xs font-medium text-foreground no-underline hover:bg-surface-alt">
+            <Link href="/exercicios/respiracao/caixa" className="rounded-md border border-border px-3 py-1.5 min-h-[44px] inline-flex items-center text-xs font-medium text-foreground no-underline hover:bg-surface-alt">
               Respiração
-            </a>
+            </Link>
             <a href="/sons" className="rounded-md border border-border px-3 py-1.5 min-h-[44px] inline-flex items-center text-xs font-medium text-foreground no-underline hover:bg-surface-alt">
               Sons
             </a>

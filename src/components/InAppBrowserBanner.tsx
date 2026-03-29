@@ -22,7 +22,7 @@ export function InAppBrowserBanner() {
     const dismissed = sessionStorage.getItem(DISMISS_KEY);
     if (dismissed) return;
 
-    setShow(true);
+    queueMicrotask(() => setShow(true));
   }, []);
 
   function dismiss() {

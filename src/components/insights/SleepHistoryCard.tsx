@@ -59,7 +59,7 @@ function bedToWakeHours(bedtime: string, wakeTime: string): number | null {
   const [bH, bM] = bedtime.split(":").map(Number);
   const [wH, wM] = wakeTime.split(":").map(Number);
   if (isNaN(bH) || isNaN(bM) || isNaN(wH) || isNaN(wM)) return null;
-  let bedMin = bH * 60 + bM;
+  const bedMin = bH * 60 + bM;
   let wakeMin = wH * 60 + wM;
   if (wakeMin <= bedMin) wakeMin += 24 * 60;
   return (wakeMin - bedMin) / 60;

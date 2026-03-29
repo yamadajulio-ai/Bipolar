@@ -991,7 +991,7 @@ describe("enrichStandaloneHrvHr", () => {
       },
     };
     const mockPrisma = {
-      $transaction: async (fn: (tx: unknown) => Promise<unknown>, _opts?: unknown) => fn(mockTx),
+      $transaction: async (fn: (tx: unknown) => Promise<unknown>) => fn(mockTx),
     };
     return { mockPrisma, updatedRecords };
   }
@@ -1264,7 +1264,7 @@ describe("P1-BATCH-02: mergeWearableNights intra-batch dedup", () => {
       },
     };
     const mockPrisma = {
-      $transaction: async (fn: (tx: unknown) => Promise<unknown>, _opts?: unknown) => fn(mockTx),
+      $transaction: async (fn: (tx: unknown) => Promise<unknown>) => fn(mockTx),
     };
     return { mockPrisma, records, deleted };
   }

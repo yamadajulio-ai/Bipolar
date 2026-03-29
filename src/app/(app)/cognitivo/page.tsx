@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, startTransition } from "react";
 import { Card } from "@/components/Card";
 
 type Task = "menu" | "reaction" | "digits" | "results";
@@ -595,10 +595,12 @@ function DigitSpanTask({ onComplete, onBack }: { onComplete: (span: number) => v
   useEffect(() => {
     if (phase === "showing") {
       const seq = Array.from({ length: sequenceLength }, () => Math.floor(Math.random() * 10));
-      setCurrentSequence(seq);
-      setShowingIndex(0);
-      setUserInput("");
-      setCorrect(null);
+      startTransition(() => {
+        setCurrentSequence(seq);
+        setShowingIndex(0);
+        setUserInput("");
+        setCorrect(null);
+      });
     }
   }, [phase, sequenceLength]);
 

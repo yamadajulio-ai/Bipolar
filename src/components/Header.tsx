@@ -41,7 +41,7 @@ async function clearSwCache() {
 function ThemeButton() {
   const [mounted, setMounted] = useState(false);
   const { resolvedTheme, setTheme } = useTheme();
-  useEffect(() => setMounted(true), []);
+  useEffect(() => { queueMicrotask(() => setMounted(true)); }, []);
   if (!mounted) return <div className="h-11 w-11" aria-hidden="true" />;
   const isDark = resolvedTheme === "dark";
   return (

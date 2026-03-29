@@ -618,7 +618,7 @@ function processNight(segments: SleepSegment[]): ProcessedSleepNight | null {
   const hasStageBreakdown = allSleepSegments.some(
     (s) => s.stage === "core" || s.stage === "deep" || s.stage === "rem",
   );
-  let sleepSegments = hasStageBreakdown
+  const sleepSegments = hasStageBreakdown
     ? allSleepSegments.filter((s) => s.stage !== "asleep")
     : allSleepSegments;
 

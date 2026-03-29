@@ -44,7 +44,7 @@ function isAllowedMetric(metricJson: string): boolean {
 
 const MAX_DIRECT_SIZE = 3_500_000;
 
-export default {
+const handler = {
   async fetch(request: Request, env: Env): Promise<Response> {
     if (request.method !== "POST") {
       return json({ error: "Method not allowed" }, 405);
@@ -181,6 +181,8 @@ export default {
     );
   },
 };
+
+export default handler;
 
 function json(data: unknown, status: number): Response {
   return new Response(JSON.stringify(data), {

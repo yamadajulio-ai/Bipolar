@@ -263,12 +263,6 @@ const MEDICATION_CONDITIONAL_EXPLICIT: RegExp[] = [
 // "dose" can be a drink, "caixa" is generic, "receita" can be culinary.
 const MED_CONTEXT_STRONG: RegExp = /\b(remedio|remedios|medicamento|medicamentos|medicacao|comprimido|comprimidos|pilula|pilulas|cartela|rivotril|clonazepam|diazepam|valium|lexotan|bromazepam|frontal|alprazolam|sertralina|fluoxetina|litio|carbamazepina|quetiapina|seroquel|risperidona|haldol|haloperidol|amitriptilina|tryptanol|clozapina|olanzapina|zyprexa|aripiprazol|abilify|lamotrigina|valproato|depakote|depakene|venlafaxina|desvenlafaxina|topiramato|oxcarbazepina)\b/i;
 
-// Weak medication context — ambiguous words that could be non-medical.
-// These alone do NOT promote conditional patterns, but combined with STRONG they add signal.
-const MED_CONTEXT_WEAK: RegExp = /\b(dose|caixa|frasco|receita|prescricao)\b/i;
-
-// Combined context (backward-compatible, used where any med signal is acceptable)
-const MED_CONTEXT: RegExp = /\b(remedio|remedios|medicamento|medicamentos|medicacao|comprimido|comprimidos|pilula|pilulas|cartela|frasco|caixa|dose|receita|prescricao|rivotril|clonazepam|diazepam|valium|lexotan|bromazepam|frontal|alprazolam|sertralina|fluoxetina|litio|carbamazepina|quetiapina|seroquel|risperidona|haldol|haloperidol|amitriptilina|tryptanol|clozapina|olanzapina|zyprexa|aripiprazol|abilify|lamotrigina|valproato|depakote|depakene|venlafaxina|desvenlafaxina|topiramato|oxcarbazepina)\b/i;
 
 // ── Benign overrides ────────────────────────────────────────────
 // Phrases that contain crisis keywords but are clearly benign.

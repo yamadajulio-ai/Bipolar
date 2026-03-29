@@ -331,6 +331,7 @@ export async function POST(
     ];
 
     const [user, sleepLogs, entries, moodSnapshots, rawPlannerBlocks, crisisPlan, sosEvents, weeklyAssessments, lifeChartEvents, functioningAssessments] =
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await Promise.all(queries) as [any, any[], any[], any[], any[], any, any[], any[], any[], any[]];
 
     // Count total records for truncation detection

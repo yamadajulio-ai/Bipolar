@@ -28,7 +28,7 @@ export function InstallBanner() {
     const visits = Number(localStorage.getItem(VISIT_KEY) || "0") + 1;
     localStorage.setItem(VISIT_KEY, String(visits));
     if (visits >= MIN_VISITS) {
-      setShow(true);
+      queueMicrotask(() => setShow(true));
     }
   }, []);
 

@@ -24,9 +24,7 @@ export function NarrativeProgress({ active }: NarrativeProgressProps) {
 
   useEffect(() => {
     if (!active) {
-      // Reset when done
-      setProgress(0);
-      setStageIndex(0);
+      queueMicrotask(() => { setProgress(0); setStageIndex(0); });
       return;
     }
 

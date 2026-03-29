@@ -3,7 +3,7 @@
 import { useRef, useEffect, useCallback } from "react";
 import { useSosChat } from "./useSosChat";
 import type { Message } from "./useSosChat";
-import { useSosVoice, stopSpeaking } from "./useSosVoice";
+import { useSosVoice, stopSpeaking, speak } from "./useSosVoice";
 import { SosSafetyBanner } from "./SosSafetyBanner";
 import { SosChatMessages } from "./SosChatMessages";
 import { useState } from "react";
@@ -137,8 +137,7 @@ export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
       voice.recognitionRef.current?.stop();
       voice.setListening(false);
       if (voice.ttsEnabledRef.current) {
-        const { speak: speakFn } = require("./useSosVoice");
-        speakFn(msg);
+        speak(msg);
       }
     }, 10 * 60 * 1000);
 
@@ -150,8 +149,7 @@ export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
       voice.recognitionRef.current?.stop();
       voice.setListening(false);
       if (voice.ttsEnabledRef.current) {
-        const { speak: speakFn } = require("./useSosVoice");
-        speakFn(msg);
+        speak(msg);
       }
     }, 20 * 60 * 1000);
 

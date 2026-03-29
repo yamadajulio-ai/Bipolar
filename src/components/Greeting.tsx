@@ -1,14 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 export function Greeting() {
-  const [greeting, setGreeting] = useState("Bem-vindo");
-
-  useEffect(() => {
+  const [greeting] = useState(() => {
     const hour = new Date().getHours();
-    setGreeting(hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite");
-  }, []);
+    return hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";
+  });
 
   return (
     <div className="flex items-center justify-between">

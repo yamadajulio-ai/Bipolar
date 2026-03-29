@@ -25,7 +25,7 @@ export function HojeSafetyGate({ source, sourceAssessmentId }: Props) {
     try {
       const deferred = localStorage.getItem("safety-screen-defer");
       if (deferred && Date.now() < parseInt(deferred, 10)) {
-        setShow(false);
+        queueMicrotask(() => setShow(false));
       }
     } catch { /* ignore */ }
   }, []);

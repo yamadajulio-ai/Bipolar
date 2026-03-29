@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, startTransition } from "react";
 
 type JournalType = "DIARY" | "QUICK_INSIGHT";
 
@@ -62,7 +62,7 @@ export function useJournalDraft() {
   useEffect(() => {
     saveDraftToStorage(tab, content);
     if (draftRestored && content.trim().length === 0) {
-      setDraftRestored(false);
+      startTransition(() => setDraftRestored(false));
     }
   }, [tab, content, draftRestored]);
 

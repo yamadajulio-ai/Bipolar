@@ -113,13 +113,14 @@ export default function FinanceiroPage() {
   const [yearlyData, setYearlyData] = useState<{ month: string; label: string; income: number; expense: number }[]>([]);
   const [showForm, setShowForm] = useState(false);
 
-  const fetchData = useCallback(async () => {
-    const [sumRes, txRes] = await Promise.all([
+  const fetchData = useCallback(() => {
+    Promise.all([
       fetch(`/api/financeiro/resumo?month=${month}`),
       fetch(`/api/financeiro?month=${month}`),
-    ]);
-    if (sumRes.ok) setSummary(await sumRes.json());
-    if (txRes.ok) setTransactions(await txRes.json());
+    ]).then(async ([sumRes, txRes]) => {
+      if (sumRes.ok) setSummary(await sumRes.json());
+      if (txRes.ok) setTransactions(await txRes.json());
+    }).catch(() => {});
   }, [month]);
 
   useEffect(() => {

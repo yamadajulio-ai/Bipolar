@@ -41,10 +41,13 @@ function computeQuickScores(entry: {
   if (energy <= 2) D += energy === 1 ? 20 : 12;
 
   // Sleep contribution (short sleep → mania signal, long → depression)
-  if (entry.sleepHours <= 4) M += 15;
-  else if (entry.sleepHours <= 5.5) M += 8;
-  if (entry.sleepHours > 11) D += 12;
-  else if (entry.sleepHours > 9.5) D += 6;
+  // Skip when sleepHours is 0 (no data available, not "slept zero hours")
+  if (entry.sleepHours > 0) {
+    if (entry.sleepHours <= 4) M += 15;
+    else if (entry.sleepHours <= 5.5) M += 8;
+    if (entry.sleepHours > 11) D += 12;
+    else if (entry.sleepHours > 9.5) D += 6;
+  }
 
   // Irritability → mania
   const irrit = entry.irritability ?? 3;

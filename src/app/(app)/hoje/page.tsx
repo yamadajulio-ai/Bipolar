@@ -410,9 +410,20 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
     !hasFinancial && { label: "Mobills", href: "/financeiro", bg: "bg-success-bg-subtle hover:bg-success-bg-subtle/80", textColor: "text-success-fg" },
   ].filter(Boolean) as { label: string; href: string; bg: string; textColor: string }[];
 
-  // === Chart data (7d) ===
+  // === Chart data (7d) — prefer SleepLog.totalHours over DiaryEntry.sleepHours ===
   const chartEntries = allEntries30.filter(e => e.date >= cutoff7Str);
-  const chartData = chartEntries.map(e => ({ date: e.date, mood: e.mood, sleepHours: e.sleepHours }));
+  const sleepByDateChart = new Map<string, number>();
+  for (const log of allSleepLogs30) {
+    if (log.date >= cutoff7Str && log.totalHours >= 1 && !log.excluded) {
+      const existing = sleepByDateChart.get(log.date);
+      sleepByDateChart.set(log.date, (existing ?? 0) + log.totalHours);
+    }
+  }
+  const chartData = chartEntries.map(e => ({
+    date: e.date,
+    mood: e.mood,
+    sleepHours: sleepByDateChart.get(e.date) ?? (e.sleepHours > 0 ? e.sleepHours : null),
+  }));
 
   // === News ===
   let newsArticles: { title: string; url: string; sourceName: string | null; publishedAt: Date }[] = [];

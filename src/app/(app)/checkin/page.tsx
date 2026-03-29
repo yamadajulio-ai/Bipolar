@@ -36,9 +36,8 @@ export default function CheckinPage() {
   const [anxiety, setAnxiety] = useState<number | null>(null);
   const [irritability, setIrritability] = useState<number | null>(null);
   const [sleepHours, setSleepHours] = useState("7");
-  const [autoSleep, setAutoSleep] = useState(false);
-  const [autoSleepHours, setAutoSleepHours] = useState<number | null>(null);
-  const [autoSleepLoading, setAutoSleepLoading] = useState(false);
+  const [wearableSleepHours, setWearableSleepHours] = useState<number | null>(null);
+  const [wearableSleepLoading, setWearableSleepLoading] = useState(true);
   const [medication, setMedication] = useState("sim");
   const [hasDoseTracking, setHasDoseTracking] = useState<boolean | null>(null);
   const [showSigns, setShowSigns] = useState(false);
@@ -52,6 +51,9 @@ export default function CheckinPage() {
   // Snapshot timeline
   const [todaySnapshots, setTodaySnapshots] = useState<SnapshotEntry[]>([]);
   const [snapshotsLoading, setSnapshotsLoading] = useState(true);
+
+  // Whether user already has a sleep log for today
+  const [hasSleepToday, setHasSleepToday] = useState(false);
 
   // Adaptive check-in: suggest complete mode after 3 consecutive minimal check-ins
   const [minimalStreak, setMinimalStreak] = useState(0);
@@ -119,45 +121,41 @@ export default function CheckinPage() {
       .finally(() => setSnapshotsLoading(false));
   }, [today]);
 
+  // Single fetch: check wearable sleep data + whether sleep exists today
   useEffect(() => {
-    if (!autoSleep) return;
-    setAutoSleepLoading(true);
     fetch(`/api/sono?days=3`)
       .then((r) => r.ok ? r.json() : [])
       .then((logs: { date: string; totalHours: number; awakeMinutes: number; excluded: boolean }[]) => {
-        // The night of "yesterday" is logged under TODAY's date (wake date).
-        // E.g., night 24→25 has date=25/03. So check today first, then yesterday.
         const now = new Date();
         const todayStr = now.toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
         const yesterday = new Date(now);
         yesterday.setDate(yesterday.getDate() - 1);
         const yesterdayStr = yesterday.toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
 
-        // Filter real sleep (>= 2h, not excluded) for today or yesterday
+        // hasSleepToday: any log for today (regardless of excluded/duration)
+        setHasSleepToday(logs.some((l) => l.date === todayStr));
+
+        // Wearable display: real sleep (>= 2h, not excluded) for today or yesterday
         const realLogs = logs.filter((l) => !l.excluded && l.totalHours >= 2);
         const todayLogs = realLogs.filter((l) => l.date === todayStr);
         const yesterdayLogs = realLogs.filter((l) => l.date === yesterdayStr);
-
-        // Prefer today's logs (last night's sleep), fallback to yesterday
         const chosen = todayLogs.length > 0 ? todayLogs : yesterdayLogs;
 
         if (chosen.length > 0) {
-          // Sum actual sleep: totalHours - awakeMinutes for each log
           const actualSleep = chosen.reduce((sum, l) => {
             const awakeHrs = (l.awakeMinutes || 0) / 60;
             return sum + Math.max(0, l.totalHours - awakeHrs);
           }, 0);
-          // Keep 2 decimal places for precision (5.95h = 5h57min, not 6h00)
           const rounded = Math.round(actualSleep * 100) / 100;
-          setAutoSleepHours(rounded);
+          setWearableSleepHours(rounded);
           setSleepHours(String(Math.round(actualSleep * 10) / 10));
         } else {
-          setAutoSleepHours(null);
+          setWearableSleepHours(null);
         }
       })
-      .catch(() => setAutoSleepHours(null))
-      .finally(() => setAutoSleepLoading(false));
-  }, [autoSleep, today]);
+      .catch(() => setWearableSleepHours(null))
+      .finally(() => setWearableSleepLoading(false));
+  }, []);
 
   const toggleSign = useCallback((key: string) => {
     setSelectedSigns((prev) =>
@@ -220,7 +218,7 @@ export default function CheckinPage() {
             warningSignsNow: selectedSigns.length > 0 ? JSON.stringify(selectedSigns) : undefined,
             clientRequestId,
             ...(isFirst ? {
-              sleepHours: parseFloat(sleepHours) || 0,
+              ...(wearableSleepHours !== null ? { sleepHours: parseFloat(sleepHours) || 0 } : {}),
               tookMedication: medication,
             } : {}),
           }),
@@ -294,14 +292,18 @@ export default function CheckinPage() {
               {snapshotCount} {snapshotCount === 1 ? "registro" : "registros"} hoje
             </p>
           )}
-          <p className="text-sm text-muted">Que tal registrar seu sono também?</p>
-          <Link
-            href="/sono/novo"
-            onClick={() => { if (redirectTimer.current) clearTimeout(redirectTimer.current); }}
-            className="inline-block text-sm font-medium text-primary hover:text-primary-dark underline"
-          >
-            Registrar sono
-          </Link>
+          {!hasSleepToday && wearableSleepHours === null && (
+            <>
+              <p className="text-sm text-muted">Que tal registrar seu sono também?</p>
+              <Link
+                href="/sono/novo"
+                onClick={() => { if (redirectTimer.current) clearTimeout(redirectTimer.current); }}
+                className="inline-block text-sm font-medium text-primary hover:text-primary-dark underline"
+              >
+                Registrar sono
+              </Link>
+            </>
+          )}
         </div>
         <div className="flex flex-col items-center gap-2">
           <button
@@ -489,58 +491,31 @@ export default function CheckinPage() {
         {/* Sleep — only on first check-in of the day */}
         {isFirstOfDay && (
           <Card>
-            <label htmlFor="sleep-hours" className="block text-sm font-medium text-foreground mb-1">
-              Horas de sono
-            </label>
-            <p className="text-xs text-muted mb-2">Quantas horas você dormiu ontem?</p>
-
-            <label className="flex items-center gap-2 text-sm text-muted mb-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={autoSleep}
-                onChange={(e) => {
-                  const checked = e.target.checked;
-                  setAutoSleep(checked);
-                  if (!checked) {
-                    setSleepHours("7");
-                    setAutoSleepHours(null);
-                  }
-                }}
-                className="rounded border-control-border"
-              />
-              Usar registro de sono automático
-            </label>
-
-            {autoSleep ? (
-              autoSleepLoading ? (
-                <p className="text-sm text-muted">Buscando registro de sono...</p>
-              ) : autoSleepHours !== null ? (
-                <div className="rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-sm text-foreground">
+            <p className="block text-sm font-medium text-foreground mb-1">Sono da última noite</p>
+            {wearableSleepLoading ? (
+              <p className="text-sm text-muted">Buscando dados do wearable...</p>
+            ) : wearableSleepHours !== null ? (
+              <div className="rounded-md border border-success-border bg-success-bg-subtle px-3 py-2 text-sm text-foreground flex items-center gap-2">
+                <svg className="w-4 h-4 text-success-fg shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>
                   <span className="font-medium">
-                    {Math.floor(autoSleepHours)}h {String(Math.round((autoSleepHours - Math.floor(autoSleepHours)) * 60)).padStart(2, "0")}min
+                    {Math.floor(wearableSleepHours)}h {String(Math.round((wearableSleepHours - Math.floor(wearableSleepHours)) * 60)).padStart(2, "0")}min
                   </span>
-                  <span className="text-muted ml-1">(sono da última noite)</span>
-                </div>
-              ) : (
-                <p className="text-sm text-amber-600 dark:text-amber-400">
-                  Nenhum registro de sono recente encontrado. Verifique se a integração com o Health Auto Export está ativa na{" "}
-                  <a href="/sono" className="text-primary hover:underline">página de sono</a>{" "}
-                  ou preencha manualmente abaixo.
-                </p>
-              )
-            ) : null}
-
-            {(!autoSleep || (autoSleep && autoSleepHours === null && !autoSleepLoading)) && (
-              <input
-                id="sleep-hours"
-                type="number"
-                min={0}
-                max={24}
-                step={0.5}
-                value={sleepHours}
-                onChange={(e) => setSleepHours(e.target.value)}
-                className="block w-full rounded-md border border-control-border bg-surface px-3 py-2 text-sm text-foreground focus-visible:border-control-border-focus focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-control-border-focus"
-              />
+                  <span className="text-muted ml-1">registrado pelo wearable</span>
+                </span>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-xs text-muted">Nenhum dado do wearable encontrado para hoje.</p>
+                <Link
+                  href="/sono/novo"
+                  className="inline-flex items-center min-h-[44px] rounded-lg border border-primary/30 bg-primary/5 px-4 py-2 text-sm font-medium text-primary hover:bg-primary/10 transition-colors"
+                >
+                  Registrar sono manualmente
+                </Link>
+              </div>
             )}
           </Card>
         )}
@@ -648,7 +623,7 @@ export default function CheckinPage() {
               <a href="/diario/novo" className="text-primary hover:underline">diário completo</a>.
             </>
           ) : (
-            <>Este registro captura como você está agora. Sono fica no primeiro check-in do dia.</>
+            <>Este registro captura como você está agora.</>
           )}
         </p>
       </div>

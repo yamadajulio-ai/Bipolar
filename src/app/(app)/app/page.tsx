@@ -47,7 +47,7 @@ export default async function DashboardPage() {
   const recentAlerts: string[] = [];
   if (recentEntries.length >= 3) {
     const last3 = recentEntries.slice(-3);
-    if (last3[0].sleepHours > last3[1].sleepHours && last3[1].sleepHours > last3[2].sleepHours) {
+    if (last3.every((e) => e.sleepHours > 0) && last3[0].sleepHours > last3[1].sleepHours && last3[1].sleepHours > last3[2].sleepHours) {
       recentAlerts.push("Seu sono está diminuindo progressivamente. Alterações no sono podem preceder episódios. Este alerta é automático e não substitui avaliação profissional.");
     }
     if (last3.every((e) => e.mood >= 4)) {

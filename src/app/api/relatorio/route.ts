@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
 
   // Aggregations
   const moods = entries.map((e) => e.mood);
-  const sleeps = entries.map((e) => e.sleepHours);
+  const sleeps = entries.map((e) => e.sleepHours).filter((h) => h > 0);
   const energies = entries.filter((e) => e.energyLevel).map((e) => e.energyLevel!);
   const anxieties = entries.filter((e) => e.anxietyLevel).map((e) => e.anxietyLevel!);
 

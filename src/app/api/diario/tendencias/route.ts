@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
 
   // Calculate stats
   const moods = entries.map((e) => e.mood);
-  const sleeps = entries.map((e) => e.sleepHours);
+  const sleeps = entries.map((e) => e.sleepHours).filter((h) => h > 0);
   const avgMood = moods.length ? moods.reduce((a, b) => a + b, 0) / moods.length : 0;
   const avgSleep = sleeps.length ? sleeps.reduce((a, b) => a + b, 0) / sleeps.length : 0;
 
@@ -46,8 +46,8 @@ export async function GET(request: NextRequest) {
   if (entries.length >= 3) {
     const last3 = entries.slice(-3);
 
-    // Sleep decreasing trend
-    if (last3.length === 3 && last3[0].sleepHours > last3[1].sleepHours && last3[1].sleepHours > last3[2].sleepHours) {
+    // Sleep decreasing trend (skip if any entry has no sleep data)
+    if (last3.length === 3 && last3.every((e) => e.sleepHours > 0) && last3[0].sleepHours > last3[1].sleepHours && last3[1].sleepHours > last3[2].sleepHours) {
       alerts.push("Seu sono está diminuindo progressivamente. Alterações no sono podem preceder episódios. Este alerta é automático e não substitui avaliação profissional.");
     }
 
@@ -62,9 +62,9 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Sleep deprivation
+  // Sleep deprivation (skip entries with sleepHours=0 which means "no data")
   const last2 = entries.slice(-2);
-  if (last2.length >= 2 && last2.every((e) => e.sleepHours < 5)) {
+  if (last2.length >= 2 && last2.every((e) => e.sleepHours > 0 && e.sleepHours < 5)) {
     alerts.push("Privação de sono detectada. Sono insuficiente pode desencadear episódios maníacos. Priorize o descanso. Este alerta é automático e não substitui avaliação profissional.");
   }
 

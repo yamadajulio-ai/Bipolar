@@ -8,7 +8,7 @@ const MiniTrendChart = dynamic(
 );
 
 interface DashboardChartWrapperProps {
-  data: Array<{ date: string; mood: number; sleepHours: number }>;
+  data: Array<{ date: string; mood: number; sleepHours: number | null }>;
 }
 
 export function DashboardChartWrapper({ data }: DashboardChartWrapperProps) {

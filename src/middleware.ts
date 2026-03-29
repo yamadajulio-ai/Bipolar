@@ -278,7 +278,7 @@ async function ensureCsrfCookie(request: NextRequest, response: NextResponse): P
     const token = await generateCsrfToken();
     response.cookies.set(CSRF_COOKIE_NAME, token, {
       path: "/",
-      secure: true,
+      secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       httpOnly: false, // Client JS must read this to send in header
     });

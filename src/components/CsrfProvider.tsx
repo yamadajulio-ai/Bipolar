@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 
-const CSRF_COOKIE_NAME = "__Host-csrf";
+const CSRF_COOKIE_NAME = process.env.NODE_ENV === "production" ? "__Host-csrf" : "csrf";
 const CSRF_HEADER_NAME = "x-csrf-token";
 
 function getCsrfToken(): string {

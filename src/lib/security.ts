@@ -110,8 +110,8 @@ export function sanitizeInput(input: string): string {
 
 // ── CSRF Double-Submit Cookie (HMAC-signed) ─────────────────
 
-/** Cookie name: __Host- prefix enforces Secure + no Domain + Path=/ */
-export const CSRF_COOKIE_NAME = "__Host-csrf";
+/** Cookie name: __Host- prefix enforces Secure + no Domain + Path=/ (dev falls back to unprefixed) */
+export const CSRF_COOKIE_NAME = process.env.NODE_ENV === "production" ? "__Host-csrf" : "csrf";
 export const CSRF_HEADER_NAME = "x-csrf-token";
 
 /**

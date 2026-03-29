@@ -16,7 +16,7 @@ import { StabilityScoreWidget } from "@/components/dashboard/StabilityScoreWidge
 import Link from "next/link";
 import Image from "next/image";
 import { SOSButton } from "@/components/SOSButton";
-import { CoachMarks } from "@/components/dashboard/CoachMarks";
+// CoachMarks removed — information is already present in the cards themselves
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { QuickSpend } from "@/components/QuickSpend";
 import { evaluateRisk, buildActions } from "@/lib/risk-v2";
@@ -124,18 +124,17 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
   cutoff7.setDate(cutoff7.getDate() - 7);
   const cutoff7Str = localDateStr(cutoff7);
 
-  // === Sync Google Calendar if connected (non-blocking, best-effort) ===
-  const googleAccount = await prisma.googleAccount.findUnique({
+  // === Sync Google Calendar if connected (fire-and-forget, non-blocking) ===
+  prisma.googleAccount.findUnique({
     where: { userId: session.userId },
     select: { lastSyncAt: true },
-  });
-  if (googleAccount) {
-    const lastSync = googleAccount.lastSyncAt?.getTime() ?? 0;
-    const stale = now.getTime() - lastSync > 5 * 60 * 1000; // 5 min
-    if (stale) {
-      await pullGoogleCalendar(session.userId).catch(() => {});
+  }).then((ga) => {
+    if (ga) {
+      const lastSync = ga.lastSyncAt?.getTime() ?? 0;
+      const stale = now.getTime() - lastSync > 5 * 60 * 1000; // 5 min
+      if (stale) pullGoogleCalendar(session.userId).catch(() => {});
     }
-  }
+  }).catch(() => {});
 
   // === Fetch all data in parallel ===
   const [
@@ -425,12 +424,8 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
     sleepHours: sleepByDateChart.get(e.date) ?? (e.sleepHours > 0 ? e.sleepHours : null),
   }));
 
-  // === News ===
-  let newsArticles: { title: string; url: string; sourceName: string | null; publishedAt: Date }[] = [];
-  try {
-    const allNews = await getNews();
-    newsArticles = allNews.slice(0, 3);
-  } catch { /* silent */ }
+  // === News (non-blocking — fetched in parallel, resolved later) ===
+  const newsPromise = getNews().then(n => n.slice(0, 3)).catch(() => [] as { title: string; url: string; sourceName: string | null; publishedAt: Date }[]);
 
   const formatBlockTime = (d: Date) =>
     d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: TZ });
@@ -586,6 +581,9 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
     // Non-blocking — don't fail page render for persistence errors
   }
 
+  // === Resolve deferred news ===
+  const newsArticles = await newsPromise;
+
   // === NEW USER MODE: simplified dashboard for users with < 3 diary entries ===
   const isNewUser = allEntries30.length < 3;
 
@@ -604,7 +602,6 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
     return (
       <div className="space-y-4">
         <Greeting />
-        <CoachMarks />
 
         {/* Welcome card */}
         <Card className="bg-primary/5 border-primary/20">
@@ -651,7 +648,6 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
   return (
     <div className="space-y-4">
       <Greeting />
-      <CoachMarks />
 
       {/* === RISK V2: ORANGE/YELLOW Alert + Safety Interstitial === */}
       {(alertLayer === "ORANGE" || alertLayer === "YELLOW") && (

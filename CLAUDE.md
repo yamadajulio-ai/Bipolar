@@ -75,6 +75,8 @@
 - **Múltiplos ciclos/dia**: SleepLog usa `@@unique([userId, date, bedtime])` — permite múltiplos registros por dia. UI agrupa por data com somatório e exibe cada ciclo individualmente ("Ciclo 1, 2..."). Métricas usam `aggregateSleepByDay()` para somar ciclos antes de calcular médias.
 - Todos os registros aparecem no histórico para revisão clínica
 - Histórico configurável pelo usuário: 7, 15, 30 noites ou 3 meses (via `?noites=N`)
+- **DiaryEntry.sleepHours=0 means "no data"**: all downstream consumers guard against 0 (mood-snapshot, tendencias, relatorio, app/page, hoje chart). Modules prefer SleepLog.totalHours over DiaryEntry.sleepHours.
+- **Check-in sleep**: auto-detects wearable data (SleepLog); if absent, links to `/sono/novo` for manual entry. No inline numeric input.
 
 ## Design System — Phase 1 (Foundation + Chrome)
 - **Tokens CSS** em `globals.css`: elevation (shadow-card/raised/float), radius (card 18px, panel 24px, pill 999px), surfaces (surface/raised/glass), borders (soft 10%/strong 20%), blur-chrome 18px, halo, halo-stroke

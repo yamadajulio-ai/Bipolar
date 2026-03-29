@@ -20,6 +20,7 @@
 - `@vercel/functions` — `waitUntil()` for deferred background work (HAE import)
 - Observabilidade: Sentry (`@sentry/nextjs` v10, source maps, PII scrubbing)
 - MCP Servers: Sentry + GitHub (`.mcp.json`)
+- MCP Servers: Sentry + GitHub (`.mcp.json`)
 
 ## Público-alvo
 - Brasileiros com transtorno bipolar

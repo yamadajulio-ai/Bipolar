@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod/v4";
 import * as Sentry from "@sentry/nextjs";
 import { prisma } from "@/lib/db";
-import { maskIp } from "@/lib/security";
 
 // ── Zod schemas for Meta WhatsApp Cloud API webhook payload ─────
 const whatsappTextSchema = z.object({ body: z.string().max(4096) });
@@ -289,7 +288,7 @@ export async function POST(request: NextRequest) {
           if (message.type === "document" && message.document) {
             const doc = message.document;
             // Sanitize filename against path traversal
-            const filename = (doc.filename || "unknown").split(/[/\\]/).pop() || "unknown";
+            let filename = (doc.filename || "unknown").split(/[/\\]/).pop() || "unknown";
             let ext = filename.toLowerCase().split(".").pop() || "";
             const SUPPORTED_EXTENSIONS = new Set(["csv", "xlsx", "ofx", "qfx"]);
 
@@ -302,7 +301,12 @@ export async function POST(request: NextRequest) {
                 "application/x-ofx": "ofx",
                 "application/ofx": "ofx",
               };
-              ext = MIME_MAP[doc.mime_type] || ext;
+              const resolvedExt = MIME_MAP[doc.mime_type];
+              if (resolvedExt) {
+                ext = resolvedExt;
+                // Reconstruct filename with resolved extension so ingestFinancialFile routes correctly
+                filename = `${filename}.${resolvedExt}`;
+              }
             }
 
             if (SUPPORTED_EXTENSIONS.has(ext)) {

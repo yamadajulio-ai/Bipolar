@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     const raw = formData.get("file");
     if (!raw || !(raw instanceof File)) {
       return NextResponse.json(
-        { errors: { file: ["Arquivo obrigatório (.csv, .xlsx ou .ofx)"] } },
+        { errors: { file: ["Arquivo obrigatório (.csv, .xlsx, .ofx ou .qfx)"] } },
         { status: 400, headers: HEADERS },
       );
     }
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
 
     if (fileName.endsWith(".xls") && !fileName.endsWith(".xlsx")) {
       return NextResponse.json(
-        { errors: { file: ["Formato .xls não é suportado. Exporte como .xlsx, .csv ou .ofx."] } },
+        { errors: { file: ["Formato .xls não é suportado. Exporte como .xlsx, .csv, .ofx ou .qfx."] } },
         { status: 400, headers: HEADERS },
       );
     }

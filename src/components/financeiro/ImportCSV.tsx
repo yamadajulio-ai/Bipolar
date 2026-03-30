@@ -403,7 +403,7 @@ export function ImportCSV({ onImported }: { onImported: () => void }) {
             <div className="mb-2 text-3xl">💬</div>
             <h4 className="text-sm font-semibold mb-1">Importe pelo WhatsApp</h4>
             <p className="text-xs text-muted mb-3">
-              Envie seu extrato (XLSX ou OFX) como documento para o WhatsApp do Suporte Bipolar.
+              Envie seu extrato (CSV, XLSX ou OFX) como documento para o WhatsApp do Suporte Bipolar.
               As transações são importadas automaticamente.
             </p>
 

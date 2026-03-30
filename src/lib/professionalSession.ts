@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 
 export interface ProfessionalSessionData {
   token: string;
+  accessId: string;
   patientUserId: string;
   patientName: string;
   isViewer: boolean;
@@ -88,6 +89,7 @@ export async function validateProfessionalAccess(
  */
 export async function createProfessionalSession(
   token: string,
+  accessId: string,
   patientUserId: string,
   patientName: string,
 ): Promise<void> {
@@ -98,6 +100,7 @@ export async function createProfessionalSession(
   );
 
   session.token = token;
+  session.accessId = accessId;
   session.patientUserId = patientUserId;
   session.patientName = patientName;
   session.isViewer = true;

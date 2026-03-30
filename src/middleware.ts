@@ -95,7 +95,9 @@ const PROFESSIONAL_TOKEN_RE = /^[A-Za-z0-9_-]{32}$/;
 function isProfessionalAccessCsrfExempt(pathname: string): boolean {
   const prefix = "/api/acesso-profissional/";
   if (!pathname.startsWith(prefix)) return false;
-  const token = pathname.slice(prefix.length);
+  const rest = pathname.slice(prefix.length);
+  // Match token directly or token/subpath (e.g. token/notas)
+  const token = rest.split("/")[0];
   return PROFESSIONAL_TOKEN_RE.test(token);
 }
 

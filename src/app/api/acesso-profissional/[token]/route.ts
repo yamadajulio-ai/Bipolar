@@ -194,19 +194,6 @@ export async function POST(
 
     const validAccess = result.accessData;
 
-    // Fetch patient name for session
-    const patientUser = await prisma.user.findUnique({
-      where: { id: validAccess.userId },
-      select: { name: true },
-    });
-
-    // Create professional session cookie for viewer navigation
-    await createProfessionalSession(
-      token,
-      validAccess.userId,
-      patientUser?.name ?? "Paciente",
-    );
-
     // Fetch patient data (last 30 days)
     const now = new Date();
     const cutoff30 = new Date(now);
@@ -347,6 +334,14 @@ export async function POST(
     const [user, sleepLogs, entries, moodSnapshots, rawPlannerBlocks, crisisPlan, sosEvents, weeklyAssessments, lifeChartEvents, functioningAssessments] =
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await Promise.all(queries) as [any, any[], any[], any[], any[], any, any[], any[], any[], any[]];
+
+    // Create professional session cookie for viewer navigation
+    await createProfessionalSession(
+      token,
+      validAccess.id,
+      validAccess.userId,
+      user?.name ?? "Paciente",
+    );
 
     // Count total records for truncation detection
     const [

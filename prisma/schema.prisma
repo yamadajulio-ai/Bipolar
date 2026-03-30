@@ -420,9 +420,22 @@ model ProfessionalAccess {
 
   user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   accessLogs AccessLog[]
+  notes      ProfessionalNote[]
 
   @@index([userId])
   @@index([token])
+}
+
+model ProfessionalNote {
+  id        String   @id @default(uuid())
+  accessId  String
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  access ProfessionalAccess @relation(fields: [accessId], references: [id], onDelete: Cascade)
+
+  @@index([accessId, createdAt])
 }
 
 model AccessLog {

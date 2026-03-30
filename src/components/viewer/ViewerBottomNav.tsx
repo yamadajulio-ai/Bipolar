@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, MotionConfig } from "motion/react";
-import { Home, Moon, BarChart3, ClipboardList } from "lucide-react";
+import { Home, FileText, Moon, BarChart3, LayoutGrid } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 interface Tab {
@@ -22,9 +22,10 @@ export function ViewerBottomNav({ token }: ViewerBottomNavProps) {
 
   const tabs: Tab[] = [
     { href: `${base}/hoje`, label: "Hoje", icon: Home },
+    { href: `${base}/notas`, label: "Notas", icon: FileText },
     { href: `${base}/sono`, label: "Sono", icon: Moon },
     { href: `${base}/insights`, label: "Insights", icon: BarChart3 },
-    { href: `${base}/avaliacoes`, label: "Avaliações", icon: ClipboardList },
+    { href: `${base}/mais`, label: "Menu", icon: LayoutGrid },
   ];
 
   return (

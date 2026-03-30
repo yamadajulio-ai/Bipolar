@@ -216,7 +216,7 @@ export default async function ViewerSonoPage({
           </p>
         </Card>
       ) : (
-        <SleepDayGroup logs={logsDesc} />
+        <SleepDayGroup logs={logsDesc} readOnly />
       )}
     </div>
   );

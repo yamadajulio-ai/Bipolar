@@ -438,7 +438,7 @@ export default async function ViewerInsightsPage({
             <h2 className="text-lg font-semibold">Histórico de Sono</h2>
             <NightHistorySelector />
           </div>
-          <SleepDayGroup logs={lastNights} />
+          <SleepDayGroup logs={lastNights} readOnly />
         </section>
       )}
 

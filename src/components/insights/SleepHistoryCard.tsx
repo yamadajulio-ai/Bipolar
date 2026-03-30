@@ -103,7 +103,7 @@ function getColorClasses(totalHours: number, excluded: boolean) {
 }
 
 /** Groups logs by date and renders day totals + individual cycles */
-export function SleepDayGroup({ logs }: { logs: SleepLog[] }) {
+export function SleepDayGroup({ logs, readOnly }: { logs: SleepLog[]; readOnly?: boolean }) {
   if (logs.length === 0) return null;
 
   // Group by date (already sorted desc from parent)
@@ -126,7 +126,7 @@ export function SleepDayGroup({ logs }: { logs: SleepLog[] }) {
 
         if (!hasMultiple) {
           // Single log: render classic card
-          return <SleepHistoryCard key={dayLogs[0].id} log={dayLogs[0]} />;
+          return <SleepHistoryCard key={dayLogs[0].id} log={dayLogs[0]} readOnly={readOnly} />;
         }
 
         // Multiple cycles: render grouped card
@@ -152,7 +152,7 @@ export function SleepDayGroup({ logs }: { logs: SleepLog[] }) {
             {/* Individual cycles */}
             <div className="space-y-1.5 border-t border-border/50 pt-2">
               {dayLogs.map((log, i) => (
-                <SleepCycleRow key={log.id} log={log} index={i + 1} />
+                <SleepCycleRow key={log.id} log={log} index={i + 1} readOnly={readOnly} />
               ))}
             </div>
           </div>
@@ -163,7 +163,7 @@ export function SleepDayGroup({ logs }: { logs: SleepLog[] }) {
 }
 
 /** Compact row for a single cycle within a multi-cycle day */
-function SleepCycleRow({ log, index }: { log: SleepLog; index: number }) {
+function SleepCycleRow({ log, index, readOnly }: { log: SleepLog; index: number; readOnly?: boolean }) {
   const [excluded, setExcluded] = useState(log.excluded);
   const [toggling, setToggling] = useState(false);
   const router = useRouter();
@@ -239,7 +239,7 @@ function SleepCycleRow({ log, index }: { log: SleepLog; index: number }) {
         </div>
       </div>
 
-      {!isNap && (
+      {!isNap && !readOnly && (
         <button
           onClick={handleToggle}
           disabled={toggling}
@@ -255,7 +255,7 @@ function SleepCycleRow({ log, index }: { log: SleepLog; index: number }) {
 }
 
 /** Single sleep log card (used when only 1 cycle in a day) */
-export function SleepHistoryCard({ log }: { log: SleepLog }) {
+export function SleepHistoryCard({ log, readOnly }: { log: SleepLog; readOnly?: boolean }) {
   const [excluded, setExcluded] = useState(log.excluded);
   const [toggling, setToggling] = useState(false);
   const router = useRouter();
@@ -335,7 +335,7 @@ export function SleepHistoryCard({ log }: { log: SleepLog }) {
         </div>
       </div>
 
-      {!isNap && (
+      {!isNap && !readOnly && (
         <button
           onClick={handleToggle}
           disabled={toggling}

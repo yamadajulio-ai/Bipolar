@@ -68,9 +68,11 @@
 ## Regras de Dados — Sono
 - **Cochilo**: registro < 1h → exibido no histórico (tag "cochilo", roxo) mas **excluído** das métricas
 - **Sono real**: registro >= 2h → incluído em todas as métricas (média, regularidade, variabilidade, alertas, correlações)
+- **Pipeline unificado de média**: TODAS as telas (Sono, Insights "Seu estado agora", Insights "Padrões", AI Narrative) usam o mesmo pipeline: `>= 2h + !excluded + isMainSleep()` → `aggregateSleepByDay()` → média. O filtro `isMainSleep()` (em `stats.ts`) DEVE ser aplicado ANTES da agregação por dia, nunca depois. Isso garante que cochilos não inflem os totais diários.
 - **Registro incompleto**: campo `excluded: true` no SleepLog → excluído de métricas/heatmap, visível no histórico (dimmed, tag "excluído"). Toggle via `PATCH /api/sono/excluir`. Registros 1-4.5h mostram tag "incompleto?" como sugestão.
 - **totalHours**: span completo bed→wake (inclui tempo acordado). **Não** subtrai awakenings.
 - **awakeMinutes**: campo separado com minutos acordados durante o sono (detectados pelo wearable). Exibido no card: "Xmin acordado (relógio)".
+- **Barra de duração no histórico**: `SleepHistoryCard` usa `(totalHours / 10) * 100` com `Math.max(1, ...)` — barra visível desde 1%. Escala: 10h = 100%.
 - **Faixas de cor do histórico**: <1h roxo (cochilo) | <5h vermelho (crítico) | 5-6h âmbar (abaixo do ideal) | 6-7h neutro | >=7h verde (ideal)
 - **Múltiplos ciclos/dia**: SleepLog usa `@@unique([userId, date, bedtime])` — permite múltiplos registros por dia. UI agrupa por data com somatório e exibe cada ciclo individualmente ("Ciclo 1, 2..."). Métricas usam `aggregateSleepByDay()` para somar ciclos antes de calcular médias.
 - Todos os registros aparecem no histórico para revisão clínica

@@ -29,7 +29,15 @@ export type TelemetryEvent =
   | { name: "health_import_error"; errorType: string }
   | { name: "webhook_rejected"; endpoint: string; reason: string }
   | { name: "export_complete"; format: string }
-  | { name: "consent_toggle"; scope: string; granted: boolean };
+  | { name: "consent_toggle"; scope: string; granted: boolean }
+  | { name: "financial_import_start"; channel: string }
+  | { name: "financial_import_file_received"; channel: string; fileName: string }
+  | { name: "financial_import_parsed"; channel: string; source: string; total: number }
+  | { name: "financial_import_complete"; channel: string; source: string; imported: number; skipped: number; durationMs: number }
+  | { name: "financial_import_error"; channel: string; errorType: string }
+  | { name: "financial_pluggy_connect_start" }
+  | { name: "financial_pluggy_connect_success"; bank: string }
+  | { name: "financial_pluggy_connect_error"; errorType: string };
 
 // ── Privacy metadata ─────────────────────────────────────────────
 export type PrivacyClass = "phi" | "phi_crisis" | "operational" | "consent";
@@ -65,6 +73,16 @@ const PRIVACY_CLASS_MAP: Record<TelemetryEvent["name"], PrivacyClass> = {
 
   // Consent
   consent_toggle: "consent",
+
+  // Financial import funnel
+  financial_import_start: "operational",
+  financial_import_file_received: "operational",
+  financial_import_parsed: "operational",
+  financial_import_complete: "operational",
+  financial_import_error: "operational",
+  financial_pluggy_connect_start: "operational",
+  financial_pluggy_connect_success: "operational",
+  financial_pluggy_connect_error: "operational",
 };
 
 const TELEMETRY_SCHEMA_VERSION = 1 as const;

@@ -121,6 +121,12 @@ async function checkCsrf(request: NextRequest): Promise<NextResponse | null> {
   // Allow WhatsApp webhook (Meta verifies via verify_token)
   if (pathname === "/api/whatsapp/webhook") return null;
 
+  // Allow Postmark inbound email webhook (verified via POSTMARK_INBOUND_TOKEN)
+  if (pathname === "/api/financeiro/inbound-email") return null;
+
+  // Allow Pluggy webhook (verified via item ownership)
+  if (pathname === "/api/financeiro/pluggy/webhook") return null;
+
   // Allow Apple OAuth callback — Apple sends form_post from their servers (cross-origin).
   // Protected by state cookie (CSRF), same pattern as Google OAuth callback.
   if (pathname === "/api/auth/apple-login/callback") return null;
@@ -207,7 +213,7 @@ export async function middleware(request: NextRequest) {
     }
 
     // Public API endpoints that may be cached (health check, webhooks)
-    const publicApiPaths = ["/api/health", "/api/whatsapp/webhook", "/api/meta-events"];
+    const publicApiPaths = ["/api/health", "/api/whatsapp/webhook", "/api/meta-events", "/api/financeiro/inbound-email", "/api/financeiro/pluggy/webhook"];
     const isPublicApi = publicApiPaths.some((p) => pathname === p || pathname.startsWith(p + "/"));
 
     if (!isPublicApi) {

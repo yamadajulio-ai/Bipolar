@@ -13,7 +13,7 @@ const CONSENT_SCOPES = [
   {
     scope: "health_data",
     label: "Dados de saúde",
-    description: "Armazenamento de registros de humor, sono, ritmos e avaliações.",
+    description: "Armazenamento de registros de humor, sono, avaliações e dados financeiros para correlação clínica.",
     essential: true,
   },
   {

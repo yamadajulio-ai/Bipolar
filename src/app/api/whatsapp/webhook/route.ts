@@ -8,10 +8,19 @@ import { maskIp } from "@/lib/security";
 // ── Zod schemas for Meta WhatsApp Cloud API webhook payload ─────
 const whatsappTextSchema = z.object({ body: z.string().max(4096) });
 
+const whatsappDocumentSchema = z.object({
+  id: z.string(),
+  mime_type: z.string().optional(),
+  filename: z.string().optional(),
+  sha256: z.string().optional(),
+  caption: z.string().optional(),
+});
+
 const whatsappMessageSchema = z.object({
   id: z.string().optional(),
   from: z.string().optional(),
   text: whatsappTextSchema.optional(),
+  document: whatsappDocumentSchema.optional(),
   type: z.string().optional(),
 });
 
@@ -79,6 +88,36 @@ export async function GET(request: NextRequest) {
   }
 
   return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+}
+
+// ── Download media from Meta CDN ──────────────────────────────
+
+async function downloadMetaMedia(mediaId: string): Promise<ArrayBuffer | null> {
+  const token = process.env.WHATSAPP_TOKEN;
+  if (!token) return null;
+
+  try {
+    // Step 1: Get download URL
+    const urlRes = await fetch(
+      `https://graph.facebook.com/v21.0/${mediaId}`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+    if (!urlRes.ok) return null;
+
+    const urlData = await urlRes.json();
+    const downloadUrl = urlData.url;
+    if (!downloadUrl) return null;
+
+    // Step 2: Download file content
+    const fileRes = await fetch(downloadUrl, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!fileRes.ok) return null;
+
+    return fileRes.arrayBuffer();
+  } catch {
+    return null;
+  }
 }
 
 // ── Incoming messages ───────────────────────────────────────────
@@ -228,6 +267,77 @@ export async function POST(request: NextRequest) {
               }
               throw err; // Unexpected error — let outer catch handle it
             }
+          }
+
+          // ── Document messages (financial file import) ────────────
+          if (message.type === "document" && message.document) {
+            const doc = message.document;
+            // Sanitize filename against path traversal
+            const filename = (doc.filename || "unknown").split(/[/\\]/).pop() || "unknown";
+            const ext = filename.toLowerCase().split(".").pop() || "";
+            const SUPPORTED_EXTENSIONS = new Set(["csv", "xlsx", "ofx", "qfx"]);
+
+            if (SUPPORTED_EXTENSIONS.has(ext)) {
+              // Find user by WhatsApp phone
+              const importUser = await prisma.user.findFirst({
+                where: { whatsappPhone: `+${from}` },
+                select: { id: true },
+              });
+
+              if (importUser) {
+                try {
+                  // Download document from Meta CDN
+                  const fileContent = await downloadMetaMedia(doc.id);
+                  if (fileContent) {
+                    // Dynamic import to avoid circular deps
+                    const { ingestFinancialFile } = await import("@/lib/financeiro/ingest");
+                    const { hasConsent } = await import("@/lib/consent");
+
+                    // Check consent
+                    const consent = await hasConsent(importUser.id, "health_data");
+                    if (consent) {
+                      const result = await ingestFinancialFile(
+                        fileContent,
+                        filename,
+                        {
+                          userId: importUser.id,
+                          channel: "whatsapp",
+                          fileName: filename,
+                          fileSize: (fileContent as ArrayBuffer).byteLength,
+                        },
+                      );
+
+                      // Send confirmation via WhatsApp (within 24h window)
+                      const { sendWhatsAppText } = await import("@/lib/whatsapp");
+                      await sendWhatsAppText({
+                        to: from,
+                        text: `Importação concluída!\n\n${result.imported} transações importadas${result.skipped > 0 ? `\n${result.skipped} duplicatas ignoradas` : ""}\n\nVeja seus dados em: ${process.env.NEXT_PUBLIC_APP_URL || "https://suportebipolar.com"}/financeiro`,
+                      });
+
+                      Sentry.addBreadcrumb({
+                        category: "whatsapp",
+                        message: "Financial document imported",
+                        level: "info",
+                        data: { imported: result.imported, source: result.source },
+                      });
+                    }
+                  }
+                } catch (err) {
+                  Sentry.captureException(err, {
+                    tags: { endpoint: "whatsapp-webhook", event: "document_import_error" },
+                  });
+                  // Send error message to user
+                  try {
+                    const { sendWhatsAppText } = await import("@/lib/whatsapp");
+                    const msg = err instanceof Error && err.name === "IngestError"
+                      ? err.message
+                      : "Erro ao processar o arquivo. Verifique o formato e tente novamente.";
+                    await sendWhatsAppText({ to: from, text: msg });
+                  } catch { /* silent */ }
+                }
+              }
+            }
+            continue;
           }
 
           // Other messages — placeholder for future NLU/structured menus

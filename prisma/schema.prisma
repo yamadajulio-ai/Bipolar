@@ -61,6 +61,7 @@ model User {
   safetyScreenings        SafetyScreeningSession[]
   earlyWarningProfile     EarlyWarningProfile?
   nativeSessions          NativeSession[]
+  financialImportEvents   FinancialImportEvent[]
 }
 
 enum DiaryEntryMode {
@@ -468,7 +469,7 @@ model FinancialTransaction {
   amount      Float // positivo = receita, negativo = despesa
   category    String
   account     String?
-  source      String    @default("manual") // "manual" | "mobills_csv"
+  source      String    @default("manual") // "manual" | "mobills_csv" | "mobills_xlsx" | "nubank_csv" | "inter_csv" | "itau_csv" | "ofx" | "whatsapp" | "email" | "pluggy"
   occurredAt  DateTime? // horário real da transação (para detectar gastos noturnos)
   createdAt   DateTime  @default(now())
 
@@ -896,6 +897,28 @@ model DailyRiskSnapshot {
 
   @@unique([userId, localDate])
   @@index([userId, alertLayer])
+}
+
+// ── Financial Import Events (funnel telemetry) ──────────────────
+
+model FinancialImportEvent {
+  id                    String   @id @default(cuid())
+  userId                String
+  channel               String // "web_upload" | "whatsapp" | "email" | "pluggy" | "api"
+  source                String // "mobills_csv" | "mobills_xlsx" | "nubank_csv" | "inter_csv" | "itau_csv" | "ofx" | "pluggy" | "unknown"
+  status                String // "started" | "file_received" | "parsed" | "imported" | "failed"
+  transactionsTotal     Int      @default(0)
+  transactionsImported  Int      @default(0)
+  transactionsSkipped   Int      @default(0)
+  errorMessage          String?
+  metadata              String?  // JSON: { fileName, fileSize, bank, etc. }
+  durationMs            Int?
+  createdAt             DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([channel, status])
 }
 
 model AlertEpisode {

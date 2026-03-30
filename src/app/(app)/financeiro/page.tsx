@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import Image from "next/image";
 import { Card } from "@/components/Card";
 import { Alert } from "@/components/Alert";
 import { ImportCSV } from "@/components/financeiro/ImportCSV";
@@ -173,8 +172,9 @@ export default function FinanceiroPage() {
       <p className="mb-4 text-xs text-muted italic">Este recurso não substitui avaliação profissional.</p>
 
       <div className="mb-6 flex items-center gap-2 rounded-lg border border-success-border bg-success-bg-subtle px-4 py-2.5">
-        <Image src="/mobills-logo.png" alt="Mobills" width={20} height={20} className="shrink-0" />
-        <span className="text-sm font-medium text-success-fg">Compatível com Mobills — exporte CSV e importe abaixo</span>
+        <span className="text-sm font-medium text-success-fg">
+          Compatível com Mobills, Nubank, Inter, Itaú e mais — importe CSV, XLSX ou OFX
+        </span>
       </div>
 
       {/* Sustained increase alert (7d >= 1.8x baseline) */}
@@ -259,27 +259,51 @@ export default function FinanceiroPage() {
         <div className="mb-6 rounded-[var(--radius-panel)] border border-border bg-surface p-6 text-center">
           <p className="text-3xl mb-2">💰</p>
           <h2 className="text-lg font-semibold mb-1">Comece a acompanhar seus gastos</h2>
-          <p className="text-sm text-muted mb-4">
+          <p className="text-sm text-muted mb-3">
             Acompanhar seus gastos ajuda a identificar padrões que podem estar ligados ao humor.
-            Importe do Mobills ou adicione manualmente.
           </p>
-          <div className="flex justify-center gap-3">
+          <div className="mb-4 grid grid-cols-2 gap-2 text-left">
             <button
               onClick={() => {
                 const el = document.getElementById("import-section");
                 el?.scrollIntoView({ behavior: "smooth" });
               }}
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white"
+              className="rounded-lg border border-border p-3 hover:bg-surface-alt transition-colors text-left"
             >
-              Importar CSV
+              <p className="text-sm font-medium">📄 Importar arquivo</p>
+              <p className="text-xs text-muted">CSV, XLSX ou OFX do seu banco ou app</p>
             </button>
             <button
               onClick={() => setShowForm(true)}
-              className="rounded-lg border border-border px-4 py-2 text-sm font-medium"
+              className="rounded-lg border border-border p-3 hover:bg-surface-alt transition-colors text-left"
             >
-              Adicionar manual
+              <p className="text-sm font-medium">✏️ Adicionar manual</p>
+              <p className="text-xs text-muted">Digite uma transação rápida</p>
+            </button>
+            <button
+              onClick={() => {
+                const el = document.getElementById("import-section");
+                el?.scrollIntoView({ behavior: "smooth" });
+              }}
+              className="rounded-lg border border-border p-3 hover:bg-surface-alt transition-colors text-left"
+            >
+              <p className="text-sm font-medium">💬 Via WhatsApp</p>
+              <p className="text-xs text-muted">Envie o extrato pelo WhatsApp</p>
+            </button>
+            <button
+              onClick={() => {
+                const el = document.getElementById("import-section");
+                el?.scrollIntoView({ behavior: "smooth" });
+              }}
+              className="rounded-lg border border-border p-3 hover:bg-surface-alt transition-colors text-left"
+            >
+              <p className="text-sm font-medium">📧 Via Email</p>
+              <p className="text-xs text-muted">Envie o extrato por email</p>
             </button>
           </div>
+          <p className="text-xs text-muted">
+            Compatível com Nubank, Inter, Itaú, Mobills e mais
+          </p>
         </div>
       )}
 

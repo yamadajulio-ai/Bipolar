@@ -1,22 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/security";
+import { hasConsent } from "@/lib/consent";
 import * as Sentry from "@sentry/nextjs";
-import { parseMobillsCsv } from "@/lib/financeiro/parseMobillsCsv";
-import { parseMobillsXlsx } from "@/lib/financeiro/parseMobillsXlsx";
+import { ingestFinancialFile, IngestError } from "@/lib/financeiro/ingest";
 
 export const maxDuration = 60;
+
+const HEADERS = { "Cache-Control": "no-store" };
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
   if (!session.isLoggedIn) {
-    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    return NextResponse.json({ error: "Não autorizado" }, { status: 401, headers: HEADERS });
   }
 
   const allowed = await checkRateLimit(`financeiro_import_write:${session.userId}`, 30, 60_000);
   if (!allowed) {
-    return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
+    return NextResponse.json({ error: "Muitas requisições" }, { status: 429, headers: HEADERS });
+  }
+
+  // Consent gate for financial data
+  const consent = await hasConsent(session.userId, "health_data");
+  if (!consent) {
+    return NextResponse.json(
+      { error: "Consentimento necessário para importar dados financeiros." },
+      { status: 403, headers: HEADERS },
+    );
   }
 
   try {
@@ -24,87 +34,62 @@ export async function POST(request: NextRequest) {
     const file = formData.get("file") as File;
     if (!file) {
       return NextResponse.json(
-        { errors: { file: ["Arquivo obrigatorio (.csv ou .xlsx)"] } },
-        { status: 400 },
+        { errors: { file: ["Arquivo obrigatório (.csv, .xlsx ou .ofx)"] } },
+        { status: 400, headers: HEADERS },
       );
     }
 
     if (file.size > 10 * 1024 * 1024) {
       return NextResponse.json(
         { errors: { file: ["Arquivo muito grande. Tamanho máximo: 10MB."] } },
-        { status: 400 },
+        { status: 400, headers: HEADERS },
       );
     }
 
-    const fileName = file.name.toLowerCase();
+    // Sanitize filename against path traversal
+    const fileName = (file.name.split(/[/\\]/).pop() || "file").toLowerCase();
 
     if (fileName.endsWith(".xls") && !fileName.endsWith(".xlsx")) {
       return NextResponse.json(
-        {
-          errors: {
-            file: [
-              "Formato .xls não é suportado. Exporte novamente como .xlsx ou .csv.",
-            ],
-          },
-        },
-        { status: 400 },
+        { errors: { file: ["Formato .xls não é suportado. Exporte como .xlsx, .csv ou .ofx."] } },
+        { status: 400, headers: HEADERS },
       );
     }
 
-    const isXlsx = fileName.endsWith(".xlsx");
-
-    let transactions;
-    if (isXlsx) {
-      const buffer = await file.arrayBuffer();
-      transactions = await parseMobillsXlsx(buffer);
+    // Route to unified ingestion pipeline
+    let content: string | ArrayBuffer;
+    if (fileName.endsWith(".xlsx")) {
+      content = await file.arrayBuffer();
     } else {
-      const content = await file.text();
-      transactions = parseMobillsCsv(content);
+      content = await file.text();
     }
 
-    if (transactions.length === 0) {
+    const safeName = file.name.split(/[/\\]/).pop() || "file";
+    const result = await ingestFinancialFile(content, safeName, {
+      userId: session.userId,
+      channel: "web_upload",
+      fileName: safeName,
+      fileSize: file.size,
+    });
+
+    return NextResponse.json({
+      imported: result.imported,
+      skipped: result.skipped,
+      total: result.total,
+      source: result.source,
+      bank: result.bank,
+    }, { headers: HEADERS });
+  } catch (err) {
+    if (err instanceof IngestError) {
       return NextResponse.json(
-        {
-          errors: {
-            file: [
-              "Nenhuma transacao encontrada no arquivo. Verifique se o formato esta correto.",
-            ],
-          },
-        },
-        { status: 400 },
+        { error: err.message },
+        { status: 400, headers: HEADERS },
       );
     }
-
-    // Use createMany with skipDuplicates — single SQL INSERT ... ON CONFLICT DO NOTHING
-    // Much faster than individual upserts (1 query vs N queries)
-    const total = transactions.length;
-    let imported = 0;
-
-    const BATCH_SIZE = 200;
-    for (let i = 0; i < transactions.length; i += BATCH_SIZE) {
-      const batch = transactions.slice(i, i + BATCH_SIZE);
-      const result = await prisma.financialTransaction.createMany({
-        data: batch.map((tx) => ({
-          userId: session.userId,
-          date: tx.date,
-          description: tx.description,
-          amount: tx.amount,
-          category: tx.category,
-          account: tx.account,
-          source: isXlsx ? "mobills_xlsx" : "mobills_csv",
-        })),
-        skipDuplicates: true,
-      });
-      imported += result.count;
-    }
-
-    const skipped = total - imported;
-    return NextResponse.json({ imported, skipped, total });
-  } catch (err) {
     Sentry.captureException(err, { tags: { endpoint: "financeiro_import" } });
     return NextResponse.json(
       { error: "Erro ao importar arquivo." },
-      { status: 500 },
+      { status: 500, headers: HEADERS },
     );
   }
 }

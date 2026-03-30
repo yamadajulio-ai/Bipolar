@@ -73,7 +73,7 @@ export function Header({ isLoggedIn }: HeaderProps) {
   }
 
   return (
-    <header className="bg-surface-glass pt-[env(safe-area-inset-top)] shadow-[var(--shadow-float)] backdrop-blur-[var(--blur-chrome)] print:hidden [contain:layout_style_paint]">
+    <header className="bg-surface-glass pt-[env(safe-area-inset-top)] shadow-[0_0.5px_0_var(--ios-separator)] backdrop-blur-[20px] print:hidden [contain:layout_style_paint]">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
         <Link
           href={isLoggedIn ? "/hoje" : "/"}

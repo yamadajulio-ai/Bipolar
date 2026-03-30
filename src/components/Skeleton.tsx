@@ -1,17 +1,17 @@
-/** Reusable skeleton primitives for loading states */
+/** Reusable skeleton primitives with iOS-style shimmer animation */
 
 export function SkeletonBlock({ className = "" }: { className?: string }) {
   return (
     <div
       aria-hidden
-      className={`animate-pulse rounded-lg bg-border/30 dark:bg-border/20 ${className}`}
+      className={`skeleton-shimmer rounded-lg ${className}`}
     />
   );
 }
 
 export function SkeletonCard({ children, className = "" }: { children?: React.ReactNode; className?: string }) {
   return (
-    <div aria-hidden className={`rounded-[var(--radius-card)] border border-border bg-surface p-4 shadow-[var(--shadow-card)] ${className}`}>
+    <div aria-hidden className={`rounded-[var(--radius-card)] border border-border-soft bg-surface p-4 shadow-[var(--shadow-card)] ${className}`}>
       {children}
     </div>
   );
@@ -27,5 +27,15 @@ export function SkeletonText({ lines = 1, className = "" }: { lines?: number; cl
         />
       ))}
     </div>
+  );
+}
+
+/** Full card skeleton matching /hoje dashboard cards */
+export function SkeletonDashboardCard() {
+  return (
+    <SkeletonCard>
+      <SkeletonBlock className="h-4 w-1/3 mb-3" />
+      <SkeletonText lines={3} />
+    </SkeletonCard>
   );
 }

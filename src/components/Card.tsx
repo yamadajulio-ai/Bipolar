@@ -28,8 +28,8 @@ const variantStyles: Record<CardVariant, string> = {
     "relative overflow-hidden rounded-[var(--radius-card)] border border-border-soft",
     "bg-surface shadow-[var(--shadow-card)]",
     "dark:border-border-strong",
-    "transition-[transform,opacity] duration-[var(--duration-normal)]",
-    "active:scale-[0.98] active:opacity-70",
+    "transition-[transform,opacity] duration-[var(--duration-normal)] ease-[var(--ease-ios)]",
+    "active:scale-[0.97] active:opacity-80",
   ),
 };
 

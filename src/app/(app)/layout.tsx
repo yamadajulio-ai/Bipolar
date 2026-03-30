@@ -6,6 +6,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { Alert } from "@/components/Alert";
 import { ReminderManager } from "@/components/ReminderManager";
 import { InstallBanner } from "@/components/InstallBanner";
+import { PageTransition } from "@/components/PageTransition";
 
 export default async function AppLayout({
   children,
@@ -31,7 +32,7 @@ export default async function AppLayout({
       </Alert>
       {/* tabIndex={-1} allows skip-to-content link to move keyboard focus, not just scroll */}
       <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 pb-24 outline-none lg:pb-6">
-        {children}
+        <PageTransition>{children}</PageTransition>
       </main>
       <Footer />
       <BottomNav />

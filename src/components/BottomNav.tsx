@@ -34,8 +34,8 @@ export function BottomNav() {
           className={[
             "flex items-center justify-around",
             "rounded-[var(--radius-panel)] py-1.5",
-            "bg-surface-glass backdrop-blur-[var(--blur-chrome)]",
-            "shadow-[var(--shadow-float)]",
+            "bg-surface-glass backdrop-blur-[20px]",
+            "shadow-[0_-0.5px_0_var(--ios-separator)]",
             "[contain:layout_style_paint]",
           ].join(" ")}
         >
@@ -60,8 +60,9 @@ export function BottomNav() {
                     className="absolute inset-1 rounded-[var(--radius-card)] bg-primary/10 dark:bg-primary/15"
                     transition={{
                       type: "spring",
-                      stiffness: 420,
-                      damping: 34,
+                      stiffness: 300,
+                      damping: 30,
+                      mass: 0.8,
                     }}
                   />
                 )}

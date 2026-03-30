@@ -67,7 +67,9 @@ export function Header({ isLoggedIn }: HeaderProps) {
     } catch {
       /* ignore */
     }
-    (e.target as HTMLFormElement).submit();
+    // Use fetch instead of native form submit so CsrfProvider adds X-CSRF-Token header
+    await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" });
+    window.location.href = "/";
   }
 
   return (

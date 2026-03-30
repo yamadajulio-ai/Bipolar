@@ -13,6 +13,17 @@ export async function POST(request: NextRequest) {
 
     const session = await getSession();
     await session.destroy();
+
+    // If called via fetch (JS), return JSON so client can redirect after headers are applied.
+    // If called via native form submit, redirect directly.
+    const acceptsJson = request.headers.get("accept")?.includes("application/json") ||
+                        request.headers.get("x-csrf-token");
+    if (acceptsJson) {
+      const res = NextResponse.json({ ok: true, redirect: "/" });
+      res.headers.set("Clear-Site-Data", '"cache", "cookies", "storage"');
+      return res;
+    }
+
     const res = NextResponse.redirect(new URL("/", request.url), 303);
     // Clear all site data on logout — defense-in-depth for PHI
     res.headers.set("Clear-Site-Data", '"cache", "cookies", "storage"');

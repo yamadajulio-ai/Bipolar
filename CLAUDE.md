@@ -92,9 +92,9 @@
 - **Header**: glassmorphism chrome + shadow-float + contain hint + `pt-[env(safe-area-inset-top)]` (notch/Dynamic Island), Lucide icons (Sun/MoonStar/LogOut/ShieldAlert), touch targets 44px, `print:hidden`
 - **AppIcon**: wrapper padronizado para Lucide icons (sm 16px, md 20px, lg 24px)
 - **Regra de radius**: `--radius-card` (18px) para containers/cards, `rounded-lg` (8px) para botões pequenos/interativos, `rounded-md` (6px) para inputs. Zero `rounded-2xl` hardcoded. **Nota**: `@theme inline` NÃO suporta `var()` self-references — usar `rounded-[var(--radius-card)]` diretamente.
-- **Dark mode**: 100% tokenizado no app autenticado. Zero `dark:*-gray` hardcoded.
-- **Print**: `print:hidden` em Header, Footer, BottomNav, SOSButton, InstallBanner, Alert. Shadows → none, surfaces → white, cores → preto.
-- **Acessibilidade**: touch targets ≥44px (96 instâncias em 31 arquivos), aria-hidden em decorativos, prefers-reduced-motion, prefers-reduced-transparency fallback, aria-labelledby linkage correto
+- **Dark mode**: 100% tokenizado no app autenticado. Zero `dark:*-gray` hardcoded. Hardening 2026-03-30: AlertCard, StabilityScoreWidget, StreakBadge, moodLabels, energyLabels, mixed features badge, HRV metric migrados para tokens semânticos. ~155 instâncias `dark:` restantes em 25 componentes (dívida técnica pré-existente, refactor dedicado pendente).
+- **Print**: `print:hidden` em Header, Footer, BottomNav, SOSButton, InstallBanner, Alert, CTAs do /hoje (integrações, QuickSpend, Mobills, CTA primário, onboarding, Diário, Conquistas). Shadows → none, surfaces → white, cores → preto.
+- **Acessibilidade**: touch targets ≥44px (113+ instâncias em 35+ arquivos), aria-hidden em decorativos (SVGs, emojis, checkmarks, bullets), `role="progressbar"` com `aria-valuenow/min/max` em StabilityScoreWidget, `role="alert" aria-live="assertive"` em ErrorBoundary, `role="figure" aria-label` em MiniTrendChart, prefers-reduced-motion, prefers-reduced-transparency fallback, aria-labelledby linkage correto
 - **iOS input zoom**: global CSS `font-size: 16px` em inputs/textarea/select no mobile + FormField `text-base`
 - **WCAG AA contraste**: 17 pares críticos verificados matematicamente (sRGB linearization). Todos PASS. Valores-chave: `--muted` light `#587369` (4.52:1+), `--danger` dark `#c05046` (4.69:1), `--on-primary` dark `#ffffff` (4.81:1)
 - **CoachMarks**: focus trap + Escape dismiss + auto-focus (WCAG modal compliance)
@@ -113,6 +113,7 @@
 - **Sign in with Apple**: nativo (Capacitor plugin) + **web OAuth** (form_post callback). Service ID `com.suportebipolar.web`, App ID `com.suportebipolar.app`. Dual audience JWT verification, sameSite:none state cookie, nonce replay protection, refresh token AES-256-GCM, revogação na exclusão de conta
 - **Privacy**: trackers bloqueados no WebView (`"Capacitor" in window`), privacyMode default ON, PrivacyInfo.xcprivacy, notificações genéricas no lock screen
 - **App Store code readiness audit (2026-03-28)**: 8.7/10 CODE READY. 9 native pillars pass Guideline 4.2. Security 9.75/10. Clinical safety 9.9/10. Performance improved (recharts lazy-load).
+- **Security hardening (2026-03-30)**: CSRF Layer 2 fix (crypto.subtle.verify await), Google OAuth state CSRF, runtime crash guards (ZONE_CONFIG/RISK_CONFIG fallbacks, financialDrivers optional chaining), Sentry tracking on Google Calendar sync failures, accessibility hardening across 14 components.
 - **Pendentes para TestFlight** (requer Mac Mini): `npx cap add ios`, PrivacyInfo.xcprivacy, substituir TEAM_ID `7MQYXX5DRU` no AASA, configurar entitlements no Xcode, testar plugin Apple v7/Cap v8 em device real
 
 ## AI Narrative — Modelo
@@ -130,6 +131,25 @@
 - **Email**: Postmark (Server ID 18583576, DKIM verified, Return-Path verified). Password reset via `src/lib/email.ts`. 100 emails/mês (Free tier).
 - **Neon DB**: sa-east-1 (São Paulo), PostgreSQL 17.8, 51 tabelas, pooler endpoint. PITR 7d. Restore drill: `scripts/restore-drill.mjs` (11 checks PASS). Backup script: `scripts/backup-db.sh` (pg_dump → R2).
 
+## Dashboard /hoje — Layout (2026-03-30)
+- Página: `src/app/(app)/hoje/page.tsx` (Server Component)
+- **Ordem das seções** (definida pelo usuário):
+  0. Integrações críticas (Wearable + Google Agenda) — só se não conectadas
+  1. Score de Estabilidade — `StabilityScoreWidget`
+  2. Para fazer hoje — checklist de tarefas
+  3. Sinais de atenção + Risk Radar — AlertCard + hero card
+  4. Agenda de hoje — Google Calendar (empty state se conectado sem eventos)
+  5. Seu estado hoje — humor/energia/sono/medicação
+  6. Corpo (7 dias) — passos, HRV, FC
+  7. Gráfico 7 dias — MiniTrendChart
+  8. Meu Diário — link para journaling
+  9. Sinais de gastos + QuickSpend — financeiro
+  10. Conquistas — GamificationWrapper (não renderiza Card vazio)
+  11. Notícias — PubMed/saúde
+  12. Integrações restantes (Mobills) — separado das críticas
+- **Safety gates**: RED → SafetyModeScreen (early return). New user (<3 entries) → simplified dashboard.
+- **Google Calendar sync**: fire-and-forget com Sentry error tracking (fix 2026-03-30)
+
 ## Insights — Arquitetura
 - Página: `src/app/(app)/insights/page.tsx` (Server Component)
 - Motor de cálculo: `src/lib/insights/computeInsights.ts`
@@ -143,7 +163,7 @@
 - **Sleep composite**: regularidade 30%, duração 30%, qualidade 25%, HRV 15% (sub-pesos redistribuídos se dado ausente)
 
 ## Security — Arquitetura
-- **CSRF**: 2 camadas — Sec-Fetch-Site/Origin (middleware) + double-submit cookie (`__Host-csrf` + `X-CSRF-Token` header via `CsrfProvider` global interceptor). `checkCsrf()` corretamente `await`-ed no middleware (P0 fix 2026-03-28). 4 pontos de rejeição com `console.warn("[CSRF]")` structured logging.
+- **CSRF**: 2 camadas — Sec-Fetch-Site/Origin (middleware) + double-submit cookie (`__Host-csrf` + `X-CSRF-Token` header via `CsrfProvider` global interceptor). `checkCsrf()` corretamente `await`-ed no middleware (P0 fix 2026-03-28). `crypto.subtle.verify()` corretamente `await`-ed em `validateCsrfToken()` (P0 fix 2026-03-30 — sem await retornava Promise truthy, desabilitando Layer 2). 4 pontos de rejeição com `console.warn("[CSRF]")` structured logging.
 - **CSP**: enforced (não report-only) — `Content-Security-Policy` no `next.config.ts`
 - **Permissions-Policy**: `camera=(), geolocation=()` — microphone liberado (necessário para SOS voice mode)
 - **Step-up auth**: ações sensíveis (delete account, export) exigem re-confirmação de senha (email users) ou sessão recente <5min (Google/Apple OAuth)
@@ -156,6 +176,7 @@
 - **Anti-enumeration**: cadastro returns identical 201 for duplicate emails; forgot-password returns 200 mesmo se sendEmail falhar (try/catch com Sentry); timing equalized (argon2 always runs).
 - **SESSION_SECRET**: min 32 chars + entropy check (min 8 unique chars) enforced em `getCsrfKey()`.
 - **OAuth refresh tokens**: AES-256-GCM (Google + Apple), revogação na exclusão de conta
+- **Google account linking**: state parameter CSRF protection — cookie `google-link-state` com `timingSafeEqual` validation (P1 fix 2026-03-30)
 - **Apple Sign-In**: nonce replay protection (NonceMismatchError propaga imediatamente fora do key rotation loop)
 - **Cron purge**: `$transaction` atômico para AccessLog (90d) + RateLimit (expired) + PasswordResetToken (7d)
 - **Sentry**: `@sentry/nextjs` v10.42, `instrumentation.ts` (server+edge), `global-error.tsx`, source maps via `SENTRY_AUTH_TOKEN`, org `yamada-ai` / project `rede-bipolar`. PII: replays OFF, request data filtered, URL redaction, breadcrumb whitelist, exception message scrubbing (Prisma/PHI)

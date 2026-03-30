@@ -80,7 +80,7 @@ export function Header({ isLoggedIn }: HeaderProps) {
           className="flex items-center gap-2 text-lg font-semibold text-primary-dark dark:text-primary-light no-underline"
         >
           <Image
-            src="/icon-192.png"
+            src="/icon-192-transparent.png"
             alt=""
             width={28}
             height={28}
@@ -167,6 +167,7 @@ export function Header({ isLoggedIn }: HeaderProps) {
           </>
         ) : (
           <nav className="flex items-center gap-4 text-sm">
+            <ThemeButton />
             <Link
               href="/sos"
               className="inline-flex items-center gap-1 rounded-[var(--radius-pill)] bg-danger px-3 py-1.5 min-h-[44px] text-sm font-semibold text-on-danger no-underline transition-colors hover:bg-danger/90"

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/security";
+import { hasConsent } from "@/lib/consent";
 import * as Sentry from "@sentry/nextjs";
 
 export async function DELETE(
@@ -17,6 +18,11 @@ export async function DELETE(
   const allowed = await checkRateLimit(`financeiro_item_write:${session.userId}`, 30, 60_000);
   if (!allowed) {
     return NextResponse.json({ error: "Muitas requisições" }, { status: 429, headers: HEADERS });
+  }
+
+  const consent = await hasConsent(session.userId, "health_data");
+  if (!consent) {
+    return NextResponse.json({ error: "Consentimento necessário." }, { status: 403, headers: HEADERS });
   }
 
   const { id } = await params;

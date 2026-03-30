@@ -47,8 +47,14 @@ export async function POST(request: NextRequest) {
   const authHeader = request.headers.get("x-postmark-inbound-token");
   const expectedToken = process.env.POSTMARK_INBOUND_TOKEN;
 
-  if (expectedToken && authHeader !== expectedToken) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // Fail-closed: if token not configured, reject all requests
+  if (!expectedToken) {
+    Sentry.captureMessage("Inbound email: POSTMARK_INBOUND_TOKEN not configured", { level: "error" });
+    return NextResponse.json({ error: "Não configurado" }, { status: 503 });
+  }
+
+  if (authHeader !== expectedToken) {
+    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
   let payload: PostmarkInboundPayload;
@@ -122,6 +128,12 @@ export async function POST(request: NextRequest) {
       // Decode base64 attachment
       const buffer = Buffer.from(attachment.Content, "base64");
 
+      // Verify actual decoded size (don't trust ContentLength from payload)
+      if (buffer.length > MAX_ATTACHMENT_SIZE) {
+        results.push({ file: attachment.Name, imported: 0, skipped: 0, error: "Arquivo muito grande" });
+        continue;
+      }
+
       let content: string | ArrayBuffer;
       if (ext === ".xlsx") {
         content = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
@@ -192,7 +204,7 @@ function generateMailboxHash(userId: string): string {
     .createHmac("sha256", secret)
     .update(`financial-import:${userId}`)
     .digest("hex")
-    .slice(0, 8);
+    .slice(0, 16);
   return `${userId}.${hmac}`;
 }
 
@@ -208,7 +220,7 @@ function resolveMailboxHash(hash: string): { userId: string } | null {
     .createHmac("sha256", secret)
     .update(`financial-import:${userId}`)
     .digest("hex")
-    .slice(0, 8);
+    .slice(0, 16);
 
   // Timing-safe comparison
   if (providedHmac.length !== expectedHmac.length) return null;

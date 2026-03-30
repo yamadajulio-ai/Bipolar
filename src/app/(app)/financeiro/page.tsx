@@ -270,14 +270,14 @@ export default function FinanceiroPage() {
               }}
               className="rounded-lg border border-border p-3 hover:bg-surface-alt transition-colors text-left"
             >
-              <p className="text-sm font-medium">📄 Importar arquivo</p>
+              <p className="text-sm font-medium"><span aria-hidden="true">📄 </span>Importar arquivo</p>
               <p className="text-xs text-muted">CSV, XLSX ou OFX do seu banco ou app</p>
             </button>
             <button
               onClick={() => setShowForm(true)}
               className="rounded-lg border border-border p-3 hover:bg-surface-alt transition-colors text-left"
             >
-              <p className="text-sm font-medium">✏️ Adicionar manual</p>
+              <p className="text-sm font-medium"><span aria-hidden="true">✏️ </span>Adicionar manual</p>
               <p className="text-xs text-muted">Digite uma transação rápida</p>
             </button>
             <button
@@ -287,7 +287,7 @@ export default function FinanceiroPage() {
               }}
               className="rounded-lg border border-border p-3 hover:bg-surface-alt transition-colors text-left"
             >
-              <p className="text-sm font-medium">💬 Via WhatsApp</p>
+              <p className="text-sm font-medium"><span aria-hidden="true">💬 </span>Via WhatsApp</p>
               <p className="text-xs text-muted">Envie o extrato pelo WhatsApp</p>
             </button>
             <button
@@ -297,7 +297,7 @@ export default function FinanceiroPage() {
               }}
               className="rounded-lg border border-border p-3 hover:bg-surface-alt transition-colors text-left"
             >
-              <p className="text-sm font-medium">📧 Via Email</p>
+              <p className="text-sm font-medium"><span aria-hidden="true">📧 </span>Via Email</p>
               <p className="text-xs text-muted">Envie o extrato por email</p>
             </button>
           </div>

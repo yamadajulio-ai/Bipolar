@@ -4,6 +4,7 @@ import * as Sentry from "@sentry/nextjs";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/security";
+import { hasConsent } from "@/lib/consent";
 
 const HEADERS = { "Cache-Control": "no-store" };
 
@@ -23,6 +24,11 @@ export async function POST(request: NextRequest) {
   const allowed = await checkRateLimit(`feedback:${session.userId}`, 20, 15 * 60 * 1000);
   if (!allowed) {
     return NextResponse.json({ error: "Muitas requisições" }, { status: 429, headers: HEADERS });
+  }
+
+  const consent = await hasConsent(session.userId, "health_data");
+  if (!consent) {
+    return NextResponse.json({ error: "Consentimento necessário." }, { status: 403, headers: HEADERS });
   }
 
   try {

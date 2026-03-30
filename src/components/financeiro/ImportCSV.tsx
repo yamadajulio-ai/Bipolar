@@ -23,6 +23,7 @@ export function ImportCSV({ onImported }: { onImported: () => void }) {
   const [importEmail, setImportEmail] = useState<string | null>(null);
   const [pluggyAvailable, setPluggyAvailable] = useState(false);
   const [pluggyLoading, setPluggyLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Fetch import email and Pluggy availability on mount
@@ -33,7 +34,7 @@ export function ImportCSV({ onImported }: { onImported: () => void }) {
       .catch(() => {});
 
     fetch("/api/financeiro/pluggy/connect", { method: "HEAD" })
-      .then((r) => { if (r.status !== 503) setPluggyAvailable(true); })
+      .then((r) => { if (r.ok) setPluggyAvailable(true); })
       .catch(() => {});
   }, []);
 
@@ -159,18 +160,21 @@ export function ImportCSV({ onImported }: { onImported: () => void }) {
       </h3>
 
       {/* Tab navigation */}
-      <div className="mb-4 flex gap-1 rounded-lg bg-surface-alt p-1">
+      <div className="mb-4 flex gap-1 rounded-lg bg-surface-alt p-1" role="tablist" aria-label="Métodos de importação">
         {tabs.map((tab) => (
           <button
             key={tab.key}
+            role="tab"
+            aria-selected={activeTab === tab.key}
+            aria-controls={`tabpanel-${tab.key}`}
             onClick={() => { setActiveTab(tab.key); setError(null); setResult(null); }}
-            className={`flex-1 rounded-md px-2 py-2 text-xs font-medium transition-all ${
+            className={`flex-1 rounded-md px-2 py-2.5 min-h-[44px] text-xs font-medium transition-all ${
               activeTab === tab.key
                 ? "bg-surface text-foreground shadow-sm"
                 : "text-muted hover:text-foreground"
             }`}
           >
-            <span className="mr-1">{tab.icon}</span>
+            <span className="mr-1" aria-hidden="true">{tab.icon}</span>
             {tab.label}
           </button>
         ))}
@@ -240,7 +244,7 @@ export function ImportCSV({ onImported }: { onImported: () => void }) {
               ${isDragging
                 ? "border-primary bg-primary/10 dark:bg-primary/20"
                 : selectedFile
-                  ? "border-green-400 bg-green-50 dark:border-green-600 dark:bg-green-950/30"
+                  ? "border-success-border bg-success-bg-subtle"
                   : "border-border-soft bg-surface-alt hover:border-primary/50 hover:bg-surface dark:border-border-strong dark:bg-surface-raised/50 dark:hover:border-primary/50 dark:hover:bg-surface-raised"
               }
             `}
@@ -361,12 +365,15 @@ export function ImportCSV({ onImported }: { onImported: () => void }) {
                   </code>
                   <button
                     onClick={() => {
-                      navigator.clipboard.writeText(importEmail);
+                      navigator.clipboard.writeText(importEmail).then(() => {
+                        setCopied(true);
+                        setTimeout(() => setCopied(false), 2000);
+                      }).catch(() => {});
                     }}
-                    className="shrink-0 rounded border border-border px-2 py-1 text-xs hover:bg-surface-alt"
+                    className="shrink-0 rounded border border-border px-3 py-2 min-h-[44px] text-xs hover:bg-surface-alt"
                     aria-label="Copiar endereço"
                   >
-                    Copiar
+                    {copied ? "Copiado!" : "Copiar"}
                   </button>
                 </div>
               </div>

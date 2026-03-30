@@ -108,13 +108,29 @@ async function downloadMetaMedia(mediaId: string): Promise<ArrayBuffer | null> {
     const downloadUrl = urlData.url;
     if (!downloadUrl) return null;
 
+    // Validate URL is a Meta CDN domain (prevent SSRF)
+    const parsedUrl = new URL(downloadUrl);
+    const allowedHosts = [".fbcdn.net", ".whatsapp.net", ".facebook.com", ".facebookserver.com"];
+    if (!allowedHosts.some((h) => parsedUrl.hostname.endsWith(h))) {
+      return null; // Reject non-Meta URLs
+    }
+
     // Step 2: Download file content
     const fileRes = await fetch(downloadUrl, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!fileRes.ok) return null;
 
-    return fileRes.arrayBuffer();
+    // Enforce 10MB limit
+    const contentLength = fileRes.headers.get("content-length");
+    if (contentLength && parseInt(contentLength, 10) > 10 * 1024 * 1024) {
+      return null;
+    }
+
+    const buffer = await fileRes.arrayBuffer();
+    if (buffer.byteLength > 10 * 1024 * 1024) return null;
+
+    return buffer;
   } catch {
     return null;
   }
@@ -307,20 +323,40 @@ export async function POST(request: NextRequest) {
                         },
                       );
 
-                      // Send confirmation via WhatsApp (within 24h window)
-                      const { sendWhatsAppText } = await import("@/lib/whatsapp");
-                      await sendWhatsAppText({
-                        to: from,
-                        text: `Importação concluída!\n\n${result.imported} transações importadas${result.skipped > 0 ? `\n${result.skipped} duplicatas ignoradas` : ""}\n\nVeja seus dados em: ${process.env.NEXT_PUBLIC_APP_URL || "https://suportebipolar.com"}/financeiro`,
-                      });
-
                       Sentry.addBreadcrumb({
                         category: "whatsapp",
                         message: "Financial document imported",
                         level: "info",
                         data: { imported: result.imported, source: result.source },
                       });
+
+                      // Send confirmation (separate try/catch — import already succeeded)
+                      try {
+                        const { sendWhatsAppText } = await import("@/lib/whatsapp");
+                        await sendWhatsAppText({
+                          to: from,
+                          text: `Importação concluída!\n\n${result.imported} transações importadas${result.skipped > 0 ? `\n${result.skipped} duplicatas ignoradas` : ""}\n\nVeja seus dados em: ${process.env.NEXT_PUBLIC_APP_URL || "https://suportebipolar.com"}/financeiro`,
+                        });
+                      } catch { /* confirmation failed but import succeeded — silent */ }
+                    } else {
+                      // No consent — notify user
+                      try {
+                        const { sendWhatsAppText } = await import("@/lib/whatsapp");
+                        await sendWhatsAppText({
+                          to: from,
+                          text: "Para importar dados financeiros, é necessário ativar o consentimento de dados de saúde no app.",
+                        });
+                      } catch { /* silent */ }
                     }
+                  } else {
+                    // Download failed — notify user
+                    try {
+                      const { sendWhatsAppText } = await import("@/lib/whatsapp");
+                      await sendWhatsAppText({
+                        to: from,
+                        text: "Não foi possível baixar o arquivo. Tente enviar novamente.",
+                      });
+                    } catch { /* silent */ }
                   }
                 } catch (err) {
                   Sentry.captureException(err, {

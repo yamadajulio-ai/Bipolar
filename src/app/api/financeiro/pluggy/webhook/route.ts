@@ -110,6 +110,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
+  // Consent gate — verify user still consents to financial data processing
+  const { hasConsent } = await import("@/lib/consent");
+  const consent = await hasConsent(clientUserId, "health_data");
+  if (!consent) {
+    Sentry.addBreadcrumb({
+      category: "pluggy",
+      message: "Skipped — user revoked consent",
+      level: "info",
+    });
+    return NextResponse.json({ ok: true });
+  }
+
   try {
     // Fetch transactions from Pluggy API
     const rawTransactions = await fetchTransactions(itemId, {
@@ -132,12 +144,7 @@ export async function POST(request: NextRequest) {
       data: { itemId, imported: result.imported, skipped: result.skipped },
     });
 
-    return NextResponse.json({
-      ok: true,
-      imported: result.imported,
-      skipped: result.skipped,
-      total: result.total,
-    });
+    return NextResponse.json({ ok: true });
   } catch (err) {
     Sentry.captureException(err, {
       tags: { endpoint: "pluggy_webhook" },

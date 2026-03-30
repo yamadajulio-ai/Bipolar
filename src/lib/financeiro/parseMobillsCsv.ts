@@ -61,7 +61,7 @@ export function parseMobillsCsv(csvContent: string): ParsedTransaction[] {
       date,
       description: cols[descIdx]?.trim() || "Sem descricao",
       amount,
-      category: cols[categoryIdx]?.trim() || "outro",
+      category: cols[categoryIdx]?.trim() || "Outro",
       account: cols[accountIdx]?.trim() || null,
     });
   }

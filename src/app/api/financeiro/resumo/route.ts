@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/security";
+import { hasConsent } from "@/lib/consent";
 import { localDateStr, shiftMonth } from "@/lib/dateUtils";
 
 // ── Helpers ─────────────────────────────────────────────────
@@ -131,6 +132,11 @@ export async function GET(request: NextRequest) {
   const allowed = await checkRateLimit(`financeiro_resumo:${session.userId}`, 60, 60_000);
   if (!allowed) {
     return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429, headers: HEADERS });
+  }
+
+  const consent = await hasConsent(session.userId, "health_data");
+  if (!consent) {
+    return NextResponse.json({ error: "Consentimento necessário." }, { status: 403, headers: HEADERS });
   }
 
   const { searchParams } = new URL(request.url);

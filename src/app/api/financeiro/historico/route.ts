@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/security";
+import { hasConsent } from "@/lib/consent";
 import { localYearMonth, shiftMonth } from "@/lib/dateUtils";
 import * as Sentry from "@sentry/nextjs";
 
@@ -16,6 +17,11 @@ export async function GET() {
   const allowed = await checkRateLimit(`financeiro_historico_read:${session.userId}`, 60, 60_000);
   if (!allowed) {
     return NextResponse.json({ error: "Muitas requisições" }, { status: 429, headers: HEADERS });
+  }
+
+  const consent = await hasConsent(session.userId, "health_data");
+  if (!consent) {
+    return NextResponse.json({ error: "Consentimento necessário." }, { status: 403, headers: HEADERS });
   }
 
   // Last 12 months including current (timezone-aware)

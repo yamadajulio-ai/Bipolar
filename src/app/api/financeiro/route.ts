@@ -3,6 +3,7 @@ import { z } from "zod/v4";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/security";
+import { hasConsent } from "@/lib/consent";
 import { localDateStr } from "@/lib/dateUtils";
 import * as Sentry from "@sentry/nextjs";
 
@@ -26,6 +27,11 @@ export async function GET(request: NextRequest) {
   const allowed = await checkRateLimit(`financeiro_read:${session.userId}`, 60, 60_000);
   if (!allowed) {
     return NextResponse.json({ error: "Muitas requisições" }, { status: 429, headers: HEADERS });
+  }
+
+  const consent = await hasConsent(session.userId, "health_data");
+  if (!consent) {
+    return NextResponse.json({ error: "Consentimento necessário." }, { status: 403, headers: HEADERS });
   }
 
   const { searchParams } = new URL(request.url);
@@ -69,6 +75,11 @@ export async function POST(request: NextRequest) {
   const allowed = await checkRateLimit(`financeiro_write:${session.userId}`, 30, 60_000);
   if (!allowed) {
     return NextResponse.json({ error: "Muitas requisições" }, { status: 429, headers: HEADERS });
+  }
+
+  const consent = await hasConsent(session.userId, "health_data");
+  if (!consent) {
+    return NextResponse.json({ error: "Consentimento necessário." }, { status: 403, headers: HEADERS });
   }
 
   try {

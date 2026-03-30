@@ -8,7 +8,6 @@ import type { ParsedTransaction } from "./parseMobillsCsv";
  * - Inter (extrato)
  * - Itaú (extrato)
  * - C6 Bank
- * - Bradesco
  *
  * Falls back to generic parser if bank not detected.
  */
@@ -78,8 +77,8 @@ function parseNubankCC(lines: string[]): ParsedTransaction[] {
     txs.push({
       date,
       description: cols[titleIdx]?.trim() || "Sem descrição",
-      // Nubank CC exports expenses as positive, negate them
-      amount: -Math.abs(amount),
+      // Nubank CC: positive = expense (negate), negative = refund (keep negative)
+      amount: amount > 0 ? -amount : amount,
       category: cols[categoryIdx]?.trim() || "Outro",
       account: "Nubank Cartão",
     });

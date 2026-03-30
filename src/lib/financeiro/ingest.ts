@@ -55,7 +55,20 @@ export async function ingestFinancialFile(
     let bank: string | undefined;
 
     if (normalizedName.endsWith(".ofx") || normalizedName.endsWith(".qfx")) {
-      const text = typeof content === "string" ? content : new TextDecoder("latin1").decode(content);
+      // Detect encoding from OFX header; default to Latin1 (most BR banks)
+      const rawBytes = typeof content === "string" ? null : new Uint8Array(content);
+      let text: string;
+      if (typeof content === "string") {
+        text = content;
+      } else {
+        // Try UTF-8 first, fall back to Latin1
+        const utf8Text = new TextDecoder("utf-8", { fatal: true });
+        try {
+          text = utf8Text.decode(rawBytes!);
+        } catch {
+          text = new TextDecoder("latin1").decode(rawBytes!);
+        }
+      }
       transactions = parseOFX(text);
       source = "ofx";
     } else if (normalizedName.endsWith(".xlsx")) {

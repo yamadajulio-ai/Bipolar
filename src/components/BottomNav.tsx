@@ -34,7 +34,6 @@ export function BottomNav() {
           className={[
             "flex items-center justify-around",
             "rounded-[var(--radius-panel)] py-1.5",
-            "border border-border-soft dark:border-border-strong",
             "bg-surface-glass backdrop-blur-[var(--blur-chrome)]",
             "shadow-[var(--shadow-float)]",
             "[contain:layout_style_paint]",

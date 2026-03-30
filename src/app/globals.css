@@ -302,7 +302,35 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans, Arial, Helvetica, sans-serif);
+  font-family: -apple-system, var(--font-sans), system-ui, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  overscroll-behavior: none;
+}
+
+/* Allow text selection only where it makes sense */
+input, textarea, [contenteditable],
+p, span, li, td, th, h1, h2, h3, h4, h5, h6,
+.selectable {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Allow long-press on tel: links (call action) and external links */
+a[href^="tel:"],
+a[target="_blank"] {
+  -webkit-touch-callout: default;
+}
+
+/* Hide scrollbars (native apps don't show them) */
+::-webkit-scrollbar {
+  display: none;
+}
+
+* {
+  scrollbar-width: none;
 }
 
 @layer base {

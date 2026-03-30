@@ -230,6 +230,15 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Professional viewer routes: authenticated via professional session cookie (not user session).
+  // No-store headers required (sensitive patient data). Don't fall into protectedPaths check.
+  if (pathname.startsWith("/profissional/")) {
+    const response = NextResponse.next();
+    response.headers.set("Cache-Control", "no-store, private, max-age=0");
+    response.headers.set("Pragma", "no-cache");
+    return await ensureCsrfCookie(request, response);
+  }
+
   const sessionCookie =
     request.cookies.get("suporte-bipolar-session") ??
     request.cookies.get("empresa-bipolar-session");

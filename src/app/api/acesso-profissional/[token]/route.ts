@@ -5,6 +5,7 @@ import { verifyPin } from "@/lib/auth";
 import * as Sentry from "@sentry/nextjs";
 import { computeInsights } from "@/lib/insights/computeInsights";
 import type { PlannerBlockInput } from "@/lib/insights/computeInsights";
+import { createProfessionalSession } from "@/lib/professionalSession";
 
 const TZ = "America/Sao_Paulo";
 
@@ -192,6 +193,19 @@ export async function POST(
     }
 
     const validAccess = result.accessData;
+
+    // Fetch patient name for session
+    const patientUser = await prisma.user.findUnique({
+      where: { id: validAccess.userId },
+      select: { name: true },
+    });
+
+    // Create professional session cookie for viewer navigation
+    await createProfessionalSession(
+      token,
+      validAccess.userId,
+      patientUser?.name ?? "Paciente",
+    );
 
     // Fetch patient data (last 30 days)
     const now = new Date();

@@ -1,9 +1,9 @@
 import { prisma } from "@/lib/db";
 import * as Sentry from "@sentry/nextjs";
 import { parseMobillsCsv, type ParsedTransaction } from "./parseMobillsCsv";
-import { parseMobillsXlsx } from "./parseMobillsXlsx";
 import { parseOFX } from "./parseOFX";
 import { parseBankCsv } from "./parseBankCsv";
+// parseMobillsXlsx is dynamically imported to avoid ExcelJS cold start on non-XLSX routes
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -80,6 +80,8 @@ export async function ingestFinancialFile(
       const buffer = typeof content === "string"
         ? new TextEncoder().encode(content).buffer
         : content;
+      // Dynamic import: ExcelJS (~2MB) only loaded when actually needed
+      const { parseMobillsXlsx } = await import("./parseMobillsXlsx");
       transactions = await parseMobillsXlsx(buffer);
       source = "mobills_xlsx";
     } else if (normalizedName.endsWith(".xls")) {
@@ -201,12 +203,13 @@ export interface PluggyTransaction {
 export async function ingestPluggyTransactions(
   userId: string,
   transactions: PluggyTransaction[],
+  itemId?: string,
 ): Promise<IngestResult> {
   const startTime = Date.now();
 
   const importEvent = await createImportEvent(
     { userId, channel: "pluggy" },
-    "pluggy-webhook",
+    itemId ? `pluggy-webhook|itemId:${itemId}` : "pluggy-webhook",
     "started",
   );
 

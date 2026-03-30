@@ -46,6 +46,19 @@ const C6_CSV = `Data da Transação;Descrição;Tipo de Transação;Valor;Identi
 02/03/2026;COMPRA DEBITO VISA;DEBITO;-89,90;def456
 `;
 
+// ── Bradesco CSV ────────────────────────────────────────────────
+
+const BRADESCO_CSV = `Data;Histórico;Docto.;Crédito;Débito;Saldo
+01/03/2026;SALARIO;000;"5.000,00";;15000,00
+02/03/2026;COMPRA VISA;001;;"234,56";14765,44
+05/03/2026;PIX ENVIADO;002;;"1.500,00";13265,44
+`;
+
+const BRADESCO_SIMPLE_CSV = `Data;Historico;Valor;Saldo
+01/03/2026;DEPOSITO;"1.000,00";5000,00
+02/03/2026;SAQUE;"-500,00";4500,00
+`;
+
 // ── Unknown format CSV ──────────────────────────────────────────
 
 const UNKNOWN_CSV = `random,columns,here
@@ -151,6 +164,34 @@ describe("parseBankCsv", () => {
       const { transactions } = parseBankCsv(C6_CSV);
       expect(transactions[0].amount).toBe(1000.00);
       expect(transactions[1].amount).toBe(-89.90);
+    });
+  });
+
+  describe("Bradesco", () => {
+    it("detects Bradesco with credit/debit columns", () => {
+      const { transactions, bank } = parseBankCsv(BRADESCO_CSV);
+      expect(bank).toBe("bradesco");
+      expect(transactions).toHaveLength(3);
+    });
+
+    it("parses credit as positive, debit as negative", () => {
+      const { transactions } = parseBankCsv(BRADESCO_CSV);
+      expect(transactions[0].amount).toBe(5000.00); // credit
+      expect(transactions[1].amount).toBe(-234.56); // debit
+      expect(transactions[2].amount).toBe(-1500.00); // debit
+    });
+
+    it("sets account to Bradesco", () => {
+      const { transactions } = parseBankCsv(BRADESCO_CSV);
+      expect(transactions[0].account).toBe("Bradesco");
+    });
+
+    it("detects Bradesco with single valor column", () => {
+      const { transactions, bank } = parseBankCsv(BRADESCO_SIMPLE_CSV);
+      expect(bank).toBe("bradesco");
+      expect(transactions).toHaveLength(2);
+      expect(transactions[0].amount).toBe(1000.00);
+      expect(transactions[1].amount).toBe(-500.00);
     });
   });
 

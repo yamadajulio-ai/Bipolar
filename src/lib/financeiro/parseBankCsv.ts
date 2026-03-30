@@ -36,6 +36,9 @@ export function parseBankCsv(content: string): { transactions: ParsedTransaction
   if (isNubankConta(headerLine)) {
     return { transactions: parseNubankConta(lines), bank: "nubank_conta" };
   }
+  if (isBradesco(headerLine)) {
+    return { transactions: parseBradesco(lines), bank: "bradesco" };
+  }
 
   return { transactions: [], bank: "unknown" };
 }
@@ -263,6 +266,77 @@ function parseC6(lines: string[]): ParsedTransaction[] {
       amount,
       category: "Outro",
       account: "C6 Bank",
+    });
+  }
+  return txs;
+}
+
+// ── Bradesco ────────────────────────────────────────────────────
+// Headers: Data;Histórico;Docto.;Crédito;Débito;Saldo
+// Or: Data;Historico;Valor;Saldo
+function isBradesco(header: string): boolean {
+  const norm = normalizeHeader(header);
+  return (norm.includes("historico") || norm.includes("histórico"))
+    && (norm.includes("credito") || norm.includes("crédito") || norm.includes("debito") || norm.includes("débito") || norm.includes("saldo"))
+    && !norm.includes("identificador") // not Nubank
+    && !norm.includes("lancamento"); // not Inter or Itau
+}
+
+function parseBradesco(lines: string[]): ParsedTransaction[] {
+  const delimiter = detectDelimiter(lines[0]);
+  const headers = splitCsv(lines[0], delimiter).map(normalizeHeader);
+
+  const dateIdx = findIdx(headers, ["data", "date"]);
+  const descIdx = findIdx(headers, ["historico", "histórico", "descricao"]);
+  const creditIdx = findIdx(headers, ["credito", "crédito"]);
+  const debitIdx = findIdx(headers, ["debito", "débito"]);
+  const amountIdx = findIdx(headers, ["valor", "value"]);
+
+  if (dateIdx === -1) return [];
+  // Need either credit/debit columns or a single valor column
+  if (creditIdx === -1 && debitIdx === -1 && amountIdx === -1) return [];
+
+  const txs: ParsedTransaction[] = [];
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+
+    const cols = splitCsv(line, delimiter);
+    const rawDate = cols[dateIdx]?.trim();
+    if (!rawDate) continue;
+
+    const date = parseFlexDate(rawDate);
+    if (!date) continue;
+
+    let amount: number;
+    if (amountIdx !== -1) {
+      // Single valor column
+      const rawAmount = cols[amountIdx]?.trim();
+      if (!rawAmount) continue;
+      amount = parseBrNumber(rawAmount);
+    } else {
+      // Separate credit/debit columns
+      const rawCredit = cols[creditIdx]?.trim();
+      const rawDebit = cols[debitIdx]?.trim();
+      if (!rawCredit && !rawDebit) continue;
+
+      const credit = rawCredit ? parseBrNumber(rawCredit) : 0;
+      const debit = rawDebit ? parseBrNumber(rawDebit) : 0;
+      if (isNaN(credit) && isNaN(debit)) continue;
+
+      // Credit is positive, debit is negative
+      amount = (!isNaN(credit) && credit > 0) ? credit : -Math.abs(!isNaN(debit) ? debit : 0);
+      if (amount === 0 && !rawCredit && !rawDebit) continue;
+    }
+
+    if (isNaN(amount)) continue;
+
+    txs.push({
+      date,
+      description: cols[descIdx]?.trim() || "Sem descrição",
+      amount,
+      category: "Outro",
+      account: "Bradesco",
     });
   }
   return txs;

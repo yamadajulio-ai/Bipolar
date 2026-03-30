@@ -68,6 +68,18 @@ export async function POST(request: NextRequest) {
 
   const { MailboxHash, Attachments, MessageID } = payload;
 
+  // ── Email dedup via MessageID ───────────────────────────────
+  // Postmark retries up to 10 times. Prevent duplicate processing.
+  if (MessageID) {
+    const existing = await prisma.financialImportEvent.findFirst({
+      where: { metadata: { contains: MessageID } },
+      select: { id: true },
+    });
+    if (existing) {
+      return NextResponse.json({ ok: true, deduplicated: true });
+    }
+  }
+
   if (!MailboxHash) {
     Sentry.addBreadcrumb({
       category: "inbound-email",
@@ -150,7 +162,7 @@ export async function POST(request: NextRequest) {
       const result = await ingestFinancialFile(content, attachment.Name, {
         userId,
         channel: "email",
-        fileName: attachment.Name,
+        fileName: `${attachment.Name}|mid:${MessageID || "unknown"}`,
         fileSize: attachment.ContentLength,
       });
 

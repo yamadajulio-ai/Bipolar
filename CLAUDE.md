@@ -108,13 +108,17 @@
 - **server.url**: GPT Pro R3 recomenda remover para release (shell local + API remota). Capacitor docs: `server.url` é para dev, não produção. **BLOQUEADOR de submissão.**
 - **Conta Apple Developer**: individual (Julio Cesar de Sousa Yamada), Enrollment ID 5J4DNRWRS2. GPT Pro R3 alerta: Guideline 5.1.1(ix) exige legal entity para apps de saúde com dados sensíveis. **Considerar migração para organização.**
 - **Mac Mini M4**: configurado (Node.js, VS Code, Claude Code). Setup script: `scripts/ios-setup.sh`. Guia enviado por email (2026-03-28).
-- **Review risks**: Guideline 4.2 (mitigado por 9 pilares nativos), 1.4.1 (copy de suporte), 5.1.1(ix) (conta individual), demo account
+- **Review risks**: Guideline 4.2 (mitigado por 9 pilares nativos, 70-75% chance), 1.4.1 (copy de suporte, passa fácil), 5.1.1(ix) (conta individual — **maior risco**, 70% chance de flag, migrar para org recomendado), 5.1.2(i) (third-party AI — consent explícito nomeando OpenAI/Anthropic já implementado), demo account
+- **SuperGrok análise (2026-03-30)**: 55% primeira submissão (conta individual é o gargalo). Sobe para 85%+ com migração para organização. Código/segurança/clinical safety excelentes.
 - **Review Notes**: `docs/app-store-review-notes.md`
 - **Sign in with Apple**: nativo (Capacitor plugin) + **web OAuth** (form_post callback). Service ID `com.suportebipolar.web`, App ID `com.suportebipolar.app`. Dual audience JWT verification, sameSite:none state cookie, nonce replay protection, refresh token AES-256-GCM, revogação na exclusão de conta
 - **Privacy**: trackers bloqueados no WebView (`"Capacitor" in window`), privacyMode default ON, PrivacyInfo.xcprivacy, notificações genéricas no lock screen
 - **App Store code readiness audit (2026-03-28)**: 8.7/10 CODE READY. 9 native pillars pass Guideline 4.2. Security 9.75/10. Clinical safety 9.9/10. Performance improved (recharts lazy-load).
 - **Security hardening (2026-03-30)**: CSRF Layer 2 fix (crypto.subtle.verify await), Google OAuth state CSRF, runtime crash guards (ZONE_CONFIG/RISK_CONFIG fallbacks, financialDrivers optional chaining), Sentry tracking on Google Calendar sync failures, accessibility hardening across 14 components.
-- **Pendentes para TestFlight** (requer Mac Mini): `npx cap add ios`, PrivacyInfo.xcprivacy, substituir TEAM_ID `7MQYXX5DRU` no AASA, configurar entitlements no Xcode, testar plugin Apple v7/Cap v8 em device real
+- **Third-party AI disclosure**: Review notes incluem seção explícita nomeando OpenAI (narrativas) e Anthropic (SOS chatbot) como processadores. Privacy labels devem declarar terceiros no App Store Connect.
+- **webContentsDebuggingEnabled**: condicional `process.env.NODE_ENV !== 'production'` (fix 2026-03-30)
+- **PrivacyInfo.xcprivacy**: copiado de ios-template/ para ios/App/App/ com 10 data types completos (fix 2026-03-30)
+- **Pendentes para TestFlight** (requer Mac Mini): substituir TEAM_ID `7MQYXX5DRU` no AASA, configurar entitlements no Xcode (Push, Sign in with Apple, Associated Domains), testar plugin Apple v7/Cap v8 em device real, migrar conta para organização (recomendado por Grok/GPT Pro)
 
 ## AI Narrative — Modelo
 - **Modelo atual**: GPT-5.4 via OpenAI Responses API (migrado de Claude Sonnet 4)

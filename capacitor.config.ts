@@ -9,19 +9,21 @@ const config: CapacitorConfig = {
   // server.url REMOVIDO — Apple 4.2/2.5.2, Capacitor docs: "not intended for production".
   // WebView carrega do bundle local (out/). API calls via fetch + bearer token.
   server: {
-    // iosScheme configura o scheme do WebView local (default: capacitor)
-    iosScheme: 'capacitor',
+    // DEV ONLY — aponta para Vercel. Remover antes de submeter à App Store.
+    url: 'https://suportebipolar.com',
+    iosScheme: 'https',
+    hostname: 'suportebipolar.com',
     errorPath: '/offline-fallback.html',
   },
 
   ios: {
-    contentInset: 'automatic',
+    contentInset: 'always',
     preferredContentMode: 'mobile',
     backgroundColor: '#ffffff',
     allowsLinkPreview: false,
 
-    // Only enable for dev builds — MUST be false for App Store submission
-    webContentsDebuggingEnabled: false,
+    // MUST be false for App Store submission — only true in dev
+    webContentsDebuggingEnabled: process.env.NODE_ENV !== 'production',
   },
 
   plugins: {

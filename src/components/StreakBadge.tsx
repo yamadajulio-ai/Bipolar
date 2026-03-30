@@ -43,7 +43,7 @@ export function StreakBadge({ checkinStreak, sleepStreak, bestCheckinStreak, hid
         <div className="flex items-center gap-2 rounded-full bg-indigo-500/10 px-3.5 py-1.5">
           <span className="text-lg" role="img" aria-label="Dias de sono registrado">🌙</span>
           <div className="flex flex-col">
-            <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400 leading-tight">
+            <span className="text-sm font-bold text-primary leading-tight">
               {sleepStreak} {sleepStreak === 1 ? "dia" : "dias"}
             </span>
             <span className="text-[11px] text-muted leading-tight">sono registrado</span>

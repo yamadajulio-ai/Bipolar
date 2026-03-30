@@ -3,11 +3,11 @@
 import type { StabilityScore } from "@/lib/insights/computeInsights";
 
 const LEVEL_CONFIG = {
-  muito_estavel: { color: "text-emerald-700 dark:text-emerald-400", bg: "bg-emerald-100 dark:bg-emerald-900/30", ring: "stroke-emerald-500" },
-  estavel: { color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-900/20", ring: "stroke-emerald-400" },
-  moderado: { color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-900/20", ring: "stroke-amber-400" },
-  variavel: { color: "text-orange-600 dark:text-orange-400", bg: "bg-orange-50 dark:bg-orange-900/20", ring: "stroke-orange-400" },
-  instavel: { color: "text-red-600 dark:text-red-400", bg: "bg-red-50 dark:bg-red-900/20", ring: "stroke-red-400" },
+  muito_estavel: { color: "text-success-fg", bg: "bg-success-bg-subtle", ring: "stroke-success-fg" },
+  estavel: { color: "text-success-fg", bg: "bg-success-bg-subtle", ring: "stroke-success-fg/80" },
+  moderado: { color: "text-warning-fg", bg: "bg-warning-bg-subtle", ring: "stroke-warning-fg" },
+  variavel: { color: "text-warning-fg", bg: "bg-warning-bg-subtle", ring: "stroke-warning-fg" },
+  instavel: { color: "text-danger-fg", bg: "bg-danger-bg-subtle", ring: "stroke-danger-fg" },
 } as const;
 
 const COMPONENT_LABELS: Record<string, string> = {
@@ -23,15 +23,13 @@ function ScoreRing({ score, className }: { score: number; className: string }) {
   const offset = circumference - (score / 100) * circumference;
 
   return (
-    <svg width="88" height="88" viewBox="0 0 88 88" className="shrink-0">
-      {/* Background ring */}
+    <svg width="88" height="88" viewBox="0 0 88 88" className="shrink-0" aria-hidden="true">
       <circle
         cx="44" cy="44" r={radius}
         fill="none"
         strokeWidth="6"
         className="stroke-border/30"
       />
-      {/* Score ring */}
       <circle
         cx="44" cy="44" r={radius}
         fill="none"
@@ -42,7 +40,6 @@ function ScoreRing({ score, className }: { score: number; className: string }) {
         transform="rotate(-90 44 44)"
         className={className}
       />
-      {/* Score text */}
       <text
         x="44" y="40"
         textAnchor="middle"
@@ -66,21 +63,28 @@ function ScoreRing({ score, className }: { score: number; className: string }) {
 function ComponentBar({ label, value }: { label: string; value: number | null }) {
   if (value == null) return null;
 
-  let barColor = "bg-red-400";
-  if (value >= 70) barColor = "bg-emerald-400";
-  else if (value >= 50) barColor = "bg-amber-400";
-  else if (value >= 30) barColor = "bg-orange-400";
+  let barColor = "bg-danger-fg";
+  if (value >= 70) barColor = "bg-success-fg";
+  else if (value >= 50) barColor = "bg-warning-fg";
+  else if (value >= 30) barColor = "bg-warning-fg";
 
   return (
     <div className="flex items-center gap-2">
       <span className="text-[11px] text-muted w-16 shrink-0">{label}</span>
-      <div className="flex-1 h-1.5 bg-border/30 rounded-full overflow-hidden">
+      <div
+        className="flex-1 h-1.5 bg-border/30 rounded-full overflow-hidden"
+        role="progressbar"
+        aria-valuenow={value}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={`${label}: ${value} de 100`}
+      >
         <div
           className={`h-full rounded-full transition-all ${barColor}`}
           style={{ width: `${value}%` }}
         />
       </div>
-      <span className="text-[11px] text-foreground/70 w-7 text-right">{value}</span>
+      <span className="text-[11px] text-foreground/70 w-7 text-right" aria-hidden="true">{value}</span>
     </div>
   );
 }
@@ -103,14 +107,14 @@ export function StabilityScoreWidget({ stability }: { stability: StabilityScore 
               </span>
             )}
             {stability.riskCapped && (
-              <span className="rounded-full bg-red-100 dark:bg-red-900/30 px-1.5 py-0.5 text-[11px] text-red-600 dark:text-red-400">
+              <span className="rounded-full bg-danger-bg-subtle px-1.5 py-0.5 text-[11px] text-danger-fg">
                 limitado por risco
               </span>
             )}
           </div>
 
           {stability.deltaVsBaseline != null && stability.deltaVsBaseline !== 0 && (
-            <p className={`text-[11px] ${stability.deltaVsBaseline > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
+            <p className={`text-[11px] ${stability.deltaVsBaseline > 0 ? "text-success-fg" : "text-danger-fg"}`}>
               {stability.deltaVsBaseline > 0 ? "+" : ""}{stability.deltaVsBaseline} vs. média anterior
             </p>
           )}

@@ -74,7 +74,7 @@ export function OfflineCrisisCard() {
               key={step.number}
               className="flex items-center gap-3 p-3 rounded-lg bg-card border border-border"
             >
-              <span className="text-2xl">{step.icon}</span>
+              <span className="text-2xl" aria-hidden="true">{step.icon}</span>
               <span className="text-sm">
                 <strong>{step.number}</strong> {step.sense}
               </span>

@@ -65,7 +65,7 @@ export function SafetyModeScreen({ actions, onDismiss }: Props) {
                 key={action.id}
                 href={action.href}
                 aria-label={action.label}
-                className="block w-full rounded-lg bg-white/10 px-4 py-3 text-sm font-medium text-center text-foreground/80 hover:bg-white/20 transition-colors"
+                className="block w-full rounded-lg bg-white/10 px-4 py-3 min-h-[44px] text-sm font-medium text-center text-foreground/80 hover:bg-white/20 transition-colors"
               >
                 {action.label}
               </Link>
@@ -114,7 +114,7 @@ export function SafetyModeScreen({ actions, onDismiss }: Props) {
           <button
             onClick={onDismiss}
             aria-label="Ver painel completo — fechar tela de segurança"
-            className="text-xs text-muted hover:text-foreground underline"
+            className="text-xs text-muted hover:text-foreground underline min-h-[44px] inline-flex items-center print:hidden"
           >
             Ver painel completo
           </button>

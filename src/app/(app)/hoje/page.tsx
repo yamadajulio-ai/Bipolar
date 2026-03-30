@@ -1,6 +1,7 @@
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
+import * as Sentry from "@sentry/nextjs";
 import { localToday, localDateStr } from "@/lib/dateUtils";
 import { pullGoogleCalendar } from "@/lib/google/sync";
 import { getNews } from "@/lib/news";
@@ -12,6 +13,7 @@ import { GamificationWrapper } from "@/components/GamificationWrapper";
 import { computeInsights } from "@/lib/insights/computeInsights";
 import type { PlannerBlockInput } from "@/lib/insights/computeInsights";
 import { aggregateSleepByDay } from "@/lib/insights/stats";
+import { StabilityScoreWidget } from "@/components/dashboard/StabilityScoreWidget";
 import Link from "next/link";
 import Image from "next/image";
 import { SOSButton } from "@/components/SOSButton";
@@ -131,7 +133,9 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
     if (ga) {
       const lastSync = ga.lastSyncAt?.getTime() ?? 0;
       const stale = now.getTime() - lastSync > 5 * 60 * 1000; // 5 min
-      if (stale) pullGoogleCalendar(session.userId).catch(() => {});
+      if (stale) pullGoogleCalendar(session.userId).catch((err) => {
+        Sentry.captureException(err, { tags: { source: "hoje_gcal_sync" } });
+      });
     }
   }).catch(() => {});
 
@@ -673,6 +677,22 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
         </Card>
       )}
 
+      {/* === 1. SCORE DE ESTABILIDADE === */}
+      {insights.stability && (
+        <Card>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-foreground">Score de Estabilidade</h2>
+            <Link href="/insights" className="text-xs text-primary hover:underline inline-flex items-center min-h-[44px]">Detalhes</Link>
+          </div>
+          <ErrorBoundary name="StabilityScoreWidget">
+            <StabilityScoreWidget stability={insights.stability} />
+          </ErrorBoundary>
+          <p className="mt-2 text-[11px] text-muted italic">
+            Baseado nos seus últimos 30 dias · Não é diagnóstico
+          </p>
+        </Card>
+      )}
+
       {/* === 2. PARA FAZER HOJE === */}
       <Card>
         <h2 className="text-sm font-semibold text-foreground mb-3">Para fazer hoje</h2>
@@ -928,7 +948,7 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
       )}
 
       {/* === 8. MEU DIÁRIO === */}
-      <Link href="/meu-diario" className="block no-underline">
+      <Link href="/meu-diario" className="block no-underline print:hidden">
         <Card className="hover:border-primary/50 transition-colors">
           <div className="flex items-center gap-3">
             <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-lg" aria-hidden="true">
@@ -973,7 +993,7 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
 
       {/* === 10. CONQUISTAS === */}
       {todayEntry && (checkinStreak > 0 || sleepStreak > 0 || achievements.some(a => a.unlocked)) && (
-        <Card className="[&>*:first-child]:mt-0 [&>*:first-child]:pt-0 [&>*:first-child]:border-t-0">
+        <Card className="[&>*:first-child]:mt-0 [&>*:first-child]:pt-0 [&>*:first-child]:border-t-0 print:hidden">
           <GamificationWrapper
             checkinStreak={checkinStreak}
             sleepStreak={sleepStreak}
@@ -994,7 +1014,7 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
           </div>
           <div className="space-y-2">
             {newsArticles.map(article => (
-              <a key={article.url} href={article.url} target="_blank" rel="noopener noreferrer" className="block rounded-lg bg-surface-alt p-2.5 no-underline hover:bg-primary/5 transition-colors">
+              <a key={article.url} href={article.url} target="_blank" rel="noopener noreferrer" className="block rounded-lg bg-surface-alt p-2.5 min-h-[44px] no-underline hover:bg-primary/5 transition-colors">
                 <p className="text-xs font-medium text-foreground line-clamp-2">{article.title}</p>
                 <p className="mt-0.5 text-[11px] text-muted">
                   {article.sourceName || "PubMed"} · {article.publishedAt.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}

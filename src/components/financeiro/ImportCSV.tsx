@@ -260,7 +260,7 @@ export function ImportCSV({ onImported }: { onImported: () => void }) {
 
             {selectedFile ? (
               <div>
-                <div className="mb-1 text-2xl">📄</div>
+                <div className="mb-1 text-2xl" aria-hidden="true">📄</div>
                 <p className="text-sm font-medium text-foreground">{selectedFile.name}</p>
                 <p className="mt-1 text-xs text-muted">
                   {(selectedFile.size / 1024).toFixed(1)} KB — Clique para trocar
@@ -268,7 +268,7 @@ export function ImportCSV({ onImported }: { onImported: () => void }) {
               </div>
             ) : (
               <div>
-                <div className="mb-1 text-2xl">📁</div>
+                <div className="mb-1 text-2xl" aria-hidden="true">📁</div>
                 <p className="text-sm font-medium text-foreground">
                   Toque para escolher o arquivo
                 </p>
@@ -292,7 +292,7 @@ export function ImportCSV({ onImported }: { onImported: () => void }) {
           >
             {loading ? (
               <span className="flex items-center justify-center gap-2">
-                <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                <svg aria-hidden="true" className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
@@ -312,7 +312,7 @@ export function ImportCSV({ onImported }: { onImported: () => void }) {
         <div className="space-y-4">
           {pluggyAvailable ? (
             <div className="text-center">
-              <div className="mb-2 text-3xl">🏦</div>
+              <div className="mb-2 text-3xl" aria-hidden="true">🏦</div>
               <h4 className="text-sm font-semibold mb-1">Conecte seu banco</h4>
               <p className="text-xs text-muted mb-4">
                 Conecte sua conta bancária e suas transações serão importadas automaticamente.
@@ -331,7 +331,7 @@ export function ImportCSV({ onImported }: { onImported: () => void }) {
             </div>
           ) : (
             <div className="text-center py-4">
-              <div className="mb-2 text-3xl">🏦</div>
+              <div className="mb-2 text-3xl" aria-hidden="true">🏦</div>
               <h4 className="text-sm font-semibold mb-1">Conexão bancária</h4>
               <p className="text-xs text-muted mb-2">
                 Em breve você poderá conectar seu banco diretamente e as transações
@@ -350,7 +350,7 @@ export function ImportCSV({ onImported }: { onImported: () => void }) {
       {activeTab === "email" && (
         <div className="space-y-4">
           <div className="text-center">
-            <div className="mb-2 text-3xl">📧</div>
+            <div className="mb-2 text-3xl" aria-hidden="true">📧</div>
             <h4 className="text-sm font-semibold mb-1">Importe por email</h4>
             <p className="text-xs text-muted mb-3">
               Envie seu extrato (CSV, XLSX ou OFX) como anexo para o endereço abaixo.
@@ -400,7 +400,7 @@ export function ImportCSV({ onImported }: { onImported: () => void }) {
       {activeTab === "whatsapp" && (
         <div className="space-y-4">
           <div className="text-center">
-            <div className="mb-2 text-3xl">💬</div>
+            <div className="mb-2 text-3xl" aria-hidden="true">💬</div>
             <h4 className="text-sm font-semibold mb-1">Importe pelo WhatsApp</h4>
             <p className="text-xs text-muted mb-3">
               Envie seu extrato (CSV, XLSX ou OFX) como documento para o WhatsApp do Suporte Bipolar.

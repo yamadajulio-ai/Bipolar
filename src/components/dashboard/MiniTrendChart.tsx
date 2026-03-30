@@ -28,7 +28,7 @@ export function MiniTrendChart({ data }: MiniTrendChartProps) {
   }));
 
   return (
-    <div className="h-40">
+    <div className="h-40" role="figure" aria-label="Gráfico de tendência: humor e sono nos últimos 7 dias">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={formatted}>
           <XAxis dataKey="label" tick={{ fontSize: 10 }} />

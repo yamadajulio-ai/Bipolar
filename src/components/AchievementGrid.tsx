@@ -48,7 +48,7 @@ export function AchievementGrid({ achievements, hidden, onToggleHide }: Achievem
             key={a.key}
             className="flex flex-col items-center rounded-lg border border-primary/20 bg-primary/5 p-2.5 text-center"
           >
-            <span className="text-2xl">{a.icon}</span>
+            <span className="text-2xl" aria-hidden="true">{a.icon}</span>
             <span className="mt-1 text-[11px] font-semibold text-foreground leading-tight">{a.label}</span>
             <span className="text-[11px] text-muted leading-tight">{a.description}</span>
           </div>
@@ -58,7 +58,7 @@ export function AchievementGrid({ achievements, hidden, onToggleHide }: Achievem
             key={a.key}
             className="flex flex-col items-center rounded-lg border border-border bg-surface p-2.5 text-center opacity-40"
           >
-            <span className="text-2xl grayscale">{a.icon}</span>
+            <span className="text-2xl grayscale" aria-hidden="true">{a.icon}</span>
             <span className="mt-1 text-[11px] font-semibold text-foreground leading-tight">{a.label}</span>
             {a.progress !== undefined && a.target !== undefined && (
               <div

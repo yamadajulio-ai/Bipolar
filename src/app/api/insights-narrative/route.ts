@@ -289,6 +289,21 @@ export async function POST(request: NextRequest) {
     // Generate narrative V2
     const { narrative, persistence } = await generateNarrative(insights, extraData, now, TZ);
 
+    // Log generation result for debugging
+    if (!persistence.guardrailPassed || persistence.bypassLlm) {
+      console.warn(JSON.stringify({
+        event: "narrative_generation_result",
+        status: persistence.guardrailPassed ? "completed" : "fallback",
+        bypassLlm: persistence.bypassLlm,
+        bypassReason: persistence.bypassReason,
+        guardrailViolations: persistence.guardrailViolations,
+        llmAttempted: persistence.llmAttempted,
+        model: persistence.model,
+        latencyMs: persistence.latencyMs,
+        source: narrative.source,
+      }));
+    }
+
     // Persist narrative to DB
     const periodStart = spDate(d30);
     const periodEnd = spDate(now);

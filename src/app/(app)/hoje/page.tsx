@@ -35,19 +35,19 @@ function formatSleepDuration(hours: number): string {
 }
 
 const moodLabels: Record<number, { text: string; color: string }> = {
-  1: { text: "Muito deprimido", color: "text-red-600 dark:text-red-400" },
-  2: { text: "Deprimido", color: "text-orange-600 dark:text-orange-400" },
-  3: { text: "Estável", color: "text-emerald-700 dark:text-emerald-400" },
-  4: { text: "Elevado", color: "text-amber-600 dark:text-amber-400" },
-  5: { text: "Muito elevado", color: "text-red-600 dark:text-red-400" },
+  1: { text: "Muito deprimido", color: "text-danger-fg" },
+  2: { text: "Deprimido", color: "text-warning-fg" },
+  3: { text: "Estável", color: "text-success-fg" },
+  4: { text: "Elevado", color: "text-warning-fg" },
+  5: { text: "Muito elevado", color: "text-danger-fg" },
 };
 
 const energyLabels: Record<number, { text: string; color: string }> = {
-  1: { text: "Muito baixa", color: "text-red-600 dark:text-red-400" },
-  2: { text: "Baixa", color: "text-orange-600 dark:text-orange-400" },
-  3: { text: "Normal", color: "text-emerald-700 dark:text-emerald-400" },
-  4: { text: "Alta", color: "text-amber-600 dark:text-amber-400" },
-  5: { text: "Muito alta", color: "text-red-600 dark:text-red-400" },
+  1: { text: "Muito baixa", color: "text-danger-fg" },
+  2: { text: "Baixa", color: "text-warning-fg" },
+  3: { text: "Normal", color: "text-success-fg" },
+  4: { text: "Alta", color: "text-warning-fg" },
+  5: { text: "Muito alta", color: "text-danger-fg" },
 };
 
 // Zone configuration: colors, labels, CTAs
@@ -622,8 +622,8 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
           <h2 className="text-sm font-semibold text-foreground mb-3">Para fazer hoje</h2>
           <div className="space-y-2">
             {visibleTasks.map((t, i) => (
-              <Link key={i} href={t.href} className="flex items-center gap-3 no-underline group">
-                <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[11px] ${
+              <Link key={i} href={t.href} className="flex items-center gap-3 no-underline group min-h-[44px]">
+                <span aria-hidden="true" className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[11px] ${
                   t.done ? "bg-success-bg-subtle border-success-border text-success-fg" : "border-border text-transparent group-hover:border-primary"
                 }`}>
                   {t.done ? "✓" : ""}
@@ -640,7 +640,7 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
 
         <Link
           href="/hoje?full=1"
-          className="block text-center text-xs text-muted hover:text-foreground transition-colors py-2 no-underline"
+          className="flex items-center justify-center text-xs text-muted hover:text-foreground transition-colors min-h-[44px] no-underline"
         >
           Ver painel completo
         </Link>
@@ -654,17 +654,17 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
 
       {/* === 0. INTEGRAÇÕES CRÍTICAS (topo se Wearable ou Google Agenda faltam) === */}
       {criticalMissing.length > 0 && (
-        <Card className="border-primary/30 bg-primary/5">
+        <Card className="border-primary/30 bg-primary/5 print:hidden">
           <h2 className="text-sm font-semibold text-foreground mb-1">Conecte suas ferramentas</h2>
           <p className="text-xs text-muted mb-2">Dados automáticos melhoram seus insights e alertas.</p>
           <div className="flex gap-2">
             {criticalMissing.map(ig => (
-              <Link key={ig.label} href={ig.href} className={`flex-1 flex flex-col items-center gap-1 rounded-lg ${ig.bg} p-2.5 no-underline transition-colors`}>
+              <Link key={ig.label} href={ig.href} className={`flex-1 flex flex-col items-center justify-center gap-1.5 rounded-lg ${ig.bg} p-3 min-h-[44px] no-underline transition-colors`}>
                 {ig.label === "Wearable" && (
-                  <svg className="h-5 w-5 text-danger-fg" fill="currentColor" viewBox="0 0 24 24"><path d="M16.365 1.43c0 1.14-.493 2.27-1.177 3.08-.744.9-1.99 1.57-2.987 1.57-.18 0-.36-.02-.53-.06.018-.18.04-.36.04-.55 0-1.12.535-2.22 1.235-3.02C13.666 1.66 14.98 1 16.12 1c.18 0 .36.01.53.02-.01.14-.01.28-.01.41h-.274zm3.44 5.89c-.16.09-2.61 1.53-2.585 4.56.03 3.6 3.14 4.8 3.17 4.81-.02.08-.5 1.7-1.63 3.36-.98 1.45-2 2.9-3.6 2.93-1.57.03-2.08-.94-3.88-.94s-2.39.91-3.87.97c-1.55.06-2.73-1.57-3.72-3.01C1.6 17.18.27 12.84 2.44 9.73c1.07-1.54 2.99-2.52 5.07-2.55 1.52-.03 2.95 1.03 3.88 1.03.93 0 2.67-1.27 4.5-1.08.77.03 2.92.31 4.3 2.33-.11.07-2.56 1.51-2.54 4.49l-.36-.18z" /></svg>
+                  <svg className="h-5 w-5 text-danger-fg" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24"><path d="M16.365 1.43c0 1.14-.493 2.27-1.177 3.08-.744.9-1.99 1.57-2.987 1.57-.18 0-.36-.02-.53-.06.018-.18.04-.36.04-.55 0-1.12.535-2.22 1.235-3.02C13.666 1.66 14.98 1 16.12 1c.18 0 .36.01.53.02-.01.14-.01.28-.01.41h-.274zm3.44 5.89c-.16.09-2.61 1.53-2.585 4.56.03 3.6 3.14 4.8 3.17 4.81-.02.08-.5 1.7-1.63 3.36-.98 1.45-2 2.9-3.6 2.93-1.57.03-2.08-.94-3.88-.94s-2.39.91-3.87.97c-1.55.06-2.73-1.57-3.72-3.01C1.6 17.18.27 12.84 2.44 9.73c1.07-1.54 2.99-2.52 5.07-2.55 1.52-.03 2.95 1.03 3.88 1.03.93 0 2.67-1.27 4.5-1.08.77.03 2.92.31 4.3 2.33-.11.07-2.56 1.51-2.54 4.49l-.36-.18z" /></svg>
                 )}
                 {ig.label === "Google Agenda" && (
-                  <svg className="h-5 w-5" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" /><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" /><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" /><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" /></svg>
+                  <svg className="h-5 w-5" aria-hidden="true" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" /><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" /><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" /><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" /></svg>
                 )}
                 <span className={`text-[11px] font-medium ${ig.textColor}`}>{ig.label}</span>
               </Link>
@@ -678,8 +678,8 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
         <h2 className="text-sm font-semibold text-foreground mb-3">Para fazer hoje</h2>
         <div className="space-y-2">
           {visibleTasks.map((t, i) => (
-            <Link key={i} href={t.href} className="flex items-center gap-3 no-underline group">
-              <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[11px] ${
+            <Link key={i} href={t.href} className="flex items-center gap-3 no-underline group min-h-[44px]">
+              <span aria-hidden="true" className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[11px] ${
                 t.done ? "bg-success-bg-subtle border-success-border text-success-fg" : "border-border text-transparent group-hover:border-primary"
               }`}>
                 {t.done ? "✓" : ""}
@@ -717,12 +717,12 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
                 {heroLabel}
               </span>
               {thermometer?.mixedFeatures && (
-                <span className="ml-2 inline-block rounded-full px-2 py-0.5 text-[11px] font-bold bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-200 border border-purple-200 dark:border-purple-700">
+                <span className="ml-2 inline-block rounded-full px-2 py-0.5 text-[11px] font-bold bg-warning-bg-subtle text-warning-fg border border-warning-border">
                   Humor e energia em direções opostas
                 </span>
               )}
             </div>
-            <Link href="/insights" className="text-xs text-primary hover:underline">
+            <Link href="/insights" className="text-xs text-primary hover:underline inline-flex items-center min-h-[44px]">
               Detalhes
             </Link>
           </div>
@@ -732,7 +732,7 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
                 const isProtective = d.toLowerCase().includes("protetor") || d.toLowerCase().includes("boa adesão");
                 return (
                   <li key={i} className="text-xs flex items-start gap-1.5 text-foreground/80">
-                    <span className="mt-0.5 shrink-0">{isProtective ? "✓" : "•"}</span>
+                    <span className="mt-0.5 shrink-0" aria-hidden="true">{isProtective ? "✓" : "•"}</span>
                     {d}
                   </li>
                 );
@@ -750,7 +750,7 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
           )}
           <Link
             href={primaryCta.href}
-            className="block w-full text-center rounded-lg py-3 text-sm font-semibold no-underline transition-colors bg-primary text-white hover:bg-primary/90 min-h-[44px]"
+            className="block w-full text-center rounded-lg py-3 text-sm font-semibold no-underline transition-colors bg-primary text-white hover:bg-primary/90 min-h-[44px] print:hidden"
           >
             {primaryCta.label}
           </Link>
@@ -759,7 +759,7 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
           </p>
         </Card>
       ) : (
-        <Card className="bg-primary/5 border-primary/20">
+        <Card className="bg-primary/5 border-primary/20 print:hidden">
           <p className="text-sm font-semibold text-foreground mb-1">Bem-vindo ao Suporte Bipolar</p>
           <p className="text-xs text-muted mb-3">
             Faça check-ins e registre o sono por 7 dias para ativar seu painel de estabilidade.
@@ -777,11 +777,11 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
       )}
 
       {/* === 4. AGENDA DE HOJE === */}
-      {todayBlocks.length > 0 && (
+      {todayBlocks.length > 0 ? (
         <Card>
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-sm font-semibold text-foreground">Agenda de hoje</h2>
-            <Link href="/agenda-rotina" className="text-xs text-primary hover:underline">Ver tudo</Link>
+            <Link href="/agenda-rotina" className="text-xs text-primary hover:underline inline-flex items-center min-h-[44px]">Ver tudo</Link>
           </div>
           <div className="space-y-1.5">
             {todayBlocks.map((b, i) => {
@@ -795,7 +795,15 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
             })}
           </div>
         </Card>
-      )}
+      ) : hasGoogleCal ? (
+        <Card>
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-sm font-semibold text-foreground">Agenda de hoje</h2>
+            <Link href="/agenda-rotina" className="text-xs text-primary hover:underline inline-flex items-center min-h-[44px]">Ver tudo</Link>
+          </div>
+          <p className="text-xs text-muted">Nenhum evento no Google Agenda para hoje.</p>
+        </Card>
+      ) : null}
 
       {/* === 5. SEU ESTADO HOJE === */}
       {todayEntry && (
@@ -869,9 +877,9 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
                   ? `Registrado às ${new Date(todayEntry.lastSnapshotAt).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" })}`
                   : "1 registro hoje"}
             </p>
-            <a href="/checkin" className="text-[11px] text-primary hover:underline">
+            <Link href="/checkin" className="text-[11px] text-primary hover:underline inline-flex items-center min-h-[44px]">
               Registrar novamente
-            </a>
+            </Link>
           </div>
         </Card>
       )}
@@ -881,7 +889,7 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
         <Card>
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-sm font-semibold text-foreground">Corpo (7 dias)</h2>
-            <Link href="/integracoes" className="text-xs text-primary hover:underline">Config</Link>
+            <Link href="/integracoes" className="text-xs text-primary hover:underline inline-flex items-center min-h-[44px]">Config</Link>
           </div>
           <div className="grid grid-cols-3 gap-2 text-center">
             {avgSteps !== null && (
@@ -891,9 +899,9 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
               </div>
             )}
             {avgHrv !== null && (
-              <div className="rounded-lg bg-purple-50/70 dark:bg-purple-950/70 p-2">
-                <p className="text-base font-semibold text-purple-700 dark:text-purple-300">{avgHrv} ms</p>
-                <p className="text-[11px] text-purple-600 dark:text-purple-400">HRV</p>
+              <div className="rounded-lg bg-primary/10 p-2">
+                <p className="text-base font-semibold text-primary">{avgHrv} ms</p>
+                <p className="text-[11px] text-primary/80">HRV</p>
               </div>
             )}
             {avgHr !== null && (
@@ -911,7 +919,7 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
         <Card>
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-sm font-semibold text-foreground">Últimos 7 dias</h2>
-            <Link href="/insights" className="text-xs text-primary hover:underline">Insights</Link>
+            <Link href="/insights" className="text-xs text-primary hover:underline inline-flex items-center min-h-[44px]">Insights</Link>
           </div>
           <ErrorBoundary name="DashboardChartWrapper">
             <DashboardChartWrapper data={chartData} />
@@ -923,7 +931,7 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
       <Link href="/meu-diario" className="block no-underline">
         <Card className="hover:border-primary/50 transition-colors">
           <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-lg">
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-lg" aria-hidden="true">
               ✏️
             </span>
             <div>
@@ -941,12 +949,12 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
         <Card className={`border ${hasFinancialWithContext ? "border-warning-border bg-warning-bg-subtle" : "border-border bg-surface-alt/50"}`}>
           <div className="flex items-start justify-between mb-2">
             <h2 className="text-sm font-semibold text-foreground">Sinais de gastos</h2>
-            <Link href="/financeiro" className="text-xs text-primary hover:underline">Detalhes</Link>
+            <Link href="/financeiro" className="text-xs text-primary hover:underline inline-flex items-center min-h-[44px]">Detalhes</Link>
           </div>
           <div className="space-y-1.5">
             {financialDrivers.map((d, i) => (
               <p key={i} className="text-xs text-foreground/80">
-                <span className="mr-1">{hasFinancialWithContext ? "⚠" : "•"}</span>
+                <span className="mr-1" aria-hidden="true">{hasFinancialWithContext ? "⚠" : "•"}</span>
                 {d}
               </p>
             ))}
@@ -964,8 +972,8 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
       <QuickSpend />
 
       {/* === 10. CONQUISTAS === */}
-      {todayEntry && (
-        <Card>
+      {todayEntry && (checkinStreak > 0 || sleepStreak > 0 || achievements.some(a => a.unlocked)) && (
+        <Card className="[&>*:first-child]:mt-0 [&>*:first-child]:pt-0 [&>*:first-child]:border-t-0">
           <GamificationWrapper
             checkinStreak={checkinStreak}
             sleepStreak={sleepStreak}
@@ -982,7 +990,7 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
         <Card>
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-sm font-semibold text-foreground">Notícias</h2>
-            <Link href="/noticias" className="text-xs text-primary hover:underline">Ver todas</Link>
+            <Link href="/noticias" className="text-xs text-primary hover:underline inline-flex items-center min-h-[44px]">Ver todas</Link>
           </div>
           <div className="space-y-2">
             {newsArticles.map(article => (
@@ -999,12 +1007,12 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
 
       {/* === 12. INTEGRAÇÕES RESTANTES (Mobills etc.) === */}
       {otherMissing.length > 0 && (
-        <Card>
-          <h2 className="text-sm font-semibold text-foreground mb-2">Ativar integrações</h2>
-          <p className="text-xs text-muted mb-2">Dados automáticos melhoram seus insights.</p>
+        <Card className="print:hidden">
+          <h2 className="text-sm font-semibold text-foreground mb-2">Acompanhe seus gastos</h2>
+          <p className="text-xs text-muted mb-2">Dados financeiros ajudam a identificar padrões comportamentais.</p>
           <div className="flex gap-2">
             {otherMissing.map(ig => (
-              <Link key={ig.label} href={ig.href} className={`flex-1 flex flex-col items-center gap-1 rounded-lg ${ig.bg} p-2.5 no-underline transition-colors`}>
+              <Link key={ig.label} href={ig.href} className={`flex-1 flex flex-col items-center justify-center gap-1.5 rounded-lg ${ig.bg} p-3 min-h-[44px] no-underline transition-colors`}>
                 {ig.label === "Mobills" && (
                   <Image src="/mobills-logo.png" alt="Mobills" width={20} height={20} className="object-contain" />
                 )}

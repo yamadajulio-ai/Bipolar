@@ -269,11 +269,11 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
   const { risk, thermometer, combinedPatterns, sleep: sleepInsights } = insights;
 
   // === Financial signals detection ===
-  const financialDrivers = risk?.factors.filter(f =>
+  const financialDrivers = risk?.factors?.filter(f =>
     f.toLowerCase().includes("gasto") || f.toLowerCase().includes("financ")
   ) ?? [];
   const hasFinancialSignal = financialDrivers.length > 0;
-  const hasFinancialWithContext = risk?.factors.some(f =>
+  const hasFinancialWithContext = risk?.factors?.some(f =>
     f.toLowerCase().includes("gasto atípico + sono") || f.toLowerCase().includes("gasto atípico + energia")
   ) ?? false;
 
@@ -292,9 +292,9 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
   // === Determine zone + risk for Risk Radar ===
   const hasEnoughData = (risk !== null && thermometer !== null);
   const zone = thermometer?.zone ?? "eutimia";
-  const zoneConfig = ZONE_CONFIG[zone];
+  const zoneConfig = ZONE_CONFIG[zone] ?? ZONE_CONFIG["eutimia"];
   const riskLevel = risk?.level ?? "ok";
-  const riskConfig = RISK_CONFIG[riskLevel];
+  const riskConfig = RISK_CONFIG[riskLevel] ?? RISK_CONFIG["ok"];
 
   // Use the higher severity between zone and risk for the hero card
   const severityOrder = { ok: 0, eutimia: 0, depressao_leve: 1, hipomania: 1, atencao: 1, depressao: 2, mania: 2, atencao_alta: 2 };

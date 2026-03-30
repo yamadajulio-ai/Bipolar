@@ -195,7 +195,7 @@ export async function validateCsrfToken(
     const key = await getCsrfKey();
     const enc = new TextEncoder();
     const sigBytes = new Uint8Array(sigHex.match(/.{2}/g)!.map((h) => parseInt(h, 16)));
-    return crypto.subtle.verify("HMAC", key, sigBytes, enc.encode(nonce));
+    return await crypto.subtle.verify("HMAC", key, sigBytes, enc.encode(nonce));
   } catch {
     return false;
   }

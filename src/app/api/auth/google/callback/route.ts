@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import crypto from "crypto";
 import * as Sentry from "@sentry/nextjs";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
@@ -17,7 +19,20 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL("/integracoes?error=rate_limited", request.url));
   }
 
-  const code = new URL(request.url).searchParams.get("code");
+  // Validate state parameter (CSRF protection)
+  const url = new URL(request.url);
+  const state = url.searchParams.get("state");
+  const cookieStore = await cookies();
+  const expectedState = cookieStore.get("google-link-state")?.value;
+  cookieStore.delete("google-link-state");
+
+  if (!state || !expectedState || state.length !== expectedState.length ||
+      !crypto.timingSafeEqual(Buffer.from(state), Buffer.from(expectedState))) {
+    console.warn("[CSRF] Google link state mismatch");
+    return NextResponse.redirect(new URL("/integracoes?error=invalid_state", request.url));
+  }
+
+  const code = url.searchParams.get("code");
   if (!code) {
     return NextResponse.redirect(new URL("/integracoes?error=no_code", request.url));
   }

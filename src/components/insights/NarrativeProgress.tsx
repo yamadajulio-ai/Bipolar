@@ -32,27 +32,25 @@ export function NarrativeProgress({ active }: NarrativeProgressProps) {
 
     function tick() {
       const elapsed = Date.now() - startTime.current;
-      // Find current stage
-      let cumulative = 0;
-      let currentStage = 0;
+      // Find current stage and the cumulative time of all previous stages
+      let stageStart = 0;
+      let currentStage = STAGES.length - 1;
       for (let i = 0; i < STAGES.length; i++) {
-        if (elapsed < cumulative + STAGES[i].duration) {
+        if (elapsed < stageStart + STAGES[i].duration) {
           currentStage = i;
           break;
         }
-        cumulative += STAGES[i].duration;
-        if (i === STAGES.length - 1) currentStage = i;
+        stageStart += STAGES[i].duration;
       }
 
       setStageIndex(currentStage);
 
-      // Calculate progress per-stage: linear within each stage toward its target
-      const stageElapsed = elapsed - cumulative;
+      // Calculate progress per-stage: smooth within each stage toward its target
+      const stageElapsed = elapsed - stageStart;
       const stageDuration = STAGES[currentStage].duration;
       const stageRatio = Math.min(stageElapsed / stageDuration, 1);
       const prevTarget = currentStage > 0 ? STAGES[currentStage - 1].target : 0;
       const currentTarget = STAGES[currentStage].target;
-      // Ease-out within each stage for smoother feel
       const easedRatio = 1 - Math.pow(1 - stageRatio, 1.5);
       const pct = Math.min(prevTarget + (currentTarget - prevTarget) * easedRatio, 95);
 

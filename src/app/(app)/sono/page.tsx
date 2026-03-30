@@ -5,6 +5,7 @@ import { Card } from "@/components/Card";
 import { localDateStr } from "@/lib/dateUtils";
 import { SleepDayGroup } from "@/components/insights/SleepHistoryCard";
 import { Sparkline } from "@/components/insights/Sparkline";
+import { isMainSleep } from "@/lib/insights/stats";
 
 function formatSleepDuration(hours: number): string {
   const h = Math.floor(hours);
@@ -28,8 +29,8 @@ export default async function SonoPage() {
     orderBy: { date: "asc" },
   });
 
-  // ── Compute summary stats for real sleep (>= 2h, not excluded) ──
-  const realLogs = logs.filter((l) => l.totalHours >= 2 && !l.excluded);
+  // ── Compute summary stats for real sleep (>= 2h, not excluded, main sleep only) ──
+  const realLogs = logs.filter((l) => l.totalHours >= 2 && !l.excluded && isMainSleep(l));
 
   // Aggregate multiple cycles per day into daily totals
   function aggregateByDay(logsArr: typeof realLogs): { date: string; totalHours: number; bedtime: string }[] {

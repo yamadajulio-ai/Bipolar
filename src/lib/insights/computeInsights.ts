@@ -60,7 +60,7 @@ import type {
 import {
   timeToMinutes, normalizeBedtime, computeStdDev, median,
   dateStr, parseStringArray, isNextDay, currentStreak, isMainSleep, dayOffset,
-  computeMADSigma,
+  computeMADSigma, aggregateSleepByDay,
 } from "./stats";
 import { spearmanCorrelationLegacy, buildCorrelationResult } from "./correlations";
 import { computeSleepInsights } from "./sleep";
@@ -744,7 +744,7 @@ export function computeInsights(
   sleepLogs90?: SleepLogInput[],
   financialTxs?: FinancialTxInput[],
 ): InsightsResult {
-  const mainSleepLogs = sleepLogs.filter((s) => isMainSleep(s));
+  const mainSleepLogs = aggregateSleepByDay(sleepLogs.filter((s) => isMainSleep(s)));
 
   const sleep = computeSleepInsights(mainSleepLogs, today, tz);
   const mood = computeMoodInsights(entries, today, tz);

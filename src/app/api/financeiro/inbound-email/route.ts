@@ -63,22 +63,10 @@ export async function POST(request: NextRequest) {
   try {
     payload = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
   }
 
   const { MailboxHash, Attachments, MessageID } = payload;
-
-  // ── Email dedup via MessageID ───────────────────────────────
-  // Postmark retries up to 10 times. Prevent duplicate processing.
-  if (MessageID) {
-    const existing = await prisma.financialImportEvent.findFirst({
-      where: { metadata: { contains: MessageID } },
-      select: { id: true },
-    });
-    if (existing) {
-      return NextResponse.json({ ok: true, deduplicated: true });
-    }
-  }
 
   if (!MailboxHash) {
     Sentry.addBreadcrumb({
@@ -109,6 +97,21 @@ export async function POST(request: NextRequest) {
 
   if (!user) {
     return NextResponse.json({ ok: true }); // ACK — user deleted
+  }
+
+  // ── Email dedup via MessageID (scoped to user + channel) ────
+  if (MessageID) {
+    const existing = await prisma.financialImportEvent.findFirst({
+      where: {
+        userId,
+        channel: "email",
+        metadata: { contains: MessageID },
+      },
+      select: { id: true },
+    });
+    if (existing) {
+      return NextResponse.json({ ok: true, deduplicated: true });
+    }
   }
 
   // Consent check
@@ -189,10 +192,6 @@ export async function POST(request: NextRequest) {
 
 // ── HMAC token utilities ────────────────────────────────────────
 
-/**
- * Generate the import email address for a user.
- * Format: importar+{userId}.{hmac8}@suportebipolar.com
- */
 /**
  * Generate the import email address for a user.
  *

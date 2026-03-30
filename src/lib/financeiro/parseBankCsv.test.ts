@@ -86,6 +86,15 @@ describe("parseBankCsv", () => {
       expect(transactions[0].account).toBe("Nubank Cartão");
     });
 
+    it("preserves negative amounts for refunds (does not double-negate)", () => {
+      const refundCsv = `date,title,amount
+2026-03-01,REFUND FROM STORE,-50.00
+2026-03-02,NORMAL PURCHASE,100.00`;
+      const { transactions } = parseBankCsv(refundCsv);
+      expect(transactions[0].amount).toBe(-50.00); // refund stays negative
+      expect(transactions[1].amount).toBe(-100.00); // purchase negated
+    });
+
     it("parses Brazilian format (dd/mm/yyyy, comma decimal)", () => {
       const { transactions, bank } = parseBankCsv(NUBANK_CC_CSV_BR);
       expect(bank).toBe("nubank_cc");

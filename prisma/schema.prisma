@@ -469,7 +469,7 @@ model FinancialTransaction {
   amount      Float // positivo = receita, negativo = despesa
   category    String
   account     String?
-  source      String    @default("manual") // "manual" | "mobills_csv" | "mobills_xlsx" | "nubank_csv" | "inter_csv" | "itau_csv" | "ofx" | "whatsapp" | "email" | "pluggy"
+  source      String    @default("manual") // "manual" | "mobills_csv" | "mobills_xlsx" | "nubank_cc_csv" | "nubank_conta_csv" | "inter_csv" | "itau_csv" | "c6_csv" | "bradesco_csv" | "ofx" | "pluggy"
   occurredAt  DateTime? // horário real da transação (para detectar gastos noturnos)
   createdAt   DateTime  @default(now())
 

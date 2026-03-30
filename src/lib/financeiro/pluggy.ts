@@ -22,9 +22,7 @@ import * as Sentry from "@sentry/nextjs";
  * @see https://docs.pluggy.ai
  */
 
-const PLUGGY_API_URL = process.env.PLUGGY_SANDBOX === "true"
-  ? "https://api.pluggy.ai"
-  : "https://api.pluggy.ai";
+const PLUGGY_API_URL = "https://api.pluggy.ai";
 
 let cachedToken: { token: string; expiresAt: number } | null = null;
 

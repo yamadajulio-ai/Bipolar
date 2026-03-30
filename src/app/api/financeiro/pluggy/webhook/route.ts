@@ -92,21 +92,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
-  // ── Idempotency guard ──────────────────────────────────────────
-  // Prevent duplicate processing when Pluggy retries or fires multiple webhooks
-  const recentImport = await prisma.financialImportEvent.findFirst({
-    where: {
-      channel: "pluggy",
-      status: "imported",
-      metadata: { contains: itemId },
-      createdAt: { gte: new Date(Date.now() - 60_000) }, // within last 60s
-    },
-    select: { id: true },
-  });
-  if (recentImport) {
-    return NextResponse.json({ ok: true }); // Already processed recently
-  }
-
   // Resolve user from clientUserId (which we set to our userId)
   if (!clientUserId) {
     Sentry.captureMessage("Pluggy webhook: no clientUserId", {
@@ -124,6 +109,21 @@ export async function POST(request: NextRequest) {
   });
 
   if (!user) {
+    return NextResponse.json({ ok: true });
+  }
+
+  // ── Idempotency guard (scoped to user + channel + itemId) ────
+  const recentImport = await prisma.financialImportEvent.findFirst({
+    where: {
+      userId: clientUserId,
+      channel: "pluggy",
+      status: "imported",
+      metadata: { contains: itemId },
+      createdAt: { gte: new Date(Date.now() - 60_000) },
+    },
+    select: { id: true },
+  });
+  if (recentImport) {
     return NextResponse.json({ ok: true });
   }
 

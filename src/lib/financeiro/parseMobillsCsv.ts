@@ -60,7 +60,7 @@ export function parseMobillsCsv(csvContent: string): ParsedTransaction[] {
 
     transactions.push({
       date,
-      description: cols[descIdx]?.trim() || "Sem descricao",
+      description: cols[descIdx]?.trim() || "Sem descrição",
       amount,
       category: cols[categoryIdx]?.trim() || "Outro",
       account: cols[accountIdx]?.trim() || null,

@@ -207,11 +207,16 @@ export async function ingestPluggyTransactions(
 ): Promise<IngestResult> {
   const startTime = Date.now();
 
-  const importEvent = await createImportEvent(
-    { userId, channel: "pluggy" },
-    itemId ? `pluggy-webhook|itemId:${itemId}` : "pluggy-webhook",
-    "started",
-  );
+  let importEvent: { id: string } | null = null;
+  try {
+    importEvent = await createImportEvent(
+      { userId, channel: "pluggy" },
+      itemId ? `pluggy-webhook|itemId:${itemId}` : "pluggy-webhook",
+      "started",
+    );
+  } catch (telemetryErr) {
+    Sentry.captureException(telemetryErr, { tags: { event: "telemetry_create_failed" } });
+  }
 
   try {
     const parsed: ParsedTransaction[] = transactions.map((tx) => ({
@@ -309,7 +314,9 @@ async function safeUpdateEvent(
   data: Parameters<typeof updateImportEvent>[2],
 ) {
   if (!event) return;
-  return updateImportEvent(event.id, status, data).catch(() => {});
+  return updateImportEvent(event.id, status, data).catch((err) => {
+    Sentry.captureException(err, { tags: { event: "telemetry_update_failed" }, level: "warning" });
+  });
 }
 
 // ── Custom error ──────────────────────────────────────────────

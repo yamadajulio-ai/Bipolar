@@ -70,7 +70,7 @@ export async function parseMobillsXlsx(buffer: ArrayBuffer): Promise<ParsedTrans
     transactions.push({
       date,
       description:
-        descIdx >= 0 ? String(cols[descIdx] ?? "").trim() || "Sem descricao" : "Sem descricao",
+        descIdx >= 0 ? String(cols[descIdx] ?? "").trim() || "Sem descrição" : "Sem descrição",
       amount,
       category:
         categoryIdx >= 0

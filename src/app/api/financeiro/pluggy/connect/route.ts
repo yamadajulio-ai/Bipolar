@@ -8,10 +8,19 @@ import * as Sentry from "@sentry/nextjs";
 const HEADERS = { "Cache-Control": "no-store" };
 
 /**
+ * GET /api/financeiro/pluggy/connect
+ * Returns availability status (used by frontend to show/hide Pluggy button).
+ */
+export async function GET() {
+  if (!isPluggyConfigured()) {
+    return NextResponse.json({ available: false }, { status: 200, headers: HEADERS });
+  }
+  return NextResponse.json({ available: true }, { headers: HEADERS });
+}
+
+/**
  * POST /api/financeiro/pluggy/connect
- *
  * Creates a Pluggy Connect Token for the frontend widget.
- * The user can then open the Pluggy widget to link their bank account.
  */
 export async function POST() {
   const session = await getSession();

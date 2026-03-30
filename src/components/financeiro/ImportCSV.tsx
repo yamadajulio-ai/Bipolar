@@ -33,8 +33,9 @@ export function ImportCSV({ onImported }: { onImported: () => void }) {
       .then((data) => { if (data?.email) setImportEmail(data.email); })
       .catch(() => {});
 
-    fetch("/api/financeiro/pluggy/connect", { method: "HEAD" })
-      .then((r) => { if (r.ok) setPluggyAvailable(true); })
+    fetch("/api/financeiro/pluggy/connect")
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (data?.available) setPluggyAvailable(true); })
       .catch(() => {});
   }, []);
 
@@ -42,7 +43,7 @@ export function ImportCSV({ onImported }: { onImported: () => void }) {
     if (!file) return;
     const name = file.name.toLowerCase();
     if (!name.endsWith(".csv") && !name.endsWith(".xlsx") && !name.endsWith(".ofx") && !name.endsWith(".qfx")) {
-      setError("Formato não suportado. Use .csv, .xlsx ou .ofx");
+      setError("Formato não suportado. Use .csv, .xlsx, .ofx ou .qfx");
       setSelectedFile(null);
       return;
     }
@@ -420,7 +421,7 @@ export function ImportCSV({ onImported }: { onImported: () => void }) {
             </div>
 
             <p className="mt-3 text-xs text-muted italic">
-              Formatos aceitos: XLSX e OFX. CSV não é suportado via WhatsApp.
+              Formatos aceitos: CSV, XLSX e OFX.
             </p>
           </div>
         </div>

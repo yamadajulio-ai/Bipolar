@@ -212,3 +212,34 @@
 - Consent gate: scope `assessments` ou legacy `health_data`
 - Rate limit: 60 reads/60s, 30 writes/60s por user
 - Usado em: AI Narrative (últimas 2), Dashboard Profissional (últimas 12), Relatório Mensal (médias), Export Clínico (completo)
+
+## Acesso Profissional — Arquitetura (Painel Viewer)
+- **Conceito**: profissional de saúde vê o mesmo app que o paciente, mas em modo **somente leitura** (zero inputs, zero check-ins, zero SOS)
+- **Fluxo**: paciente gera link+PIN em `/acesso-profissional` → profissional abre `/profissional/[token]` → digita PIN → sessão cookie criada → redirecionado para `/profissional/[token]/hoje`
+- **Sessão profissional**: iron-session separado (cookie `suporte-bipolar-prof`, path `/`, TTL 2h, encrypted com SESSION_SECRET). Armazena: `token`, `accessId`, `patientUserId`, `patientName`, `isViewer`, `createdAt`. Fonte: `src/lib/professionalSession.ts`
+- **Layout viewer**: `src/app/profissional/[token]/(painel)/layout.tsx` — valida sessão cookie + token ativo no DB (revogação/expiração). Header + BottomNav adaptados (sem SOS/logout, com badge "Somente leitura")
+- **Navegação**: 5 abas idênticas ao app — **Hoje** / **Notas** / **Sono** / **Insights** / **Menu**
+- **Páginas viewer** (Server Components, fetch com `session.patientUserId`):
+  - `/hoje` — dashboard: score estabilidade, radar risco, estado do dia, gráfico 7d, métricas corporais, gastos
+  - `/sono` — summary cards + histórico (SleepDayGroup), sem "Novo registro"
+  - `/insights` — termômetro, padrões combinados, correlações, predição de episódios, ciclagem rápida
+  - `/avaliacoes` — tabela ASRM/PHQ-9/Item 9/FAST (24 semanas) + funcionamento FAST (12 semanas)
+  - `/diario` — histórico de humor 30d com tags energia/ansiedade/irritabilidade/medicação
+  - `/meu-diario` — entries do journal com zona/tipo/misto
+  - `/medicamentos` — lista de medicamentos ativos (com horários) e inativos
+  - `/life-chart` — eventos significativos com tipo e notas
+  - `/mais` — menu com acesso rápido a todas as seções
+- **Notas do Profissional** (feature exclusiva):
+  - Modelo: `ProfessionalNote` (id, accessId, content Text, createdAt, updatedAt). FK cascade para ProfessionalAccess
+  - API: `GET/POST/DELETE /api/acesso-profissional/[token]/notas` — autenticado via sessão profissional, ownership por `accessId`
+  - Página: `/profissional/[token]/notas` — Client Component com textarea + listagem + exclusão
+  - **Privacidade**: notas vinculadas ao `accessId` — só o profissional que criou o link vê suas notas. Paciente NÃO vê
+  - Limite: 5000 chars por nota, 100 notas por acesso
+- **Segurança**:
+  - IDOR prevention: `userId` sempre derivado da sessão server-side (cookie encrypted), nunca de URL/query
+  - Token binding: sessão vinculada ao token específico (session.token !== URL token → reject)
+  - DB validation: layout valida token ativo no DB a cada page load (revogação/expiração)
+  - CSRF: `/api/acesso-profissional/*` exempt (auth via token+PIN, não cookie de sessão). Middleware atualizado para cobrir sub-paths (notas)
+  - Cache: `no-store, private, max-age=0` + `Pragma: no-cache` em todas as rotas viewer (middleware)
+  - Zero write endpoints no viewer (exceto notas do profissional)
+  - PIN: argon2id hash, 6 dígitos, rate limit IP (20/15min) + token (10/15min), lockout progressivo (5→15min, 10→24h, 20→revogação)

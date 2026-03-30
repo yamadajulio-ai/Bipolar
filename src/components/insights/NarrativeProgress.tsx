@@ -3,14 +3,14 @@
 import { useState, useEffect, useRef } from "react";
 
 const STAGES = [
-  { label: "Buscando seus registros...", target: 15, duration: 2000 },
-  { label: "Analisando padrões de sono...", target: 30, duration: 3000 },
-  { label: "Cruzando humor e rotina...", target: 50, duration: 5000 },
-  { label: "Gerando resumo com IA...", target: 75, duration: 15000 },
-  { label: "Verificando segurança...", target: 90, duration: 10000 },
+  { label: "Buscando seus registros...", target: 12, duration: 3000 },
+  { label: "Analisando padrões de sono...", target: 25, duration: 5000 },
+  { label: "Cruzando humor e rotina...", target: 40, duration: 8000 },
+  { label: "Gerando resumo com IA...", target: 80, duration: 50000 },
+  { label: "Verificando segurança...", target: 95, duration: 20000 },
 ] as const;
 
-const TOTAL_ESTIMATED_MS = STAGES.reduce((s, st) => s + st.duration, 0); // ~35s
+const TOTAL_ESTIMATED_MS = STAGES.reduce((s, st) => s + st.duration, 0); // ~86s
 
 interface NarrativeProgressProps {
   active: boolean;
@@ -46,11 +46,15 @@ export function NarrativeProgress({ active }: NarrativeProgressProps) {
 
       setStageIndex(currentStage);
 
-      // Calculate progress: ease-out curve that slows down near 95%
-      const ratio = Math.min(elapsed / TOTAL_ESTIMATED_MS, 1);
-      // Ease-out: fast start, slow finish — never reaches 100%
-      const eased = 1 - Math.pow(1 - ratio, 2);
-      const pct = Math.min(eased * 95, 95); // Cap at 95%
+      // Calculate progress per-stage: linear within each stage toward its target
+      const stageElapsed = elapsed - cumulative;
+      const stageDuration = STAGES[currentStage].duration;
+      const stageRatio = Math.min(stageElapsed / stageDuration, 1);
+      const prevTarget = currentStage > 0 ? STAGES[currentStage - 1].target : 0;
+      const currentTarget = STAGES[currentStage].target;
+      // Ease-out within each stage for smoother feel
+      const easedRatio = 1 - Math.pow(1 - stageRatio, 1.5);
+      const pct = Math.min(prevTarget + (currentTarget - prevTarget) * easedRatio, 95);
 
       setProgress(pct);
       rafRef.current = requestAnimationFrame(tick);

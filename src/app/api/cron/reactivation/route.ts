@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
 import * as Sentry from "@sentry/nextjs";
-import { prisma } from "@/lib/db";
+import { prisma, withRetry } from "@/lib/db";
 import { sendPush, type PushPayload, type PushResult } from "@/lib/web-push";
 
 /**
@@ -95,7 +95,7 @@ export async function GET(request: NextRequest) {
       // 3. Have push consent via CommunicationPreference (or no preference = default on)
       // 4. Last diary entry is between cutoffMin and cutoffMax
       // 5. Haven't received a reactivation push in DEDUP_HOURS (via MessageLog)
-      const candidates = await prisma.user.findMany({
+      const candidates = await withRetry(() => prisma.user.findMany({
         where: {
           onboarded: true,
           reminderSettings: {
@@ -134,7 +134,7 @@ export async function GET(request: NextRequest) {
           },
         },
         take: 200, // Safety cap per tier per run
-      });
+      }));
 
       for (const user of candidates) {
         const payload = user.reminderSettings?.privacyMode

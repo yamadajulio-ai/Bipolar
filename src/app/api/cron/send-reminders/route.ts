@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
 import * as Sentry from "@sentry/nextjs";
-import { prisma } from "@/lib/db";
+import { prisma, withRetry } from "@/lib/db";
 import { sendPush, type PushPayload, type PushResult } from "@/lib/web-push";
 import { checkRateLimit, isRateLimited } from "@/lib/security";
 import { isWhatsAppConfigured, sendWhatsAppReminder, WHATSAPP_REMINDER_TEMPLATES } from "@/lib/whatsapp";
@@ -119,7 +119,7 @@ export async function GET(request: NextRequest) {
       [...lookbackTimes].map((time) => ({ [key]: time })),
     );
 
-    const matchingSettings = await prisma.reminderSettings.findMany({
+    const matchingSettings = await withRetry(() => prisma.reminderSettings.findMany({
       where: {
         enabled: true,
         OR: orConditions,
@@ -132,7 +132,7 @@ export async function GET(request: NextRequest) {
         breathingReminder: true,
         privacyMode: true,
       },
-    });
+    }));
 
     if (matchingSettings.length === 0) {
       Sentry.captureCheckIn({ checkInId, monitorSlug: "send-reminders", status: "ok" });

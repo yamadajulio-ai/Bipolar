@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
 import * as Sentry from "@sentry/nextjs";
-import { prisma } from "@/lib/db";
+import { prisma, withRetry } from "@/lib/db";
 
 /**
  * LGPD — Purge AccessLog entries older than 90 days.
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
   );
 
   try {
-    await prisma.$transaction(async (tx) => {
+    await withRetry(() => prisma.$transaction(async (tx) => {
       const cutoff = new Date();
       cutoff.setDate(cutoff.getDate() - 90);
 
@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
           ],
         },
       });
-    });
+    }));
 
     Sentry.captureCheckIn({ checkInId, monitorSlug: "purge-access-logs", status: "ok" });
     return NextResponse.json({ ok: true });

@@ -6,7 +6,7 @@ import { InsightsChartsLazy as InsightsCharts } from "@/components/planner/Insig
 import { NightHistorySelector } from "@/components/insights/NightHistorySelector";
 import { computeInsights, formatSleepDuration } from "@/lib/insights/computeInsights";
 import { SleepDayGroup } from "@/components/insights/SleepHistoryCard";
-import { aggregateSleepByDay } from "@/lib/insights/stats";
+import { aggregateSleepByDay, isMainSleep } from "@/lib/insights/stats";
 import { MoodThermometer } from "@/components/insights/MoodThermometer";
 import type { ClinicalAlert, PlannerBlockInput, CombinedPattern, RiskScore, DataConfidence, CorrelationResult, EpisodePrediction as EpisodePredictionType, CyclingAnalysis as CyclingAnalysisType, SeasonalityAnalysis as SeasonalityAnalysisType, HeatmapDay } from "@/lib/insights/computeInsights";
 import { MetricLabel } from "@/components/insights/MetricLabel";
@@ -210,7 +210,7 @@ export default async function InsightsPage({
   const entries = allEntries.filter((e) => e.date >= cutoff30Str);
 
   const sleepLogsForInsights = aggregateSleepByDay(
-    allSleepLogs.filter((l) => l.date >= cutoff30Str && l.totalHours >= 2 && !l.excluded),
+    allSleepLogs.filter((l) => l.date >= cutoff30Str && l.totalHours >= 2 && !l.excluded && isMainSleep(l)),
   );
 
   const plannerBlocks: PlannerBlockInput[] = rawPlannerBlocks.map((b) => {
@@ -245,7 +245,7 @@ export default async function InsightsPage({
     : "neutral" as const;
 
   // Personal sleep baseline: median of last 30 nights (same window as /sono — 14+ needed), otherwise 8h clinical default
-  const realSleepLogs30 = allSleepLogs.filter((l) => l.date >= cutoff30Str && l.totalHours >= 2 && !l.excluded);
+  const realSleepLogs30 = allSleepLogs.filter((l) => l.date >= cutoff30Str && l.totalHours >= 2 && !l.excluded && isMainSleep(l));
   const personalSleepBaseline = realSleepLogs30.length >= 14
     ? (() => {
         const sorted = realSleepLogs30.map((l) => l.totalHours).sort((a, b) => a - b);

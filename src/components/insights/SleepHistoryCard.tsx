@@ -171,7 +171,7 @@ function SleepCycleRow({ log, index }: { log: SleepLog; index: number }) {
   const isNap = log.totalHours < 1;
   const isSuspect = !isNap && log.totalHours >= 1 && log.totalHours < 4.5;
   const { durationColor, barColor } = getColorClasses(log.totalHours, excluded);
-  const durationPct = Math.min(100, Math.max(8, (log.totalHours / 10) * 100));
+  const durationPct = Math.min(100, Math.max(1, (log.totalHours / 10) * 100));
 
   const inBedHours = bedToWakeHours(log.bedtime, log.wakeTime);
   const awakeMinutes = log.awakeMinutes > 0
@@ -263,7 +263,7 @@ export function SleepHistoryCard({ log }: { log: SleepLog }) {
   const isNap = log.totalHours < 1;
   const isSuspect = !isNap && log.totalHours >= 1 && log.totalHours < 4.5;
   const { borderColor, durationColor, barColor } = getColorClasses(log.totalHours, excluded);
-  const durationPct = Math.min(100, Math.max(8, (log.totalHours / 10) * 100));
+  const durationPct = Math.min(100, Math.max(1, (log.totalHours / 10) * 100));
   const dateObj = new Date(log.date + "T12:00:00");
   const weekday = dateObj.toLocaleDateString("pt-BR", { weekday: "short" });
   const dateLabel = dateObj.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });

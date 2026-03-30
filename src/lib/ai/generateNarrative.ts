@@ -197,18 +197,18 @@ const LIFE_EVENT_PHRASES: Record<string, string> = {
 
 const sectionZod = z.object({
   status: z.enum(["notable", "stable", "limited", "absent"]),
-  title: z.string().max(100), summary: z.string().max(600),
-  keyPoints: z.array(z.string().max(200)).max(4),
-  metrics: z.array(z.string().max(200)).max(5),
-  suggestions: z.array(z.string().max(200)).max(3),
-  evidenceIds: z.array(z.string().max(60)).max(10),
+  title: z.string().max(200), summary: z.string().max(1500),
+  keyPoints: z.array(z.string().max(500)).max(6),
+  metrics: z.array(z.string().max(500)).max(8),
+  suggestions: z.array(z.string().max(500)).max(5),
+  evidenceIds: z.array(z.string().max(100)).max(15),
 });
 
 const narrativeV2Schema = z.object({
   schemaVersion: z.literal("narrative_v2"),
   overview: z.object({
-    headline: z.string().min(1).max(200), summary: z.string().min(1).max(1200),
-    dataQualityNote: z.string().max(300), evidenceIds: z.array(z.string().max(60)).max(15),
+    headline: z.string().min(1).max(500), summary: z.string().min(1).max(3000),
+    dataQualityNote: z.string().max(500), evidenceIds: z.array(z.string().max(100)).max(20),
   }),
   sections: z.object({
     sleep: sectionZod, mood: sectionZod, socialRhythms: sectionZod,
@@ -218,9 +218,9 @@ const narrativeV2Schema = z.object({
   }),
   actions: z.object({
     shareWithProfessional: z.boolean(),
-    practicalSuggestions: z.array(z.string().max(200)).min(2).max(3),
+    practicalSuggestions: z.array(z.string().max(500)).min(1).max(5),
   }),
-  closing: z.object({ text: z.string().min(1).max(300) }),
+  closing: z.object({ text: z.string().min(1).max(600) }),
 });
 
 // ── OpenAI JSON Schema V2 ──────────────────────────────────────
@@ -753,7 +753,7 @@ export async function generateNarrative(
         text: { format: { type: "json_schema", ...NARRATIVE_V2_JSON_SCHEMA } },
         store: false,
         ...(supportsReasoning ? { reasoning: { effort: reasoningEffort as "low" | "medium" | "high" } } : {}),
-        max_output_tokens: 4096,
+        max_output_tokens: 8192,
       });
     }
 

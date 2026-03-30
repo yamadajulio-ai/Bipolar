@@ -74,8 +74,8 @@ export async function parseMobillsXlsx(buffer: ArrayBuffer): Promise<ParsedTrans
       amount,
       category:
         categoryIdx >= 0
-          ? String(cols[categoryIdx] ?? "").trim() || "outro"
-          : "outro",
+          ? String(cols[categoryIdx] ?? "").trim() || "Outro"
+          : "Outro",
       account:
         accountIdx >= 0
           ? String(cols[accountIdx] ?? "").trim() || null

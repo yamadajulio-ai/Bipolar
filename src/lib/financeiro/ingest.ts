@@ -45,8 +45,13 @@ export async function ingestFinancialFile(
   const startTime = Date.now();
   const normalizedName = fileName.toLowerCase();
 
-  // Track: started
-  const importEvent = await createImportEvent(opts, normalizedName, "started");
+  // Track: started (telemetry failure must NOT kill the import)
+  let importEvent: { id: string } | null = null;
+  try {
+    importEvent = await createImportEvent(opts, normalizedName, "started");
+  } catch (telemetryErr) {
+    Sentry.captureException(telemetryErr, { tags: { event: "telemetry_create_failed" } });
+  }
 
   try {
     // ── 1. Parse ──────────────────────────────────────────────────
@@ -96,7 +101,7 @@ export async function ingestFinancialFile(
     }
 
     // Track: parsed
-    await updateImportEvent(importEvent.id, "parsed", {
+    await safeUpdateEvent(importEvent, "parsed", {
       source,
       transactionsTotal: transactions.length,
       metadata: JSON.stringify({
@@ -107,11 +112,22 @@ export async function ingestFinancialFile(
     });
 
     if (transactions.length === 0) {
-      await updateImportEvent(importEvent.id, "failed", {
+      await safeUpdateEvent(importEvent, "failed", {
         errorMessage: "Nenhuma transação encontrada no arquivo.",
       });
       throw new IngestError(
         "Nenhuma transação encontrada no arquivo. Verifique se o formato está correto.",
+      );
+    }
+
+    // Guard against oversized files
+    const MAX_TRANSACTIONS = 10_000;
+    if (transactions.length > MAX_TRANSACTIONS) {
+      await safeUpdateEvent(importEvent, "failed", {
+        errorMessage: `Arquivo muito grande: ${transactions.length} transações (máximo: ${MAX_TRANSACTIONS}).`,
+      });
+      throw new IngestError(
+        `Arquivo contém ${transactions.length} transações. O máximo por importação é ${MAX_TRANSACTIONS}.`,
       );
     }
 
@@ -129,6 +145,7 @@ export async function ingestFinancialFile(
           amount: tx.amount,
           category: tx.category,
           account: tx.account,
+          occurredAt: tx.occurredAt || null,
           source,
         })),
         skipDuplicates: true,
@@ -141,7 +158,7 @@ export async function ingestFinancialFile(
     const skipped = total - imported;
 
     // Track: imported
-    await updateImportEvent(importEvent.id, "imported", {
+    await safeUpdateEvent(importEvent, "imported", {
       transactionsImported: imported,
       transactionsSkipped: skipped,
       durationMs,
@@ -152,7 +169,7 @@ export async function ingestFinancialFile(
     const durationMs = Date.now() - startTime;
     const errorMessage = err instanceof Error ? err.message : "Erro desconhecido";
 
-    await updateImportEvent(importEvent.id, "failed", {
+    await safeUpdateEvent(importEvent, "failed", {
       errorMessage: errorMessage.slice(0, 500),
       durationMs,
     }).catch(() => {}); // Don't fail the whole request if telemetry fails
@@ -226,7 +243,7 @@ export async function ingestPluggyTransactions(
     const total = parsed.length;
     const skipped = total - imported;
 
-    await updateImportEvent(importEvent.id, "imported", {
+    await safeUpdateEvent(importEvent, "imported", {
       source: "pluggy",
       transactionsTotal: total,
       transactionsImported: imported,
@@ -236,7 +253,7 @@ export async function ingestPluggyTransactions(
 
     return { imported, skipped, total, source: "pluggy", durationMs };
   } catch (err) {
-    await updateImportEvent(importEvent.id, "failed", {
+    await safeUpdateEvent(importEvent, "failed", {
       errorMessage: err instanceof Error ? err.message.slice(0, 500) : "Unknown",
       durationMs: Date.now() - startTime,
     }).catch(() => {});
@@ -280,6 +297,16 @@ async function updateImportEvent(
     where: { id },
     data: { status, ...data },
   });
+}
+
+/** Safe wrapper — skips telemetry update if event was never created. */
+async function safeUpdateEvent(
+  event: { id: string } | null,
+  status: string,
+  data: Parameters<typeof updateImportEvent>[2],
+) {
+  if (!event) return;
+  return updateImportEvent(event.id, status, data).catch(() => {});
 }
 
 // ── Custom error ──────────────────────────────────────────────

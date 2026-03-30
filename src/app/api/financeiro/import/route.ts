@@ -31,13 +31,14 @@ export async function POST(request: NextRequest) {
 
   try {
     const formData = await request.formData();
-    const file = formData.get("file") as File;
-    if (!file) {
+    const raw = formData.get("file");
+    if (!raw || !(raw instanceof File)) {
       return NextResponse.json(
         { errors: { file: ["Arquivo obrigatório (.csv, .xlsx ou .ofx)"] } },
         { status: 400, headers: HEADERS },
       );
     }
+    const file = raw;
 
     if (file.size > 10 * 1024 * 1024) {
       return NextResponse.json(

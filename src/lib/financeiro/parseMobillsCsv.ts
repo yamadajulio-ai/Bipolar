@@ -4,6 +4,7 @@ export interface ParsedTransaction {
   amount: number;      // positive = income, negative = expense
   category: string;
   account: string | null;
+  occurredAt?: Date;   // real transaction timestamp (for night detection)
 }
 
 /**

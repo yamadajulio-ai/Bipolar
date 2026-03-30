@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod/v4";
+
+export const maxDuration = 60;
 import * as Sentry from "@sentry/nextjs";
 import { prisma } from "@/lib/db";
 import {

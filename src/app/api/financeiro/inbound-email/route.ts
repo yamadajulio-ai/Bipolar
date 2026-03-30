@@ -1,5 +1,7 @@
 import crypto from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
+
+export const maxDuration = 60;
 import * as Sentry from "@sentry/nextjs";
 import { prisma } from "@/lib/db";
 import { hasConsent } from "@/lib/consent";
@@ -113,9 +115,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true, message: "No attachments" });
   }
 
+  // Limit attachments to prevent resource exhaustion
+  const MAX_ATTACHMENTS = 5;
+  const attachmentsToProcess = Attachments.slice(0, MAX_ATTACHMENTS);
+
   const results: Array<{ file: string; imported: number; skipped: number; error?: string }> = [];
 
-  for (const attachment of Attachments) {
+  for (const attachment of attachmentsToProcess) {
     const ext = getExtension(attachment.Name);
     if (!ALLOWED_EXTENSIONS.has(ext)) continue;
 

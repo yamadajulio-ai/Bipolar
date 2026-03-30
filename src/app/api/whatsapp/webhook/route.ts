@@ -290,8 +290,20 @@ export async function POST(request: NextRequest) {
             const doc = message.document;
             // Sanitize filename against path traversal
             const filename = (doc.filename || "unknown").split(/[/\\]/).pop() || "unknown";
-            const ext = filename.toLowerCase().split(".").pop() || "";
+            let ext = filename.toLowerCase().split(".").pop() || "";
             const SUPPORTED_EXTENSIONS = new Set(["csv", "xlsx", "ofx", "qfx"]);
+
+            // Fall back to MIME type when filename has no recognized extension
+            if (!SUPPORTED_EXTENSIONS.has(ext) && doc.mime_type) {
+              const MIME_MAP: Record<string, string> = {
+                "text/csv": "csv",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
+                "application/vnd.ms-excel": "xlsx",
+                "application/x-ofx": "ofx",
+                "application/ofx": "ofx",
+              };
+              ext = MIME_MAP[doc.mime_type] || ext;
+            }
 
             if (SUPPORTED_EXTENSIONS.has(ext)) {
               // Find user by WhatsApp phone

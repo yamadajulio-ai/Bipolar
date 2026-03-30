@@ -19,6 +19,9 @@ export function parseOFX(content: string): ParsedTransaction[] {
   const transactions: ParsedTransaction[] = [];
 
   // Extract all STMTTRN blocks
+  // Extract bank name once (not per-transaction)
+  const bankName = extractBankName(content);
+
   const txRegex = /<STMTTRN>([\s\S]*?)(?:<\/STMTTRN>|(?=<STMTTRN>|<\/BANKTRANLIST>))/gi;
   let match;
 
@@ -41,12 +44,16 @@ export function parseOFX(content: string): ParsedTransaction[] {
     // Categorize based on transaction type and description
     const category = categorizeOFXTransaction(memo, trnType || "OTHER");
 
+    // Extract timestamp for night transaction detection
+    const occurredAt = parseOFXTimestamp(date);
+
     transactions.push({
       date: parsedDate,
       description: cleanDescription(memo),
       amount: parsedAmount,
       category,
-      account: extractBankName(content),
+      account: bankName,
+      occurredAt,
     });
   }
 
@@ -84,6 +91,31 @@ function parseOFXDate(raw: string): string | null {
   if (y < 2000 || y > 2100 || m < 1 || m > 12 || d < 1 || d > 31) return null;
 
   return `${year}-${month}-${day}`;
+}
+
+/** Parse OFX date+time to a JS Date for night transaction detection. Returns undefined if no time component. */
+function parseOFXTimestamp(raw: string): Date | undefined {
+  const cleaned = raw.replace(/\[.*\]/, "").trim();
+  if (cleaned.length < 12) return undefined; // No time component (just YYYYMMDD)
+
+  const year = parseInt(cleaned.slice(0, 4));
+  const month = parseInt(cleaned.slice(4, 6)) - 1;
+  const day = parseInt(cleaned.slice(6, 8));
+  const hour = parseInt(cleaned.slice(8, 10));
+  const min = parseInt(cleaned.slice(10, 12));
+  const sec = cleaned.length >= 14 ? parseInt(cleaned.slice(12, 14)) : 0;
+
+  if (isNaN(hour) || isNaN(min)) return undefined;
+
+  // Extract timezone offset from brackets: [-3:BRT] → -3
+  const tzMatch = raw.match(/\[(-?\d+)/);
+  const tzOffset = tzMatch ? parseInt(tzMatch[1]) : -3; // Default to BRT (-3)
+
+  // Create UTC date adjusted for timezone
+  const date = new Date(Date.UTC(year, month, day, hour - tzOffset, min, sec));
+  if (isNaN(date.getTime())) return undefined;
+
+  return date;
 }
 
 /** Clean OFX description text (remove extra spaces, trim). */

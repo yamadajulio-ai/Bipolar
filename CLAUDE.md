@@ -119,9 +119,16 @@
 ## AI Narrative — Modelo
 - **Modelo atual**: GPT-5.4 via OpenAI Responses API (migrado de Claude Sonnet 4)
 - **Structured Outputs**: JSON Schema nativo + Zod pós-parse + forbidden patterns (17 regras)
+- **Zod limits**: relaxados (2026-03-30) — summary max 1500, headline max 500, metrics/keyPoints max 500 chars. Limites anteriores (600/200) causavam `zod_validation_failed` com GPT-5.4
+- **max_output_tokens**: 8192 (aumentado de 4096 em 2026-03-30 — 4096 causava `status:incomplete` com 10 seções)
+- **Retry**: 1 retry automático em erros transientes da OpenAI (timeout, 5xx, rate limit) com 2s delay
 - **High-risk (v2.1)**: riskLevel "atencao_alta" → LLM com safety prefix extra + template como fallback se guardrails falharem
 - **store: false** (LGPD: sem persistência na OpenAI)
 - **Env var**: `OPENAI_NARRATIVE_MODEL` (default: gpt-5.4, permite canário com gpt-5.2)
+
+## Resiliência — Neon Cold Start
+- **`withRetry()`** em `src/lib/db.ts`: wrapper para operações Prisma susceptíveis a cold-start do Neon serverless. Retenta até 2x com backoff linear (1s, 2s) em `PrismaClientInitializationError`.
+- Aplicado nas 3 rotas de cron: `reactivation`, `purge-access-logs`, `send-reminders` (primeira query de cada). Rotas de API normais não precisam (tráfego mantém Neon warm).
 
 ## Domínios
 - **Produção**: suportebipolar.com (Vercel Pro + Cloudflare Pro, proxy ON, SSL Full strict)

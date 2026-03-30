@@ -745,14 +745,31 @@ export async function generateNarrative(
 
   try {
     const supportsReasoning = model.startsWith("gpt-5") || model.startsWith("o");
-    const response = await getOpenAI().responses.create({
-      model, instructions: INSTRUCTIONS_V2,
-      input: [...FEW_SHOT_MESSAGES, { role: "user", content: userPrompt }],
-      text: { format: { type: "json_schema", ...NARRATIVE_V2_JSON_SCHEMA } },
-      store: false,
-      ...(supportsReasoning ? { reasoning: { effort: reasoningEffort as "low" | "medium" | "high" } } : {}),
-      max_output_tokens: 4096,
-    });
+
+    async function callOpenAI() {
+      return getOpenAI().responses.create({
+        model, instructions: INSTRUCTIONS_V2,
+        input: [...FEW_SHOT_MESSAGES, { role: "user", content: userPrompt }],
+        text: { format: { type: "json_schema", ...NARRATIVE_V2_JSON_SCHEMA } },
+        store: false,
+        ...(supportsReasoning ? { reasoning: { effort: reasoningEffort as "low" | "medium" | "high" } } : {}),
+        max_output_tokens: 4096,
+      });
+    }
+
+    // Retry once on transient OpenAI errors (timeout, 5xx, connection reset)
+    let response: Awaited<ReturnType<typeof callOpenAI>>;
+    try {
+      response = await callOpenAI();
+    } catch (firstErr) {
+      const msg = firstErr instanceof Error ? firstErr.message : "";
+      const isTransient = /timeout|ECONNRESET|ECONNREFUSED|503|502|529|rate_limit/i.test(msg)
+        || (firstErr instanceof OpenAI.APIError && firstErr.status !== undefined && firstErr.status >= 500);
+      if (!isTransient) throw firstErr;
+      console.warn(`[AI Narrative] Retrying after transient error: ${msg.slice(0, 100)}`);
+      await new Promise((r) => setTimeout(r, 2000));
+      response = await callOpenAI();
+    }
 
     const latencyMs = Date.now() - startMs;
     const usage = response.usage;

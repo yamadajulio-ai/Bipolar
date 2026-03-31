@@ -125,19 +125,7 @@ export default async function DashboardPage() {
               </div>
             </Card>
           </Link>
-          <Link href="/financeiro" className="block no-underline">
-            <Card className="hover:border-primary/50 transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg">
-                  <Image src="/mobills-logo.png" alt="Mobills" width={40} height={40} className="object-contain" />
-                </div>
-                <div>
-                  <p className="font-medium text-foreground">Mobills</p>
-                  <p className="text-xs text-muted">Importar financeiro</p>
-                </div>
-              </div>
-            </Card>
-          </Link>
+          {/* Financeiro hidden in v1.0 — re-enable with SHOW_FINANCEIRO flag */}
           <Link href="/integracoes" className="block no-underline">
             <Card className="hover:border-primary/50 transition-colors">
               <div className="flex items-center gap-3">

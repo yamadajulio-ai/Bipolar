@@ -17,9 +17,8 @@ export function NarrativeFeedback({
 
   const handleReport = useCallback(async () => {
     if (!narrativeId || reported) return;
-    setReported(true);
     try {
-      await fetch("/api/insights-narrative/feedback", {
+      const res = await fetch("/api/insights-narrative/feedback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -29,8 +28,10 @@ export function NarrativeFeedback({
           comment: "Conteúdo reportado como inadequado pelo usuário",
         }),
       });
+      if (res.ok) setReported(true);
+      // If request fails (offline, server error), button stays enabled for retry
     } catch {
-      /* silent — report is best-effort */
+      // Offline or network error — don't mark as reported so user can retry
     }
   }, [narrativeId, reported]);
 

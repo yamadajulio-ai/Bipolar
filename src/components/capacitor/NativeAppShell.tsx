@@ -47,16 +47,14 @@ export function NativeAppShell() {
           hapticMedium();
         } else {
           failCount.current += 1;
-          // After 3 failed attempts (biometric + passcode fallback), force logout
+          // After 3 failed attempts (biometric + passcode fallback), force logout.
+          // Redirect FIRST (before unlocking UI) to prevent health data flash.
           if (failCount.current >= 3) {
             failCount.current = 0;
-            setLocked(false);
-            try {
-              await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' });
-            } catch {
-              // Logout API failure — redirect anyway
-            }
+            // Fire-and-forget logout — don't await, redirect immediately
+            fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' }).catch(() => {});
             window.location.href = '/login';
+            return; // Keep locked=true until page unloads
           }
         }
       }

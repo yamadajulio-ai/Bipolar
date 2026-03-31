@@ -134,7 +134,7 @@ export default async function ViewerInsightsPage({
   });
 
   const allSleepLogsFiltered = aggregateSleepByDay(allSleepLogs.filter((l) => !l.excluded));
-  const insights = computeInsights(sleepLogsForInsights, entries, [], plannerBlocks, now, TZ, allEntries, allSleepLogsFiltered, financialTxs);
+  const insights = computeInsights(sleepLogsForInsights, entries, [], plannerBlocks, now, TZ, allEntries, allSleepLogsFiltered, SHOW_FINANCEIRO ? financialTxs : []);
 
   const lastNights = allSleepLogs.filter((l) => l.totalHours > 0).slice(-nightsToShow).reverse();
 

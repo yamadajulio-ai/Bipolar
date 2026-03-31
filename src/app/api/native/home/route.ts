@@ -8,6 +8,9 @@ import { evaluateRisk, buildActions } from "@/lib/risk-v2";
 import type { AlertLayer, MedicationAdherenceInput } from "@/lib/risk-v2";
 import { computeInsights } from "@/lib/insights/computeInsights";
 import type { PlannerBlockInput } from "@/lib/insights/computeInsights";
+
+/** Feature flag: set to true to re-enable financeiro in v1.1 */
+const SHOW_FINANCEIRO = false;
 import { aggregateSleepByDay } from "@/lib/insights/stats";
 import * as Sentry from "@sentry/nextjs";
 
@@ -104,10 +107,10 @@ export async function GET(request: NextRequest) {
         select: { startAt: true, category: true },
         orderBy: { startAt: "asc" },
       }),
-      prisma.financialTransaction.findMany({
+      SHOW_FINANCEIRO ? prisma.financialTransaction.findMany({
         where: { userId, date: { gte: cutoff30Str } },
         select: { date: true, amount: true, category: true, description: true },
-      }),
+      }) : Promise.resolve([]),
       prisma.diaryEntry.findMany({ where: { userId }, orderBy: { date: "desc" }, select: { date: true }, take: 90 }),
       prisma.sleepLog.findMany({ where: { userId }, orderBy: { date: "desc" }, select: { date: true }, take: 90 }),
       prisma.plannerBlock.findMany({
@@ -169,7 +172,7 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    const insights = computeInsights(sleepLogsForInsights, entries30, [], plannerBlocks, now, TZ, allEntries30, allSleepLogs30.filter(l => !l.excluded), financialTxs30);
+    const insights = computeInsights(sleepLogsForInsights, entries30, [], plannerBlocks, now, TZ, allEntries30, allSleepLogs30.filter(l => !l.excluded), SHOW_FINANCEIRO ? financialTxs30 : []);
     const { risk, thermometer } = insights;
 
     // === Streaks ===
@@ -211,9 +214,9 @@ export async function GET(request: NextRequest) {
         date: s.date, totalHours: s.totalHours, bedtime: s.bedtime,
         quality: s.quality, excluded: s.excluded, hrv: s.hrv,
       })),
-      financialTxs: financialTxs30.map((t) => ({
+      financialTxs: SHOW_FINANCEIRO ? financialTxs30.map((t) => ({
         date: t.date, amount: Number(t.amount), category: t.category, description: t.description,
-      })),
+      })) : [],
       latestWeekly: lastWeeklyAssessment ? {
         id: lastWeeklyAssessment.id, createdAt: lastWeeklyAssessment.createdAt,
         asrmTotal: lastWeeklyAssessment.asrmTotal, phq9Total: lastWeeklyAssessment.phq9Total,

@@ -5,7 +5,11 @@ import { prisma } from "@/lib/db";
  * Health check endpoint for uptime monitoring (Sentry Uptime, external monitors).
  * Checks: app running + database reachable.
  * No auth required — returns minimal info, no PII.
+ *
+ * Also returns `minAppVersion` for native app force-update checks.
+ * Bump this when a critical update requires all users to upgrade.
  */
+const MIN_APP_VERSION = "1.0.0";
 export async function GET() {
   const start = Date.now();
 
@@ -17,6 +21,7 @@ export async function GET() {
       {
         status: "ok",
         db: "ok",
+        minAppVersion: MIN_APP_VERSION,
         latency: Date.now() - start,
         timestamp: new Date().toISOString(),
       },

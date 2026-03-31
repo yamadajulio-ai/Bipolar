@@ -14,6 +14,11 @@ interface SOSChatbotProps {
 }
 
 export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
+  const [aiConsent, setAiConsent] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return sessionStorage.getItem("sos-ai-consent") === "1";
+  });
+
   const {
     messages,
     setMessages,
@@ -159,9 +164,9 @@ export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
     };
   }, [waitingMode, setMessages, voice]);
 
-  // Auto-start in waiting mode: send initial greeting
+  // Auto-start in waiting mode: send initial greeting (only after AI consent)
   useEffect(() => {
-    if (waitingMode && messages.length === 0) {
+    if (waitingMode && aiConsent && messages.length === 0) {
       const greeting: Message = {
         role: "user",
         content:
@@ -171,7 +176,7 @@ export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
       sendMessages([greeting]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [waitingMode]);
+  }, [waitingMode, aiConsent]);
 
   // TTS: speak new assistant messages when complete (streaming done)
   useEffect(() => {
@@ -202,6 +207,52 @@ export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
     const msg: Message = { role: "user", content: text };
     setMessages([msg]);
     sendMessages([msg]);
+  }
+
+  // AI consent disclosure — shown once per session before chat starts
+  if (!aiConsent) {
+    return (
+      <div
+        className="mx-auto flex max-w-lg flex-col items-center justify-center rounded-2xl bg-gray-900 px-6 py-10 text-white"
+        style={{ height: "calc(100vh - 160px)", minHeight: "400px" }}
+        role="alertdialog"
+        aria-labelledby="ai-consent-title"
+        aria-describedby="ai-consent-desc"
+      >
+        <h2 id="ai-consent-title" className="mb-4 text-lg font-bold text-center">
+          Antes de iniciar o chat
+        </h2>
+        <div id="ai-consent-desc" className="mb-6 space-y-3 text-sm text-gray-300 text-center">
+          <p>
+            Suas mensagens serão processadas por inteligência artificial (Anthropic).
+            O chat é educacional e <strong>não substitui atendimento profissional</strong>.
+            Nenhuma mensagem é armazenada permanentemente pelo app
+            (retenção temporária para segurança conforme política do provedor).
+          </p>
+          <p className="text-xs text-gray-400">
+            Recursos de emergência (CVV 188, SAMU 192, respiração guiada) continuam
+            acessíveis sem aceitar esta tela.
+          </p>
+        </div>
+        <div className="flex flex-col gap-3 w-full max-w-xs">
+          <button
+            onClick={() => {
+              sessionStorage.setItem("sos-ai-consent", "1");
+              setAiConsent(true);
+            }}
+            className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-500 min-h-[44px]"
+          >
+            Entendi, iniciar chat
+          </button>
+          <button
+            onClick={onClose}
+            className="w-full rounded-xl border border-gray-600 bg-gray-800 px-4 py-3 text-sm font-medium text-gray-300 transition-colors hover:bg-gray-700 min-h-[44px]"
+          >
+            Voltar
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -380,8 +431,8 @@ export function SOSChatbot({ onClose, waitingMode = false }: SOSChatbotProps) {
           </button>
         </div>
         <p className="mt-2 text-center text-[11px] text-gray-500">
-          Este chat NÃO é um serviço de emergência. Suas mensagens são processadas pela Anthropic (IA).
-          Em crise, ligue 192 (SAMU) ou 188 (CVV).
+          Este chat NÃO é um serviço de emergência. Suas mensagens são processadas pela Anthropic (IA)
+          e não são armazenadas permanentemente pelo app. Em crise, ligue 192 (SAMU) ou 188 (CVV).
           {elapsedMin >= 5 && ` (${elapsedMin} min)`}
         </p>
       </div>

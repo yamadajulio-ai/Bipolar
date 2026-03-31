@@ -18,7 +18,7 @@ export async function isBiometricAvailable(): Promise<{
   }
 
   try {
-    const result = await NativeBiometric.isAvailable();
+    const result = await NativeBiometric.isAvailable({ useFallback: true });
     return {
       available: result.isAvailable,
       type: result.biometryType,
@@ -56,6 +56,8 @@ export async function verifyBiometric(): Promise<boolean> {
       title: 'Suporte Bipolar',
       subtitle: 'Autenticação necessária',
       description: 'Use biometria para proteger seus dados sensíveis',
+      useFallback: true,
+      maxAttempts: 3,
     });
     return true;
   } catch {

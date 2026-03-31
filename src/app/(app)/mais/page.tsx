@@ -4,16 +4,21 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import { Card } from "@/components/Card";
 
+/** Feature flag: set to true to re-enable financeiro in v1.1 */
+const SHOW_FINANCEIRO = false;
+
 interface ModuleItem {
   href: string;
   label: string;
   description: string;
+  /** Set to false to skip Next.js prefetching on heavy data routes */
+  prefetch?: boolean;
 }
 
 const quickAccess: ModuleItem[] = [
   { href: "/checkin", label: "Check-in", description: "Registrar humor agora" },
   { href: "/sono/novo", label: "Registrar Sono", description: "Novo registro de sono" },
-  { href: "/insights", label: "Insights", description: "Padrões e tendências" },
+  { href: "/insights", label: "Insights", description: "Padrões e tendências", prefetch: false },
   { href: "/plano-de-crise", label: "Plano de Crise", description: "Contatos e estratégias" },
 ];
 
@@ -24,21 +29,21 @@ const sections: { title: string; items: ModuleItem[]; defaultOpen: boolean }[] =
     items: [
       { href: "/meu-diario", label: "Meu Diário", description: "Pensamentos, sentimentos e insights pessoais" },
       { href: "/diario", label: "Histórico de Humor", description: "Histórico completo de check-ins e tendências" },
-      { href: "/diario/tendencias", label: "Tendências de Humor", description: "Gráficos e alertas de padrão" },
+      { href: "/diario/tendencias", label: "Tendências de Humor", description: "Gráficos e alertas de padrão", prefetch: false },
       { href: "/sono", label: "Histórico de Sono", description: "Registro detalhado de sono" },
-      { href: "/sono/tendencias", label: "Tendências de Sono", description: "Regularidade e qualidade" },
-      { href: "/financeiro", label: "Financeiro", description: "Gastos cruzados com humor e energia" },
+      { href: "/sono/tendencias", label: "Tendências de Sono", description: "Regularidade e qualidade", prefetch: false },
+      ...SHOW_FINANCEIRO ? [{ href: "/financeiro", label: "Financeiro", description: "Gastos cruzados com humor e energia" }] : [],
     ],
   },
   {
     title: "Avaliações",
     defaultOpen: true,
     items: [
-      { href: "/avaliacao-semanal", label: "Avaliação Semanal", description: "Mania, depressão e funcionamento" },
+      { href: "/avaliacao-semanal", label: "Avaliação Semanal", description: "Mania, depressão e funcionamento", prefetch: false },
       { href: "/life-chart", label: "Life Chart", description: "Registro de eventos significativos" },
       { href: "/circadiano", label: "Circadiano", description: "Análise do seu ritmo circadiano" },
       { href: "/cognitivo", label: "Cognitivo", description: "Tarefas de tempo de reação e memória" },
-      { href: "/relatorio", label: "Relatório Mensal", description: "Resumo para profissionais de saúde" },
+      { href: "/relatorio", label: "Relatório Mensal", description: "Resumo para profissionais de saúde", prefetch: false },
     ],
   },
   {
@@ -73,6 +78,7 @@ const sections: { title: string; items: ModuleItem[]; defaultOpen: boolean }[] =
       { href: "/consentimentos", label: "Privacidade", description: "Gerenciar consentimentos e dados" },
       { href: "/feedback", label: "Feedback", description: "Sugestões, problemas ou elogios" },
       { href: "/conta", label: "Conta", description: "Configurações e lembretes" },
+      { href: "/sobre", label: "Sobre", description: "Informações, IA, disclaimers e contato" },
     ],
   },
 ];
@@ -108,7 +114,7 @@ function CollapsibleSection({
       {open && (
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 mt-1">
           {items.map((mod) => (
-            <Link key={mod.href} href={mod.href} className="block no-underline">
+            <Link key={mod.href} href={mod.href} prefetch={mod.prefetch} className="block no-underline">
               <Card className="hover:border-primary/50 transition-colors h-full">
                 <p className="font-medium text-foreground">{mod.label}</p>
                 <p className="text-sm text-muted mt-1">{mod.description}</p>
@@ -164,7 +170,7 @@ export default function MaisPage() {
         </h2>
         <div className="grid grid-cols-2 gap-2">
           {quickAccess.map((item) => (
-            <Link key={item.href} href={item.href} className="block no-underline">
+            <Link key={item.href} href={item.href} prefetch={item.prefetch} className="block no-underline">
               <Card className="hover:border-primary/50 transition-colors h-full">
                 <p className="font-medium text-foreground">{item.label}</p>
                 <p className="text-sm text-muted mt-1">{item.description}</p>

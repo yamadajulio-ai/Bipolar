@@ -1,6 +1,7 @@
 import { MetaPixel } from "@/components/MetaPixel";
 import { MicrosoftClarity } from "@/components/MicrosoftClarity";
 import { GoogleAnalytics } from "@/components/GoogleAnalytics";
+import { MedicalDisclaimer } from "@/components/MedicalDisclaimer";
 
 /**
  * Auth pages layout (login, cadastro, recuperar-senha).
@@ -18,6 +19,7 @@ export default function AuthLayout({
       <MetaPixel />
       <MicrosoftClarity />
       <GoogleAnalytics />
+      <MedicalDisclaimer />
       <div id="main-content" tabIndex={-1} className="outline-none">
         {children}
       </div>

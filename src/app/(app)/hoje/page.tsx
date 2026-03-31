@@ -26,6 +26,9 @@ import { AlertCard } from "@/components/today/AlertCard";
 import { SafetyModeScreen } from "@/components/today/SafetyModeScreen";
 import { HojeSafetyGate } from "@/components/today/HojeSafetyGate";
 
+/** Feature flag: set to true to re-enable financeiro in v1.1 */
+const SHOW_FINANCEIRO = false;
+
 const TZ = "America/Sao_Paulo";
 
 function formatSleepDuration(hours: number): string {
@@ -409,7 +412,7 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
   const missingIntegrations = [
     !hasHae && { label: "Wearable", href: "/integracoes", bg: "bg-danger-bg-subtle hover:bg-danger-bg-subtle/80", textColor: "text-danger-fg" },
     !hasGoogleCal && { label: "Google Agenda", href: "/agenda-rotina", bg: "bg-info-bg-subtle hover:bg-info-bg-subtle/80", textColor: "text-info-fg" },
-    !hasFinancial && { label: "Mobills", href: "/financeiro", bg: "bg-success-bg-subtle hover:bg-success-bg-subtle/80", textColor: "text-success-fg" },
+    SHOW_FINANCEIRO && !hasFinancial && { label: "Mobills", href: "/financeiro", bg: "bg-success-bg-subtle hover:bg-success-bg-subtle/80", textColor: "text-success-fg" },
   ].filter(Boolean) as { label: string; href: string; bg: string; textColor: string }[];
 
   // Critical integrations (Wearable + Google Agenda) shown at top if missing
@@ -965,7 +968,7 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
       </Link>
 
       {/* === 9. SINAIS DE GASTOS + GASTO RÁPIDO === */}
-      {hasFinancialSignal && hasFinancial && (
+      {SHOW_FINANCEIRO && hasFinancialSignal && hasFinancial && (
         <Card className={`border ${hasFinancialWithContext ? "border-warning-border bg-warning-bg-subtle" : "border-border bg-surface-alt/50"}`}>
           <div className="flex items-start justify-between mb-2">
             <h2 className="text-sm font-semibold text-foreground">Sinais de gastos</h2>
@@ -989,7 +992,7 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
           </p>
         </Card>
       )}
-      <QuickSpend />
+      {SHOW_FINANCEIRO && <QuickSpend />}
 
       {/* === 10. CONQUISTAS === */}
       {todayEntry && (checkinStreak > 0 || sleepStreak > 0 || achievements.some(a => a.unlocked)) && (
@@ -1026,7 +1029,7 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
       )}
 
       {/* === 12. INTEGRAÇÕES RESTANTES (Mobills etc.) === */}
-      {otherMissing.length > 0 && (
+      {SHOW_FINANCEIRO && otherMissing.length > 0 && (
         <Card className="print:hidden">
           <h2 className="text-sm font-semibold text-foreground mb-2">Acompanhe seus gastos</h2>
           <p className="text-xs text-muted mb-2">Dados financeiros ajudam a identificar padrões comportamentais.</p>

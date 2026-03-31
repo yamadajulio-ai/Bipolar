@@ -553,7 +553,7 @@ export default function LandingPage() {
                 },
                 {
                   q: "Funciona no iPhone e no Android?",
-                  a: "Sim. Funciona como um aplicativo instalável direto do navegador. No iPhone, use o Safari e adicione à Tela de Início. No Android, o Chrome oferece instalação automática.",
+                  a: "Sim. Disponível como app na App Store e também como site acessível em qualquer navegador.",
                 },
                 {
                   q: "Meu psiquiatra consegue acompanhar?",

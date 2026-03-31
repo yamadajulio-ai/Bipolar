@@ -50,6 +50,7 @@ export function BottomNav() {
               <Link
                 key={tab.href}
                 href={tab.href}
+                prefetch={false}
                 className="relative flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-[var(--radius-card)] py-3 no-underline transition-colors"
                 aria-current={isActive ? "page" : undefined}
               >

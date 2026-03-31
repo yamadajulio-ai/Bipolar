@@ -321,6 +321,15 @@
      vars: --radius-card, --radius-panel, --radius-pill (defined in :root). */
 }
 
+html {
+  overscroll-behavior-y: none;
+  /* Dynamic Type support — respect iOS Larger Text / user font-size prefs.
+     Tailwind v4 preflight sets this, but we enforce it explicitly to
+     guarantee it survives any future reset changes. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
@@ -436,6 +445,15 @@ a[target="_blank"] {
       --glass-border: transparent;
     }
   }
+}
+
+/* Capacitor WebView — ensure focused inputs scroll above the virtual keyboard.
+   resizeOnFullScreen handles most cases, but bottom-of-form inputs can still
+   be hidden. 120px covers keyboard toolbar + safe-area on all iPhones. */
+input:focus,
+textarea:focus,
+select:focus {
+  scroll-margin-bottom: 120px;
 }
 
 /* Print styles — always force light mode for legibility + ink savings */

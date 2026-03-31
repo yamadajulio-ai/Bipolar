@@ -29,6 +29,7 @@ export function NativeAppShell() {
   const [locked, setLocked] = useState(false);
   const initRef = useRef(false);
   const biometricPending = useRef(false);
+  const failCount = useRef(0);
 
   const handleBiometricCheck = useCallback(async () => {
     if (biometricPending.current) return; // debounce concurrent calls
@@ -41,10 +42,23 @@ export function NativeAppShell() {
         setLocked(true);
         const verified = await verifyBiometric();
         if (verified) {
+          failCount.current = 0;
           setLocked(false);
           hapticMedium();
+        } else {
+          failCount.current += 1;
+          // After 3 failed attempts (biometric + passcode fallback), force logout
+          if (failCount.current >= 3) {
+            failCount.current = 0;
+            setLocked(false);
+            try {
+              await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' });
+            } catch {
+              // Logout API failure — redirect anyway
+            }
+            window.location.href = '/login';
+          }
         }
-        // If not verified, stays locked — user must retry
       }
     } catch {
       // Plugin failure — don't block the user, unlock gracefully
@@ -52,7 +66,7 @@ export function NativeAppShell() {
     } finally {
       biometricPending.current = false;
     }
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     if (!isNative() || initRef.current) return;

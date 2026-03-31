@@ -5,6 +5,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { InAppBrowserBanner } from "@/components/InAppBrowserBanner";
 import { NativeAppShell } from "@/components/capacitor/NativeAppShell";
+import { SplashHide } from "@/components/SplashHide";
 import { CsrfProvider } from "@/components/CsrfProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
 // Marketing analytics (MetaPixel, MicrosoftClarity, GoogleAnalytics) are loaded
@@ -126,6 +127,7 @@ export default function RootLayout({
           <CsrfProvider />
           <InAppBrowserBanner />
           <NativeAppShell />
+          <SplashHide />
           <Analytics />
           <SpeedInsights />
           <ServiceWorkerRegister />

@@ -23,6 +23,7 @@ const csp = [
   "font-src 'self' data:",
   "manifest-src 'self'",
   "worker-src 'self' blob:",
+  "block-all-mixed-content",
   "upgrade-insecure-requests",
 ].join("; ");
 

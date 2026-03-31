@@ -181,7 +181,12 @@ export default function SOSPage() {
   // Main view — emergency numbers immediately visible (no intermediate menu)
   return (
     <div className={wrapperClass}>
-      <div className="mx-auto w-full max-w-lg rounded-2xl bg-gray-900 p-8 text-white">
+      <div
+        className="mx-auto w-full max-w-lg rounded-2xl bg-gray-900 p-8 text-white"
+        role="region"
+        aria-live="polite"
+        aria-label="Modo SOS ativado. Contatos de emergência disponíveis."
+      >
         {liveRegion}
         <h1 className="mb-2 text-center text-3xl font-bold">SOS</h1>
         <p className="mb-1 text-center text-gray-300">

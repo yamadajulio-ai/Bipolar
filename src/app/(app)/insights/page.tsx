@@ -26,6 +26,9 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 export const maxDuration = 30;
 
+/** Feature flag: set to true to re-enable financeiro in v1.1 */
+const SHOW_FINANCEIRO = false;
+
 const TZ = "America/Sao_Paulo";
 
 function colorToBg(color: "green" | "yellow" | "red"): string {
@@ -186,10 +189,10 @@ export default async function InsightsPage({
       select: { startAt: true, category: true },
       orderBy: { startAt: "asc" },
     }),
-    prisma.financialTransaction.findMany({
+    SHOW_FINANCEIRO ? prisma.financialTransaction.findMany({
       where: { userId: session.userId, date: { gte: cutoff30Str } },
       select: { date: true, amount: true },
-    }),
+    }) : Promise.resolve([]),
     // Journal entries for heatmap day detail (90 days, no content in server logs)
     prisma.journalEntry.findMany({
       where: { userId: session.userId, entryDateLocal: { gte: cutoff90Str } },
@@ -223,7 +226,7 @@ export default async function InsightsPage({
   });
 
   const allSleepLogsFiltered = aggregateSleepByDay(allSleepLogs.filter((l) => !l.excluded));
-  const insights = computeInsights(sleepLogsForInsights, entries, [], plannerBlocks, now, TZ, allEntries, allSleepLogsFiltered, financialTxs);
+  const insights = computeInsights(sleepLogsForInsights, entries, [], plannerBlocks, now, TZ, allEntries, allSleepLogsFiltered, SHOW_FINANCEIRO ? financialTxs : []);
 
   const lastNights = allSleepLogs.filter((l) => l.totalHours > 0).slice(-nightsToShow).reverse();
 
@@ -805,7 +808,7 @@ export default async function InsightsPage({
           </section>
 
           {/* ── P2: Dynamic ordering — "strong" spending card rises above mood/sleep chart ── */}
-          {insights.spendingMood.state === "strong" && (
+          {SHOW_FINANCEIRO && insights.spendingMood.state === "strong" && (
             <section className="mb-8">
               <Suspense fallback={<div className="animate-pulse rounded-[var(--radius-card)] bg-surface-alt h-24" />}>
                 <SpendingMoodInsightCard data={insights.spendingMood} />
@@ -826,7 +829,7 @@ export default async function InsightsPage({
           )}
 
           {/* ── Humor e Gastos (spending × mood insight) — watch/learning/noSignal stay here ── */}
-          {insights.spendingMood.state !== "hidden" && insights.spendingMood.state !== "strong" && (
+          {SHOW_FINANCEIRO && insights.spendingMood.state !== "hidden" && insights.spendingMood.state !== "strong" && (
             <section className="mb-8">
               <Suspense fallback={<div className="animate-pulse rounded-[var(--radius-card)] bg-surface-alt h-24" />}>
                 <SpendingMoodInsightCard data={insights.spendingMood} />

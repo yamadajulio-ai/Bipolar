@@ -16,6 +16,9 @@ import { Suspense } from "react";
 
 export const maxDuration = 30;
 
+/** Feature flag: set to true to re-enable financeiro in v1.1 */
+const SHOW_FINANCEIRO = false;
+
 const TZ = "America/Sao_Paulo";
 
 function colorToCardBorder(color: "green" | "yellow" | "red"): string {
@@ -110,10 +113,10 @@ export default async function ViewerInsightsPage({
       select: { startAt: true, category: true },
       orderBy: { startAt: "asc" },
     }),
-    prisma.financialTransaction.findMany({
+    SHOW_FINANCEIRO ? prisma.financialTransaction.findMany({
       where: { userId, date: { gte: cutoff30Str } },
       select: { date: true, amount: true },
-    }),
+    }) : Promise.resolve([]),
   ]);
 
   const entries = allEntries.filter((e) => e.date >= cutoff30Str);

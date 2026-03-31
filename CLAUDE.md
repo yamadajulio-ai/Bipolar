@@ -121,8 +121,26 @@
 - **TestFlight build uploaded (2026-03-31)**: archive succeeded, signed com "Apple Development: Julio Cesar de Sousa Yamada", uploaded para App Store Connect. Processando no TestFlight.
 - **iOS configs atualizados (2026-03-31)**: App.entitlements (Associated Domains adicionado), Info.plist (microfone, speech, URL scheme, background modes), capacitor.config.json (webContentsDebuggingEnabled false). Esses arquivos estão no .gitignore (ios/), mudanças são locais no Mac Mini.
 - **TEAM_ID**: `7MQYXX5DRU` confirmado correto (project.pbxproj + AASA consistentes).
-- **Pendentes para submissão**: testar no TestFlight em device real, migrar conta para organização (recomendado por Grok/GPT Pro), screenshots para App Store Connect.
+- **Pendentes para submissão**: testar no TestFlight em device real, migrar conta para organização (recomendado por Grok/GPT Pro), screenshots para App Store Connect, marcar "Not regulated medical device" no ASC.
 - **Audit prompt**: `docs/audit-prompt-appstore-2026-03-31.md` — self-contained com código-fonte real para GPT Pro, SuperGrok, Gemini Pro, Perplexity Pro.
+- **4-AI audit (2026-03-31)**: GPT Pro + SuperGrok + Gemini Pro + Perplexity Pro. Consenso implementado com 11 rodadas recursivas de análise (21 bugs encontrados e corrigidos). Mudanças:
+  - **SHOW_FINANCEIRO flag**: `false` em 9 arquivos (hoje, mais, insights, profissional hoje/insights, native/home, insights-narrative, app). Gate em DB fetch, computeInsights(), evaluateRisk(), e UI. Re-habilitar com `true` para v1.1.
+  - **MedicalDisclaimer**: modal bilíngue na primeira abertura (localStorage, auth+public layouts). `src/components/MedicalDisclaimer.tsx`
+  - **SOS chatbot consent**: gate por sessão (sessionStorage) com disclosure Anthropic antes do chat. Recursos de emergência acessíveis SEM consent. `SOSChatbot.tsx`
+  - **Página /sobre**: disclaimers, entidade responsável, IA providers, alertas, contato. `src/app/(app)/sobre/page.tsx` + link no /mais
+  - **SplashHide**: dynamic import de @capacitor/splash-screen, esconde após React hydrate. `src/components/SplashHide.tsx`
+  - **Biometric fallback**: `useFallback: true` + `maxAttempts: 3` + logout após 3 falhas (redirect antes de unlock para evitar data flash). `biometric.ts` + `NativeAppShell.tsx`
+  - **CSP**: `block-all-mixed-content` adicionado. `next.config.ts`
+  - **CSS Capacitor**: `overscroll-behavior-y: none` no html, `scroll-margin-bottom: 120px` em inputs focused, `text-size-adjust: 100%`. `globals.css`
+  - **prefetch={false}**: BottomNav + links pesados no /mais (insights, tendências, relatório)
+  - **VoiceOver**: `aria-live="assertive"` + `aria-label` no SOS page
+  - **Force update**: `/api/health` retorna `minAppVersion: "1.0.0"`
+  - **AI report button**: "Reportar conteúdo inadequado" no NarrativeFeedback (usa endpoint existente, guard contra double-click, retry offline)
+  - **store:false disclosure**: linguagem corrigida para "retenção temporária para segurança conforme política do provedor" (não "zero retenção")
+  - **"Instalar via Safari"** removido do FAQ do landing page (4.2 defense)
+  - **Review notes bilíngues**: inglês primário com 9 pilares nativos + "NOT a regulated medical device" + offline testing instructions
+  - **Docs criados**: `docs/privacy-labels-appstore.md` (mapeamento ASC), `docs/screenshot-sequence.md` (8 screenshots + script demo video 1min)
+  - **Tests fix**: `withRetry` mock em send-reminders.test.ts, `max_output_tokens` 4096→8192 em narrative test. 27/27 files, 2113/2113 tests passing.
 
 ## AI Narrative — Modelo
 - **Modelo atual**: GPT-5.4 via OpenAI Responses API (migrado de Claude Sonnet 4)

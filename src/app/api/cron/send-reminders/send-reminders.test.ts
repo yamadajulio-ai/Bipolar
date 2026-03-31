@@ -50,6 +50,7 @@ vi.mock("@/lib/db", () => ({
       deleteMany: mockDeleteManySubs,
     },
   },
+  withRetry: <T>(fn: () => Promise<T>) => fn(),
 }));
 
 // ─── Helpers ────────────────────────────────────────────────────────────────

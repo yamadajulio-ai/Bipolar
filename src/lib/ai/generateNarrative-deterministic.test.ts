@@ -337,7 +337,7 @@ describe("generateNarrative — deterministic paths", () => {
       expect(mockResponsesCreate).toHaveBeenCalledWith(
         expect.objectContaining({
           store: false,
-          max_output_tokens: 4096,
+          max_output_tokens: 8192,
           text: expect.objectContaining({
             format: expect.objectContaining({
               type: "json_schema",

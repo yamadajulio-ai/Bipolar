@@ -196,7 +196,7 @@ export async function POST(request: NextRequest) {
     // Compute insights (deterministic) — use filtered sleep logs
     const insights = computeInsights(
       filteredSleep30, entries30, [], plannerBlockInputs,
-      now, TZ, entries90, filteredSleep90, financialTxs,
+      now, TZ, entries90, filteredSleep90, SHOW_FINANCEIRO ? financialTxs : [],
     );
 
     // Prepare extra data for narrative V2

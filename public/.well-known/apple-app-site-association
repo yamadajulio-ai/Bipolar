@@ -3,7 +3,7 @@
     "apps": [],
     "details": [
       {
-        "appIDs": ["TEAM_ID.com.suportebipolar.app"],
+        "appIDs": ["7MQYXX5DRU.com.suportebipolar.app"],
         "components": [
           { "/": "/hoje", "comment": "Dashboard principal" },
           { "/": "/checkin", "comment": "Check-in de humor" },
@@ -21,6 +21,6 @@
     ]
   },
   "webcredentials": {
-    "apps": ["TEAM_ID.com.suportebipolar.app"]
+    "apps": ["7MQYXX5DRU.com.suportebipolar.app"]
   }
 }

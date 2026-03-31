@@ -333,6 +333,7 @@ Priorizador fiel e tradutor leigo. Sua função é ajudar a pessoa a entender o 
 - Prefira omissão a filler — seções sem mudança relevante devem ser "stable" com summary curto ou "absent"
 - Não repita a mesma ideia em headline, summary, seções e closing
 - Transforme números em linguagem leiga (ex: "variação de 125 minutos" → "mais de 2 horas de variação")
+- Durações de sono devem usar formato "Xh Ymin" (ex: "6h 42min"), NUNCA usar formato decimal como "6.7 horas"
 - Toda sugestão prática deve estar ligada a um achado específico do período
 - Máximo de 1 frase de acolhimento no closing — sem floreio
 - Use "apareceu", "mudou", "coincidiu", "vale observar"; evite "indica", "sugere", "aponta para"
@@ -398,8 +399,8 @@ export function prepareNarrativeInput(insights: InsightsResult, extra: Narrative
   const sleepEv: Evidence[] = [];
   const s = insights.sleep;
   if (s.recordCount > 0) {
-    if (s.avgDuration != null) sleepEv.push({ id: "sleep_avg_30d", domain: "sleep", kind: "metric", text: `Sono médio: ${s.avgDuration.toFixed(1)} horas (${s.recordCount} registros, confiança ${confidenceLabel(s.dataConfidence)})`, rawValue: s.avgDuration, unit: "hours", timeframe: "30d", confidence: s.dataConfidence === "alta" ? "high" : s.dataConfidence === "media" ? "medium" : "low", priority: 1 });
-    if (s.sleepTrend) sleepEv.push({ id: "sleep_trend_30d", domain: "sleep", kind: "comparison", text: `Tendência do sono: ${trendLabel(s.sleepTrend)}${s.sleepTrendDelta ? ` (variação de ${s.sleepTrendDelta.toFixed(1)}h)` : ""}`, rawValue: s.sleepTrendDelta, unit: "hours", timeframe: "30d", confidence: "medium", priority: 1 });
+    if (s.avgDuration != null) { const _h = Math.floor(s.avgDuration); const _m = Math.round((s.avgDuration - _h) * 60); const _fmt = _m > 0 ? `${_h}h ${_m}min` : `${_h}h`; sleepEv.push({ id: "sleep_avg_30d", domain: "sleep", kind: "metric", text: `Sono médio: ${_fmt} (${s.recordCount} registros, confiança ${confidenceLabel(s.dataConfidence)})`, rawValue: s.avgDuration, unit: "hours", timeframe: "30d", confidence: s.dataConfidence === "alta" ? "high" : s.dataConfidence === "media" ? "medium" : "low", priority: 1 }); }
+    if (s.sleepTrend) { const _delta = s.sleepTrendDelta ? (() => { const abs = Math.abs(s.sleepTrendDelta); const dh = Math.floor(abs); const dm = Math.round((abs - dh) * 60); const sign = s.sleepTrendDelta < 0 ? "-" : "+"; return ` (variação de ${sign}${dm > 0 ? `${dh}h ${dm}min` : `${dh}h`})`; })() : ""; sleepEv.push({ id: "sleep_trend_30d", domain: "sleep", kind: "comparison", text: `Tendência do sono: ${trendLabel(s.sleepTrend)}${_delta}`, rawValue: s.sleepTrendDelta, unit: "hours", timeframe: "30d", confidence: "medium", priority: 1 }); }
     if (s.bedtimeVariance != null) sleepEv.push({ id: "sleep_bedtime_var_30d", domain: "sleep", kind: "metric", text: `Variação do horário de dormir: ${s.bedtimeVariance} minutos`, rawValue: s.bedtimeVariance, unit: "minutes", timeframe: "30d", confidence: "high", priority: 2 });
     if (s.durationVariability != null) sleepEv.push({ id: "sleep_dur_var_30d", domain: "sleep", kind: "metric", text: `Variabilidade da duração: ${s.durationVariability} minutos`, rawValue: s.durationVariability, unit: "minutes", timeframe: "30d", confidence: "high", priority: 2 });
     if (s.avgQuality != null) sleepEv.push({ id: "sleep_quality_30d", domain: "sleep", kind: "metric", text: `Qualidade média: ${s.avgQuality.toFixed(1)}/5`, rawValue: s.avgQuality, unit: "score", timeframe: "30d", confidence: "medium", priority: 2 });

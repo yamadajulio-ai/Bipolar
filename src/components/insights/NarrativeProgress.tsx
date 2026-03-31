@@ -19,50 +19,58 @@ interface NarrativeProgressProps {
 export function NarrativeProgress({ active }: NarrativeProgressProps) {
   const [progress, setProgress] = useState(0);
   const [stageIndex, setStageIndex] = useState(0);
+  const [visible, setVisible] = useState(false);
   const startTime = useRef(0);
   const rafRef = useRef<number>(0);
 
   useEffect(() => {
-    if (!active) {
-      queueMicrotask(() => { setProgress(0); setStageIndex(0); });
-      return;
-    }
+    if (active) {
+      setVisible(true);
+      startTime.current = Date.now();
 
-    startTime.current = Date.now();
-
-    function tick() {
-      const elapsed = Date.now() - startTime.current;
-      // Find current stage and the cumulative time of all previous stages
-      let stageStart = 0;
-      let currentStage = STAGES.length - 1;
-      for (let i = 0; i < STAGES.length; i++) {
-        if (elapsed < stageStart + STAGES[i].duration) {
-          currentStage = i;
-          break;
+      function tick() {
+        const elapsed = Date.now() - startTime.current;
+        let stageStart = 0;
+        let currentStage = STAGES.length - 1;
+        for (let i = 0; i < STAGES.length; i++) {
+          if (elapsed < stageStart + STAGES[i].duration) {
+            currentStage = i;
+            break;
+          }
+          stageStart += STAGES[i].duration;
         }
-        stageStart += STAGES[i].duration;
+
+        setStageIndex(currentStage);
+
+        const stageElapsed = elapsed - stageStart;
+        const stageDuration = STAGES[currentStage].duration;
+        const stageRatio = Math.min(stageElapsed / stageDuration, 1);
+        const prevTarget = currentStage > 0 ? STAGES[currentStage - 1].target : 0;
+        const currentTarget = STAGES[currentStage].target;
+        const easedRatio = 1 - Math.pow(1 - stageRatio, 1.5);
+        const pct = Math.min(prevTarget + (currentTarget - prevTarget) * easedRatio, 95);
+
+        setProgress(pct);
+        rafRef.current = requestAnimationFrame(tick);
       }
 
-      setStageIndex(currentStage);
-
-      // Calculate progress per-stage: smooth within each stage toward its target
-      const stageElapsed = elapsed - stageStart;
-      const stageDuration = STAGES[currentStage].duration;
-      const stageRatio = Math.min(stageElapsed / stageDuration, 1);
-      const prevTarget = currentStage > 0 ? STAGES[currentStage - 1].target : 0;
-      const currentTarget = STAGES[currentStage].target;
-      const easedRatio = 1 - Math.pow(1 - stageRatio, 1.5);
-      const pct = Math.min(prevTarget + (currentTarget - prevTarget) * easedRatio, 95);
-
-      setProgress(pct);
       rafRef.current = requestAnimationFrame(tick);
+      return () => cancelAnimationFrame(rafRef.current);
+    } else if (visible) {
+      // API finished — animate to 100% then hide
+      cancelAnimationFrame(rafRef.current);
+      setProgress(100);
+      setStageIndex(STAGES.length - 1);
+      const timer = setTimeout(() => {
+        setVisible(false);
+        setProgress(0);
+        setStageIndex(0);
+      }, 600);
+      return () => clearTimeout(timer);
     }
+  }, [active, visible]);
 
-    rafRef.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafRef.current);
-  }, [active]);
-
-  if (!active) return null;
+  if (!visible) return null;
 
   const stage = STAGES[stageIndex];
 

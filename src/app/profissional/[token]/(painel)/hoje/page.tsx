@@ -11,6 +11,9 @@ import { StabilityScoreWidget } from "@/components/dashboard/StabilityScoreWidge
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Link from "next/link";
 
+/** Feature flag: set to true to re-enable financeiro in v1.1 */
+const SHOW_FINANCEIRO = false;
+
 const TZ = "America/Sao_Paulo";
 
 function formatSleepDuration(hours: number): string {
@@ -136,10 +139,10 @@ export default async function ViewerHojePage({
       select: { startAt: true, category: true },
       orderBy: { startAt: "asc" },
     }),
-    prisma.financialTransaction.findMany({
+    SHOW_FINANCEIRO ? prisma.financialTransaction.findMany({
       where: { userId, date: { gte: cutoff30Str } },
       select: { date: true, amount: true, category: true, description: true },
-    }),
+    }) : Promise.resolve([]),
     prisma.sleepLog.findMany({
       where: { userId, date: { gte: cutoff7Str }, totalHours: { gte: 1 } },
       orderBy: { date: "desc" },
@@ -188,7 +191,7 @@ export default async function ViewerHojePage({
     TZ,
     allEntries30,
     allSleepLogs30.filter((l) => !l.excluded),
-    financialTxs30,
+    SHOW_FINANCEIRO ? financialTxs30 : [],
   );
 
   const { risk, thermometer, combinedPatterns, sleep: sleepInsights } = insights;
@@ -454,8 +457,8 @@ export default async function ViewerHojePage({
         </Card>
       )}
 
-      {/* Financial signals */}
-      {hasFinancialSignal && (
+      {/* Financial signals — hidden in v1.0 */}
+      {SHOW_FINANCEIRO && hasFinancialSignal && (
         <Card className="border border-warning-border bg-warning-bg-subtle">
           <h2 className="text-sm font-semibold text-foreground mb-2">Sinais de gastos</h2>
           <div className="space-y-1.5">

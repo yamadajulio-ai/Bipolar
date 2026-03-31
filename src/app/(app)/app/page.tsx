@@ -7,7 +7,6 @@ import { ContextualSuggestions } from "@/components/dashboard/ContextualSuggesti
 import { DashboardChartWrapper } from "@/components/dashboard/DashboardChartWrapper";
 import { Card } from "@/components/Card";
 import { Greeting } from "@/components/Greeting";
-import Image from "next/image";
 import Link from "next/link";
 
 export default async function DashboardPage() {

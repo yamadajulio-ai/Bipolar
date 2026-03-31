@@ -105,7 +105,7 @@
 - **Abordagem**: Capacitor 8 com WebView + Vercel backend + pilares nativos reais
 - **GPT Pro audit scores**: R1 4.5 → R2 7.4 → R3 8.2/10
 - **Pilares nativos**: Face ID/Keychain, APNs + Local Notifications, offline de crise, deep links + share, Sign in with Apple (nonce + refresh token criptografado)
-- **server.url**: GPT Pro R3 recomenda remover para release (shell local + API remota). Capacitor docs: `server.url` é para dev, não produção. **BLOQUEADOR de submissão.**
+- **server.url**: MANTIDO em produção — app é SSR (Server Components + API routes + Prisma), não pode ser exportado como static. 9 pilares nativos satisfazem Guideline 4.2. GPT Pro R3 recomendava remover, mas é inviável para esta arquitetura.
 - **Conta Apple Developer**: individual (Julio Cesar de Sousa Yamada), Enrollment ID 5J4DNRWRS2. GPT Pro R3 alerta: Guideline 5.1.1(ix) exige legal entity para apps de saúde com dados sensíveis. **Considerar migração para organização.**
 - **Mac Mini M4**: configurado (Node.js, VS Code, Claude Code). Setup script: `scripts/ios-setup.sh`. Guia enviado por email (2026-03-28).
 - **Review risks**: Guideline 4.2 (mitigado por 9 pilares nativos, 70-75% chance), 1.4.1 (copy de suporte, passa fácil), 5.1.1(ix) (conta individual — **maior risco**, 70% chance de flag, migrar para org recomendado), 5.1.2(i) (third-party AI — consent explícito nomeando OpenAI/Anthropic já implementado), demo account
@@ -118,7 +118,11 @@
 - **Third-party AI disclosure**: Review notes incluem seção explícita nomeando OpenAI (narrativas) e Anthropic (SOS chatbot) como processadores. Privacy labels devem declarar terceiros no App Store Connect.
 - **webContentsDebuggingEnabled**: condicional `process.env.NODE_ENV !== 'production'` (fix 2026-03-30)
 - **PrivacyInfo.xcprivacy**: copiado de ios-template/ para ios/App/App/ com 10 data types completos (fix 2026-03-30)
-- **Pendentes para TestFlight** (requer Mac Mini): substituir TEAM_ID `7MQYXX5DRU` no AASA, configurar entitlements no Xcode (Push, Sign in with Apple, Associated Domains), testar plugin Apple v7/Cap v8 em device real, migrar conta para organização (recomendado por Grok/GPT Pro)
+- **TestFlight build uploaded (2026-03-31)**: archive succeeded, signed com "Apple Development: Julio Cesar de Sousa Yamada", uploaded para App Store Connect. Processando no TestFlight.
+- **iOS configs atualizados (2026-03-31)**: App.entitlements (Associated Domains adicionado), Info.plist (microfone, speech, URL scheme, background modes), capacitor.config.json (webContentsDebuggingEnabled false). Esses arquivos estão no .gitignore (ios/), mudanças são locais no Mac Mini.
+- **TEAM_ID**: `7MQYXX5DRU` confirmado correto (project.pbxproj + AASA consistentes).
+- **Pendentes para submissão**: testar no TestFlight em device real, migrar conta para organização (recomendado por Grok/GPT Pro), screenshots para App Store Connect.
+- **Audit prompt**: `docs/audit-prompt-appstore-2026-03-31.md` — self-contained com código-fonte real para GPT Pro, SuperGrok, Gemini Pro, Perplexity Pro.
 
 ## AI Narrative — Modelo
 - **Modelo atual**: GPT-5.4 via OpenAI Responses API (migrado de Claude Sonnet 4)

@@ -66,7 +66,7 @@ export function NativeAppShell() {
     } finally {
       biometricPending.current = false;
     }
-  }, [router]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps — biometricPending ref prevents concurrent calls
 
   useEffect(() => {
     if (!isNative() || initRef.current) return;

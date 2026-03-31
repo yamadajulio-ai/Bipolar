@@ -267,7 +267,7 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
     };
   });
 
-  const insights = computeInsights(sleepLogsForInsights, entries30, [], plannerBlocks, now, TZ, allEntries30, allSleepLogs30.filter(l => !l.excluded), financialTxs30);
+  const insights = computeInsights(sleepLogsForInsights, entries30, [], plannerBlocks, now, TZ, allEntries30, allSleepLogs30.filter(l => !l.excluded), SHOW_FINANCEIRO ? financialTxs30 : []);
 
   const { risk, thermometer, combinedPatterns, sleep: sleepInsights } = insights;
 
@@ -484,12 +484,12 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
       excluded: s.excluded,
       hrv: s.hrv,
     })),
-    financialTxs: financialTxs30.map((t) => ({
+    financialTxs: SHOW_FINANCEIRO ? financialTxs30.map((t) => ({
       date: t.date,
       amount: Number(t.amount),
       category: t.category,
       description: t.description,
-    })),
+    })) : [],
     latestWeekly: lastWeeklyAssessment ? {
       id: lastWeeklyAssessment.id,
       createdAt: lastWeeklyAssessment.createdAt,

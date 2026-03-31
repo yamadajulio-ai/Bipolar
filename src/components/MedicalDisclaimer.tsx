@@ -15,6 +15,7 @@ export function MedicalDisclaimer() {
   const buttonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
     try {
       if (!localStorage.getItem(STORAGE_KEY)) {
         setVisible(true);

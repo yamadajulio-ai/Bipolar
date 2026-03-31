@@ -1,12 +1,11 @@
 "use client";
 
-import { useRef, useEffect, useCallback } from "react";
+import { useRef, useEffect, useCallback, useState } from "react";
 import { useSosChat } from "./useSosChat";
 import type { Message } from "./useSosChat";
 import { useSosVoice, stopSpeaking, speak } from "./useSosVoice";
 import { SosSafetyBanner } from "./SosSafetyBanner";
 import { SosChatMessages } from "./SosChatMessages";
-import { useState } from "react";
 
 interface SOSChatbotProps {
   onClose: () => void;

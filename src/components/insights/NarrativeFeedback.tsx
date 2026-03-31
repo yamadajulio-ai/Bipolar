@@ -16,7 +16,7 @@ export function NarrativeFeedback({
   const [reported, setReported] = useState(false);
 
   const handleReport = useCallback(async () => {
-    if (!narrativeId) return;
+    if (!narrativeId || reported) return;
     setReported(true);
     try {
       await fetch("/api/insights-narrative/feedback", {
@@ -32,7 +32,7 @@ export function NarrativeFeedback({
     } catch {
       /* silent — report is best-effort */
     }
-  }, [narrativeId]);
+  }, [narrativeId, reported]);
 
   if (!narrativeId) return null;
 

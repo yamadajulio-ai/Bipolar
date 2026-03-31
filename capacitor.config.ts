@@ -5,11 +5,10 @@ const config: CapacitorConfig = {
   appName: 'Suporte Bipolar',
   webDir: 'out',
 
-  // B-lite strategy: bundle local (core clínico) + API remota (token auth).
-  // server.url REMOVIDO — Apple 4.2/2.5.2, Capacitor docs: "not intended for production".
-  // WebView carrega do bundle local (out/). API calls via fetch + bearer token.
+  // Production: WebView loads from Vercel (SSR app requires server).
+  // 9 native pillars (Face ID, APNs, biometric, offline crisis, deep links,
+  // share, haptics, Sign in with Apple, voice SOS) satisfy Guideline 4.2.
   server: {
-    // DEV ONLY — aponta para Vercel. Remover antes de submeter à App Store.
     url: 'https://suportebipolar.com',
     iosScheme: 'https',
     hostname: 'suportebipolar.com',

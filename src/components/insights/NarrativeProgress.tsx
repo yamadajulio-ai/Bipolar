@@ -77,10 +77,14 @@ export function NarrativeProgress({ active }: NarrativeProgressProps) {
   return (
     <div className="space-y-3 py-6" role="status" aria-live="polite">
       {/* Progress bar */}
-      <div className="h-2 w-full rounded-full bg-border/30 overflow-hidden">
+      <div className="h-2.5 w-full rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(82,122,110,0.15)' }}>
         <div
-          className="h-full rounded-full bg-primary transition-[width] duration-500 ease-out"
-          style={{ width: `${progress}%` }}
+          className="h-full rounded-full"
+          style={{
+            width: `${progress}%`,
+            backgroundColor: '#527a6e',
+            transition: 'width 300ms ease-out',
+          }}
         />
       </div>
 

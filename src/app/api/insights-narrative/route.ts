@@ -9,6 +9,9 @@ import type { NarrativeExtraData, AssessmentSnapshot, LifeEventSnapshot, Cogniti
 
 const TZ = "America/Sao_Paulo";
 
+/** Feature flag: set to true to re-enable financeiro in v1.1 */
+const SHOW_FINANCEIRO = false;
+
 export const maxDuration = 120;
 
 // DELETE — Revoke/delete a specific narrative (LGPD right of erasure).
@@ -153,7 +156,7 @@ export async function POST(request: NextRequest) {
       prisma.plannerBlock.findMany({ where: { userId, startAt: { gte: d30 } }, select: { startAt: true, category: true }, orderBy: { startAt: "asc" }, take: 1000 }),
       prisma.sleepLog.findMany({ where: { userId, date: { gte: d90str } }, select: sleepSelect, orderBy: { date: "asc" }, take: 500 }),
       prisma.diaryEntry.findMany({ where: { userId, date: { gte: d90str } }, select: diarySelect, orderBy: { date: "asc" }, take: 500 }),
-      prisma.financialTransaction.findMany({ where: { userId, date: { gte: d30str } }, select: financialSelect, orderBy: { date: "asc" }, take: 1000 }),
+      SHOW_FINANCEIRO ? prisma.financialTransaction.findMany({ where: { userId, date: { gte: d30str } }, select: financialSelect, orderBy: { date: "asc" }, take: 1000 }) : Promise.resolve([]),
       // New: last 2 weekly assessments (current + previous for delta)
       prisma.weeklyAssessment.findMany({
         where: { userId, date: { gte: d30str } },

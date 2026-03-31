@@ -5,14 +5,11 @@ import { localDateStr } from "@/lib/dateUtils";
 import { Card } from "@/components/Card";
 import { SleepDayGroup } from "@/components/insights/SleepHistoryCard";
 import { Sparkline } from "@/components/insights/Sparkline";
-import { isMainSleep } from "@/lib/insights/stats";
+import { aggregateSleepByDay, isMainSleep } from "@/lib/insights/stats";
+import { computeSleepInsights } from "@/lib/insights/sleep";
+import { formatSleepDuration } from "@/lib/insights/computeInsights";
 
-function formatSleepDuration(hours: number): string {
-  const h = Math.floor(hours);
-  const m = Math.round((hours - h) * 60);
-  if (m === 0) return `${h}h`;
-  return `${h}h${String(m).padStart(2, "0")}`;
-}
+const TZ = "America/Sao_Paulo";
 
 export default async function ViewerSonoPage({
   params,
@@ -33,73 +30,23 @@ export default async function ViewerSonoPage({
     orderBy: { date: "asc" },
   });
 
+  // Use the same pipeline as Insights: filter → aggregateByDay → computeSleepInsights
   const realLogs = logs.filter((l) => l.totalHours >= 2 && !l.excluded && isMainSleep(l));
+  const aggregated = aggregateSleepByDay(realLogs);
+  const sleep = computeSleepInsights(aggregated, new Date(), TZ);
 
-  function aggregateByDay(logsArr: typeof realLogs) {
-    const byDate = new Map<string, { totalHours: number; bedtime: string }>();
-    for (const l of logsArr) {
-      const existing = byDate.get(l.date);
-      if (existing) {
-        existing.totalHours += l.totalHours;
-        if (l.bedtime < existing.bedtime) existing.bedtime = l.bedtime;
-      } else {
-        byDate.set(l.date, { totalHours: l.totalHours, bedtime: l.bedtime });
-      }
-    }
-    return Array.from(byDate.entries())
-      .map(([date, v]) => ({ date, ...v }))
-      .sort((a, b) => a.date.localeCompare(b.date));
-  }
+  // Sparkline from aggregated daily totals (last 14 days)
+  const sparklineData = aggregated.slice(-14).map((d) => d.totalHours);
 
-  const dailyTotals = aggregateByDay(realLogs);
-  const avgDuration = dailyTotals.length > 0
-    ? dailyTotals.reduce((sum, d) => sum + d.totalHours, 0) / dailyTotals.length
-    : null;
-
-  const personalBaseline = dailyTotals.length >= 14
+  // Personal baseline (same as /sono page: median if 14+ days, else 8h)
+  const personalBaseline = aggregated.length >= 14
     ? (() => {
-        const sorted = dailyTotals.map((d) => d.totalHours).sort((a, b) => a - b);
+        const sorted = aggregated.map((d) => d.totalHours).sort((a, b) => a - b);
         const mid = Math.floor(sorted.length / 2);
         return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
       })()
     : 8;
-  const deviationMin = avgDuration !== null ? Math.round((avgDuration - personalBaseline) * 60) : null;
-
-  function timeToMinutes(t: string): number | null {
-    const [h, m] = t.split(":").map(Number);
-    if (isNaN(h) || isNaN(m)) return null;
-    let mins = h * 60 + m;
-    if (mins < 720) mins += 1440;
-    return mins;
-  }
-
-  const bedtimeMinutes = dailyTotals
-    .map((d) => timeToMinutes(d.bedtime))
-    .filter((v): v is number => v !== null);
-
-  let bedtimeVariance: number | null = null;
-  if (bedtimeMinutes.length >= 3) {
-    const mean = bedtimeMinutes.reduce((a, b) => a + b, 0) / bedtimeMinutes.length;
-    const variance = bedtimeMinutes.reduce((sum, v) => sum + (v - mean) ** 2, 0) / bedtimeMinutes.length;
-    bedtimeVariance = Math.round(Math.sqrt(variance));
-  }
-
-  const last7 = dailyTotals.slice(-7);
-  const prev7 = dailyTotals.slice(-14, -7);
-  let trend: "up" | "down" | "stable" | null = null;
-  if (last7.length >= 3 && prev7.length >= 3) {
-    const avgLast = last7.reduce((s, d) => s + d.totalHours, 0) / last7.length;
-    const avgPrev = prev7.reduce((s, d) => s + d.totalHours, 0) / prev7.length;
-    const diff = avgLast - avgPrev;
-    trend = diff > 0.5 ? "up" : diff < -0.5 ? "down" : "stable";
-  }
-
-  const sparklineData = dailyTotals.slice(-14).map((d) => d.totalHours);
-
-  const qualityLogs = realLogs.filter((l) => l.quality > 0);
-  const avgQuality = qualityLogs.length > 0
-    ? Math.round(qualityLogs.reduce((s, l) => s + (l.quality <= 5 ? l.quality * 20 : l.quality), 0) / qualityLogs.length)
-    : null;
+  const deviationMin = sleep.avgDuration !== null ? Math.round((sleep.avgDuration - personalBaseline) * 60) : null;
 
   const logsDesc = [...logs].reverse();
 
@@ -110,25 +57,24 @@ export default async function ViewerSonoPage({
         <p className="text-sm text-muted mt-1">Histórico de sono de {session.patientName}</p>
       </div>
 
-      {/* Summary Cards */}
-      {realLogs.length >= 3 && (
+      {/* Summary Cards — values from computeSleepInsights (same as Insights page) */}
+      {sleep.recordCount >= 3 && (
         <div className="mb-6 grid grid-cols-2 gap-2 sm:gap-3">
           <Card className={`border-l-4 ${
-            avgDuration !== null
-              ? avgDuration >= 7 && avgDuration <= 9 ? "border-l-green-500 dark:border-l-green-400"
-                : avgDuration >= 5 ? "border-l-amber-500 dark:border-l-amber-400"
-                : "border-l-red-500 dark:border-l-red-400"
+            sleep.avgDurationColor === "green" ? "border-l-green-500 dark:border-l-green-400"
+              : sleep.avgDurationColor === "yellow" ? "border-l-amber-500 dark:border-l-amber-400"
+              : sleep.avgDurationColor === "red" ? "border-l-red-500 dark:border-l-red-400"
               : "border-l-border"
           }`}>
             <p className="text-[11px] text-muted">Média</p>
             <div className="flex items-center gap-2">
               <p className="text-xl font-bold tabular-nums">
-                {avgDuration !== null ? formatSleepDuration(avgDuration) : "—"}
+                {sleep.avgDuration !== null ? formatSleepDuration(sleep.avgDuration) : "—"}
               </p>
               {sparklineData.length >= 5 && (
                 <Sparkline
                   data={sparklineData}
-                  color={avgDuration !== null && avgDuration >= 7 && avgDuration <= 9 ? "#22c55e" : "#f59e0b"}
+                  color={sleep.avgDurationColor === "green" ? "#22c55e" : "#f59e0b"}
                   baseline={personalBaseline}
                   min={4}
                   max={12}
@@ -145,20 +91,19 @@ export default async function ViewerSonoPage({
           </Card>
 
           <Card className={`border-l-4 ${
-            bedtimeVariance !== null
-              ? bedtimeVariance <= 30 ? "border-l-green-500 dark:border-l-green-400"
-                : bedtimeVariance <= 60 ? "border-l-amber-500 dark:border-l-amber-400"
-                : "border-l-red-500 dark:border-l-red-400"
+            sleep.bedtimeVarianceColor === "green" ? "border-l-green-500 dark:border-l-green-400"
+              : sleep.bedtimeVarianceColor === "yellow" ? "border-l-amber-500 dark:border-l-amber-400"
+              : sleep.bedtimeVarianceColor === "red" ? "border-l-red-500 dark:border-l-red-400"
               : "border-l-border"
           }`}>
             <p className="text-[11px] text-muted">Regularidade</p>
             <p className="text-xl font-bold tabular-nums">
-              {bedtimeVariance !== null ? `±${bedtimeVariance}min` : "—"}
+              {sleep.bedtimeVariance !== null ? `±${sleep.bedtimeVariance}min` : "—"}
             </p>
             <p className="text-[11px] text-muted">
-              {bedtimeVariance !== null
-                ? bedtimeVariance <= 30 ? "Excelente — meta: ±30min"
-                  : bedtimeVariance <= 60 ? "Moderada"
+              {sleep.bedtimeVariance !== null
+                ? sleep.bedtimeVariance <= 30 ? "Excelente — meta: ±30min"
+                  : sleep.bedtimeVariance <= 60 ? "Moderada"
                   : "Irregular"
                 : "variação do horário"}
             </p>
@@ -167,9 +112,9 @@ export default async function ViewerSonoPage({
           <Card className="border-l-4 border-l-border">
             <p className="text-[11px] text-muted">Tendência (7d)</p>
             <p className="text-xl font-bold">
-              {trend === "up" ? "↑ Aumentando"
-                : trend === "down" ? "↓ Diminuindo"
-                : trend === "stable" ? "→ Estável"
+              {sleep.sleepTrend === "up" ? "↑ Aumentando"
+                : sleep.sleepTrend === "down" ? "↓ Diminuindo"
+                : sleep.sleepTrend === "stable" ? "→ Estável"
                 : "—"}
             </p>
             <p className="text-[11px] text-muted">vs semana anterior</p>
@@ -178,12 +123,12 @@ export default async function ViewerSonoPage({
           <Card className="border-l-4 border-l-border">
             <p className="text-[11px] text-muted">Qualidade</p>
             <p className="text-xl font-bold tabular-nums">
-              {avgQuality !== null ? `${avgQuality}%` : "—"}
+              {sleep.avgQuality !== null ? `${sleep.avgQuality}%` : "—"}
             </p>
             <p className="text-[11px] text-muted">
-              {avgQuality !== null
-                ? avgQuality >= 80 ? "Boa qualidade"
-                  : avgQuality >= 60 ? "Regular"
+              {sleep.avgQuality !== null
+                ? sleep.avgQuality >= 80 ? "Boa qualidade"
+                  : sleep.avgQuality >= 60 ? "Regular"
                   : "Baixa"
                 : "sem dados"}
             </p>
@@ -192,10 +137,10 @@ export default async function ViewerSonoPage({
       )}
 
       {/* Clinical tip */}
-      {avgDuration !== null && (avgDuration < 6 || avgDuration > 10) && (
+      {sleep.avgDuration !== null && (sleep.avgDuration < 6 || sleep.avgDuration > 10) && (
         <Card className="mb-4 border-l-4 border-l-amber-500 dark:border-l-amber-400">
           <p className="text-sm font-medium">
-            {avgDuration < 6
+            {sleep.avgDuration < 6
               ? "Sono curto persistente pode preceder episódios de mania"
               : "Sono longo persistente pode estar associado a fases depressivas"}
           </p>

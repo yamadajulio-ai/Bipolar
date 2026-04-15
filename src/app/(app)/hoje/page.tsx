@@ -254,6 +254,65 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
   const todayMedMissed = todayMedLogs.filter((l) => l.status === "MISSED").length;
   const todayMedPending = todayMedExpected - todayMedTaken - todayMedMissed;
 
+  // === EARLY GATE: brand-new users (< 3 diary entries) skip heavy engines ===
+  // computeInsights/evaluateRisk are meaningless on empty data and any regression
+  // in those engines would crash the whole page. Return the simplified onboarding
+  // dashboard before we even touch them.
+  const isNewUserEarly = allEntries30.length < 3;
+  const renderSimplified = (reason: "new_user" | "engine_failure") => {
+    const earlyTasks: { label: string; href: string; done: boolean; priority: number }[] = [];
+    if (todayMedExpected > 0) {
+      if (todayMedTaken === todayMedExpected) earlyTasks.push({ label: "Medicação tomada", href: "/checkin", done: true, priority: 1 });
+      else if (todayMedTaken > 0) earlyTasks.push({ label: `Medicação: ${todayMedTaken} de ${todayMedExpected}`, href: "/checkin", done: false, priority: 1 });
+      else earlyTasks.push({ label: "Tomar medicação", href: "/checkin", done: false, priority: 1 });
+    } else if (todayEntry?.tookMedication === "nao" || todayEntry?.tookMedication === "nao_sei") {
+      earlyTasks.push({ label: "Tomar medicação", href: "/checkin", done: false, priority: 1 });
+    } else if (todayEntry?.tookMedication === "sim") {
+      earlyTasks.push({ label: "Medicação tomada", href: "/checkin", done: true, priority: 1 });
+    }
+    const cnt = todayEntry?.snapshotCount ?? 0;
+    earlyTasks.push({ label: cnt > 0 ? `Check-ins diários (${cnt} feito${cnt > 1 ? "s" : ""})` : "Check-ins diários", href: "/checkin", done: false, priority: 2 });
+    earlyTasks.push(haeKey
+      ? { label: "Sono (wearable)", href: "/sono", done: !!todaySleep, priority: 3 }
+      : { label: "Registrar sono", href: "/sono/novo", done: !!todaySleep, priority: 3 });
+    if (!lastWeeklyAssessment || (now.getTime() - lastWeeklyAssessment.createdAt.getTime()) > 7 * 24 * 60 * 60 * 1000) {
+      earlyTasks.push({ label: "Avaliação semanal", href: "/avaliacao-semanal", done: false, priority: 4 });
+    }
+    earlyTasks.sort((a, b) => a.priority - b.priority);
+    const welcomeCopy = reason === "new_user"
+      ? "Bem-vindo ao Suporte Bipolar! Comece registrando como você se sente. Com poucos dias de dados, o painel de estabilidade e os insights vão se ativar automaticamente."
+      : "Estamos carregando seu painel completo. Enquanto isso, você já pode registrar como está se sentindo hoje.";
+    return (
+      <div className="space-y-4">
+        <Greeting />
+        <Card className="bg-primary/5 border-primary/20">
+          <p className="text-lg font-semibold text-foreground mb-1">Seu primeiro passo</p>
+          <p className="text-sm text-muted">{welcomeCopy}</p>
+        </Card>
+        <Card>
+          <h2 className="text-sm font-semibold text-foreground mb-3">Para fazer hoje</h2>
+          <div className="space-y-2">
+            {earlyTasks.slice(0, 5).map((t, i) => (
+              <Link key={i} href={t.href} className="flex items-center gap-3 no-underline group min-h-[44px]">
+                <span aria-hidden="true" className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[11px] ${
+                  t.done ? "bg-success-bg-subtle border-success-border text-success-fg" : "border-border text-transparent group-hover:border-primary"
+                }`}>{t.done ? "✓" : ""}</span>
+                <span className={`text-sm ${t.done ? "text-muted line-through" : "text-foreground group-hover:text-primary"}`}>{t.label}</span>
+              </Link>
+            ))}
+          </div>
+        </Card>
+        <SOSButton />
+        {reason === "new_user" && (
+          <Link href="/hoje?full=1" className="flex items-center justify-center text-xs text-muted hover:text-foreground transition-colors min-h-[44px] no-underline">
+            Ver painel completo
+          </Link>
+        )}
+      </div>
+    );
+  };
+  if (isNewUserEarly && !dismissCrisis) return renderSimplified("new_user");
+
   // === Compute Insights (Risk Radar data) ===
   const sleepLogsForInsights = aggregateSleepByDay(allSleepLogs30.filter(l => l.totalHours >= 2 && !l.excluded));
   const entries30 = allEntries30.filter(e => e.date >= cutoff30Str);
@@ -267,7 +326,13 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
     };
   });
 
-  const insights = computeInsights(sleepLogsForInsights, entries30, [], plannerBlocks, now, TZ, allEntries30, allSleepLogs30.filter(l => !l.excluded), SHOW_FINANCEIRO ? financialTxs30 : []);
+  let insights: ReturnType<typeof computeInsights>;
+  try {
+    insights = computeInsights(sleepLogsForInsights, entries30, [], plannerBlocks, now, TZ, allEntries30, allSleepLogs30.filter(l => !l.excluded), SHOW_FINANCEIRO ? financialTxs30 : []);
+  } catch (err) {
+    Sentry.captureException(err, { tags: { source: "hoje_computeInsights" }, user: { id: session.userId } });
+    return renderSimplified("engine_failure");
+  }
 
   const { risk, thermometer, combinedPatterns, sleep: sleepInsights } = insights;
 
@@ -464,7 +529,9 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
     return { riskRole: med.riskRole, adherence7d, consecutiveMissed };
   });
 
-  const riskV2 = evaluateRisk({
+  let riskV2: ReturnType<typeof evaluateRisk>;
+  try {
+    riskV2 = evaluateRisk({
     userId: session.userId,
     entries: allEntries30.map((e) => ({
       date: e.date,
@@ -518,7 +585,11 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
       modalCooldownUntil: openAlertEpisode.modalCooldownUntil,
       resolvedAt: openAlertEpisode.resolvedAt,
     } : null,
-  });
+    });
+  } catch (err) {
+    Sentry.captureException(err, { tags: { source: "hoje_evaluateRisk" }, user: { id: session.userId } });
+    return renderSimplified("engine_failure");
+  }
 
   const alertLayer = riskV2.alertLayer;
   const alertActions = buildActions(alertLayer, riskV2.rails.safety, riskV2.rails.syndrome, riskV2.rails.prodrome);

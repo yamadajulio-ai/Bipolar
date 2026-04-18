@@ -2082,6 +2082,46 @@ describe("detectCrisisInTexts", () => {
     });
   });
 
+  describe("R17 — narrow idiomatic EXPLICIT patterns", () => {
+    it.each([
+      "é o fim da linha pra mim",
+      "eh o fim da linha pra mim",
+      "é o fim pra mim",
+      "não tem mais saída pra mim",
+      "nao tem mais saida pra mim",
+      "não existe mais saída na minha vida",
+    ])("detects EXPLICIT: %s", (text) => {
+      expect(detect(text)).toBe(true);
+    });
+  });
+
+  describe("R17 — 'vou apagar de uma vez' moved to CONTEXTUAL_HARM", () => {
+    it.each([
+      "vou apagar de uma vez",
+      "quero apagar pra sempre",
+      "queria apagar para sempre",
+    ])("does NOT detect alone: %s", (text) => {
+      expect(detect(text)).toBe(false);
+    });
+
+    it("does NOT detect benign memoria context: quero apagar de uma vez essa memória", () => {
+      // Ambiguous — could mean forgetting a bad memory. Needs harm corroboration.
+      expect(detect("quero apagar de uma vez essa memória")).toBe(false);
+    });
+
+    it("does NOT detect benign luz context: vou apagar pra sempre a luz do quarto", () => {
+      expect(detect("vou apagar pra sempre a luz do quarto")).toBe(false);
+    });
+
+    it("detects with harm context: vou apagar de uma vez + sofrendo", () => {
+      expect(detectMulti(["vou apagar de uma vez", "estou sofrendo demais"])).toBe(true);
+    });
+
+    it("detects with 2 contextual: apagar de uma vez + tenho um plano", () => {
+      expect(detectMulti(["vou apagar de uma vez", "tenho um plano"])).toBe(true);
+    });
+  });
+
   describe("R15 — numbers 10-19 by extenso + medication word must detect", () => {
     it.each([
       "tomei treze comprimidos",

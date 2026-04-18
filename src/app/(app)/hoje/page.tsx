@@ -931,7 +931,12 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
               </Link>
             </>
           ) : (
-            <p className="text-xs text-muted">Nenhum evento no Google Agenda para hoje.</p>
+            <>
+              <p className="text-xs text-muted">Nenhum evento no Google Agenda para hoje.</p>
+              <Link href="/integracoes" className="text-[11px] text-muted hover:text-primary inline-flex items-center min-h-[44px] mt-1">
+                Não está sincronizando? Reconectar
+              </Link>
+            </>
           )}
         </Card>
       ) : null}

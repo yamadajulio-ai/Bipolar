@@ -78,28 +78,25 @@ export async function pullGoogleCalendar(userId: string): Promise<SyncResult> {
   let cancelledProcessed = 0;
 
   if (isFullSync) {
-    if (txOps.length === 0) {
-      // Empty Google Calendar — don't wipe anything, just refresh sync metadata below.
-      pulled = 0;
-    } else {
-      // Atomic replace: delete stale Google blocks AND upsert fresh ones in the
-      // same transaction. If the transaction fails, the user keeps existing blocks.
-      try {
-        await prisma.$transaction([
-          prisma.plannerBlock.deleteMany({
-            where: {
-              userId,
-              sourceType: "google",
-              googleEventId: { notIn: upsertedIds },
-            },
-          }),
-          ...txOps,
-        ]);
-      } catch (err) {
-        console.error("[Google Sync] Full-sync transaction failed:", err);
-        errors = txOps.length;
-        pulled = 0;
+    // Atomic replace: delete stale Google blocks AND upsert fresh ones in the
+    // same transaction. If the transaction fails, the user keeps existing blocks.
+    // When txOps is empty (user legitimately cleared their calendar), the delete
+    // still runs alone so stale phantom events don't linger forever.
+    try {
+      const deleteOp = prisma.plannerBlock.deleteMany({
+        where: upsertedIds.length > 0
+          ? { userId, sourceType: "google", googleEventId: { notIn: upsertedIds } }
+          : { userId, sourceType: "google" },
+      });
+      if (txOps.length === 0) {
+        await deleteOp;
+      } else {
+        await prisma.$transaction([deleteOp, ...txOps]);
       }
+    } catch (err) {
+      console.error("[Google Sync] Full-sync transaction failed:", err);
+      errors = txOps.length;
+      pulled = 0;
     }
   } else {
     // Incremental sync: delete cancelled events + upsert in batches.

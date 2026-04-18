@@ -76,7 +76,8 @@ export default async function DiarioPage() {
               if (!entry.warningSigns) return [];
               try {
                 const parsed = JSON.parse(entry.warningSigns);
-                return Array.isArray(parsed) ? parsed : [];
+                if (!Array.isArray(parsed)) return [];
+                return parsed.filter((v): v is string => typeof v === "string");
               } catch {
                 return [];
               }

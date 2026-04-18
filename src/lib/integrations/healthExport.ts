@@ -321,7 +321,13 @@ function extractGenericMetrics(
   def: GenericMetricDef,
   errorDetails: Array<{ error: string; raw?: string }>,
 ): { results: ProcessedGenericMetric[]; skipped: number } {
-  const dayValues = new Map<string, number[]>();
+  // Bucket per (date, source) so we can dedup multi-source counters like steps.
+  // Apple Health reconciles overlapping sources (iPhone + Apple Watch) internally;
+  // HAE exports each source separately, so summing all entries double-counts.
+  // Strategy for sum-type metrics: sum within each source (handles interval buckets),
+  // then take MAX across sources per day (approximates Apple Health's priority dedup).
+  // For avg-type metrics (blood oxygen), average all values regardless of source.
+  const dayBySource = new Map<string, Map<string, number[]>>();
   let skipped = 0;
 
   for (const entry of metric.data) {
@@ -348,18 +354,51 @@ function extractGenericMetrics(
       continue;
     }
     const ymd = toYMD(parsed.value);
+    const source = entry.source ?? "";
 
-    const arr = dayValues.get(ymd) ?? [];
+    let bySource = dayBySource.get(ymd);
+    if (!bySource) {
+      bySource = new Map<string, number[]>();
+      dayBySource.set(ymd, bySource);
+    }
+    const arr = bySource.get(source) ?? [];
     arr.push(val);
-    dayValues.set(ymd, arr);
+    bySource.set(source, arr);
   }
 
   const results: ProcessedGenericMetric[] = [];
-  for (const [ymd, values] of dayValues) {
-    const aggregated = def.aggregation === "avg"
-      ? Math.round((values.reduce((a, b) => a + b, 0) / values.length) * 10) / 10
-      : Math.round(values.reduce((a, b) => a + b, 0));
-    results.push({ date: ymd, metric: def.metricKey, value: aggregated, unit: def.canonicalUnit });
+  for (const [ymd, bySource] of dayBySource) {
+    if (def.aggregation === "avg") {
+      // Average across every sample of every source for this day.
+      let total = 0;
+      let count = 0;
+      for (const vals of bySource.values()) {
+        for (const v of vals) { total += v; count++; }
+      }
+      if (count === 0) continue;
+      results.push({
+        date: ymd,
+        metric: def.metricKey,
+        value: Math.round((total / count) * 10) / 10,
+        unit: def.canonicalUnit,
+      });
+    } else {
+      // Sum within each source (intraday buckets), then take the MAX across sources.
+      // When no source metadata is present, every entry collapses into the ""
+      // bucket — equivalent to the previous sum-all behaviour.
+      let maxPerSource = 0;
+      for (const vals of bySource.values()) {
+        const sum = vals.reduce((a, b) => a + b, 0);
+        if (sum > maxPerSource) maxPerSource = sum;
+      }
+      if (maxPerSource <= 0) continue;
+      results.push({
+        date: ymd,
+        metric: def.metricKey,
+        value: Math.round(maxPerSource),
+        unit: def.canonicalUnit,
+      });
+    }
   }
 
   return { results, skipped };

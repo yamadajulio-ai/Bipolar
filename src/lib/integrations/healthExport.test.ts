@@ -242,6 +242,98 @@ describe("parseHealthExportPayloadV2", () => {
     expect(result.genericMetrics[0].unit).toBe("count");
   });
 
+  it("dedupes multi-source steps by taking MAX per day (Apple Health parity)", () => {
+    // Both iPhone and Apple Watch recorded the same day. Apple Health internally
+    // deduplicates and shows a single canonical number (~7954). HAE exports both
+    // sources — we must NOT sum (12954) or we double-count.
+    const payload = {
+      data: {
+        metrics: [
+          {
+            name: "step_count",
+            units: "count",
+            data: [
+              { date: "2025-06-15 00:00:00 -0300", sum: 5000, source: "iPhone" },
+              { date: "2025-06-15 00:00:00 -0300", sum: 7954, source: "Apple Watch" },
+            ],
+          },
+        ],
+      },
+    };
+    const result = parseHealthExportPayloadV2(payload);
+    expect(result.genericMetrics).toHaveLength(1);
+    expect(result.genericMetrics[0].value).toBe(7954);
+  });
+
+  it("sums intraday buckets from a single source", () => {
+    // HAE can emit hourly buckets per source. Same source across the day must sum.
+    const payload = {
+      data: {
+        metrics: [
+          {
+            name: "step_count",
+            units: "count",
+            data: [
+              { date: "2025-06-15 08:00:00 -0300", sum: 1200, source: "iPhone" },
+              { date: "2025-06-15 12:00:00 -0300", sum: 3100, source: "iPhone" },
+              { date: "2025-06-15 19:00:00 -0300", sum: 2700, source: "iPhone" },
+            ],
+          },
+        ],
+      },
+    };
+    const result = parseHealthExportPayloadV2(payload);
+    expect(result.genericMetrics).toHaveLength(1);
+    expect(result.genericMetrics[0].value).toBe(7000);
+  });
+
+  it("mixes intraday buckets per source and keeps the MAX source for the day", () => {
+    // iPhone reports three buckets that sum to 9000, Watch reports one bucket of 7954.
+    // We pick the higher source (iPhone), matching Apple Health's priority model.
+    const payload = {
+      data: {
+        metrics: [
+          {
+            name: "step_count",
+            units: "count",
+            data: [
+              { date: "2025-06-15 08:00:00 -0300", sum: 3000, source: "iPhone" },
+              { date: "2025-06-15 12:00:00 -0300", sum: 4000, source: "iPhone" },
+              { date: "2025-06-15 19:00:00 -0300", sum: 2000, source: "iPhone" },
+              { date: "2025-06-15 00:00:00 -0300", sum: 7954, source: "Apple Watch" },
+            ],
+          },
+        ],
+      },
+    };
+    const result = parseHealthExportPayloadV2(payload);
+    expect(result.genericMetrics).toHaveLength(1);
+    expect(result.genericMetrics[0].value).toBe(9000);
+  });
+
+  it("falls back to sum-all when no source metadata is present (backward compat)", () => {
+    // Legacy payloads without source info collapse into a single bucket and sum —
+    // preserves the pre-dedup behaviour so callers that never expose source keep working.
+    const payload = {
+      data: {
+        metrics: [
+          {
+            name: "step_count",
+            units: "count",
+            data: [
+              { date: "2025-06-15 08:00:00 -0300", sum: 1200 },
+              { date: "2025-06-15 12:00:00 -0300", sum: 3100 },
+              { date: "2025-06-15 19:00:00 -0300", sum: 2700 },
+            ],
+          },
+        ],
+      },
+    };
+    const result = parseHealthExportPayloadV2(payload);
+    expect(result.genericMetrics).toHaveLength(1);
+    expect(result.genericMetrics[0].value).toBe(7000);
+  });
+
   it("extracts active calories metric", () => {
     const payload = {
       data: {

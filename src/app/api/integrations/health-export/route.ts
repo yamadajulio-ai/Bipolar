@@ -102,15 +102,19 @@ async function processPayloadInBackground(
             e.value && /Core|Deep|REM|Asleep|InBed|Awake/i.test(e.value))))
       : null;
     if (sleepMetricRaw) {
+      // Store ONLY sanitized counts/shape — never raw payload bytes (could contain
+      // API key if upstream SDK accidentally echoes it, plus PHI minimization).
+      const sleepMetric = sleepMetricRaw as { name?: string; data?: unknown[] };
       const debugPayload = JSON.stringify({
-        _sleepMetric: sleepMetricRaw,
-        _parsedNights: result.sleepNights,
+        _sleepMetricName: typeof sleepMetric.name === "string" ? sleepMetric.name.slice(0, 64) : null,
+        _sleepDataPoints: Array.isArray(sleepMetric.data) ? sleepMetric.data.length : 0,
+        _parsedNightsCount: result.sleepNights.length,
         _metricsCount: metrics.length,
         _timestamp: new Date().toISOString(),
       });
       await prisma.integrationKey.update({
         where: { apiKey },
-        data: { lastPayloadDebug: debugPayload.slice(0, 50000) },
+        data: { lastPayloadDebug: debugPayload.slice(0, 4000) },
       });
     }
 

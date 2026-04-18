@@ -2,6 +2,7 @@ import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import * as Sentry from "@sentry/nextjs";
+import { waitUntil } from "@vercel/functions";
 import { localToday, localDateStr } from "@/lib/dateUtils";
 import { pullGoogleCalendar } from "@/lib/google/sync";
 import { getNews } from "@/lib/news";
@@ -128,19 +129,46 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
   cutoff7.setDate(cutoff7.getDate() - 7);
   const cutoff7Str = localDateStr(cutoff7);
 
-  // === Sync Google Calendar if connected (fire-and-forget, non-blocking) ===
-  prisma.googleAccount.findUnique({
-    where: { userId: session.userId },
-    select: { lastSyncAt: true },
-  }).then((ga) => {
+  // === Sync Google Calendar if connected ===
+  // Block briefly (up to 6s) so events appear on current load; continue in
+  // background via waitUntil if sync outlasts the timeout. This prevents the
+  // "Nenhum evento" ghost state on first load / after connect / very stale syncs.
+  let googleNeedsReauth = false;
+  try {
+    const ga = await prisma.googleAccount.findUnique({
+      where: { userId: session.userId },
+      select: { lastSyncAt: true },
+    });
     if (ga) {
       const lastSync = ga.lastSyncAt?.getTime() ?? 0;
-      const stale = now.getTime() - lastSync > 5 * 60 * 1000; // 5 min
-      if (stale) pullGoogleCalendar(session.userId).catch((err) => {
-        Sentry.captureException(err, { tags: { source: "hoje_gcal_sync" } });
-      });
+      const stale = now.getTime() - lastSync > 5 * 60 * 1000;
+      if (stale) {
+        const syncPromise = pullGoogleCalendar(session.userId);
+        try {
+          await Promise.race([
+            syncPromise,
+            new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error("SYNC_TIMEOUT")), 6000),
+            ),
+          ]);
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          if (msg.includes("GOOGLE_REAUTH_REQUIRED")) {
+            googleNeedsReauth = true;
+          } else if (msg !== "SYNC_TIMEOUT") {
+            Sentry.captureException(err, {
+              tags: { source: "hoje_gcal_sync" },
+              user: { id: session.userId },
+            });
+          }
+        }
+        // Let any in-flight sync finish after the response is sent
+        waitUntil(syncPromise.catch(() => {}));
+      }
     }
-  }).catch(() => {});
+  } catch (err) {
+    Sentry.captureException(err, { tags: { source: "hoje_gcal_sync_check" } });
+  }
 
   // === Fetch all data in parallel ===
   const [
@@ -895,7 +923,16 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
             <h2 className="text-sm font-semibold text-foreground">Agenda de hoje</h2>
             <Link href="/agenda-rotina" className="text-xs text-primary hover:underline inline-flex items-center min-h-[44px]">Ver tudo</Link>
           </div>
-          <p className="text-xs text-muted">Nenhum evento no Google Agenda para hoje.</p>
+          {googleNeedsReauth ? (
+            <>
+              <p className="text-xs text-muted mb-2">A conexão com o Google Agenda expirou.</p>
+              <Link href="/integracoes" className="text-xs font-medium text-primary hover:underline inline-flex items-center min-h-[44px]">
+                Reconectar Google Agenda
+              </Link>
+            </>
+          ) : (
+            <p className="text-xs text-muted">Nenhum evento no Google Agenda para hoje.</p>
+          )}
         </Card>
       ) : null}
 

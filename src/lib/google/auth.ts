@@ -40,8 +40,23 @@ export async function getAuthenticatedClient(userId: string) {
     expiry_date: account.expiresAt.getTime(),
   });
 
-  // Auto-refresh if expired
+  // Auto-refresh if expired. Re-read the row first: if a concurrent request
+  // already refreshed in the last few seconds, reuse that token instead of
+  // calling Google's /oauth/token a second time (which fails with
+  // `invalid_grant` and would falsely trigger GOOGLE_REAUTH_REQUIRED).
   if (account.expiresAt.getTime() < Date.now()) {
+    const fresh = await prisma.googleAccount.findUnique({
+      where: { userId },
+      select: { accessToken: true, refreshToken: true, expiresAt: true },
+    });
+    if (fresh && fresh.expiresAt.getTime() > Date.now() + 30_000) {
+      oauth2Client.setCredentials({
+        access_token: decrypt(fresh.accessToken),
+        refresh_token: decrypt(fresh.refreshToken),
+        expiry_date: fresh.expiresAt.getTime(),
+      });
+      return oauth2Client;
+    }
     try {
       const { credentials } = await oauth2Client.refreshAccessToken();
       await prisma.googleAccount.update({
@@ -55,6 +70,19 @@ export async function getAuthenticatedClient(userId: string) {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       if (msg.includes("invalid_grant")) {
+        // Final check: a parallel refresh may have just landed.
+        const final = await prisma.googleAccount.findUnique({
+          where: { userId },
+          select: { accessToken: true, refreshToken: true, expiresAt: true },
+        });
+        if (final && final.expiresAt.getTime() > Date.now() + 30_000) {
+          oauth2Client.setCredentials({
+            access_token: decrypt(final.accessToken),
+            refresh_token: decrypt(final.refreshToken),
+            expiry_date: final.expiresAt.getTime(),
+          });
+          return oauth2Client;
+        }
         throw new Error("GOOGLE_REAUTH_REQUIRED");
       }
       throw err;

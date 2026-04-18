@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { z } from "zod/v4";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
@@ -60,41 +61,43 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Batch all upserts + legacy updates in a single transaction
+    // Batch all upserts + legacy updates in a single transaction.
+    // Run upserts SEQUENTIALLY inside the transaction to avoid concurrent
+    // (scheduleId, date) collisions hitting the unique constraint (P2002) under
+    // double-tap or retried requests.
     const dates = [...new Set(parsed.data.logs.map((l) => l.date))];
     const results = await prisma.$transaction(async (tx) => {
-      // Upsert all logs in parallel (idempotent by scheduleId + date)
-      const upserted = await Promise.all(
-        parsed.data.logs.map((log) => {
-          const schedule = scheduleMap.get(log.scheduleId)!;
-          return tx.medicationLog.upsert({
-            where: { scheduleId_date: { scheduleId: log.scheduleId, date: log.date } },
-            update: {
-              status: log.status,
-              takenAt: log.status === "TAKEN" ? new Date() : null,
-              source: log.source ?? "MEDICATION_PAGE",
-            },
-            create: {
-              userId: session.userId,
-              medicationId: schedule.medication.id,
-              scheduleId: log.scheduleId,
-              date: log.date,
-              status: log.status,
-              scheduledTimeLocal: schedule.timeLocal,
-              takenAt: log.status === "TAKEN" ? new Date() : null,
-              source: log.source ?? "MEDICATION_PAGE",
-            },
-          });
-        }),
-      );
+      const upserted: Awaited<ReturnType<typeof tx.medicationLog.upsert>>[] = [];
+      for (const log of parsed.data.logs) {
+        const schedule = scheduleMap.get(log.scheduleId)!;
+        const row = await tx.medicationLog.upsert({
+          where: { scheduleId_date: { scheduleId: log.scheduleId, date: log.date } },
+          update: {
+            status: log.status,
+            takenAt: log.status === "TAKEN" ? new Date() : null,
+            source: log.source ?? "MEDICATION_PAGE",
+          },
+          create: {
+            userId: session.userId,
+            medicationId: schedule.medication.id,
+            scheduleId: log.scheduleId,
+            date: log.date,
+            status: log.status,
+            scheduledTimeLocal: schedule.timeLocal,
+            takenAt: log.status === "TAKEN" ? new Date() : null,
+            source: log.source ?? "MEDICATION_PAGE",
+          },
+        });
+        upserted.push(row);
+      }
 
-      // Update legacy tookMedication on DiaryEntry for backward compat (inside transaction)
-      await Promise.all(
-        dates.map((date) => updateLegacyMedication(tx, session.userId, date)),
-      );
+      // Update legacy tookMedication on DiaryEntry for backward compat
+      for (const date of dates) {
+        await updateLegacyMedication(tx, session.userId, date);
+      }
 
       return upserted;
-    });
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
     const elapsed = Math.round(performance.now() - start);
     const res = NextResponse.json({ count: results.length }, { status: 201 });

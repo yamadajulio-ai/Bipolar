@@ -72,9 +72,15 @@ export default async function DiarioPage() {
       ) : (
         <div className="space-y-3">
           {entries.map((entry) => {
-            const signs: string[] = entry.warningSigns
-              ? JSON.parse(entry.warningSigns)
-              : [];
+            const signs: string[] = (() => {
+              if (!entry.warningSigns) return [];
+              try {
+                const parsed = JSON.parse(entry.warningSigns);
+                return Array.isArray(parsed) ? parsed : [];
+              } catch {
+                return [];
+              }
+            })();
             const med = medicationLabel(entry.tookMedication);
 
             return (

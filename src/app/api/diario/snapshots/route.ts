@@ -10,7 +10,7 @@ import { hasConsent } from "@/lib/consent";
 import * as Sentry from "@sentry/nextjs";
 
 const EDIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
-const REPROJECT_MAX_RETRIES = 3;
+const REPROJECT_MAX_RETRIES = 5;
 
 /** Check if an error is a Prisma P2034 serialization failure */
 function isSerializationFailure(err: unknown): boolean {
@@ -22,28 +22,38 @@ function isSerializationFailure(err: unknown): boolean {
   );
 }
 
-/** Call reprojectEntry with retry on serialization conflicts (P2034) */
+/** Call reprojectEntry with exponential-backoff retry on serialization conflicts (P2034). */
 async function reprojectWithRetry(
   entryId: string,
   dailyUpdate?: Record<string, unknown>,
 ): Promise<number> {
+  let lastErr: unknown;
   for (let attempt = 0; attempt < REPROJECT_MAX_RETRIES; attempt++) {
     try {
       return await reprojectEntry(entryId, dailyUpdate);
     } catch (err) {
+      lastErr = err;
       if (isSerializationFailure(err) && attempt < REPROJECT_MAX_RETRIES - 1) {
         Sentry.addBreadcrumb({
           category: "db.retry",
           message: `reprojectEntry serialization retry ${attempt + 1}/${REPROJECT_MAX_RETRIES} for entry ${entryId}`,
           level: "warning",
         });
+        // Exponential backoff with jitter: 25ms, 75ms, 175ms, 375ms
+        const delay = (1 << attempt) * 25 + Math.floor(Math.random() * 25);
+        await new Promise((r) => setTimeout(r, delay));
         continue;
       }
       throw err;
     }
   }
-  // Unreachable, but satisfies TypeScript
-  throw new Error("reprojectWithRetry: exhausted retries");
+  // All retries exhausted on serialization — escalate so the API caller knows
+  // the projection is stale (avoid silent data drift in risk-v2 inputs).
+  Sentry.captureException(lastErr, {
+    tags: { source: "reproject_retries_exhausted" },
+    extra: { entryId },
+  });
+  throw lastErr ?? new Error("reprojectWithRetry: exhausted retries");
 }
 
 const snapshotSchema = z.object({

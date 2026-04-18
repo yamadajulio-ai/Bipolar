@@ -40,8 +40,13 @@ export default function MedicamentosPage() {
       if (res.ok) {
         const data = await res.json();
         setMedications(data);
+        setError("");
+      } else {
+        setError("Não foi possível carregar seus medicamentos. Tente recarregar a página.");
       }
-    } catch { /* silent */ }
+    } catch {
+      setError("Sem conexão. Verifique sua internet e tente novamente.");
+    }
     finally { setLoading(false); }
   }, []);
 

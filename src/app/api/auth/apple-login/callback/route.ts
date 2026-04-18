@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { timingSafeEqual } from "crypto";
 import * as Sentry from "@sentry/nextjs";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
@@ -51,8 +52,13 @@ export async function POST(request: NextRequest) {
     return errorRedirect("invalid_request");
   }
 
-  // CSRF: validate state matches cookie
-  if (!state || !storedState || state !== storedState) {
+  // CSRF: validate state matches cookie (timing-safe)
+  if (!state || !storedState) {
+    return errorRedirect("csrf");
+  }
+  const stateBuf = Buffer.from(state);
+  const storedBuf = Buffer.from(storedState);
+  if (stateBuf.length !== storedBuf.length || !timingSafeEqual(stateBuf, storedBuf)) {
     return errorRedirect("csrf");
   }
 

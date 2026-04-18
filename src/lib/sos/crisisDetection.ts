@@ -179,6 +179,18 @@ const EXPLICIT_CRISIS: RegExp[] = [
   /\b(abrir|abri)\s*(os\s*|meus?\s*)?pulsos?\b/i,
   // Farewell (unambiguous)
   /\b(carta\s*de\s*despedida|adeus\s*pra\s*sempre)\b/i,
+  // ── Brazilian colloquial intent (R17 audit) ──
+  // "vou apagar de uma vez" / "vou apagar pra sempre" — self-extinguish.
+  // Note: "apagar de vez" (without "uma") stays CONTEXTUAL per R16 (kept ambiguous —
+  // could mean "apagar a memória de vez", "apagar a luz de vez").
+  // BENIGN_OVERRIDES below cover "apagar a luz", "apagar o fogo".
+  /\b(vou|quero|queria)\s*apagar\s*(de\s*uma\s*vez|p(a|r)?ra\s*sempre)\b/i,
+  // "meu plano final" / "tenho um plano final" — suicide planning ideation
+  /\b(meu|um|tenho\s*um)\s*plano\s*final\b/i,
+  // "fim da linha pra mim" — colloquial farewell ideation
+  /\b(e|eh)\s*o\s*fim\s*(da\s*linha\s*)?p(a|r)?ra\s*mim\b/i,
+  // "não tem mais saída" + first-person — narrowed (saída alone is benign)
+  /\bnao\s*(tem|ha|existe)\s*mais\s*saida\s*(p(a|r)?ra\s*mim|na\s*minha\s*vida)\b/i,
 ];
 
 // ── Dose escalation invalidation ──────────────────────────────────
@@ -357,6 +369,9 @@ const BENIGN_OVERRIDES: RegExp[] = [
   /pul(ar|ei|ou)\s*d[aeo]\s*(cadeira|portao|banco|mesa)/i,
   // "tomei uma caixa de leite/suco/água/chá" — food/drink, not medication
   /(caixa|frasco)\s*de\s*(leite|suco|agua|cha|cafe|iogurte|cerveja|vinho|vitamina)/i,
+  // ── Apagar overrides (R17): preserve domestic/figurative uses ──
+  /\b(vou|quero|queria)\s*apagar\s*(a\s*)?(luz|tv|televisao|computador|fogo|vela|cigarro|alarme|notificacao|memoria|lembranca)/i,
+  /\bapagar\s*(o\s*)?fogo\s*(d[aeo]\s*(forno|fogao|churrasqueira|incendio))/i,
 ];
 
 // CONTEXTUAL patterns are split into HARM (suicide/means) and BIPOLAR (decompensation).

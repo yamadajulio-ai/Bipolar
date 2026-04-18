@@ -1,4 +1,5 @@
 import { getSession } from "@/lib/auth";
+import * as Sentry from "@sentry/nextjs";
 import { prisma } from "@/lib/db";
 import { Card } from "@/components/Card";
 import { Alert } from "@/components/Alert";
@@ -226,7 +227,28 @@ export default async function InsightsPage({
   });
 
   const allSleepLogsFiltered = aggregateSleepByDay(allSleepLogs.filter((l) => !l.excluded));
-  const insights = computeInsights(sleepLogsForInsights, entries, [], plannerBlocks, now, TZ, allEntries, allSleepLogsFiltered, SHOW_FINANCEIRO ? financialTxs : []);
+  let insights: ReturnType<typeof computeInsights>;
+  try {
+    insights = computeInsights(sleepLogsForInsights, entries, [], plannerBlocks, now, TZ, allEntries, allSleepLogsFiltered, SHOW_FINANCEIRO ? financialTxs : []);
+  } catch (err) {
+    Sentry.captureException(err, { tags: { source: "insights_computeInsights" }, user: { id: session.userId } });
+    return (
+      <div className="space-y-4">
+        <Card>
+          <h2 className="text-base font-semibold text-foreground mb-2">Insights temporariamente indisponíveis</h2>
+          <p className="text-sm text-muted">
+            Não conseguimos calcular seus insights agora. A equipe foi notificada.
+            Continue registrando seu humor e sono — assim que tudo voltar, seus dados estarão prontos.
+          </p>
+          <div className="mt-3">
+            <Link href="/checkin" className="text-sm text-primary hover:underline inline-flex items-center min-h-[44px]">
+              Fazer check-in agora
+            </Link>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   const lastNights = allSleepLogs.filter((l) => l.totalHours > 0).slice(-nightsToShow).reverse();
 

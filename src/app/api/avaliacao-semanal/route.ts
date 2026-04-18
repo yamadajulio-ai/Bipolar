@@ -19,6 +19,7 @@ const assessmentSchema = z.object({
       leisure: z.number().int().min(1).max(5),
     })
     .optional(),
+  exerciseDaysPerWeek: z.number().int().min(0).max(7).optional(),
   notes: z.string().max(280).optional(),
 });
 
@@ -51,6 +52,7 @@ export async function GET(request: NextRequest) {
         phq9Item9: true,
         fastScores: true,
         fastAvg: true,
+        exerciseDaysPerWeek: true,
         notes: true,
         createdAt: true,
       },
@@ -103,7 +105,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { date, asrmScores, phq9Scores, fastScores, notes } = parsed.data;
+    const { date, asrmScores, phq9Scores, fastScores, exerciseDaysPerWeek, notes } = parsed.data;
 
     // Defense-in-depth: reject sentinel -1 values that bypass Zod min(0) via type coercion
     if (asrmScores?.some((v) => v < 0)) {
@@ -161,6 +163,7 @@ export async function POST(request: NextRequest) {
         phq9Item9,
         fastScores: fastScores ? JSON.stringify(fastScores) : null,
         fastAvg,
+        exerciseDaysPerWeek: exerciseDaysPerWeek ?? null,
         notes: notes || null,
       },
       update: {
@@ -171,6 +174,7 @@ export async function POST(request: NextRequest) {
         phq9Item9: phq9Item9 ?? undefined,
         fastScores: fastScores ? JSON.stringify(fastScores) : undefined,
         fastAvg: fastAvg ?? undefined,
+        exerciseDaysPerWeek: exerciseDaysPerWeek !== undefined ? exerciseDaysPerWeek : undefined,
         notes: notes !== undefined ? notes || null : undefined,
       },
       select: {
@@ -183,6 +187,7 @@ export async function POST(request: NextRequest) {
         phq9Item9: true,
         fastScores: true,
         fastAvg: true,
+        exerciseDaysPerWeek: true,
         notes: true,
         createdAt: true,
       },

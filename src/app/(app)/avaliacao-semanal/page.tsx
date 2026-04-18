@@ -38,6 +38,7 @@ interface ExistingAssessment {
   asrmScores: string | null;
   phq9Scores: string | null;
   fastScores: string | null;
+  exerciseDaysPerWeek: number | null;
   notes: string | null;
   date: string;
   createdAt: string;
@@ -49,6 +50,7 @@ export default function AvaliacaoSemanalPage() {
   const [asrmScores, setAsrmScores] = useState<number[]>(Array(5).fill(-1));
   const [phq9Scores, setPhq9Scores] = useState<number[]>(Array(9).fill(-1));
   const [fastScores, setFastScores] = useState<Record<string, number>>({});
+  const [exerciseDays, setExerciseDays] = useState<number | null>(null);
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -140,6 +142,7 @@ export default function AvaliacaoSemanalPage() {
       if (Array.isArray(draft.asrmScores) && draft.asrmScores.length === 5) setAsrmScores(draft.asrmScores);
       // PHQ-9 scores are never persisted in drafts (contains sensitive suicidal ideation data)
       if (draft.fastScores && typeof draft.fastScores === "object" && !Array.isArray(draft.fastScores)) setFastScores(draft.fastScores);
+      if (typeof draft.exerciseDays === "number" && draft.exerciseDays >= 0 && draft.exerciseDays <= 7) setExerciseDays(draft.exerciseDays);
       if (typeof draft.notes === "string") setNotes(draft.notes);
       if (draft.step && ["asrm", "phq9", "fast", "review"].includes(draft.step)) setStep(draft.step);
     } catch { /* ignore corrupt draft */ }
@@ -151,12 +154,12 @@ export default function AvaliacaoSemanalPage() {
       try {
         sessionStorage.setItem(
           DRAFT_KEY,
-          JSON.stringify({ asrmScores, fastScores, notes, step }),
+          JSON.stringify({ asrmScores, fastScores, exerciseDays, notes, step }),
         );
       } catch { /* storage full — ignore */ }
     }, 500);
     return () => clearTimeout(timer);
-  }, [asrmScores, fastScores, notes, step, DRAFT_KEY]);
+  }, [asrmScores, fastScores, exerciseDays, notes, step, DRAFT_KEY]);
 
   function prefillFromExisting(assessment: ExistingAssessment) {
     try {
@@ -174,6 +177,7 @@ export default function AvaliacaoSemanalPage() {
           : assessment.fastScores;
         if (parsed && typeof parsed === "object") setFastScores(parsed);
       }
+      if (typeof assessment.exerciseDaysPerWeek === "number") setExerciseDays(assessment.exerciseDaysPerWeek);
       if (assessment.notes) setNotes(assessment.notes);
     } catch {
       // Corrupted stored data — start fresh
@@ -258,6 +262,7 @@ export default function AvaliacaoSemanalPage() {
       if (fastComplete) {
         body.fastScores = fastScores;
       }
+      if (exerciseDays !== null) body.exerciseDaysPerWeek = exerciseDays;
       if (notes.trim()) body.notes = notes.trim();
 
       const res = await fetch("/api/avaliacao-semanal", {
@@ -698,6 +703,47 @@ export default function AvaliacaoSemanalPage() {
                 <div className="text-[11px] text-muted">Funcionamento</div>
               </div>
             </div>
+          </Card>
+
+          <Card>
+            <p className="mb-1 text-sm font-medium text-foreground">
+              Nesta semana, em quantos dias você se exercitou por pelo menos 30 minutos?
+            </p>
+            <p className="mb-3 text-[11px] text-muted">
+              Caminhada, dança, academia, yoga, esporte — qualquer atividade que deixe o corpo em movimento. Recomendação OMS: ≥5 dias/semana.
+            </p>
+            <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-8">
+              {[0, 1, 2, 3, 4, 5, 6, 7].map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setExerciseDays(n)}
+                  aria-pressed={exerciseDays === n}
+                  aria-label={`${n} ${n === 1 ? "dia" : "dias"} de exercício`}
+                  className={`rounded-lg border px-2 py-2 min-h-[44px] text-sm font-medium transition-colors ${
+                    exerciseDays === n
+                      ? "border-primary bg-primary/10 text-foreground"
+                      : "border-border bg-surface text-muted hover:border-primary/50"
+                  }`}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+            {exerciseDays !== null && (
+              <p className={`mt-2 text-[11px] ${exerciseDays >= 5 ? "text-success-fg" : exerciseDays >= 3 ? "text-muted" : "text-muted"}`}>
+                {exerciseDays >= 5
+                  ? "Dentro da recomendação da OMS — ótimo para estabilidade do humor."
+                  : exerciseDays >= 3
+                    ? "Bom começo — atividade regular ajuda a estabilizar humor e sono."
+                    : exerciseDays === 0
+                      ? "Sem pressão — em fases depressivas o corpo realmente não coopera. Comece pequeno quando puder."
+                      : "Pouco movimento esta semana — qualquer quantidade ajuda, mesmo 10 minutos contam."}
+              </p>
+            )}
+            <p className="mt-2 text-[11px] text-muted italic">
+              Opcional. Pular é totalmente aceitável.
+            </p>
           </Card>
 
           <Card>

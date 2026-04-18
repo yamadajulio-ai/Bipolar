@@ -244,6 +244,7 @@
 - Página: `src/app/(app)/avaliacao-semanal/page.tsx` (Client Component, wizard 4 etapas)
 - API: `src/app/api/avaliacao-semanal/route.ts` (GET histórico + POST upsert)
 - Escalas: ASRM (mania, 5 itens 0-4, total 0-20), PHQ-9 (depressão, 9 itens 0-3, total 0-27), FAST Short (funcionamento, 6 domínios 1-5)
+- **Exercício semanal (opcional)**: campo `exerciseDaysPerWeek` (Int? 0-7) no Review step. Self-report de dias com ≥30min de atividade. Meta OMS: ≥5/semana. Deliberadamente **NÃO** entra no Stability Score (direção causal perigosa — penalizaria usuários em fase depressiva). Usado como sinal adjuvante no viewer profissional e no export clínico.
 - Constantes: `src/lib/constants.ts` (ASRM_ITEMS, PHQ9_ITEMS, PHQ9_FREQUENCY_OPTIONS, FAST_SHORT_ITEMS)
 - **1 registro por semana** (unique: userId + date domingo), upsert sobrescreve se mesmo domingo
 - **Proteção de sobrescrita**: ao abrir a página, verifica se já existe avaliação da semana → mostra alerta com opções "Editar respostas anteriores" (pré-preenche) ou "Começar do zero"

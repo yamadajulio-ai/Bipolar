@@ -23,6 +23,7 @@ export default async function ViewerAvaliacoesPage({
         phq9Total: true,
         phq9Item9: true,
         fastAvg: true,
+        exerciseDaysPerWeek: true,
         notes: true,
         createdAt: true,
       },
@@ -72,6 +73,7 @@ export default async function ViewerAvaliacoesPage({
                   <th className="px-3 py-2 text-center text-xs font-medium text-muted">PHQ-9</th>
                   <th className="px-3 py-2 text-center text-xs font-medium text-muted">Item 9</th>
                   <th className="px-3 py-2 text-center text-xs font-medium text-muted">FAST</th>
+                  <th className="px-3 py-2 text-center text-xs font-medium text-muted" title="Dias de exercício ≥30min na semana (auto-relato, meta OMS ≥5)">Exerc.</th>
                   <th className="px-3 py-2 text-left text-xs font-medium text-muted">Notas</th>
                 </tr>
               </thead>
@@ -107,6 +109,15 @@ export default async function ViewerAvaliacoesPage({
                     <td className="px-3 py-2 text-center">
                       {a.fastAvg !== null ? Number(a.fastAvg).toFixed(1) : "—"}
                     </td>
+                    <td className={`px-3 py-2 text-center ${
+                      a.exerciseDaysPerWeek !== null && a.exerciseDaysPerWeek >= 5
+                        ? "text-success-fg font-medium"
+                        : a.exerciseDaysPerWeek !== null && a.exerciseDaysPerWeek <= 1
+                          ? "text-warning-fg"
+                          : ""
+                    }`}>
+                      {a.exerciseDaysPerWeek !== null ? `${a.exerciseDaysPerWeek}/7` : "—"}
+                    </td>
                     <td className="px-3 py-2 text-xs text-muted max-w-[200px] truncate">
                       {a.notes || "—"}
                     </td>
@@ -118,6 +129,7 @@ export default async function ViewerAvaliacoesPage({
           <p className="mt-3 text-[11px] text-muted">
             ASRM ≥6 = possível hipomania. PHQ-9: 5-9 leve, 10-14 moderado, 15-19 mod-severo, 20+ severo.
             Item 9 = ideação suicida (≥1 requer atenção imediata).
+            Exerc. = dias/semana com ≥30min de atividade (auto-relato; OMS recomenda ≥5).
           </p>
         </Card>
       )}

@@ -583,6 +583,7 @@ model WeeklyAssessment {
   phq9Item9  Int? // Item 9 (ideation) separated for safety flow
   fastScores String? // JSON: { work: 1-5, social: 1-5, ... }
   fastAvg    Float? // Average functioning score
+  exerciseDaysPerWeek Int? // 0-7, self-reported days of ≥30min exercise in past week (WHO rec: 5/wk)
   notes      String? // max 280 chars
   createdAt  DateTime @default(now())
 

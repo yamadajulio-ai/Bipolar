@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
     prisma.weeklyAssessment.findMany({
       where: { userId: session.userId, date: { gte: startDate, lt: endDate } },
       orderBy: { date: "asc" },
-      select: { id: true, date: true, asrmTotal: true, phq9Total: true, fastAvg: true },
+      select: { id: true, date: true, asrmTotal: true, phq9Total: true, fastAvg: true, exerciseDaysPerWeek: true },
     }),
     prisma.lifeChartEvent.findMany({
       where: { userId: session.userId, date: { gte: startDate, lt: endDate } },
@@ -162,6 +162,7 @@ export async function GET(request: NextRequest) {
       asrmTotal: w.asrmTotal,
       phq9Total: w.phq9Total,
       fastAvg: w.fastAvg,
+      exerciseDaysPerWeek: w.exerciseDaysPerWeek,
     })),
     lifeChartEvents: lifeChartEvents.map((e) => ({
       date: e.date,

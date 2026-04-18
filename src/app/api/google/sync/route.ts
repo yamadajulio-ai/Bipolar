@@ -7,7 +7,10 @@ import { pullGoogleCalendar } from "@/lib/google/sync";
 import { getAuthenticatedClient } from "@/lib/google/auth";
 import { listEvents, isAllDayEvent, isLongEvent } from "@/lib/google/calendar";
 
-export const maxDuration = 30;
+// Large recurring calendars can yield 300+ events across the -7/+14 day window;
+// parallel-batched upserts on Neon typically finish in 5–15s but 60s absorbs
+// cold-starts and worst-case calendars.
+export const maxDuration = 60;
 
 export async function GET(request: Request) {
   const session = await getSession();

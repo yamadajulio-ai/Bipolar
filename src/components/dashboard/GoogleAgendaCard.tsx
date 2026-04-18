@@ -53,6 +53,7 @@ export function GoogleAgendaCard({ todayBlocks, hasGoogleCal, googleNeedsReauth,
       const res = await fetch(`/api/google/sync${full ? "?full=1" : ""}`, {
         method: "POST",
       });
+      // 504/408 return HTML — body.json() would throw silently without .catch
       const body = (await res.json().catch(() => ({}))) as {
         pulled?: number;
         errors?: number;
@@ -66,6 +67,15 @@ export function GoogleAgendaCard({ todayBlocks, hasGoogleCal, googleNeedsReauth,
       }
       if (res.status === 429) {
         setState({ kind: "error", message: "Muitas sincronizações recentes. Tente em alguns minutos." });
+        return;
+      }
+      if (res.status === 504 || res.status === 408) {
+        // Gateway timeout — sync may still be finishing in the background on
+        // Vercel. A page refresh in a few seconds usually reveals the events.
+        setState({
+          kind: "error",
+          message: "A sincronização está demorando. Espere uns segundos e recarregue a página — seu calendário pode ter muitos eventos recorrentes.",
+        });
         return;
       }
       if (!res.ok) {
@@ -174,12 +184,20 @@ export function GoogleAgendaCard({ todayBlocks, hasGoogleCal, googleNeedsReauth,
       ) : state.kind === "error" ? (
         <>
           <p className="text-xs text-danger-fg mb-2">{state.message}</p>
-          <button
-            onClick={() => triggerSync(true)}
-            className="inline-flex items-center justify-center min-h-[44px] rounded-lg border border-border px-3 text-xs font-medium text-foreground hover:bg-surface-alt"
-          >
-            Tentar novamente
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => triggerSync(true)}
+              className="inline-flex items-center justify-center min-h-[44px] rounded-lg border border-border px-3 text-xs font-medium text-foreground hover:bg-surface-alt"
+            >
+              Tentar novamente
+            </button>
+            <button
+              onClick={() => router.refresh()}
+              className="inline-flex items-center justify-center min-h-[44px] rounded-lg border border-border px-3 text-xs font-medium text-muted hover:text-foreground hover:bg-surface-alt"
+            >
+              Recarregar página
+            </button>
+          </div>
         </>
       ) : (
         <>

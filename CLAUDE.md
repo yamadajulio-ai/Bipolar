@@ -170,7 +170,7 @@
   0. Integrações críticas (Wearable + Google Agenda) — só se não conectadas
   1. Score de Estabilidade — `StabilityScoreWidget`
   2. Para fazer hoje — checklist de tarefas
-  3. Sinais de atenção + Risk Radar — AlertCard + hero card
+  3. Sinais de atenção + Risk Radar — AlertCard (só ORANGE) + hero card
   4. Agenda de hoje — Google Calendar (empty state se conectado sem eventos)
   5. Seu estado hoje — humor/energia/sono/medicação
   6. Corpo (7 dias) — passos, HRV, FC
@@ -182,6 +182,7 @@
   12. Integrações restantes (Mobills) — separado das críticas
 - **Safety gates**: RED → SafetyModeScreen (early return). New user (<3 entries) → simplified dashboard.
 - **Google Calendar sync**: fire-and-forget com Sentry error tracking (fix 2026-03-30)
+- **AlertCard YELLOW desabilitado** (2026-04-17): render gated para `ORANGE` apenas. Motivo: YELLOW gerava bloco sem utilidade — CTA "Refazer check-in mais tarde" era vago (usuário acabou de fazer o check-in que disparou o alerta), "Ver plano de bem-estar" apontava para `/plano-de-crise` (rótulo ≠ destino), e reasons frequentemente vinham vazias (lista só renderiza se `reasons.length > 0`). Lógica Risk-v2 (rails, `DailyRiskSnapshot`, copy/actions YELLOW) mantida intacta para reativação futura com CTAs melhores.
 
 ## Insights — Arquitetura
 - Página: `src/app/(app)/insights/page.tsx` (Server Component)

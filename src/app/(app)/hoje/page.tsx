@@ -816,9 +816,9 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
       </Card>
 
       {/* === 3. SINAIS DE ATENÇÃO + RISK RADAR === */}
-      {(alertLayer === "ORANGE" || alertLayer === "YELLOW") && (
+      {alertLayer === "ORANGE" && (
         <AlertCard
-          layer={alertLayer as "ORANGE" | "YELLOW"}
+          layer="ORANGE"
           reasons={riskV2.reasons}
           actions={alertActions}
           safety={riskV2.rails.safety}

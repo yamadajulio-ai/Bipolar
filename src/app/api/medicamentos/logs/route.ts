@@ -61,43 +61,73 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Batch all upserts + legacy updates in a single transaction.
+    // Batch all upserts + legacy updates in a single Serializable transaction.
     // Run upserts SEQUENTIALLY inside the transaction to avoid concurrent
     // (scheduleId, date) collisions hitting the unique constraint (P2002) under
     // double-tap or retried requests.
+    //
+    // Serializable can return P2034 (could not serialize) under contention —
+    // Prisma's own guidance is to retry at the application layer. We retry up
+    // to 3 times with tiny backoff before surfacing the failure.
     const dates = [...new Set(parsed.data.logs.map((l) => l.date))];
-    const results = await prisma.$transaction(async (tx) => {
-      const upserted: Awaited<ReturnType<typeof tx.medicationLog.upsert>>[] = [];
-      for (const log of parsed.data.logs) {
-        const schedule = scheduleMap.get(log.scheduleId)!;
-        const row = await tx.medicationLog.upsert({
-          where: { scheduleId_date: { scheduleId: log.scheduleId, date: log.date } },
-          update: {
-            status: log.status,
-            takenAt: log.status === "TAKEN" ? new Date() : null,
-            source: log.source ?? "MEDICATION_PAGE",
-          },
-          create: {
-            userId: session.userId,
-            medicationId: schedule.medication.id,
-            scheduleId: log.scheduleId,
-            date: log.date,
-            status: log.status,
-            scheduledTimeLocal: schedule.timeLocal,
-            takenAt: log.status === "TAKEN" ? new Date() : null,
-            source: log.source ?? "MEDICATION_PAGE",
-          },
+    const runTransaction = () =>
+      prisma.$transaction(async (tx) => {
+        const upserted: Awaited<ReturnType<typeof tx.medicationLog.upsert>>[] = [];
+        for (const log of parsed.data.logs) {
+          const schedule = scheduleMap.get(log.scheduleId)!;
+          const row = await tx.medicationLog.upsert({
+            where: { scheduleId_date: { scheduleId: log.scheduleId, date: log.date } },
+            update: {
+              status: log.status,
+              takenAt: log.status === "TAKEN" ? new Date() : null,
+              source: log.source ?? "MEDICATION_PAGE",
+            },
+            create: {
+              userId: session.userId,
+              medicationId: schedule.medication.id,
+              scheduleId: log.scheduleId,
+              date: log.date,
+              status: log.status,
+              scheduledTimeLocal: schedule.timeLocal,
+              takenAt: log.status === "TAKEN" ? new Date() : null,
+              source: log.source ?? "MEDICATION_PAGE",
+            },
+          });
+          upserted.push(row);
+        }
+        // Update legacy tookMedication on DiaryEntry for backward compat
+        for (const date of dates) {
+          await updateLegacyMedication(tx, session.userId, date);
+        }
+        return upserted;
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+
+    const MAX_RETRIES = 3;
+    let results: Awaited<ReturnType<typeof runTransaction>> | undefined;
+    let lastErr: unknown;
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      try {
+        results = await runTransaction();
+        break;
+      } catch (err) {
+        lastErr = err;
+        const isSerializationConflict =
+          err !== null &&
+          typeof err === "object" &&
+          "code" in err &&
+          (err as { code: string }).code === "P2034";
+        if (!isSerializationConflict || attempt === MAX_RETRIES - 1) throw err;
+        // Backoff with jitter: 20ms, 60ms, 140ms
+        const delay = (1 << attempt) * 20 + Math.floor(Math.random() * 20);
+        await new Promise((r) => setTimeout(r, delay));
+        Sentry.addBreadcrumb({
+          category: "db.retry",
+          message: `medicamentos_logs P2034 retry ${attempt + 1}/${MAX_RETRIES}`,
+          level: "warning",
         });
-        upserted.push(row);
       }
-
-      // Update legacy tookMedication on DiaryEntry for backward compat
-      for (const date of dates) {
-        await updateLegacyMedication(tx, session.userId, date);
-      }
-
-      return upserted;
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    }
+    if (!results) throw lastErr ?? new Error("medicamentos_logs: transaction failed");
 
     const elapsed = Math.round(performance.now() - start);
     const res = NextResponse.json({ count: results.length }, { status: 201 });

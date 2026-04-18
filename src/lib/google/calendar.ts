@@ -51,13 +51,22 @@ export async function getCalendarColorId(auth: OAuth2Client, calendarId: string)
   }
 }
 
-export async function listEvents(
-  auth: OAuth2Client,
-  calendarId: string,
-  syncToken?: string,
-) {
-  const cal = getCalendarClient(auth);
+export interface ListEventsResult {
+  items: calendar_v3.Schema$Event[];
+  nextSyncToken: string | null;
+  /**
+   * True when the returned items represent a full list (no syncToken was
+   * passed, or 410 GONE invalidated the cursor and we fell back to full).
+   * Callers MUST treat the local DB state as stale and reconcile against the
+   * full list — incremental delete semantics don't apply.
+   */
+  didFullList: boolean;
+}
 
+async function paginateFullList(
+  cal: calendar_v3.Calendar,
+  calendarId: string,
+): Promise<{ items: calendar_v3.Schema$Event[]; nextSyncToken: string | null }> {
   const fullSyncParams = {
     calendarId,
     timeMin: new Date(Date.now() - 7 * 86400000).toISOString(),
@@ -66,53 +75,73 @@ export async function listEvents(
     maxResults: 500,
     showDeleted: true,
   };
+  const allItems: calendar_v3.Schema$Event[] = [];
+  let pageToken: string | undefined;
+  let nextSyncToken: string | null = null;
+  do {
+    const res = await cal.events.list({
+      ...fullSyncParams,
+      ...(pageToken ? { pageToken } : {}),
+    });
+    allItems.push(...(res.data.items || []));
+    pageToken = res.data.nextPageToken || undefined;
+    // nextSyncToken is only set on the final page — overwrite each loop so the
+    // last non-null value wins.
+    if (res.data.nextSyncToken) nextSyncToken = res.data.nextSyncToken;
+  } while (pageToken);
+  return { items: allItems, nextSyncToken };
+}
+
+async function paginateIncremental(
+  cal: calendar_v3.Calendar,
+  calendarId: string,
+  syncToken: string,
+): Promise<{ items: calendar_v3.Schema$Event[]; nextSyncToken: string | null }> {
+  // Per Google Calendar docs: incremental also paginates. Only the LAST page
+  // carries the new nextSyncToken; middle pages carry nextPageToken. The first
+  // request uses `syncToken`; follow-up requests use `pageToken` (and NOT
+  // syncToken again). Never combine syncToken with timeMin/timeMax.
+  const allItems: calendar_v3.Schema$Event[] = [];
+  let pageToken: string | undefined;
+  let nextSyncToken: string | null = null;
+  let firstCall = true;
+  do {
+    const res = await cal.events.list({
+      calendarId,
+      showDeleted: true,
+      singleEvents: true,
+      ...(firstCall ? { syncToken } : { pageToken }),
+    });
+    firstCall = false;
+    allItems.push(...(res.data.items || []));
+    pageToken = res.data.nextPageToken || undefined;
+    if (res.data.nextSyncToken) nextSyncToken = res.data.nextSyncToken;
+  } while (pageToken);
+  return { items: allItems, nextSyncToken };
+}
+
+export async function listEvents(
+  auth: OAuth2Client,
+  calendarId: string,
+  syncToken?: string,
+): Promise<ListEventsResult> {
+  const cal = getCalendarClient(auth);
+
+  if (!syncToken) {
+    const result = await paginateFullList(cal, calendarId);
+    return { ...result, didFullList: true };
+  }
 
   try {
-    const allItems: calendar_v3.Schema$Event[] = [];
-    let pageToken: string | undefined;
-    let nextSyncToken: string | null = null;
-
-    if (syncToken) {
-      const res = await cal.events.list({
-        calendarId,
-        syncToken,
-        showDeleted: true,
-        singleEvents: true,
-      });
-      return {
-        items: res.data.items || [],
-        nextSyncToken: res.data.nextSyncToken || null,
-      };
-    }
-
-    do {
-      const res = await cal.events.list({
-        ...fullSyncParams,
-        ...(pageToken ? { pageToken } : {}),
-      });
-      allItems.push(...(res.data.items || []));
-      pageToken = res.data.nextPageToken || undefined;
-      nextSyncToken = res.data.nextSyncToken || null;
-    } while (pageToken);
-
-    return { items: allItems, nextSyncToken };
+    const result = await paginateIncremental(cal, calendarId, syncToken);
+    return { ...result, didFullList: false };
   } catch (err: unknown) {
+    // 410 GONE → syncToken is invalid/expired. Per Google's contract, caller
+    // must discard local state and do a full list. We signal that via didFullList
+    // so sync.ts runs full-sync delete semantics, not incremental.
     if (err && typeof err === "object" && "code" in err && (err as { code: number }).code === 410) {
-      const allItems: calendar_v3.Schema$Event[] = [];
-      let pageToken: string | undefined;
-      let nextSyncToken: string | null = null;
-
-      do {
-        const res = await cal.events.list({
-          ...fullSyncParams,
-          ...(pageToken ? { pageToken } : {}),
-        });
-        allItems.push(...(res.data.items || []));
-        pageToken = res.data.nextPageToken || undefined;
-        nextSyncToken = res.data.nextSyncToken || null;
-      } while (pageToken);
-
-      return { items: allItems, nextSyncToken };
+      const result = await paginateFullList(cal, calendarId);
+      return { ...result, didFullList: true };
     }
     throw err;
   }

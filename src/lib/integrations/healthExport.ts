@@ -402,9 +402,36 @@ function extractGenericMetrics(
       // When no source metadata is present, every entry collapses into the ""
       // bucket — equivalent to the previous sum-all behaviour.
       let maxPerSource = 0;
-      for (const vals of bySource.values()) {
+      const perSource: Array<{ source: string; sum: number; entries: number }> = [];
+      for (const [src, vals] of bySource) {
         const sum = vals.reduce((a, b) => a + b, 0);
+        perSource.push({ source: src, sum, entries: vals.length });
         if (sum > maxPerSource) maxPerSource = sum;
+      }
+      // Diagnostic: steps is the metric with observed Apple Health parity issues.
+      // Log the shape so we can understand why the picked value still deviates
+      // from Apple Health's canonical daily total. Sanitised — only aggregate
+      // counts + non-sensitive source labels.
+      if (def.metricKey === "steps" && perSource.length > 0) {
+        try {
+          const totalSumAll = perSource.reduce((a, p) => a + p.sum, 0);
+          const totalEntries = perSource.reduce((a, p) => a + p.entries, 0);
+          const sortedSources = [...perSource].sort((a, b) => b.sum - a.sum).slice(0, 6);
+          console.info(JSON.stringify({
+            event: "hae_steps_shape",
+            date: ymd,
+            totalEntries,
+            sumAll: Math.round(totalSumAll),
+            maxPerSource: Math.round(maxPerSource),
+            sources: sortedSources.map((s) => ({
+              source: s.source || "(unlabeled)",
+              entries: s.entries,
+              sum: Math.round(s.sum),
+            })),
+          }));
+        } catch {
+          // Never let diagnostic errors break ingestion
+        }
       }
       if (maxPerSource <= 0) continue;
       results.push({

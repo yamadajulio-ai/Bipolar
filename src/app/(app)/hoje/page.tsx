@@ -16,6 +16,7 @@ import type { PlannerBlockInput } from "@/lib/insights/computeInsights";
 import { aggregateSleepByDay } from "@/lib/insights/stats";
 import { StabilityScoreWidget } from "@/components/dashboard/StabilityScoreWidget";
 import { GoogleAgendaCard } from "@/components/dashboard/GoogleAgendaCard";
+import { BodyMetricMini } from "@/components/dashboard/BodyMetricMini";
 import Link from "next/link";
 import Image from "next/image";
 import { SOSButton } from "@/components/SOSButton";
@@ -222,12 +223,14 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
       select: { title: true, startAt: true },
       orderBy: { startAt: "asc" },
     }),
-    // Health metrics (7d)
+    // Health metrics (30d — we derive today, 7d sparkline, 30d baseline from this)
     prisma.healthMetric.findMany({
-      where: { userId: session.userId, date: { gte: cutoff7Str } },
-      orderBy: { date: "desc" },
-      take: 30,
+      where: { userId: session.userId, date: { gte: cutoff30Str } },
+      orderBy: { date: "asc" },
+      select: { date: true, metric: true, value: true },
     }),
+    // Retained for backwards-compatibility with other call sites; now unused
+    // by the body card (we derive HRV/HR from allSleepLogs30 instead).
     prisma.sleepLog.findMany({
       where: { userId: session.userId, date: { gte: cutoff7Str }, totalHours: { gte: 1 } },
       orderBy: { date: "desc" },
@@ -263,10 +266,12 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
       where: { userId: session.userId, isActive: true, isAsNeeded: false },
       select: {
         id: true,
+        name: true,
+        dosageText: true,
         riskRole: true,
         schedules: {
           where: { effectiveTo: null },
-          select: { id: true },
+          select: { id: true, timeLocal: true },
         },
         logs: {
           where: { date: { gte: cutoff7Str } },
@@ -283,29 +288,60 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
   const todayMedMissed = todayMedLogs.filter((l) => l.status === "MISSED").length;
   const todayMedPending = todayMedExpected - todayMedTaken - todayMedMissed;
 
+  // Next pending dose hint (earliest unlogged schedule today, preferring future times)
+  const nextPendingDose = (() => {
+    const loggedScheduleIds = new Set(todayMedLogs.map((l) => l.scheduleId));
+    const pending: { medName: string; timeLocal: string }[] = [];
+    for (const med of activeMedications) {
+      for (const s of med.schedules) {
+        if (!loggedScheduleIds.has(s.id)) {
+          pending.push({ medName: med.name, timeLocal: s.timeLocal });
+        }
+      }
+    }
+    if (pending.length === 0) return null;
+    const nowLocal = now.toLocaleTimeString("sv-SE", { hour: "2-digit", minute: "2-digit", timeZone: TZ });
+    const upcoming = pending.filter((p) => p.timeLocal >= nowLocal).sort((a, b) => a.timeLocal.localeCompare(b.timeLocal));
+    const overdue = pending.filter((p) => p.timeLocal < nowLocal).sort((a, b) => a.timeLocal.localeCompare(b.timeLocal));
+    return upcoming[0] ?? overdue[0] ?? null;
+  })();
+
   // === EARLY GATE: brand-new users (< 3 diary entries) skip heavy engines ===
   // computeInsights/evaluateRisk are meaningless on empty data and any regression
   // in those engines would crash the whole page. Return the simplified onboarding
   // dashboard before we even touch them.
   const isNewUserEarly = allEntries30.length < 3;
   const renderSimplified = (reason: "new_user" | "engine_failure") => {
-    const earlyTasks: { label: string; href: string; done: boolean; priority: number }[] = [];
+    const earlyTasks: { label: string; href: string; done: boolean; priority: number; hint?: string }[] = [];
+    const earlyMedHint = nextPendingDose ? `Próxima: ${nextPendingDose.medName} às ${nextPendingDose.timeLocal}` : undefined;
     if (todayMedExpected > 0) {
       if (todayMedTaken === todayMedExpected) earlyTasks.push({ label: "Medicação tomada", href: "/checkin", done: true, priority: 1 });
-      else if (todayMedTaken > 0) earlyTasks.push({ label: `Medicação: ${todayMedTaken} de ${todayMedExpected}`, href: "/checkin", done: false, priority: 1 });
-      else earlyTasks.push({ label: "Tomar medicação", href: "/checkin", done: false, priority: 1 });
+      else if (todayMedTaken > 0) earlyTasks.push({ label: `Medicação: ${todayMedTaken} de ${todayMedExpected}`, href: "/checkin", done: false, priority: 1, hint: earlyMedHint });
+      else earlyTasks.push({ label: "Tomar medicação", href: "/checkin", done: false, priority: 1, hint: earlyMedHint });
     } else if (todayEntry?.tookMedication === "nao" || todayEntry?.tookMedication === "nao_sei") {
       earlyTasks.push({ label: "Tomar medicação", href: "/checkin", done: false, priority: 1 });
     } else if (todayEntry?.tookMedication === "sim") {
       earlyTasks.push({ label: "Medicação tomada", href: "/checkin", done: true, priority: 1 });
     }
     const cnt = todayEntry?.snapshotCount ?? 0;
-    earlyTasks.push({ label: cnt > 0 ? `Check-ins diários (${cnt} feito${cnt > 1 ? "s" : ""})` : "Check-ins diários", href: "/checkin", done: false, priority: 2 });
+    earlyTasks.push({
+      label: cnt > 0 ? `Check-ins diários (${cnt} feito${cnt > 1 ? "s" : ""})` : "Check-ins diários",
+      href: "/checkin",
+      done: cnt > 0,
+      priority: 2,
+      hint: cnt > 0 ? "Faça outro se o humor mudar" : "Leva <1 min · humor, energia, sono",
+    });
     earlyTasks.push(haeKey
       ? { label: "Sono (wearable)", href: "/sono", done: !!todaySleep, priority: 3 }
       : { label: "Registrar sono", href: "/sono/novo", done: !!todaySleep, priority: 3 });
     if (!lastWeeklyAssessment || (now.getTime() - lastWeeklyAssessment.createdAt.getTime()) > 7 * 24 * 60 * 60 * 1000) {
-      earlyTasks.push({ label: "Avaliação semanal", href: "/avaliacao-semanal", done: false, priority: 4 });
+      const earlyWeeklyHint = lastWeeklyAssessment
+        ? (() => {
+            const days = Math.floor((now.getTime() - lastWeeklyAssessment.createdAt.getTime()) / (24 * 60 * 60 * 1000));
+            return `Última há ${days} dias · leva ~3 min`;
+          })()
+        : "Leva ~3 min · ASRM + PHQ-9";
+      earlyTasks.push({ label: "Avaliação semanal", href: "/avaliacao-semanal", done: false, priority: 4, hint: earlyWeeklyHint });
     }
     earlyTasks.sort((a, b) => a.priority - b.priority);
     const welcomeCopy = reason === "new_user"
@@ -322,11 +358,16 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
           <h2 className="text-sm font-semibold text-foreground mb-3">Para fazer hoje</h2>
           <div className="space-y-2">
             {earlyTasks.slice(0, 5).map((t, i) => (
-              <Link key={i} href={t.href} className="flex items-center gap-3 no-underline group min-h-[44px]">
-                <span aria-hidden="true" className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[11px] ${
+              <Link key={i} href={t.href} className="flex items-start gap-3 no-underline group min-h-[44px] py-1">
+                <span aria-hidden="true" className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[11px] mt-0.5 ${
                   t.done ? "bg-success-bg-subtle border-success-border text-success-fg" : "border-border text-transparent group-hover:border-primary"
                 }`}>{t.done ? "✓" : ""}</span>
-                <span className={`text-sm ${t.done ? "text-muted line-through" : "text-foreground group-hover:text-primary"}`}>{t.label}</span>
+                <span className="flex flex-col">
+                  <span className={`text-sm ${t.done ? "text-muted line-through" : "text-foreground group-hover:text-primary"}`}>{t.label}</span>
+                  {t.hint && (
+                    <span className="text-xs text-muted mt-0.5">{t.hint}</span>
+                  )}
+                </span>
               </Link>
             ))}
           </div>
@@ -432,7 +473,7 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
   }
 
   // === "Para fazer hoje" tasks ===
-  interface Task { label: string; href: string; done: boolean; priority: number }
+  interface Task { label: string; href: string; done: boolean; priority: number; hint?: string }
   const tasks: Task[] = [];
 
   // Safety first (mania/depression zones still reach here even though atencao_alta goes to crisis mode)
@@ -441,13 +482,14 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
   }
 
   // Medication (use dose-level data when available, fallback to legacy)
+  const medHint = nextPendingDose ? `Próxima: ${nextPendingDose.medName} às ${nextPendingDose.timeLocal}` : undefined;
   if (todayMedExpected > 0) {
     if (todayMedTaken === todayMedExpected) {
       tasks.push({ label: "Medicação tomada", href: "/checkin", done: true, priority: 1 });
     } else if (todayMedTaken > 0) {
-      tasks.push({ label: `Medicação: ${todayMedTaken} de ${todayMedExpected}`, href: "/checkin", done: false, priority: 1 });
+      tasks.push({ label: `Medicação: ${todayMedTaken} de ${todayMedExpected}`, href: "/checkin", done: false, priority: 1, hint: medHint });
     } else {
-      tasks.push({ label: "Tomar medicação", href: "/checkin", done: false, priority: 1 });
+      tasks.push({ label: "Tomar medicação", href: "/checkin", done: false, priority: 1, hint: medHint });
     }
   } else if (todayEntry?.tookMedication === "nao" || todayEntry?.tookMedication === "nao_sei") {
     tasks.push({ label: "Tomar medicação", href: "/checkin", done: false, priority: 1 });
@@ -460,8 +502,9 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
   tasks.push({
     label: checkinCount > 0 ? `Check-ins diários (${checkinCount} feito${checkinCount > 1 ? "s" : ""})` : "Check-ins diários",
     href: "/checkin",
-    done: false,
+    done: checkinCount > 0,
     priority: 2,
+    hint: checkinCount > 0 ? "Faça outro se o humor mudar" : "Leva <1 min · humor, energia, sono",
   });
 
   // Sleep
@@ -475,29 +518,94 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
   const weeklyDue = !lastWeeklyAssessment ||
     (now.getTime() - lastWeeklyAssessment.createdAt.getTime()) > 7 * 24 * 60 * 60 * 1000;
   if (weeklyDue) {
-    tasks.push({ label: "Avaliação semanal", href: "/avaliacao-semanal", done: false, priority: 4 });
+    const weeklyHint = lastWeeklyAssessment
+      ? (() => {
+          const days = Math.floor((now.getTime() - lastWeeklyAssessment.createdAt.getTime()) / (24 * 60 * 60 * 1000));
+          return `Última há ${days} dias · leva ~3 min`;
+        })()
+      : "Leva ~3 min · ASRM + PHQ-9";
+    tasks.push({ label: "Avaliação semanal", href: "/avaliacao-semanal", done: false, priority: 4, hint: weeklyHint });
   }
 
   tasks.sort((a, b) => a.priority - b.priority);
   const visibleTasks = tasks.slice(0, 5);
 
-  // === Health data (7d aggregates) ===
-  const avgSteps = (() => {
-    const steps = latestMetrics.filter(m => m.metric === "steps");
-    if (steps.length === 0) return null;
-    return Math.round(steps.reduce((s, m) => s + m.value, 0) / steps.length);
-  })();
-  const avgHrv = (() => {
-    const hrvLogs = recentSleepLogs7.filter(s => s.hrv !== null);
-    if (hrvLogs.length === 0) return null;
-    return Math.round(hrvLogs.reduce((s, l) => s + (l.hrv || 0), 0) / hrvLogs.length);
-  })();
-  const avgHr = (() => {
-    const hrLogs = recentSleepLogs7.filter(s => s.heartRate !== null);
-    if (hrLogs.length === 0) return null;
-    return Math.round(hrLogs.reduce((s, l) => s + (l.heartRate || 0), 0) / hrLogs.length);
-  })();
-  const hasHealthData = avgSteps !== null || avgHrv !== null || avgHr !== null;
+  // === Health data (per-day series for Corpo card) ===
+  // For each metric we compute:
+  //   - bodyXxx.today:       most recent value (falls back to "ontem" if today missing)
+  //   - bodyXxx.fallbackDay: true when we're showing yesterday's value
+  //   - bodyXxx.series7d:    chronological array of 7 values (null = data gap)
+  //   - bodyXxx.baseline30d: mean over 30 days (null if < 3 days of data)
+  // This replaces the old "média de N linhas" calculation that gave misleading
+  // numbers when the wearable sync had gaps — active days dominated the mean.
+  function buildSeries<T>(
+    daily: Map<string, number>,
+    rangeStart: Date,
+    today: string,
+    days: number,
+  ): (number | null)[] {
+    const out: (number | null)[] = [];
+    const cursor = new Date(rangeStart);
+    for (let i = 0; i < days; i++) {
+      const key = cursor.toLocaleDateString("sv-SE", { timeZone: TZ });
+      out.push(daily.get(key) ?? null);
+      cursor.setDate(cursor.getDate() + 1);
+      if (cursor.toLocaleDateString("sv-SE", { timeZone: TZ }) > today) break;
+    }
+    // Pad if loop broke early (avoids off-by-one on DST boundaries)
+    while (out.length < days) out.push(null);
+    return out;
+  }
+
+  function computeBody(daily: Map<string, number>): {
+    today: number | null;
+    fallbackDay: boolean;
+    series7d: (number | null)[];
+    baseline30d: number | null;
+  } {
+    // Build today = daily[today] OR daily[yesterday] (fallback)
+    const yesterdayStr = new Date(now.getTime() - 86400000).toLocaleDateString("sv-SE", { timeZone: TZ });
+    const todayVal = daily.get(today) ?? null;
+    const yesterdayVal = daily.get(yesterdayStr) ?? null;
+    const recent = todayVal ?? yesterdayVal;
+    const fallback = todayVal === null && yesterdayVal !== null;
+
+    // 7d series ending at today (chronological)
+    const sevenStart = new Date(now.getTime() - 6 * 86400000);
+    const series7d = buildSeries(daily, sevenStart, today, 7);
+
+    // 30d baseline — mean of non-null entries. Require >=3 days of data to be meaningful.
+    const values = [...daily.values()].filter((v) => v > 0);
+    const baseline30d = values.length >= 3
+      ? Math.round(values.reduce((s, v) => s + v, 0) / values.length)
+      : null;
+
+    return {
+      today: recent,
+      fallbackDay: fallback,
+      series7d,
+      baseline30d,
+    };
+  }
+
+  const stepsDaily = new Map<string, number>();
+  for (const m of latestMetrics) {
+    if (m.metric === "steps") stepsDaily.set(m.date, m.value);
+  }
+  // HRV and HR come from SleepLog (one row per sleep session) — we key by date,
+  // taking the first non-null per day (already one main session/day in practice).
+  const hrvDaily = new Map<string, number>();
+  const hrDaily = new Map<string, number>();
+  for (const log of allSleepLogs30) {
+    if (log.totalHours < 1 || log.excluded) continue;
+    if (log.hrv !== null && !hrvDaily.has(log.date)) hrvDaily.set(log.date, log.hrv);
+    if (log.heartRate !== null && !hrDaily.has(log.date)) hrDaily.set(log.date, log.heartRate);
+  }
+
+  const bodySteps = computeBody(stepsDaily);
+  const bodyHrv = computeBody(hrvDaily);
+  const bodyHr = computeBody(hrDaily);
+  const hasHealthData = bodySteps.today !== null || bodyHrv.today !== null || bodyHr.today !== null;
 
   // === Integration checks ===
   const hasGoogleCal = !!googleCal;
@@ -729,14 +837,19 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
           <h2 className="text-sm font-semibold text-foreground mb-3">Para fazer hoje</h2>
           <div className="space-y-2">
             {visibleTasks.map((t, i) => (
-              <Link key={i} href={t.href} className="flex items-center gap-3 no-underline group min-h-[44px]">
-                <span aria-hidden="true" className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[11px] ${
+              <Link key={i} href={t.href} className="flex items-start gap-3 no-underline group min-h-[44px] py-1">
+                <span aria-hidden="true" className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[11px] mt-0.5 ${
                   t.done ? "bg-success-bg-subtle border-success-border text-success-fg" : "border-border text-transparent group-hover:border-primary"
                 }`}>
                   {t.done ? "✓" : ""}
                 </span>
-                <span className={`text-sm ${t.done ? "text-muted line-through" : "text-foreground group-hover:text-primary"}`}>
-                  {t.label}
+                <span className="flex flex-col">
+                  <span className={`text-sm ${t.done ? "text-muted line-through" : "text-foreground group-hover:text-primary"}`}>
+                    {t.label}
+                  </span>
+                  {t.hint && (
+                    <span className="text-xs text-muted mt-0.5">{t.hint}</span>
+                  )}
                 </span>
               </Link>
             ))}
@@ -986,31 +1099,46 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
         </Card>
       )}
 
-      {/* === 6. CORPO (7 dias) === */}
+      {/* === 6. CORPO === */}
       {hasHealthData && (
         <Card>
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-sm font-semibold text-foreground">Corpo (7 dias)</h2>
+            <h2 className="text-sm font-semibold text-foreground">Corpo</h2>
             <Link href="/integracoes" className="text-xs text-primary hover:underline inline-flex items-center min-h-[44px]">Config</Link>
           </div>
-          <div className="grid grid-cols-3 gap-2 text-center">
-            {avgSteps !== null && (
-              <div className="rounded-lg bg-info-bg-subtle/70 p-2">
-                <p className="text-base font-semibold text-info-fg">{avgSteps.toLocaleString("pt-BR")}</p>
-                <p className="text-[11px] text-info-fg/80">Passos/dia</p>
-              </div>
+          <div className="grid grid-cols-3 gap-2">
+            {bodySteps.today !== null && (
+              <BodyMetricMini
+                value={bodySteps.today}
+                label="passos hoje"
+                series7d={bodySteps.series7d}
+                baseline30d={bodySteps.baseline30d}
+                formatValue={(v) => v.toLocaleString("pt-BR")}
+                tone="steps"
+                fallbackDay={bodySteps.fallbackDay}
+              />
             )}
-            {avgHrv !== null && (
-              <div className="rounded-lg bg-primary/10 p-2">
-                <p className="text-base font-semibold text-primary">{avgHrv} ms</p>
-                <p className="text-[11px] text-primary/80">HRV</p>
-              </div>
+            {bodyHrv.today !== null && (
+              <BodyMetricMini
+                value={bodyHrv.today}
+                label="ms HRV hoje"
+                series7d={bodyHrv.series7d}
+                baseline30d={bodyHrv.baseline30d}
+                formatValue={(v) => String(v)}
+                tone="hrv"
+                fallbackDay={bodyHrv.fallbackDay}
+              />
             )}
-            {avgHr !== null && (
-              <div className="rounded-lg bg-danger-bg-subtle/70 p-2">
-                <p className="text-base font-semibold text-danger-fg">{avgHr} bpm</p>
-                <p className="text-[11px] text-danger-fg/80">FC repouso</p>
-              </div>
+            {bodyHr.today !== null && (
+              <BodyMetricMini
+                value={bodyHr.today}
+                label="bpm hoje"
+                series7d={bodyHr.series7d}
+                baseline30d={bodyHr.baseline30d}
+                formatValue={(v) => String(v)}
+                tone="hr"
+                fallbackDay={bodyHr.fallbackDay}
+              />
             )}
           </div>
         </Card>

@@ -850,6 +850,7 @@ export default function IntegraçõesPage() {
       </Card>
 
       {/* Google Calendar */}
+      <div id="google-agenda" className="scroll-mt-20">
       <Card className="mb-6">
         <h2 className="mb-2 text-lg font-semibold">Google Agenda</h2>
         <p className="mb-4 text-sm text-muted">
@@ -857,6 +858,7 @@ export default function IntegraçõesPage() {
         </p>
         <GoogleCalendarSync isConnected={googleConnected} />
       </Card>
+      </div>
 
       {pendingAction && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-overlay p-4">

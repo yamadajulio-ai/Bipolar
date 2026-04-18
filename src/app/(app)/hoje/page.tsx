@@ -15,6 +15,7 @@ import { computeInsights } from "@/lib/insights/computeInsights";
 import type { PlannerBlockInput } from "@/lib/insights/computeInsights";
 import { aggregateSleepByDay } from "@/lib/insights/stats";
 import { StabilityScoreWidget } from "@/components/dashboard/StabilityScoreWidget";
+import { GoogleAgendaCard } from "@/components/dashboard/GoogleAgendaCard";
 import Link from "next/link";
 import Image from "next/image";
 import { SOSButton } from "@/components/SOSButton";
@@ -899,47 +900,12 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
       )}
 
       {/* === 4. AGENDA DE HOJE === */}
-      {todayBlocks.length > 0 ? (
-        <Card>
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-sm font-semibold text-foreground">Agenda de hoje</h2>
-            <Link href="/agenda-rotina" className="text-xs text-primary hover:underline inline-flex items-center min-h-[44px]">Ver tudo</Link>
-          </div>
-          <div className="space-y-1.5">
-            {todayBlocks.map((b, i) => {
-              const isPast = b.startAt < now;
-              return (
-                <div key={i} className={`flex items-center gap-2 text-sm ${isPast ? "opacity-50" : ""}`}>
-                  <span className="text-xs font-medium text-muted w-12">{formatBlockTime(b.startAt)}</span>
-                  <span className={isPast ? "text-muted line-through" : "text-foreground"}>{b.title}</span>
-                </div>
-              );
-            })}
-          </div>
-        </Card>
-      ) : hasGoogleCal ? (
-        <Card>
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-sm font-semibold text-foreground">Agenda de hoje</h2>
-            <Link href="/agenda-rotina" className="text-xs text-primary hover:underline inline-flex items-center min-h-[44px]">Ver tudo</Link>
-          </div>
-          {googleNeedsReauth ? (
-            <>
-              <p className="text-xs text-muted mb-2">A conexão com o Google Agenda expirou.</p>
-              <Link href="/integracoes" className="text-xs font-medium text-primary hover:underline inline-flex items-center min-h-[44px]">
-                Reconectar Google Agenda
-              </Link>
-            </>
-          ) : (
-            <>
-              <p className="text-xs text-muted">Nenhum evento no Google Agenda para hoje.</p>
-              <Link href="/integracoes" className="text-[11px] text-muted hover:text-primary inline-flex items-center min-h-[44px] mt-1">
-                Não está sincronizando? Reconectar
-              </Link>
-            </>
-          )}
-        </Card>
-      ) : null}
+      <GoogleAgendaCard
+        todayBlocks={todayBlocks.map((b) => ({ title: b.title, startAt: b.startAt.toISOString() }))}
+        hasGoogleCal={hasGoogleCal}
+        googleNeedsReauth={googleNeedsReauth}
+        nowIso={now.toISOString()}
+      />
 
       {/* === 5. SEU ESTADO HOJE === */}
       {todayEntry && (

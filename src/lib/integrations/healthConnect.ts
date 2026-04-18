@@ -14,6 +14,7 @@
  *   "resting_heart_rate": [{ bpm, time }],
  *   "active_calories": [{ calories, start_time, end_time }],
  *   "oxygen_saturation": [{ percentage, time }],
+ *   "exercise_sessions": [{ start_time, end_time, duration_seconds?, exercise_type? }],
  *   ...
  * }
  */
@@ -75,6 +76,13 @@ interface HCOxygenSaturation {
   time: string;
 }
 
+interface HCExerciseSession {
+  start_time: string;
+  end_time: string;
+  duration_seconds?: number;
+  exercise_type?: string;
+}
+
 interface HCPayload {
   timestamp?: string;
   app_version?: string;
@@ -85,6 +93,7 @@ interface HCPayload {
   resting_heart_rate?: HCRestingHR[];
   active_calories?: HCCalories[];
   oxygen_saturation?: HCOxygenSaturation[];
+  exercise_sessions?: HCExerciseSession[];
 }
 
 // ── Timezone helpers (same as healthExport.ts) ──────────────────
@@ -198,7 +207,35 @@ export function parseHealthConnectPayload(body: unknown): HealthConnectResult {
     }
   }
 
-  // 4. Parse SpO2 (average per day)
+  // 4. Parse exercise sessions → minutes per day
+  if (Array.isArray(payload.exercise_sessions)) {
+    const minsByDay = new Map<string, number>();
+    for (const session of payload.exercise_sessions) {
+      if (!session || typeof session !== "object") continue;
+      const start = parseTimestamp(session.start_time);
+      const end = parseTimestamp(session.end_time);
+      if (!start || !end) continue;
+      let seconds: number;
+      if (isValidNumber(session.duration_seconds, 1, 86400)) {
+        seconds = session.duration_seconds;
+      } else {
+        seconds = Math.round((end.getTime() - start.getTime()) / 1000);
+      }
+      if (seconds < 60 || seconds > 86400) continue; // discard <1min or >24h
+      const mins = seconds / 60;
+      // Attribute session to its end-time day (aligns with Apple Exercise Time convention)
+      const day = toYMD(end);
+      minsByDay.set(day, (minsByDay.get(day) ?? 0) + mins);
+    }
+    for (const [date, value] of minsByDay) {
+      const rounded = Math.round(value);
+      if (rounded > 0 && rounded <= 1440) {
+        result.genericMetrics.push({ date, metric: "exercise_minutes", value: rounded, unit: "min" });
+      }
+    }
+  }
+
+  // 5. Parse SpO2 (average per day)
   if (Array.isArray(payload.oxygen_saturation)) {
     const spo2ByDay = new Map<string, number[]>();
     for (const ox of payload.oxygen_saturation) {

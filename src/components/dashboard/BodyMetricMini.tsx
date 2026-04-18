@@ -12,7 +12,7 @@ interface Props {
   /** Formatter for the big number (e.g. Intl locale thousands). */
   formatValue: (v: number) => string;
   /** Tailwind color tokens for the accent. */
-  tone: "steps" | "hrv" | "hr";
+  tone: "steps" | "hrv" | "hr" | "exercise";
   /** True if today's value is missing; we're showing yesterday as fallback. */
   fallbackDay?: boolean;
 }
@@ -35,6 +35,12 @@ const TONE = {
     fg: "text-danger-fg",
     accent: "fill-danger-fg/80",
     gap: "fill-danger-fg/15",
+  },
+  exercise: {
+    bg: "bg-success-bg-subtle/70",
+    fg: "text-success-fg",
+    accent: "fill-success-fg/80",
+    gap: "fill-success-fg/15",
   },
 } as const;
 

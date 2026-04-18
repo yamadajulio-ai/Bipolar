@@ -237,6 +237,11 @@ export default async function ViewerHojePage({
     if (steps.length === 0) return null;
     return Math.round(steps.reduce((s, m) => s + m.value, 0) / steps.length);
   })();
+  const avgExercise = (() => {
+    const mins = latestMetrics.filter((m) => m.metric === "exercise_minutes");
+    if (mins.length === 0) return null;
+    return Math.round(mins.reduce((s, m) => s + m.value, 0) / mins.length);
+  })();
   const avgHrv = (() => {
     const hrvLogs = recentSleepLogs7.filter((s) => s.hrv !== null);
     if (hrvLogs.length === 0) return null;
@@ -247,7 +252,8 @@ export default async function ViewerHojePage({
     if (hrLogs.length === 0) return null;
     return Math.round(hrLogs.reduce((s, l) => s + (l.heartRate || 0), 0) / hrLogs.length);
   })();
-  const hasHealthData = avgSteps !== null || avgHrv !== null || avgHr !== null;
+  const hasHealthData =
+    avgSteps !== null || avgExercise !== null || avgHrv !== null || avgHr !== null;
 
   // Chart data (7d)
   const chartEntries = allEntries30.filter((e) => e.date >= cutoff7Str);
@@ -418,31 +424,49 @@ export default async function ViewerHojePage({
       )}
 
       {/* Body metrics (7d) */}
-      {hasHealthData && (
-        <Card>
-          <h2 className="text-sm font-semibold text-foreground mb-2">Corpo (7 dias)</h2>
-          <div className="grid grid-cols-3 gap-2 text-center">
-            {avgSteps !== null && (
-              <div className="rounded-lg bg-info-bg-subtle/70 p-2">
-                <p className="text-base font-semibold text-info-fg">{avgSteps.toLocaleString("pt-BR")}</p>
-                <p className="text-[11px] text-info-fg/80">Passos/dia</p>
-              </div>
-            )}
-            {avgHrv !== null && (
-              <div className="rounded-lg bg-primary/10 p-2">
-                <p className="text-base font-semibold text-primary">{avgHrv} ms</p>
-                <p className="text-[11px] text-primary/80">HRV</p>
-              </div>
-            )}
-            {avgHr !== null && (
-              <div className="rounded-lg bg-danger-bg-subtle/70 p-2">
-                <p className="text-base font-semibold text-danger-fg">{avgHr} bpm</p>
-                <p className="text-[11px] text-danger-fg/80">FC repouso</p>
-              </div>
-            )}
-          </div>
-        </Card>
-      )}
+      {hasHealthData && (() => {
+        const bodyCount =
+          (avgSteps !== null ? 1 : 0) +
+          (avgExercise !== null ? 1 : 0) +
+          (avgHrv !== null ? 1 : 0) +
+          (avgHr !== null ? 1 : 0);
+        const gridCols =
+          bodyCount >= 4 ? "grid-cols-2 sm:grid-cols-4"
+          : bodyCount === 3 ? "grid-cols-3"
+          : bodyCount === 2 ? "grid-cols-2"
+          : "grid-cols-1";
+        return (
+          <Card>
+            <h2 className="text-sm font-semibold text-foreground mb-2">Corpo (7 dias)</h2>
+            <div className={`grid gap-2 text-center ${gridCols}`}>
+              {avgSteps !== null && (
+                <div className="rounded-lg bg-info-bg-subtle/70 p-2">
+                  <p className="text-base font-semibold text-info-fg">{avgSteps.toLocaleString("pt-BR")}</p>
+                  <p className="text-[11px] text-info-fg/80">Passos/dia</p>
+                </div>
+              )}
+              {avgExercise !== null && (
+                <div className="rounded-lg bg-success-bg-subtle/70 p-2">
+                  <p className="text-base font-semibold text-success-fg">{avgExercise} min</p>
+                  <p className="text-[11px] text-success-fg/80">Exerc./dia</p>
+                </div>
+              )}
+              {avgHrv !== null && (
+                <div className="rounded-lg bg-primary/10 p-2">
+                  <p className="text-base font-semibold text-primary">{avgHrv} ms</p>
+                  <p className="text-[11px] text-primary/80">HRV</p>
+                </div>
+              )}
+              {avgHr !== null && (
+                <div className="rounded-lg bg-danger-bg-subtle/70 p-2">
+                  <p className="text-base font-semibold text-danger-fg">{avgHr} bpm</p>
+                  <p className="text-[11px] text-danger-fg/80">FC repouso</p>
+                </div>
+              )}
+            </div>
+          </Card>
+        );
+      })()}
 
       {/* 7-day chart */}
       {chartData.length >= 2 && (

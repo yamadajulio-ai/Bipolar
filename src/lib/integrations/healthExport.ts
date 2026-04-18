@@ -62,7 +62,7 @@ export interface ProcessedSleepNight {
 
 export interface ProcessedGenericMetric {
   date: string;       // YYYY-MM-DD
-  metric: string;     // "steps", "active_calories", "blood_oxygen"
+  metric: string;     // "steps", "active_calories", "exercise_minutes", "blood_oxygen"
   value: number;
   unit: string;       // "count", "kcal", "%"
 }
@@ -286,6 +286,21 @@ const GENERIC_METRIC_DEFS: GenericMetricDef[] = [
     canonicalUnit: "kcal",
     minValue: 0,
     maxValue: 10000,
+    aggregation: "sum",
+  },
+  {
+    names: new Set([
+      "apple_exercise_time",
+      "Apple Exercise Time",
+      "appleExerciseTime",
+      "exercise_time",
+      "Exercise Time",
+    ]),
+    units: new Set(["min", "minutes"]),
+    metricKey: "exercise_minutes",
+    canonicalUnit: "min",
+    minValue: 0,
+    maxValue: 1440,
     aggregation: "sum",
   },
   {

@@ -182,7 +182,7 @@
   3. Sinais de atenção + Risk Radar — AlertCard (só ORANGE) + hero card
   4. Agenda de hoje — Google Calendar (empty state se conectado sem eventos)
   5. Seu estado hoje — humor/energia/sono/medicação
-  6. Corpo (7 dias) — passos, HRV, FC
+  6. Corpo — passos, min exercício, HRV, FC (grid 2×2 mobile / 1×4 desktop quando 4 cards; fallback 3/2/1 conforme métricas disponíveis). `exercise_minutes` vem de `apple_exercise_time` (HAE) ou `ExerciseSessionRecord` (Health Connect). Calorias deliberadamente omitidas — risco de gatilho para comorbidade com transtorno alimentar > valor clínico para bipolar.
   7. Gráfico 7 dias — MiniTrendChart
   8. Meu Diário — link para journaling
   9. Sinais de gastos + QuickSpend — financeiro

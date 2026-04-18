@@ -355,6 +355,28 @@ describe("parseHealthExportPayloadV2", () => {
     expect(result.genericMetrics[0].value).toBe(450);
   });
 
+  it("extracts Apple exercise time as exercise_minutes", () => {
+    const payload = {
+      data: {
+        metrics: [
+          {
+            name: "apple_exercise_time",
+            units: "min",
+            data: [
+              { date: "2025-06-15 00:00:00 -0300", sum: 32 },
+            ],
+          },
+        ],
+      },
+    };
+
+    const result = parseHealthExportPayloadV2(payload);
+    expect(result.genericMetrics).toHaveLength(1);
+    expect(result.genericMetrics[0].metric).toBe("exercise_minutes");
+    expect(result.genericMetrics[0].value).toBe(32);
+    expect(result.genericMetrics[0].unit).toBe("min");
+  });
+
   it("extracts blood oxygen metric (averaged)", () => {
     const payload = {
       data: {

@@ -17,6 +17,7 @@ import { aggregateSleepByDay } from "@/lib/insights/stats";
 import { StabilityScoreWidget } from "@/components/dashboard/StabilityScoreWidget";
 import { GoogleAgendaCard } from "@/components/dashboard/GoogleAgendaCard";
 import { BodyMetricMini } from "@/components/dashboard/BodyMetricMini";
+import clsx from "clsx";
 import Link from "next/link";
 import Image from "next/image";
 import { SOSButton } from "@/components/SOSButton";
@@ -589,8 +590,10 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
   }
 
   const stepsDaily = new Map<string, number>();
+  const exerciseDaily = new Map<string, number>();
   for (const m of latestMetrics) {
     if (m.metric === "steps") stepsDaily.set(m.date, m.value);
+    else if (m.metric === "exercise_minutes") exerciseDaily.set(m.date, m.value);
   }
   // HRV and HR come from SleepLog (one row per sleep session) — we key by date,
   // taking the first non-null per day (already one main session/day in practice).
@@ -603,9 +606,14 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
   }
 
   const bodySteps = computeBody(stepsDaily);
+  const bodyExercise = computeBody(exerciseDaily);
   const bodyHrv = computeBody(hrvDaily);
   const bodyHr = computeBody(hrDaily);
-  const hasHealthData = bodySteps.today !== null || bodyHrv.today !== null || bodyHr.today !== null;
+  const hasHealthData =
+    bodySteps.today !== null ||
+    bodyExercise.today !== null ||
+    bodyHrv.today !== null ||
+    bodyHr.today !== null;
 
   // === Integration checks ===
   const hasGoogleCal = !!googleCal;
@@ -1100,49 +1108,72 @@ export default async function HojePage({ searchParams }: { searchParams: Promise
       )}
 
       {/* === 6. CORPO === */}
-      {hasHealthData && (
-        <Card>
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-sm font-semibold text-foreground">Corpo</h2>
-            <Link href="/integracoes" className="text-xs text-primary hover:underline inline-flex items-center min-h-[44px]">Config</Link>
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            {bodySteps.today !== null && (
-              <BodyMetricMini
-                value={bodySteps.today}
-                label="passos hoje"
-                series7d={bodySteps.series7d}
-                baseline30d={bodySteps.baseline30d}
-                formatValue={(v) => v.toLocaleString("pt-BR")}
-                tone="steps"
-                fallbackDay={bodySteps.fallbackDay}
-              />
-            )}
-            {bodyHrv.today !== null && (
-              <BodyMetricMini
-                value={bodyHrv.today}
-                label="ms HRV hoje"
-                series7d={bodyHrv.series7d}
-                baseline30d={bodyHrv.baseline30d}
-                formatValue={(v) => String(v)}
-                tone="hrv"
-                fallbackDay={bodyHrv.fallbackDay}
-              />
-            )}
-            {bodyHr.today !== null && (
-              <BodyMetricMini
-                value={bodyHr.today}
-                label="bpm hoje"
-                series7d={bodyHr.series7d}
-                baseline30d={bodyHr.baseline30d}
-                formatValue={(v) => String(v)}
-                tone="hr"
-                fallbackDay={bodyHr.fallbackDay}
-              />
-            )}
-          </div>
-        </Card>
-      )}
+      {hasHealthData && (() => {
+        const visibleCount =
+          (bodySteps.today !== null ? 1 : 0) +
+          (bodyExercise.today !== null ? 1 : 0) +
+          (bodyHrv.today !== null ? 1 : 0) +
+          (bodyHr.today !== null ? 1 : 0);
+        const gridCols =
+          visibleCount >= 4 ? "grid-cols-2 sm:grid-cols-4"
+          : visibleCount === 3 ? "grid-cols-3"
+          : visibleCount === 2 ? "grid-cols-2"
+          : "grid-cols-1";
+        return (
+          <Card>
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-sm font-semibold text-foreground">Corpo</h2>
+              <Link href="/integracoes" className="text-xs text-primary hover:underline inline-flex items-center min-h-[44px]">Config</Link>
+            </div>
+            <div className={clsx("grid gap-2", gridCols)}>
+              {bodySteps.today !== null && (
+                <BodyMetricMini
+                  value={bodySteps.today}
+                  label="passos hoje"
+                  series7d={bodySteps.series7d}
+                  baseline30d={bodySteps.baseline30d}
+                  formatValue={(v) => v.toLocaleString("pt-BR")}
+                  tone="steps"
+                  fallbackDay={bodySteps.fallbackDay}
+                />
+              )}
+              {bodyExercise.today !== null && (
+                <BodyMetricMini
+                  value={bodyExercise.today}
+                  label="min exerc. hoje"
+                  series7d={bodyExercise.series7d}
+                  baseline30d={bodyExercise.baseline30d}
+                  formatValue={(v) => String(v)}
+                  tone="exercise"
+                  fallbackDay={bodyExercise.fallbackDay}
+                />
+              )}
+              {bodyHrv.today !== null && (
+                <BodyMetricMini
+                  value={bodyHrv.today}
+                  label="ms HRV hoje"
+                  series7d={bodyHrv.series7d}
+                  baseline30d={bodyHrv.baseline30d}
+                  formatValue={(v) => String(v)}
+                  tone="hrv"
+                  fallbackDay={bodyHrv.fallbackDay}
+                />
+              )}
+              {bodyHr.today !== null && (
+                <BodyMetricMini
+                  value={bodyHr.today}
+                  label="bpm hoje"
+                  series7d={bodyHr.series7d}
+                  baseline30d={bodyHr.baseline30d}
+                  formatValue={(v) => String(v)}
+                  tone="hr"
+                  fallbackDay={bodyHr.fallbackDay}
+                />
+              )}
+            </div>
+          </Card>
+        );
+      })()}
 
       {/* === 7. GRÁFICO 7 DIAS === */}
       {chartData.length >= 2 && (

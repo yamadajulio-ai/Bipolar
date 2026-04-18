@@ -141,6 +141,15 @@
   - **Review notes bilíngues**: inglês primário com 9 pilares nativos + "NOT a regulated medical device" + offline testing instructions
   - **Docs criados**: `docs/privacy-labels-appstore.md` (mapeamento ASC), `docs/screenshot-sequence.md` (8 screenshots + script demo video 1min)
   - **Tests fix**: `withRetry` mock em send-reminders.test.ts, `max_output_tokens` 4096→8192 em narrative test. 27/27 files, 2113/2113 tests passing.
+- **Google Calendar hardening round (2026-04-17)**: 7 commits após bug-report original de "Nenhum evento no Google Agenda" mesmo com eventos reais.
+  - `f3d5add` /hoje crash for new users — early gate + engine try/catch
+  - `94d3240` 8-agent audit sweep — 13 P0/P1 fixes (ProfessionalNote migration, sync tx atomic, HAE debug sanitize, medication race, Apple state timing-safe, insights try/catch, Google token refresh lock, etc.)
+  - `7eb3697` 4-agent recursive audit — fixou 5 regressões do sweep anterior (Google empty-calendar regression, crisis detection FPs com override narrow, diario type-safe filter, CI pnpm v10, /hoje sempre-visível reconnect)
+  - `c7c9ade` rollback vercel-build (Neon pooler rejeita DDL); migration `add_professional_note` aplicada manual via URL direta (`-pooler` removido) + `prisma migrate resolve --applied`
+  - `e00c46a` `GoogleAgendaCard` Client Component — botão "Sincronizar agora" inline no /hoje com 7 estados (idle/syncing/success/empty-calendar/reauth/error/504). Encerra ghost state + flow de reconexão OAuth sem sair da página.
+  - `3284192` 504 fix — full-sync volta a batches paralelos (1 atomic tx com 300+ upserts estourava 30s Vercel); `maxDuration: 30→60`; timing logs estruturados.
+  - `7147336` GPT Pro audit — advisory lock per-user, cursor só avança em `errors===0`, paginação incremental de listEvents, `didFullList` signal para 410 GONE, phantom cleanup all-day/long em incremental, P2034 retry em medicamentos/logs.
+  - **Final**: 0 TS errors, 2126/2126 tests, deploy Ready.
 
 ## AI Narrative — Modelo
 - **Modelo atual**: GPT-5.4 via OpenAI Responses API (migrado de Claude Sonnet 4)
@@ -181,7 +190,15 @@
   11. Notícias — PubMed/saúde
   12. Integrações restantes (Mobills) — separado das críticas
 - **Safety gates**: RED → SafetyModeScreen (early return). New user (<3 entries) → simplified dashboard.
-- **Google Calendar sync**: fire-and-forget com Sentry error tracking (fix 2026-03-30)
+- **Google Calendar sync (2026-04-17, hardened)**:
+  - `/hoje` SSR: `await` sync com timeout 6s + `waitUntil` em background. Se timeout, sync continua fora da response. [hoje/page.tsx:131-171](src/app/(app)/hoje/page.tsx#L131-L171)
+  - `GoogleAgendaCard` (Client Component): botão "Sincronizar agora" force-full (POST `/api/google/sync?full=1`) com estados idle/syncing/success/empty-calendar/reauth/error-504. Em REAUTH, abre `/api/auth/google` direto. Em 504, mostra "Recarregar página" (background pode ter finalizado). [GoogleAgendaCard.tsx](src/components/dashboard/GoogleAgendaCard.tsx)
+  - `pullGoogleCalendar`: guardado por `pg_try_advisory_lock(hash(userId))` — concorrência entre foreground+background+clique do user não racea. Skipped returns `{skipped: true}`.
+  - Cursor só avança em `errors === 0`; `lastSyncAt` bumpa sempre (evita retry-storm). [sync.ts](src/lib/google/sync.ts)
+  - Full-sync: delete + upserts paralelos (batches 50, concurrency 3). Antes era 1 `$transaction` sequencial → 504 em calendários com 300+ eventos recorrentes.
+  - Incremental: `idsToDelete = cancelledIds ∪ filteredOutIds` (all-day/long transitions removidas). Antes: fantasmas permanentes.
+  - `listEvents` pagina incremental via `pageToken`; retorna `didFullList: boolean` — `true` se sem syncToken inicial OR 410 GONE forçou fallback. sync.ts usa isso como autoridade de full vs incremental. Nunca combina syncToken com timeMin/timeMax. [calendar.ts](src/lib/google/calendar.ts)
+  - Token refresh: re-leitura antes/depois evita falso `GOOGLE_REAUTH_REQUIRED` em refresh concorrente. [auth.ts](src/lib/google/auth.ts)
 - **AlertCard YELLOW desabilitado** (2026-04-17): render gated para `ORANGE` apenas. Motivo: YELLOW gerava bloco sem utilidade — CTA "Refazer check-in mais tarde" era vago (usuário acabou de fazer o check-in que disparou o alerta), "Ver plano de bem-estar" apontava para `/plano-de-crise` (rótulo ≠ destino), e reasons frequentemente vinham vazias (lista só renderiza se `reasons.length > 0`). Lógica Risk-v2 (rails, `DailyRiskSnapshot`, copy/actions YELLOW) mantida intacta para reativação futura com CTAs melhores.
 
 ## Insights — Arquitetura

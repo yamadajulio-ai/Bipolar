@@ -8,60 +8,63 @@ datasource db {
 }
 
 model User {
-  id                      String                   @id @default(uuid())
-  email                   String                   @unique
-  passwordHash            String?
-  passwordChangedAt       DateTime?
-  authProvider            String                   @default("email")
-  googleSub               String?                  @unique
-  appleSub                String?                  @unique
-  appleRefreshToken       String?
-  name                    String?
-  whatsappPhone           String?                  @unique // E.164 format, e.g. "+5511999999999"
-  role                    String                   @default("user") // "user" | "admin"
-  onboarded               Boolean                  @default(false)
-  onboardingGoal          String?
-  createdAt               DateTime                 @default(now())
-  entries                 DiaryEntry[]
-  medications             Medication[]
-  medicationLogs          MedicationLog[]
-  views                   ContentView[]
-  sleepLogs               SleepLog[]
-  exerciseSessions        ExerciseSession[]
-  dailyRhythms            DailyRhythm[]
-  reminderSettings        ReminderSettings?
-  crisisPlan              CrisisPlan?
-  courseProgress          CourseProgress[]
-  plannerBlocks           PlannerBlock[]
-  stabilityRule           StabilityRule?
-  googleAccount           GoogleAccount?
-  integrationKeys         IntegrationKey[]
-  healthMetrics           HealthMetric[]
-  financialTransactions   FinancialTransaction[]
-  alertFeedbacks          AlertFeedback[]
-  sosEvents               SOSEvent[]
-  socioeconomicProfile    SocioeconomicProfile?
-  professionalAccesses    ProfessionalAccess[]
-  consents                Consent[]
-  weeklyAssessments       WeeklyAssessment[]
-  lifeChartEvents         LifeChartEvent[]
-  functioningAssessments  FunctioningAssessment[]
-  cognitiveTests          CognitiveTest[]
-  pushSubscriptions       PushSubscription[]
-  feedbacks               Feedback[]
-  contextualFeedbacks     ContextualFeedback[]
-  journalEntries          JournalEntry[]
-  narratives              Narrative[]
-  communicationPreference CommunicationPreference?
-  messageLogs             MessageLog[]
-  displayPreferences      DisplayPreferences?
-  moodSnapshots           MoodSnapshot[]
-  dailyRiskSnapshots      DailyRiskSnapshot[]
-  alertEpisodes           AlertEpisode[]
-  safetyScreenings        SafetyScreeningSession[]
-  earlyWarningProfile     EarlyWarningProfile?
-  nativeSessions          NativeSession[]
-  financialImportEvents   FinancialImportEvent[]
+  id                       String                    @id @default(uuid())
+  email                    String                    @unique
+  passwordHash             String?
+  passwordChangedAt        DateTime?
+  authProvider             String                    @default("email")
+  googleSub                String?                   @unique
+  appleSub                 String?                   @unique
+  appleRefreshToken        String?
+  name                     String?
+  whatsappPhone            String?                   @unique // E.164 format, e.g. "+5511999999999"
+  role                     String                    @default("user") // "user" | "admin"
+  onboarded                Boolean                   @default(false)
+  onboardingGoal           String?
+  createdAt                DateTime                  @default(now())
+  entries                  DiaryEntry[]
+  medications              Medication[]
+  medicationLogs           MedicationLog[]
+  views                    ContentView[]
+  sleepLogs                SleepLog[]
+  exerciseSessions         ExerciseSession[]
+  dailyRhythms             DailyRhythm[]
+  reminderSettings         ReminderSettings?
+  crisisPlan               CrisisPlan?
+  courseProgress           CourseProgress[]
+  plannerBlocks            PlannerBlock[]
+  stabilityRule            StabilityRule?
+  googleAccount            GoogleAccount?
+  integrationKeys          IntegrationKey[]
+  healthMetrics            HealthMetric[]
+  financialTransactions    FinancialTransaction[]
+  alertFeedbacks           AlertFeedback[]
+  sosEvents                SOSEvent[]
+  socioeconomicProfile     SocioeconomicProfile?
+  professionalAccesses     ProfessionalAccess[]
+  consents                 Consent[]
+  weeklyAssessments        WeeklyAssessment[]
+  lifeChartEvents          LifeChartEvent[]
+  functioningAssessments   FunctioningAssessment[]
+  cognitiveTests           CognitiveTest[]
+  pushSubscriptions        PushSubscription[]
+  feedbacks                Feedback[]
+  contextualFeedbacks      ContextualFeedback[]
+  journalEntries           JournalEntry[]
+  narratives               Narrative[]
+  communicationPreference  CommunicationPreference?
+  messageLogs              MessageLog[]
+  displayPreferences       DisplayPreferences?
+  moodSnapshots            MoodSnapshot[]
+  dailyRiskSnapshots       DailyRiskSnapshot[]
+  alertEpisodes            AlertEpisode[]
+  safetyScreenings         SafetyScreeningSession[]
+  earlyWarningProfile      EarlyWarningProfile?
+  nativeSessions           NativeSession[]
+  financialImportEvents    FinancialImportEvent[]
+  physicalActivitySessions PhysicalActivitySession[]
+  dailyActivitySummaries   DailyActivitySummary[]
+  riskAlertAudits          RiskAlertAudit[]
 }
 
 enum DiaryEntryMode {
@@ -130,6 +133,13 @@ model MoodSnapshot {
   anxiety         Int? // 1..5 (optional in quick check-in)
   irritability    Int? // 1..5 (optional in quick check-in)
   warningSignsNow String? // JSON array, sinais momentâneos
+
+  // ADR-011 Movimento e Ritmo — self-report relativo (shadow mode, Fase 1).
+  // Usado como ground truth para calibrar o baseline objetivo do wearable.
+  // NUNCA exibido como meta/pontuação ao usuário.
+  movementRelative String? // "abaixo" | "dentro" | "acima" | "nao_sei"
+  movementLate     Boolean? // sinalizador opcional: sessão próxima ao horário de dormir
+
   note            String?
 
   createdAt DateTime @default(now())
@@ -152,30 +162,30 @@ model ContentView {
 }
 
 model SleepLog {
-  id         String   @id @default(uuid())
-  userId     String
-  date       String // YYYY-MM-DD (morning date)
-  bedtime    String // HH:MM
-  wakeTime   String // HH:MM
-  bedtimeAt  DateTime? // Absolute UTC timestamp for interval matching
-  wakeTimeAt DateTime? // Absolute UTC timestamp for interval matching
-  totalHours Float
-  quality    Int // 0..100 — canonical quality used in metrics (wearable-derived when available)
+  id               String    @id @default(uuid())
+  userId           String
+  date             String // YYYY-MM-DD (morning date)
+  bedtime          String // HH:MM
+  wakeTime         String // HH:MM
+  bedtimeAt        DateTime? // Absolute UTC timestamp for interval matching
+  wakeTimeAt       DateTime? // Absolute UTC timestamp for interval matching
+  totalHours       Float
+  quality          Int // 0..100 — canonical quality used in metrics (wearable-derived when available)
   perceivedQuality Int? // 0..100 — subjective quality from manual registration only
-  awakenings   Int      @default(0)
-  awakeMinutes Int      @default(0) // Minutes spent awake during sleep period (from wearable)
-  hrv          Int? // Heart Rate Variability (ms) — ex: RMSSD from wearable
-  heartRate  Int? // Resting heart rate (bpm) during sleep
-  excluded   Boolean  @default(false) // Incomplete/unreliable record — excluded from metrics
-  source     String   @default("unknown_legacy") // "manual" | "hae" | "health_connect" | "unknown_legacy"
-  fieldProvenance String? // JSONB: {"bedtime":"hae","quality":"manual",...} — tracks which source set each field
+  awakenings       Int       @default(0)
+  awakeMinutes     Int       @default(0) // Minutes spent awake during sleep period (from wearable)
+  hrv              Int? // Heart Rate Variability (ms) — ex: RMSSD from wearable
+  heartRate        Int? // Resting heart rate (bpm) during sleep
+  excluded         Boolean   @default(false) // Incomplete/unreliable record — excluded from metrics
+  source           String    @default("unknown_legacy") // "manual" | "hae" | "health_connect" | "unknown_legacy"
+  fieldProvenance  String? // JSONB: {"bedtime":"hae","quality":"manual",...} — tracks which source set each field
   providerRecordId String? // External UUID/ID from wearable platform (HealthKit UUID, HC record ID)
-  rawHash    String? // SHA-256 of raw provider payload for reimport dedup
-  mergeLog   String? // JSONB audit trail: [{ts, action, fieldsKept, fieldsOverwritten, reason}]
-  preRoutine String? // JSON array of routine keys
-  notes      String? // max 280 chars
-  createdAt  DateTime @default(now())
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rawHash          String? // SHA-256 of raw provider payload for reimport dedup
+  mergeLog         String? // JSONB audit trail: [{ts, action, fieldsKept, fieldsOverwritten, reason}]
+  preRoutine       String? // JSON array of routine keys
+  notes            String? // max 280 chars
+  createdAt        DateTime  @default(now())
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, date, bedtime])
   @@index([userId])
@@ -235,7 +245,7 @@ model CrisisPlan {
   copingStrategies  String? // JSON array of strings
   // Offline sync support (B-lite native)
   serverRev         Int      @default(1) // incremented on every server-side write
-  updatedByDeviceId String?  // device that last wrote this plan
+  updatedByDeviceId String? // device that last wrote this plan
   updatedAt         DateTime @updatedAt
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -418,7 +428,7 @@ model ProfessionalAccess {
   shareSosEvents    Boolean   @default(false)
   createdAt         DateTime  @default(now())
 
-  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   accessLogs AccessLog[]
   notes      ProfessionalNote[]
 
@@ -573,19 +583,19 @@ model Consent {
 // ── Avaliação Semanal (ASRM + PHQ-9 + FAST) ─────────────────────
 
 model WeeklyAssessment {
-  id         String   @id @default(uuid())
-  userId     String
-  date       String // YYYY-MM-DD (week ending date)
-  asrmScores String? // JSON: [0-4, 0-4, 0-4, 0-4, 0-4]
-  asrmTotal  Int? // 0-20 (>=6 suggests hypomania)
-  phq9Scores String? // JSON: [0-3, 0-3, ..., 0-3] (9 items)
-  phq9Total  Int? // 0-27
-  phq9Item9  Int? // Item 9 (ideation) separated for safety flow
-  fastScores String? // JSON: { work: 1-5, social: 1-5, ... }
-  fastAvg    Float? // Average functioning score
+  id                  String   @id @default(uuid())
+  userId              String
+  date                String // YYYY-MM-DD (week ending date)
+  asrmScores          String? // JSON: [0-4, 0-4, 0-4, 0-4, 0-4]
+  asrmTotal           Int? // 0-20 (>=6 suggests hypomania)
+  phq9Scores          String? // JSON: [0-3, 0-3, ..., 0-3] (9 items)
+  phq9Total           Int? // 0-27
+  phq9Item9           Int? // Item 9 (ideation) separated for safety flow
+  fastScores          String? // JSON: { work: 1-5, social: 1-5, ... }
+  fastAvg             Float? // Average functioning score
   exerciseDaysPerWeek Int? // 0-7, self-reported days of ≥30min exercise in past week (WHO rec: 5/wk)
-  notes      String? // max 280 chars
-  createdAt  DateTime @default(now())
+  notes               String? // max 280 chars
+  createdAt           DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -916,18 +926,18 @@ model DailyRiskSnapshot {
 // ── Financial Import Events (funnel telemetry) ──────────────────
 
 model FinancialImportEvent {
-  id                    String   @id @default(cuid())
-  userId                String
-  channel               String // "web_upload" | "whatsapp" | "email" | "pluggy" | "api"
-  source                String // "mobills_csv" | "mobills_xlsx" | "nubank_csv" | "inter_csv" | "itau_csv" | "ofx" | "pluggy" | "unknown"
-  status                String // "started" | "file_received" | "parsed" | "imported" | "failed"
-  transactionsTotal     Int      @default(0)
-  transactionsImported  Int      @default(0)
-  transactionsSkipped   Int      @default(0)
-  errorMessage          String?
-  metadata              String?  // JSON: { fileName, fileSize, bank, etc. }
-  durationMs            Int?
-  createdAt             DateTime @default(now())
+  id                   String   @id @default(cuid())
+  userId               String
+  channel              String // "web_upload" | "whatsapp" | "email" | "pluggy" | "api"
+  source               String // "mobills_csv" | "mobills_xlsx" | "nubank_csv" | "inter_csv" | "itau_csv" | "ofx" | "pluggy" | "unknown"
+  status               String // "started" | "file_received" | "parsed" | "imported" | "failed"
+  transactionsTotal    Int      @default(0)
+  transactionsImported Int      @default(0)
+  transactionsSkipped  Int      @default(0)
+  errorMessage         String?
+  metadata             String? // JSON: { fileName, fileSize, bank, etc. }
+  durationMs           Int?
+  createdAt            DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -970,25 +980,25 @@ model SafetyScreeningSession {
 }
 
 model EarlyWarningProfile {
-  id              String   @id @default(cuid())
-  userId          String   @unique
-  maniaSigns      String // JSON: PersonalWarningSign[]
-  depressionSigns String // JSON: PersonalWarningSign[]
-  triggers        String // JSON: string[]
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  maniaSigns        String // JSON: PersonalWarningSign[]
+  depressionSigns   String // JSON: PersonalWarningSign[]
+  triggers          String // JSON: string[]
   preferredResponse String // JSON: { actions: string[] }
-  supportContacts String? // JSON: { name: string, phone: string }[]
-  updatedAt       DateTime @updatedAt
+  supportContacts   String? // JSON: { name: string, phone: string }[]
+  updatedAt         DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model PasswordResetToken {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   email     String
-  token     String   @unique
+  token     String    @unique
   expiresAt DateTime
   usedAt    DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   @@index([email])
   @@index([expiresAt])
@@ -1003,15 +1013,15 @@ model PasswordResetToken {
 model NativeSession {
   id               String    @id @default(cuid())
   userId           String
-  deviceId         String    // Unique device identifier (from Capacitor Device plugin)
-  platform         String    // "ios" | "android"
-  appVersion       String?   // e.g. "1.0.0"
+  deviceId         String // Unique device identifier (from Capacitor Device plugin)
+  platform         String // "ios" | "android"
+  appVersion       String? // e.g. "1.0.0"
   refreshTokenHash String    @unique // SHA-256 hash of the current refresh token
-  tokenFamily      String    // Groups all rotated tokens from the same login
-  rotatedFrom      String?   // Hash of the previous refresh token in this family
+  tokenFamily      String // Groups all rotated tokens from the same login
+  rotatedFrom      String? // Hash of the previous refresh token in this family
   revokedAt        DateTime? // Set when session is explicitly revoked or reuse detected
   lastSeenAt       DateTime  @default(now())
-  lastIp           String?   // Masked /24 for privacy
+  lastIp           String? // Masked /24 for privacy
   createdAt        DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1020,4 +1030,89 @@ model NativeSession {
   @@index([tokenFamily])
   @@index([revokedAt])
   @@index([rotatedFrom])
+}
+
+// ── Movimento e Ritmo (ADR-011) ─────────────────────────────────
+// Camada de EVENTO intervalar: sessão de atividade física importada
+// de HKWorkout (iOS/HAE) ou ExerciseSessionRecord (Android/Health Connect),
+// ou autorrelato. Distinta de "ExerciseSession" (que é SOS/grounding).
+// Dois sinais coexistem: intencional (esta tabela) + ativação global (Metric).
+model PhysicalActivitySession {
+  id                String   @id @default(uuid())
+  userId            String
+  source            String // "healthkit" | "health_connect" | "self_report"
+  externalId        String? // Stable ID from source for dedup (null for self_report)
+  activityTypeRaw   String // Raw type from source (e.g. "HKWorkoutActivityTypeRunning")
+  activityTypeNorm  String // Normalized: walk|run|cycle|strength|yoga_mobility|swim|team_sport|mixed_other
+  startAtUtc        DateTime
+  endAtUtc          DateTime
+  timezoneOffsetMin Int // Device TZ offset at session time (minutes from UTC)
+  localDate         String // YYYY-MM-DD in user's local TZ (America/Sao_Paulo for now)
+  durationSec       Int
+  energyKcal        Float? // Backend-only, never shown as primary metric to patient
+  distanceM         Float?
+  avgHr             Int? // bpm
+  intensityBand     String? // "light" | "moderate" | "vigorous" — derived, not raw
+  isIntentional     Boolean  @default(true)
+  contextTag        String? // "planejado" | "prova" | "viagem" | "trabalho_fisico" | "doenca" | "lesao"
+  rawPayload        Json? // Original provider payload for debugging/reprocessing
+  createdAt         DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, source, externalId])
+  @@index([userId, startAtUtc(sort: Desc)])
+  @@index([userId, localDate])
+}
+
+// Camada DERIVADA: agregado diário usado pelo motor de risco e UI.
+// Recomputada em shadow mode (cron noturno) até backtest validar gatilhos.
+model DailyActivitySummary {
+  id                                       String   @id @default(uuid())
+  userId                                   String
+  localDate                                String // YYYY-MM-DD
+  steps                                    Int?
+  sessionCount                             Int      @default(0)
+  sessionMinutesLight                      Int      @default(0)
+  sessionMinutesModerate                   Int      @default(0)
+  sessionMinutesVigorous                   Int      @default(0)
+  lateSessionMinutes                       Int      @default(0) // minutes in sessions ending <4h before habitual sleep
+  lastSessionEndRelativeToHabitualSleepMin Int? // negative = before sleep, positive = after
+  activityLoad                             Float    @default(0) // Σ intensity × duration + lateness bonus
+  dataCompleteness                         Float    @default(0) // 0..1, wear-time estimate
+  sourceMix                                Json? // {"healthkit": 0.8, "self_report": 0.2}
+  baseline28d                              Float? // median activityLoad over last 28 days
+  baseline28dMad                           Float? // MAD for robust z-score
+  zScore                                   Float? // (today - baseline) / MAD
+  weekendAdjustedBaseline                  Float? // baseline segmented by weekday vs weekend
+  computedAt                               DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, localDate])
+  @@index([userId, localDate(sort: Desc)])
+}
+
+// Auditabilidade clínica: cada disparo de alerta do Risk-v2 relacionado a
+// movimento grava as condições, baseline e supressores ativos. Sem isso
+// não há como depurar falso positivo nem defender o racional clínico.
+model RiskAlertAudit {
+  id                String   @id @default(uuid())
+  userId            String
+  alertLayer        String // "YELLOW" | "ORANGE" | "RED"
+  alertCategory     String // "activation" | "deactivation" | "other"
+  triggeredAt       DateTime @default(now())
+  localDate         String // YYYY-MM-DD
+  conditionsFired   Json // array of {name, value, threshold, passed}
+  dataCompleteness  Float?
+  baselineUsed      Json? // {type: "28d_mad", median, mad, weekendAdjusted}
+  suppressorsActive Json? // array of tag names that reduced severity
+  contextTags       Json? // user-set context tags for the day
+  finalLayer        String // layer after suppressors applied
+  rationale         String? // human-readable rationale (pt-BR)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, triggeredAt(sort: Desc)])
+  @@index([userId, localDate])
 }

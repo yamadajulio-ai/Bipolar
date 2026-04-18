@@ -39,9 +39,27 @@ interface HAEMetric {
 interface HAEPayload {
   data?: {
     metrics: HAEMetric[];
-    workouts?: unknown[];
+    workouts?: HAEWorkout[];
   };
   metrics?: HAEMetric[];
+  workouts?: HAEWorkout[];
+}
+
+// Health Auto Export serializes HKWorkout with these fields. Not all apps
+// fill every field — keep everything optional.
+interface HAEWorkout {
+  name?: string;
+  start?: string;
+  end?: string;
+  startDate?: string;
+  endDate?: string;
+  duration?: number; // minutes (per HAE convention)
+  distance?: { qty: number; units: string } | number;
+  activeEnergyBurned?: { qty: number; units: string } | number;
+  avgHeartRate?: { qty: number; units: string } | number;
+  workoutActivityType?: string;
+  identifier?: string; // HKWorkout UUID when HAE exposes it
+  source?: string;
 }
 
 export interface ProcessedSleepNight {
@@ -67,10 +85,29 @@ export interface ProcessedGenericMetric {
   unit: string;       // "count", "kcal", "%"
 }
 
+export interface ProcessedActivitySession {
+  source: "healthkit" | "health_connect" | "self_report";
+  externalId?: string;
+  activityTypeRaw: string;
+  activityTypeNorm: string; // walk|run|cycle|strength|yoga_mobility|swim|team_sport|mixed_other
+  startAtUtc: Date;
+  endAtUtc: Date;
+  timezoneOffsetMin: number;
+  localDate: string; // YYYY-MM-DD in America/Sao_Paulo
+  durationSec: number;
+  energyKcal?: number;
+  distanceM?: number;
+  avgHr?: number;
+  intensityBand?: "light" | "moderate" | "vigorous";
+  isIntentional: boolean;
+  rawPayload?: unknown;
+}
+
 export interface HealthExportResult {
   sleepNights: ProcessedSleepNight[];
   hrvHrData: { hrvByDate: Map<string, number>; hrByDate: Map<string, number> };
   genericMetrics: ProcessedGenericMetric[];
+  activitySessions: ProcessedActivitySession[];
   skippedCount: number;
   errorDetails: Array<{ error: string; raw?: string }>;
 }
@@ -446,6 +483,109 @@ function extractGenericMetrics(
   return { results, skipped };
 }
 
+// ── Workout parsing (ADR-011 Movimento e Ritmo) ──────────────────
+
+// Normalize HKWorkout activity type → coarse clinical bucket.
+// We collapse the long Apple enum into 8 categories because intensity
+// banding and clinical interpretation do not benefit from finer granularity.
+function normalizeActivityType(raw: string): string {
+  const r = (raw || "").toLowerCase();
+  if (/walk|hiking|stair/.test(r)) return "walk";
+  if (/run|jog|track/.test(r)) return "run";
+  if (/cycl|biking|bike/.test(r)) return "cycle";
+  if (/strength|traditional|functional|core|cross_training|crosstraining/.test(r)) return "strength";
+  if (/yoga|mind|pilates|flex|mobility|barre|dance/.test(r)) return "yoga_mobility";
+  if (/swim|water/.test(r)) return "swim";
+  if (/soccer|football|basketball|volleyball|tennis|baseball|rugby|hockey|team/.test(r)) return "team_sport";
+  return "mixed_other";
+}
+
+// Classify intensity band from avg HR (if available) or activity type fallback.
+// We intentionally do NOT use "minutes" or "calories" as intensity proxies —
+// avg HR is the cleanest cross-user signal, with type as fallback.
+function classifyIntensity(activityTypeNorm: string, avgHr?: number): "light" | "moderate" | "vigorous" {
+  if (typeof avgHr === "number" && avgHr > 0) {
+    // Rough adult thresholds — conservative. Individualization via HR-reserve
+    // comes in Fase 1 shadow mode with user-level baseline.
+    if (avgHr < 100) return "light";
+    if (avgHr < 140) return "moderate";
+    return "vigorous";
+  }
+  // Type fallback when HR missing
+  if (activityTypeNorm === "yoga_mobility" || activityTypeNorm === "walk") return "light";
+  if (activityTypeNorm === "run" || activityTypeNorm === "swim" || activityTypeNorm === "team_sport") return "vigorous";
+  return "moderate";
+}
+
+function extractNumberField(f: unknown): number | undefined {
+  if (typeof f === "number" && Number.isFinite(f)) return f;
+  if (f && typeof f === "object" && "qty" in f) {
+    const q = (f as { qty: unknown }).qty;
+    if (typeof q === "number" && Number.isFinite(q)) return q;
+  }
+  return undefined;
+}
+
+// America/Sao_Paulo is the canonical timezone (ADR-002). Convert UTC Date
+// to local YYYY-MM-DD using Swedish locale (ISO-like formatting).
+function localDateStr(utcDate: Date, tz = "America/Sao_Paulo"): string {
+  return utcDate.toLocaleDateString("sv-SE", { timeZone: tz });
+}
+
+function parseWorkouts(
+  workouts: HAEWorkout[],
+  errorDetails: Array<{ error: string; raw?: string }>,
+): { sessions: ProcessedActivitySession[]; skipped: number } {
+  const sessions: ProcessedActivitySession[] = [];
+  let skipped = 0;
+
+  for (const w of workouts) {
+    const startRaw = w.start ?? w.startDate;
+    const endRaw = w.end ?? w.endDate;
+    if (!startRaw || !endRaw) { skipped++; continue; }
+
+    const startResult = parseHAEDate(startRaw);
+    const endResult = parseHAEDate(endRaw);
+    if (!startResult.ok || !endResult.ok) {
+      errorDetails.push({ error: startResult.ok ? "workout_end_invalid" : "workout_start_invalid", raw: `${startRaw}|${endRaw}` });
+      skipped++; continue;
+    }
+
+    const startAtUtc = startResult.value;
+    const endAtUtc = endResult.value;
+    const durationSec = Math.max(0, Math.round((endAtUtc.getTime() - startAtUtc.getTime()) / 1000));
+    // Reject implausible sessions: <60s or >8h
+    if (durationSec < 60 || durationSec > 8 * 3600) { skipped++; continue; }
+
+    const activityTypeRaw = w.workoutActivityType ?? w.name ?? "unknown";
+    const activityTypeNorm = normalizeActivityType(activityTypeRaw);
+    const energyKcal = extractNumberField(w.activeEnergyBurned);
+    const distanceM = extractNumberField(w.distance);
+    const avgHr = extractNumberField(w.avgHeartRate);
+    const intensityBand = classifyIntensity(activityTypeNorm, avgHr);
+
+    sessions.push({
+      source: "healthkit",
+      externalId: w.identifier,
+      activityTypeRaw,
+      activityTypeNorm,
+      startAtUtc,
+      endAtUtc,
+      timezoneOffsetMin: -startAtUtc.getTimezoneOffset(),
+      localDate: localDateStr(startAtUtc),
+      durationSec,
+      energyKcal: typeof energyKcal === "number" && energyKcal > 0 && energyKcal < 5000 ? energyKcal : undefined,
+      distanceM: typeof distanceM === "number" && distanceM > 0 && distanceM < 200_000 ? distanceM : undefined,
+      avgHr: typeof avgHr === "number" && avgHr >= 30 && avgHr <= 240 ? Math.round(avgHr) : undefined,
+      intensityBand,
+      isIntentional: true,
+      rawPayload: w,
+    });
+  }
+
+  return { sessions, skipped };
+}
+
 // ── Main parser ─────────────────────────────────────────────────
 
 export function parseHealthExportPayloadV2(body: unknown): HealthExportResult {
@@ -453,6 +593,7 @@ export function parseHealthExportPayloadV2(body: unknown): HealthExportResult {
     sleepNights: [],
     hrvHrData: { hrvByDate: new Map(), hrByDate: new Map() },
     genericMetrics: [],
+    activitySessions: [],
     skippedCount: 0,
     errorDetails: [],
   };
@@ -461,13 +602,15 @@ export function parseHealthExportPayloadV2(body: unknown): HealthExportResult {
 
   const payload = body as HAEPayload;
   const metrics = payload.data?.metrics ?? payload.metrics;
-  if (!metrics || !Array.isArray(metrics)) return empty;
+  const workouts = payload.data?.workouts ?? payload.workouts;
+  if ((!metrics || !Array.isArray(metrics)) && (!workouts || !Array.isArray(workouts))) return empty;
 
   let skippedCount = 0;
   const errorDetails: Array<{ error: string; raw?: string }> = [];
+  const safeMetrics: HAEMetric[] = Array.isArray(metrics) ? metrics : [];
 
   // 1. Sleep (existing logic)
-  const sleepMetric = metrics.find((m) => looksLikeSleepMetric(m));
+  const sleepMetric = safeMetrics.find((m) => looksLikeSleepMetric(m));
   let sleepNights: ProcessedSleepNight[] = [];
   if (sleepMetric && Array.isArray(sleepMetric.data)) {
     const detailedResult = parseDetailedSegments(sleepMetric.data, errorDetails);
@@ -482,8 +625,8 @@ export function parseHealthExportPayloadV2(body: unknown): HealthExportResult {
   }
 
   // 2. HRV and HR (always extracted, even without sleep)
-  const hrvMetric = metrics.find((m) => looksLikeHRVMetric(m));
-  const hrMetric = metrics.find((m) => looksLikeHRMetric(m));
+  const hrvMetric = safeMetrics.find((m) => looksLikeHRVMetric(m));
+  const hrMetric = safeMetrics.find((m) => looksLikeHRMetric(m));
   const hrvResult = buildDailyAvgMap(hrvMetric, errorDetails);
   const hrResult = buildDailyAvgMap(hrMetric, errorDetails);
   const hrvByDate = hrvResult.map;
@@ -500,7 +643,7 @@ export function parseHealthExportPayloadV2(body: unknown): HealthExportResult {
 
   // 3. Generic metrics (steps, calories, blood oxygen)
   const genericMetrics: ProcessedGenericMetric[] = [];
-  for (const m of metrics) {
+  for (const m of safeMetrics) {
     // Skip metrics already handled above
     if (looksLikeSleepMetric(m) || looksLikeHRVMetric(m) || looksLikeHRMetric(m)) continue;
     const def = matchGenericMetric(m);
@@ -509,6 +652,14 @@ export function parseHealthExportPayloadV2(body: unknown): HealthExportResult {
       genericMetrics.push(...extracted.results);
       skippedCount += extracted.skipped;
     }
+  }
+
+  // 4. Workouts → physical activity sessions (ADR-011)
+  let activitySessions: ProcessedActivitySession[] = [];
+  if (Array.isArray(workouts) && workouts.length > 0) {
+    const workoutResult = parseWorkouts(workouts, errorDetails);
+    activitySessions = workoutResult.sessions;
+    skippedCount += workoutResult.skipped;
   }
 
   // Structured telemetry for parse errors
@@ -524,11 +675,19 @@ export function parseHealthExportPayloadV2(body: unknown): HealthExportResult {
         sampleErrors: errorDetails.slice(0, 5),
         sleepNightsFound: sleepNights.length,
         genericMetricsFound: genericMetrics.length,
+        activitySessionsFound: activitySessions.length,
       },
     });
   }
 
-  return { sleepNights, hrvHrData: { hrvByDate, hrByDate }, genericMetrics, skippedCount, errorDetails };
+  return {
+    sleepNights,
+    hrvHrData: { hrvByDate, hrByDate },
+    genericMetrics,
+    activitySessions,
+    skippedCount,
+    errorDetails,
+  };
 }
 
 /** Backward-compatible wrapper — returns only sleep nights. */

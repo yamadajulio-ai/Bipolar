@@ -66,6 +66,10 @@ const snapshotSchema = z.object({
   note: z.string().max(280).optional(),
   clientRequestId: z.string().min(1).max(100),
 
+  // ADR-011 Movimento e Ritmo — self-report relativo (shadow mode)
+  movementRelative: z.enum(["abaixo", "dentro", "acima", "nao_sei"]).optional(),
+  movementLate: z.boolean().optional(),
+
   // Optional daily fields (only on first check-in or explicit edit)
   sleepHours: z.number().min(0).max(24).optional(),
   tookMedication: z.enum(["sim", "nao", "nao_sei"]).optional(),
@@ -227,6 +231,8 @@ export async function POST(request: NextRequest) {
         anxiety: parsed.data.anxiety ?? null,
         irritability: parsed.data.irritability ?? null,
         warningSignsNow: parsed.data.warningSignsNow ?? null,
+        movementRelative: parsed.data.movementRelative ?? null,
+        movementLate: parsed.data.movementLate ?? null,
         note: parsed.data.note ?? null,
       },
     });

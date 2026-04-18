@@ -162,6 +162,58 @@ async function processPayloadInBackground(
         prisma, userId, hrvByDate, hrByDate, "hae", `hae_enrich_${Date.now()}`,
       );
     }
+
+    // 5. Physical activity sessions (ADR-011) — consent-gated by `physical_activity`.
+    // Independent scope from health_data so the user can revoke activity import
+    // without breaking sleep/HR import.
+    if (result.activitySessions.length > 0 && await hasConsent(userId, "physical_activity")) {
+      const sessionOps: PrismaPromise[] = result.activitySessions.map((s) =>
+        prisma.physicalActivitySession.upsert({
+          where: s.externalId
+            ? {
+                userId_source_externalId: {
+                  userId,
+                  source: s.source,
+                  externalId: s.externalId,
+                },
+              }
+            // fallback composite when source has no stable ID: use (start+type+duration)
+            : {
+                userId_source_externalId: {
+                  userId,
+                  source: s.source,
+                  externalId: `${s.startAtUtc.toISOString()}_${s.activityTypeNorm}_${s.durationSec}`,
+                },
+              },
+          update: {
+            endAtUtc: s.endAtUtc,
+            durationSec: s.durationSec,
+            energyKcal: s.energyKcal,
+            distanceM: s.distanceM,
+            avgHr: s.avgHr,
+            intensityBand: s.intensityBand,
+          },
+          create: {
+            userId,
+            source: s.source,
+            externalId: s.externalId ?? `${s.startAtUtc.toISOString()}_${s.activityTypeNorm}_${s.durationSec}`,
+            activityTypeRaw: s.activityTypeRaw,
+            activityTypeNorm: s.activityTypeNorm,
+            startAtUtc: s.startAtUtc,
+            endAtUtc: s.endAtUtc,
+            timezoneOffsetMin: s.timezoneOffsetMin,
+            localDate: s.localDate,
+            durationSec: s.durationSec,
+            energyKcal: s.energyKcal,
+            distanceM: s.distanceM,
+            avgHr: s.avgHr,
+            intensityBand: s.intensityBand,
+            isIntentional: s.isIntentional,
+          },
+        }),
+      );
+      await prisma.$transaction(sessionOps);
+    }
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erro desconhecido";
     Sentry.captureException(err, { tags: { endpoint: "health-export-bg" } });

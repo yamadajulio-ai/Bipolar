@@ -89,6 +89,16 @@ const CONSENT_SCOPES = [
       "Dados minimizados (sem diário em texto livre).",
     essential: false,
   },
+  {
+    scope: "physical_activity",
+    label: "Atividade física",
+    description:
+      "Processamento de sessões de atividade física (início, fim, tipo, intensidade) e agregados diários " +
+      "importados do Apple Saúde/Health Connect ou inseridos por você. Usado como contexto clínico " +
+      "(padrão de ritmo corporal e ativação), nunca como métrica de fitness. " +
+      "Localização e rotas GPS NÃO são coletadas.",
+    essential: false,
+  },
 ] as const;
 
 export default function ConsentimentosPage() {

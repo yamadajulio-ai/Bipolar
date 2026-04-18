@@ -3,6 +3,7 @@ import * as Sentry from "@sentry/nextjs";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { checkRateLimit } from "@/lib/security";
+import { hasConsent } from "@/lib/consent";
 import { parseHealthExportPayloadV2 } from "@/lib/integrations/healthExport";
 import {
   mergeWearableNights,
@@ -51,7 +52,8 @@ export async function POST(request: NextRequest) {
       result.sleepNights.length > 0 ||
       result.hrvHrData.hrvByDate.size > 0 ||
       result.hrvHrData.hrByDate.size > 0 ||
-      result.genericMetrics.length > 0;
+      result.genericMetrics.length > 0 ||
+      result.activitySessions.length > 0;
 
     if (!hasAnyData) {
       return NextResponse.json(
@@ -117,11 +119,55 @@ export async function POST(request: NextRequest) {
       metricsImported = result.genericMetrics.length;
     }
 
+    // 4. Physical activity sessions (ADR-011) — consent-gated
+    let activityImported = 0;
+    if (result.activitySessions.length > 0 && await hasConsent(session.userId, "physical_activity")) {
+      const sessionOps = result.activitySessions.map((s) =>
+        prisma.physicalActivitySession.upsert({
+          where: {
+            userId_source_externalId: {
+              userId: session.userId,
+              source: s.source,
+              externalId: s.externalId ?? `${s.startAtUtc.toISOString()}_${s.activityTypeNorm}_${s.durationSec}`,
+            },
+          },
+          update: {
+            endAtUtc: s.endAtUtc,
+            durationSec: s.durationSec,
+            energyKcal: s.energyKcal,
+            distanceM: s.distanceM,
+            avgHr: s.avgHr,
+            intensityBand: s.intensityBand,
+          },
+          create: {
+            userId: session.userId,
+            source: s.source,
+            externalId: s.externalId ?? `${s.startAtUtc.toISOString()}_${s.activityTypeNorm}_${s.durationSec}`,
+            activityTypeRaw: s.activityTypeRaw,
+            activityTypeNorm: s.activityTypeNorm,
+            startAtUtc: s.startAtUtc,
+            endAtUtc: s.endAtUtc,
+            timezoneOffsetMin: s.timezoneOffsetMin,
+            localDate: s.localDate,
+            durationSec: s.durationSec,
+            energyKcal: s.energyKcal,
+            distanceM: s.distanceM,
+            avgHr: s.avgHr,
+            intensityBand: s.intensityBand,
+            isIntentional: s.isIntentional,
+          },
+        }),
+      );
+      await prisma.$transaction(sessionOps);
+      activityImported = result.activitySessions.length;
+    }
+
     return NextResponse.json({
       imported: sleepImported,
       hrvHrEnriched,
       metricsImported,
       metricTypes: [...new Set(result.genericMetrics.map((m) => m.metric))],
+      activityImported,
       skippedCount: result.skippedCount,
     });
   } catch (err) {

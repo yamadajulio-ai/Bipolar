@@ -49,6 +49,9 @@ vi.mock("@/lib/integrations/healthExport", () => ({
     sleepNights: [],
     hrvHrData: { hrvByDate: new Map(), hrByDate: new Map() },
     genericMetrics: [],
+    activitySessions: [],
+    skippedCount: 0,
+    errorDetails: [],
   })),
 }));
 

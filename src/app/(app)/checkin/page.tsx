@@ -42,6 +42,9 @@ export default function CheckinPage() {
   const [hasDoseTracking, setHasDoseTracking] = useState<boolean | null>(null);
   const [showSigns, setShowSigns] = useState(false);
   const [selectedSigns, setSelectedSigns] = useState<string[]>([]);
+  // ADR-011: self-report relativo de movimento (shadow mode). Sem culpabilização.
+  const [movementRelative, setMovementRelative] = useState<"abaixo" | "dentro" | "acima" | "nao_sei" | null>(null);
+  const [movementLate, setMovementLate] = useState(false);
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -216,6 +219,8 @@ export default function CheckinPage() {
             ...(anxiety !== null ? { anxiety } : {}),
             ...(irritability !== null ? { irritability } : {}),
             warningSignsNow: selectedSigns.length > 0 ? JSON.stringify(selectedSigns) : undefined,
+            ...(movementRelative ? { movementRelative } : {}),
+            ...(movementLate ? { movementLate: true } : {}),
             clientRequestId,
             ...(isFirst ? {
               ...(wearableSleepHours !== null ? { sleepHours: parseFloat(sleepHours) || 0 } : {}),
@@ -485,6 +490,50 @@ export default function CheckinPage() {
               onChange={setIrritability}
               labels={IRRITABILITY_LABELS}
             />
+          </Card>
+        )}
+
+        {/* Movimento — ADR-011. Self-report relativo, nunca obrigatório. */}
+        {mode === "complete" && (
+          <Card>
+            <p className="block text-sm font-medium text-foreground mb-1">Movimento hoje</p>
+            <p className="text-xs text-muted mb-3">Comparando com seu padrão habitual. Não é meta nem avaliação.</p>
+            <div className="grid grid-cols-2 gap-2">
+              {([
+                { key: "abaixo", label: "Abaixo do habitual" },
+                { key: "dentro", label: "Dentro do habitual" },
+                { key: "acima", label: "Acima do habitual" },
+                { key: "nao_sei", label: "Não sei" },
+              ] as const).map((opt) => {
+                const selected = movementRelative === opt.key;
+                return (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    onClick={() => setMovementRelative(selected ? null : opt.key)}
+                    aria-pressed={selected}
+                    className={`min-h-[44px] rounded-lg border px-3 py-2 text-sm transition-colors ${
+                      selected
+                        ? "border-primary bg-primary/10 text-foreground"
+                        : "border-border text-muted hover:border-primary/40 hover:text-foreground"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+            {(movementRelative === "acima" || movementRelative === "dentro") && (
+              <label className="mt-3 flex items-center gap-2 text-sm text-foreground min-h-[44px]">
+                <input
+                  type="checkbox"
+                  checked={movementLate}
+                  onChange={(e) => setMovementLate(e.target.checked)}
+                  className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                />
+                Perto da hora de dormir
+              </label>
+            )}
           </Card>
         )}
 

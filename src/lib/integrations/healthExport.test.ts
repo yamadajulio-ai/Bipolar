@@ -493,3 +493,150 @@ describe("parseHealthExportPayloadV2", () => {
     expect(result[0].totalHours).toBe(8);
   });
 });
+
+describe("parseHealthExportPayloadV2 — workouts (ADR-011)", () => {
+  it("returns empty activitySessions when no workouts present", () => {
+    const result = parseHealthExportPayloadV2({ data: { metrics: [] } });
+    expect(result.activitySessions).toEqual([]);
+  });
+
+  it("parses a basic HKWorkout payload", () => {
+    const payload = {
+      data: {
+        metrics: [],
+        workouts: [
+          {
+            workoutActivityType: "HKWorkoutActivityTypeRunning",
+            start: "2026-04-17 18:00:00 -0300",
+            end: "2026-04-17 18:40:00 -0300",
+            activeEnergyBurned: { qty: 350, units: "kcal" },
+            avgHeartRate: { qty: 145, units: "count/min" },
+            distance: { qty: 6500, units: "m" },
+            identifier: "WK-ABC-123",
+          },
+        ],
+      },
+    };
+    const result = parseHealthExportPayloadV2(payload);
+    expect(result.activitySessions).toHaveLength(1);
+    const s = result.activitySessions[0];
+    expect(s.source).toBe("healthkit");
+    expect(s.externalId).toBe("WK-ABC-123");
+    expect(s.activityTypeNorm).toBe("run");
+    expect(s.durationSec).toBe(2400);
+    expect(s.avgHr).toBe(145);
+    expect(s.intensityBand).toBe("vigorous");
+    expect(s.energyKcal).toBe(350);
+    expect(s.distanceM).toBe(6500);
+    expect(s.isIntentional).toBe(true);
+  });
+
+  it("skips workouts with missing start/end dates", () => {
+    const payload = {
+      data: {
+        metrics: [],
+        workouts: [{ workoutActivityType: "HKWorkoutActivityTypeRunning" }],
+      },
+    };
+    const result = parseHealthExportPayloadV2(payload);
+    expect(result.activitySessions).toHaveLength(0);
+    expect(result.skippedCount).toBeGreaterThan(0);
+  });
+
+  it("rejects implausible durations (<60s or >8h)", () => {
+    const tooShort = {
+      workoutActivityType: "HKWorkoutActivityTypeWalking",
+      start: "2026-04-17 10:00:00 -0300",
+      end: "2026-04-17 10:00:30 -0300",
+    };
+    const tooLong = {
+      workoutActivityType: "HKWorkoutActivityTypeCycling",
+      start: "2026-04-17 08:00:00 -0300",
+      end: "2026-04-17 20:00:00 -0300",
+    };
+    const payload = { data: { metrics: [], workouts: [tooShort, tooLong] } };
+    const result = parseHealthExportPayloadV2(payload);
+    expect(result.activitySessions).toHaveLength(0);
+    expect(result.skippedCount).toBeGreaterThanOrEqual(2);
+  });
+
+  it("normalizes activity types to 8 coarse buckets", () => {
+    const cases = [
+      { type: "HKWorkoutActivityTypeWalking", norm: "walk" },
+      { type: "HKWorkoutActivityTypeRunning", norm: "run" },
+      { type: "HKWorkoutActivityTypeCycling", norm: "cycle" },
+      { type: "HKWorkoutActivityTypeTraditionalStrengthTraining", norm: "strength" },
+      { type: "HKWorkoutActivityTypeYoga", norm: "yoga_mobility" },
+      { type: "HKWorkoutActivityTypeSwimming", norm: "swim" },
+      { type: "HKWorkoutActivityTypeSoccer", norm: "team_sport" },
+      { type: "HKWorkoutActivityTypePoloo", norm: "mixed_other" },
+    ];
+    for (const c of cases) {
+      const payload = {
+        data: {
+          metrics: [],
+          workouts: [{
+            workoutActivityType: c.type,
+            start: "2026-04-17 08:00:00 -0300",
+            end: "2026-04-17 08:30:00 -0300",
+          }],
+        },
+      };
+      const result = parseHealthExportPayloadV2(payload);
+      expect(result.activitySessions[0]?.activityTypeNorm).toBe(c.norm);
+    }
+  });
+
+  it("classifies intensity by HR when available", () => {
+    const make = (hr: number) => ({
+      data: {
+        metrics: [],
+        workouts: [{
+          workoutActivityType: "HKWorkoutActivityTypeFunctionalStrengthTraining",
+          start: "2026-04-17 08:00:00 -0300",
+          end: "2026-04-17 08:30:00 -0300",
+          avgHeartRate: { qty: hr, units: "count/min" },
+        }],
+      },
+    });
+    expect(parseHealthExportPayloadV2(make(80)).activitySessions[0].intensityBand).toBe("light");
+    expect(parseHealthExportPayloadV2(make(120)).activitySessions[0].intensityBand).toBe("moderate");
+    expect(parseHealthExportPayloadV2(make(160)).activitySessions[0].intensityBand).toBe("vigorous");
+  });
+
+  it("falls back to activity-type heuristic when HR is missing", () => {
+    const payload = {
+      data: {
+        metrics: [],
+        workouts: [{
+          workoutActivityType: "HKWorkoutActivityTypeYoga",
+          start: "2026-04-17 08:00:00 -0300",
+          end: "2026-04-17 08:30:00 -0300",
+        }],
+      },
+    };
+    const result = parseHealthExportPayloadV2(payload);
+    expect(result.activitySessions[0].intensityBand).toBe("light");
+  });
+
+  it("filters out-of-range HR/energy/distance values", () => {
+    const payload = {
+      data: {
+        metrics: [],
+        workouts: [{
+          workoutActivityType: "HKWorkoutActivityTypeRunning",
+          start: "2026-04-17 08:00:00 -0300",
+          end: "2026-04-17 08:30:00 -0300",
+          avgHeartRate: { qty: 400, units: "count/min" },
+          activeEnergyBurned: { qty: 10000, units: "kcal" },
+          distance: { qty: 500000, units: "m" },
+        }],
+      },
+    };
+    const result = parseHealthExportPayloadV2(payload);
+    const s = result.activitySessions[0];
+    expect(s.avgHr).toBeUndefined();
+    expect(s.energyKcal).toBeUndefined();
+    expect(s.distanceM).toBeUndefined();
+  });
+});

@@ -11,6 +11,10 @@
     {
       "path": "/api/cron/reactivation",
       "schedule": "0 17 * * *"
+    },
+    {
+      "path": "/api/cron/activity-shadow",
+      "schedule": "0 7 * * *"
     }
   ]
 }

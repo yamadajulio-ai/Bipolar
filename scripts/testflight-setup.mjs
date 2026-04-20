@@ -81,18 +81,19 @@ function getKeyPath() {
 function makeJWT() {
   const key = fs.readFileSync(getKeyPath(), "utf8");
   const header = b64url(JSON.stringify({ alg: "ES256", kid: KEY_ID, typ: "JWT" }));
+  const exp = Math.floor(Date.now() / 1000) + 1200; // 20 min (max Apple aceita)
   const payload = b64url(
     JSON.stringify({
       iss: ISSUER_ID,
       iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + 1200, // 20 min
+      exp,
       aud: "appstoreconnect-v1",
     }),
   );
   const signer = crypto.createSign("SHA256");
   signer.update(`${header}.${payload}`);
   const sig = signer.sign({ key, dsaEncoding: "ieee-p1363" });
-  return `${header}.${payload}.${b64url(sig)}`;
+  return { token: `${header}.${payload}.${b64url(sig)}`, exp };
 }
 
 function b64url(input) {
@@ -101,28 +102,56 @@ function b64url(input) {
 }
 
 // ── 2. HTTP helper ────────────────────────────────────────────
-let jwt = null;
+let jwtCache = null;
+function currentJwt() {
+  const now = Math.floor(Date.now() / 1000);
+  if (!jwtCache || jwtCache.exp - now < 120) {
+    jwtCache = makeJWT();
+  }
+  return jwtCache.token;
+}
+
 async function api(method, pathOrUrl, body) {
-  if (!jwt) jwt = makeJWT();
   const url = pathOrUrl.startsWith("http")
     ? pathOrUrl
     : `https://api.appstoreconnect.apple.com${pathOrUrl}`;
   const res = await fetch(url, {
     method,
     headers: {
-      Authorization: `Bearer ${jwt}`,
+      Authorization: `Bearer ${currentJwt()}`,
       "Content-Type": "application/json",
     },
     body: body ? JSON.stringify(body) : undefined,
   });
-  if (res.status === 204) return null;
+  if (res.status === 204) return { status: 204, data: null, errors: [] };
   const text = await res.text();
   const json = text ? JSON.parse(text) : null;
-  if (!res.ok) {
-    const errors = json?.errors?.map((e) => `${e.title}: ${e.detail}`).join(" | ") ?? text;
-    throw new Error(`${method} ${pathOrUrl} → ${res.status} · ${errors}`);
+  return {
+    status: res.status,
+    ok: res.ok,
+    data: json,
+    errors: json?.errors ?? [],
+  };
+}
+
+async function apiOrThrow(method, pathOrUrl, body) {
+  const r = await api(method, pathOrUrl, body);
+  if (!r.ok && r.status !== 204) {
+    const details = r.errors.map((e) => `${e.code ?? e.title}: ${e.detail}`).join(" | ");
+    throw Object.assign(new Error(`${method} ${pathOrUrl} → ${r.status} · ${details}`), {
+      status: r.status,
+      errors: r.errors,
+    });
   }
-  return json;
+  return r.data;
+}
+
+function isAlreadyDone(err, codes = []) {
+  if (err.status === 409) return true;
+  for (const e of err.errors ?? []) {
+    if (codes.includes(e.code)) return true;
+  }
+  return false;
 }
 
 // ── 3. Lookup helpers ─────────────────────────────────────────
@@ -321,6 +350,25 @@ async function addTester(groupId) {
     return;
   }
   console.log(`▸ Adicionando tester ${FATHER_EMAIL}`);
+
+  async function linkExisting() {
+    const r = await api(
+      "GET",
+      `/v1/betaTesters?filter[email]=${encodeURIComponent(FATHER_EMAIL)}&limit=1`,
+    );
+    if (!r.data.length) return false;
+    const testerId = r.data[0].id;
+    try {
+      await api("POST", `/v1/betaGroups/${groupId}/relationships/betaTesters`, {
+        data: [{ type: "betaTesters", id: testerId }],
+      });
+      console.log("  ✅ tester existente vinculado ao grupo");
+    } catch (e) {
+      console.log(`  ⚠️ tester existe (${testerId}) mas não pôde ser vinculado: ${String(e).slice(0, 140)}`);
+    }
+    return true;
+  }
+
   try {
     await api("POST", "/v1/betaTesters", {
       data: {
@@ -337,12 +385,19 @@ async function addTester(groupId) {
     });
     console.log("  ✅ convite enviado por email");
   } catch (e) {
-    if (String(e).includes("already exists")) {
-      console.log("  tester já existe — vinculando ao grupo");
-      // buscar e vincular
-    } else {
-      throw e;
+    const msg = String(e);
+    if (msg.includes("already exists")) {
+      await linkExisting();
+      return;
     }
+    // Apple returns 409 "Tester(s) cannot be assigned" until the group's first
+    // build clears Beta App Review. Treat as a deferred step, not a failure.
+    if (msg.includes("Tester(s) cannot be assigned") || msg.includes("state of another resource")) {
+      console.log("  ⏳ Apple bloqueia adicionar testers até a primeira Beta Review aprovar.");
+      console.log("     Re-rode este script após a aprovação — o tester será vinculado automaticamente.");
+      return;
+    }
+    throw e;
   }
 }
 

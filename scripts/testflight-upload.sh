@@ -77,7 +77,10 @@ xcodebuild \
     echo "❌ archive failed"; exit 1;
   }
 
-# ── 5. Export IPA ─────────────────────────────────────────────
+# ── 5. Export IPA (and maybe upload) ──────────────────────────
+# ExportOptions.plist may have <destination>upload</destination>, which makes
+# xcodebuild -exportArchive upload directly and NOT leave an .ipa on disk.
+# Detect that so we don't demand an .ipa or run altool twice.
 echo "▸ [5/6] xcodebuild -exportArchive"
 rm -rf "$EXPORT_PATH"
 xcodebuild \
@@ -88,6 +91,15 @@ xcodebuild \
   -allowProvisioningUpdates || {
     echo "❌ export failed"; exit 1;
   }
+
+EXPORT_DEST=$(/usr/libexec/PlistBuddy -c "Print :destination" "$EXPORT_OPTIONS" 2>/dev/null || echo "export")
+
+if [ "$EXPORT_DEST" = "upload" ]; then
+  echo "▸ [6/6] ExportOptions destino=upload — exportArchive já subiu o build"
+  echo "✅ Upload concluído. Processamento no App Store Connect: 10–30 min."
+  echo "   Depois: rodar scripts/testflight-setup.mjs."
+  exit 0
+fi
 
 IPA="$EXPORT_PATH/App.ipa"
 [ -f "$IPA" ] || { echo "❌ IPA not found at $IPA"; exit 1; }
@@ -113,4 +125,4 @@ xcrun altool --upload-app \
   --apiIssuer "$ASC_ISSUER_ID"
 
 echo "✅ Upload concluído. Processamento no App Store Connect: 10–30 min."
-echo "   Depois: responder Export Compliance e adicionar ao grupo de testers."
+echo "   Depois: rodar scripts/testflight-setup.mjs."

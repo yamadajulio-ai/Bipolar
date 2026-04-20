@@ -58,6 +58,12 @@ const env = loadEnv();
 const KEY_ID = env.ASC_KEY_ID;
 const ISSUER_ID = env.ASC_ISSUER_ID;
 const FATHER_EMAIL = env.FATHER_APPLE_ID_EMAIL;
+const CONTACT_EMAIL = env.CONTACT_EMAIL || "yamadaclubes@gmail.com";
+const CONTACT_FIRST = env.CONTACT_FIRST_NAME || "Julio";
+const CONTACT_LAST = env.CONTACT_LAST_NAME || "Yamada";
+const CONTACT_PHONE = env.CONTACT_PHONE || "";
+const DEMO_EMAIL = env.DEMO_ACCOUNT_EMAIL || "reviewer@suportebipolar.com";
+const DEMO_PASSWORD = env.DEMO_ACCOUNT_PASSWORD || "";
 const BUNDLE_ID = "com.suportebipolar.app";
 const GROUP_NAME = "Família";
 
@@ -262,13 +268,13 @@ async function setBetaTestInfo(buildId) {
 async function setBetaAppReviewDetails(appId) {
   console.log("▸ Preenchendo Beta App Review Details");
   const attributes = {
-    contactEmail: "yamadaclubes@gmail.com",
-    contactFirstName: "Julio",
-    contactLastName: "Yamada",
-    contactPhone: null,
-    demoAccountName: "reviewer@suportebipolar.com",
-    demoAccountPassword: "REVIEWER_DEMO_PASSWORD_TROCAR",
-    demoAccountRequired: true,
+    contactEmail: CONTACT_EMAIL,
+    contactFirstName: CONTACT_FIRST,
+    contactLastName: CONTACT_LAST,
+    contactPhone: CONTACT_PHONE,
+    demoAccountName: DEMO_EMAIL,
+    demoAccountPassword: DEMO_PASSWORD,
+    demoAccountRequired: Boolean(DEMO_PASSWORD),
     notes:
       "Reviewer account has 30 days of seeded mood/sleep/medication data. Sign in with Apple also available. App is a wellness companion for bipolar disorder — not a medical device.",
   };
@@ -292,8 +298,13 @@ async function submitForReview(buildId) {
       },
     });
   } catch (e) {
-    if (String(e).includes("ENTITY_ERROR.ATTRIBUTE.INVALID")) {
-      console.log("  (build já submetido)");
+    const msg = String(e);
+    if (
+      msg.includes("ENTITY_ERROR.ATTRIBUTE.INVALID") ||
+      msg.includes("not in a valid processing state") ||
+      msg.includes("422")
+    ) {
+      console.log("  (build já em review)");
     } else {
       throw e;
     }

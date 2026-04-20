@@ -158,13 +158,21 @@ async function waitBuildValid(appId, maxMinutes = 30) {
 // ── 4. Steps ──────────────────────────────────────────────────
 async function setExportCompliance(buildId) {
   console.log("▸ Marcando Export Compliance");
-  await api("PATCH", `/v1/builds/${buildId}`, {
-    data: {
-      type: "builds",
-      id: buildId,
-      attributes: { usesNonExemptEncryption: false },
-    },
-  });
+  try {
+    await api("PATCH", `/v1/builds/${buildId}`, {
+      data: {
+        type: "builds",
+        id: buildId,
+        attributes: { usesNonExemptEncryption: false },
+      },
+    });
+  } catch (e) {
+    if (String(e).includes("already set") || String(e).includes("409")) {
+      console.log("  (já marcado)");
+    } else {
+      throw e;
+    }
+  }
 }
 
 async function ensureBetaGroup(appId) {
@@ -193,9 +201,17 @@ async function ensureBetaGroup(appId) {
 
 async function attachBuildToGroup(groupId, buildId) {
   console.log("▸ Vinculando build ao grupo");
-  await api("POST", `/v1/betaGroups/${groupId}/relationships/builds`, {
-    data: [{ type: "builds", id: buildId }],
-  });
+  try {
+    await api("POST", `/v1/betaGroups/${groupId}/relationships/builds`, {
+      data: [{ type: "builds", id: buildId }],
+    });
+  } catch (e) {
+    if (String(e).includes("already") || String(e).includes("ENTITY_ERROR")) {
+      console.log("  (já vinculado)");
+    } else {
+      throw e;
+    }
+  }
 }
 
 async function setBetaTestInfo(buildId) {
@@ -222,15 +238,13 @@ async function setBetaTestInfo(buildId) {
   } catch (_) {
     // já existe — ok
   }
-  const r = await api(
-    "GET",
-    `/v1/builds/${buildId}/betaBuildLocalizations?filter[locale]=en-US`,
-  );
-  if (r.data.length) {
-    await api("PATCH", `/v1/betaBuildLocalizations/${r.data[0].id}`, {
+  const r = await api("GET", `/v1/builds/${buildId}/betaBuildLocalizations`);
+  const existing = r.data.find((l) => l.attributes.locale === "en-US");
+  if (existing) {
+    await api("PATCH", `/v1/betaBuildLocalizations/${existing.id}`, {
       data: {
         type: "betaBuildLocalizations",
-        id: r.data[0].id,
+        id: existing.id,
         attributes: { whatsNew: whatToTest },
       },
     });

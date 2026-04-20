@@ -69,3 +69,5 @@ tmp_*.txt
 ADMIN_DASHBOARD_BRIEFING.md
 
 .env*.local
+
+.env.testflight

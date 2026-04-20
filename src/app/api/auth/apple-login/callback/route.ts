@@ -115,7 +115,13 @@ export async function POST(request: NextRequest) {
     if (user) {
       const updateData: Record<string, string> = {};
       if (encryptedAppleRefreshToken) updateData.appleRefreshToken = encryptedAppleRefreshToken;
-      if (user.email !== appleUser.email) updateData.email = appleUser.email;
+      // Preserve the readable email: don't overwrite with Apple Private Relay alias, and don't
+      // overwrite when the user also has Google/password (their primary email must win).
+      const isRelayEmail = appleUser.email.endsWith("@privaterelay.appleid.com");
+      const hasOtherProvider = !!user.googleSub || !!user.passwordHash;
+      if (!isRelayEmail && !hasOtherProvider && user.email !== appleUser.email) {
+        updateData.email = appleUser.email;
+      }
       if (Object.keys(updateData).length > 0) {
         await prisma.user.update({
           where: { id: user.id },

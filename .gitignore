@@ -57,8 +57,11 @@ IDEIAS REDE BIPOLAR.txt
 .env*.local
 .env.vercel
 
-# Capacitor native projects (generated, not committed)
-/ios/
+# Capacitor native projects
+# ios/ is versioned — customizations (ViewController, entitlements, team,
+# privacy manifest) don't regenerate from `cap sync`. Build artifacts
+# (Pods, DerivedData, xcuserdata) are excluded by ios/.gitignore.
+# android/ not yet added; keep ignored until/unless `cap add android`.
 /android/
 
 # temporary/generated scripts (keep only backup-db.sh)

@@ -12,9 +12,13 @@ const oauthErrorMessages: Record<string, string> = {
   csrf: "Erro de segurança. Tente novamente.",
   no_code: "Erro na autenticação. Tente novamente.",
   no_token: "Erro na autenticação. Tente novamente.",
+  invalid_token: "Sessão inválida. Tente novamente.",
+  invalid_request: "Requisição inválida. Tente novamente.",
   email_not_verified: "Seu e-mail não está verificado.",
   google_login_failed: "Erro ao entrar com Google. Tente novamente.",
   apple_login_failed: "Erro ao entrar com Apple. Tente novamente.",
+  session_failed: "Não foi possível iniciar sessão. Tente novamente.",
+  account_exists: "Já existe uma conta com este e-mail. Entre pelo método original.",
   rate_limited: "Muitas tentativas. Aguarde alguns minutos.",
 };
 
@@ -107,7 +111,7 @@ function LoginForm() {
         onClick={async () => {
           if (Capacitor.isNativePlatform()) {
             const { Browser } = await import("@capacitor/browser");
-            await Browser.open({ url: "https://suportebipolar.com/api/auth/google-login" });
+            await Browser.open({ url: "https://suportebipolar.com/api/auth/google-login?native=1" });
           } else {
             window.location.href = "/api/auth/google-login";
           }

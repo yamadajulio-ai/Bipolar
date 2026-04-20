@@ -4,12 +4,22 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { checkRateLimit, getClientIp } from "@/lib/security";
 import { exchangeLoginCodeForTokens, getGoogleUserInfo } from "@/lib/google/login-auth";
+import { signBridgeToken } from "@/lib/oauth-native-bridge";
+
+const NATIVE_SCHEME = "suportebipolar://auth-success";
+const NATIVE_ERROR_SCHEME = "suportebipolar://auth-error";
 
 export async function GET(request: NextRequest) {
-  /** Helper: redirect to login with error + always clean up state cookie */
+  const isNative = request.cookies.get("google-login-native")?.value === "1";
+
+  /** Helper: redirect to login (or native error scheme) with error + always clean up state cookies */
   function errorRedirect(error: string): NextResponse {
-    const response = NextResponse.redirect(new URL(`/login?error=${error}`, request.url));
+    const target = isNative
+      ? `${NATIVE_ERROR_SCHEME}?error=${encodeURIComponent(error)}`
+      : new URL(`/login?error=${error}`, request.url).toString();
+    const response = NextResponse.redirect(target);
     response.cookies.delete("google-login-state");
+    response.cookies.delete("google-login-native");
     return response;
   }
 
@@ -105,6 +115,21 @@ export async function GET(request: NextRequest) {
           select: googleSelectFields,
         });
       }
+    }
+
+    // Native flow: OAuth ran in SFSafariViewController, whose cookie jar is
+    // isolated from the Capacitor WebView. Issuing iron-session here would be
+    // useless — instead, hand the app a short-lived bridge token via the custom
+    // scheme. The app re-enters through /api/auth/native-session to establish
+    // the real session cookie on the WebView's cookie store.
+    if (isNative) {
+      const bridge = signBridgeToken(user.id, !!user.onboarded);
+      const response = NextResponse.redirect(
+        `${NATIVE_SCHEME}?token=${encodeURIComponent(bridge)}`,
+      );
+      response.cookies.delete("google-login-state");
+      response.cookies.delete("google-login-native");
+      return response;
     }
 
     // Session rotation: destroy pre-auth cookie before creating authenticated session

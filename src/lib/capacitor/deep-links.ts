@@ -17,10 +17,32 @@ export function registerDeepLinkHandler(
   const handle = CapApp.addListener('appUrlOpen', (event) => {
     try {
       const url = new URL(event.url);
-      // Only handle links from our domain or custom scheme
       const isCustomScheme = url.protocol === 'suportebipolar:';
       const isTrustedHost = ALLOWED_HOSTS.has(url.hostname);
       if (!isCustomScheme && !isTrustedHost) return;
+
+      // OAuth bridge: callback redirects to suportebipolar://auth-success?token=...
+      // We bounce through /api/auth/native-session so the iron-session cookie is
+      // set on the WebView's cookie jar (Safari's is isolated). Use a hard
+      // navigation because Next's router can't hit an API route, and close
+      // Safari in case iOS left it open when handing the URL to the app.
+      if (isCustomScheme && url.hostname === 'auth-success') {
+        const token = url.searchParams.get('token');
+        import('@capacitor/browser').then(({ Browser }) => Browser.close()).catch(() => {});
+        if (token) {
+          window.location.href = `/api/auth/native-session?token=${encodeURIComponent(token)}`;
+        } else {
+          navigate('/login?error=no_token');
+        }
+        return;
+      }
+
+      if (isCustomScheme && url.hostname === 'auth-error') {
+        const error = url.searchParams.get('error') || 'google_login_failed';
+        import('@capacitor/browser').then(({ Browser }) => Browser.close()).catch(() => {});
+        navigate(`/login?error=${encodeURIComponent(error)}`);
+        return;
+      }
 
       const path = url.pathname + url.search;
       if (path.startsWith('/')) {

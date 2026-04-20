@@ -1,5 +1,39 @@
 # Bugs identificados em smoke test TestFlight — 2026-04-20
 
+---
+
+## ✅ RESOLVIDO 2026-04-20: Splash screen + WebView não adaptavam ao dark mode
+
+### Sintoma
+- App aberto com iPhone em dark mode: splash screen surgia **branco com logo placeholder ("X" azul)** por ~2s antes do conteúdo
+- Após splash, WebView piscava **fundo branco** por 1 frame antes do HTML em dark carregar
+- Flash branco também aparecia ao alternar light↔dark com app aberto
+- Card do app no multitasking switcher ficava branco independente do tema
+
+### Causa raiz
+Três camadas estavam travadas em light:
+1. **UIKit host view** (atrás da WebView): `CAPBridgeViewController` default do Capacitor não aplica bg adaptativo
+2. **LaunchScreen.storyboard**: `<device appearance="light">` + `<systemColor name="systemBackgroundColor"><color white="1">` forçavam cor fixa, matando a adaptação nativa do iOS
+3. **Splash.imageset**: `Contents.json` só tinha variantes `1x/2x/3x` para light — sem `appearances: [{value: "dark"}]`. E a imagem em si era um placeholder ("X" azul) que não representava a marca.
+
+### Fix aplicado
+- **Novo `ViewController.swift`** substitui `CAPBridgeViewController` como classe da view no Main.storyboard. Aplica bg dinâmico (`#0d0d0f` dark / white light) na view + WebView + scrollView nos hooks `viewDidLoad`, `viewWillAppear`, `traitCollectionDidChange`.
+- **LaunchScreen.storyboard**: removido `appearance="light"` e override de `systemBackgroundColor` — iOS agora usa a cor adaptativa real.
+- **Splash.imageset**: regeneradas 6 PNGs 2732x2732 (3 light cream `#f6f3ee`, 3 dark `#0d0d0f`) a partir da logo real `public/logo-square.png` (brain teal + "SUPORTE BIPOLAR"). `Contents.json` declara variantes com `luminosity: dark`.
+- **Script reusável**: `scripts/generate-dark-splash.py` faz chroma-key da logo source sobre qualquer bg — rode quando a marca mudar.
+
+### Validação pendente (após próximo build TestFlight)
+- [ ] Splash dark em cold start: iPhone dark mode → tap ícone → splash escuro com logo teal, sem branco
+- [ ] Splash light em cold start: iPhone light mode → tap ícone → splash cream com logo teal
+- [ ] Toggle light↔dark com app aberto: transição suave sem flash branco
+- [ ] Multitasking switcher: card do app respeita tema atual
+
+### Arquitetura nova do iOS (importante pra onboarding futuro)
+- `/ios/` agora **é versionado** (antes estava em `.gitignore`). Customizações Swift/storyboard/pbxproj persistem entre `npx cap sync ios`.
+
+---
+
+
 **Build testado:** Suporte Bipolar 1.0 (1) — uploaded 2026-03-31
 **Dispositivo:** iPhone 17 Pro Max
 **Ambiente:** TestFlight interno

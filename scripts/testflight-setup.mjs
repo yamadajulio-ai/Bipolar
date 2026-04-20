@@ -156,25 +156,27 @@ function isAlreadyDone(err, codes = []) {
 
 // ── 3. Lookup helpers ─────────────────────────────────────────
 async function getApp() {
-  const r = await api("GET", `/v1/apps?filter[bundleId]=${encodeURIComponent(BUNDLE_ID)}`);
+  const r = await apiOrThrow(
+    "GET",
+    `/v1/apps?filter[bundleId]=${encodeURIComponent(BUNDLE_ID)}`,
+  );
   if (!r.data.length) die(`App ${BUNDLE_ID} não existe no App Store Connect.`);
   return r.data[0];
 }
 
 async function latestBuild(appId) {
-  const r = await api(
+  const r = await apiOrThrow(
     "GET",
     `/v1/builds?filter[app]=${appId}&sort=-uploadedDate&limit=1&include=preReleaseVersion`,
   );
   if (!r.data.length) die("Nenhum build encontrado. Rodou o upload?");
-  return r;
+  return r.data[0];
 }
 
 async function waitBuildValid(appId, maxMinutes = 30) {
   const started = Date.now();
   while (true) {
-    const r = await latestBuild(appId);
-    const b = r.data[0];
+    const b = await latestBuild(appId);
     const state = b.attributes.processingState;
     const version = b.attributes.version;
     console.log(`  build ${version} · state=${state}`);
@@ -186,7 +188,7 @@ async function waitBuildValid(appId, maxMinutes = 30) {
       die(`Timeout (${maxMinutes} min) aguardando build processar.`);
     }
     await sleep(30_000);
-    jwt = null; // refresh token a cada iteração
+    // currentJwt() já renova sozinho quando exp < 120s, não precisa forçar aqui
   }
 }
 
@@ -194,7 +196,7 @@ async function waitBuildValid(appId, maxMinutes = 30) {
 async function setExportCompliance(buildId) {
   console.log("▸ Marcando Export Compliance");
   try {
-    await api("PATCH", `/v1/builds/${buildId}`, {
+    await apiOrThrow("PATCH", `/v1/builds/${buildId}`, {
       data: {
         type: "builds",
         id: buildId,
@@ -202,7 +204,7 @@ async function setExportCompliance(buildId) {
       },
     });
   } catch (e) {
-    if (String(e).includes("already set") || String(e).includes("409")) {
+    if (isAlreadyDone(e, ["ENTITY_ERROR.ATTRIBUTE.INVALID.DUPLICATE"])) {
       console.log("  (já marcado)");
     } else {
       throw e;
@@ -212,13 +214,16 @@ async function setExportCompliance(buildId) {
 
 async function ensureBetaGroup(appId) {
   console.log(`▸ Verificando grupo "${GROUP_NAME}"`);
-  const r = await api("GET", `/v1/betaGroups?filter[app]=${appId}&filter[name]=${encodeURIComponent(GROUP_NAME)}`);
+  const r = await apiOrThrow(
+    "GET",
+    `/v1/betaGroups?filter[app]=${appId}&filter[name]=${encodeURIComponent(GROUP_NAME)}`,
+  );
   if (r.data.length) {
     console.log(`  grupo já existe (${r.data[0].id})`);
     return r.data[0];
   }
   console.log("  criando grupo externo");
-  const created = await api("POST", "/v1/betaGroups", {
+  const created = await apiOrThrow("POST", "/v1/betaGroups", {
     data: {
       type: "betaGroups",
       attributes: {
@@ -237,11 +242,11 @@ async function ensureBetaGroup(appId) {
 async function attachBuildToGroup(groupId, buildId) {
   console.log("▸ Vinculando build ao grupo");
   try {
-    await api("POST", `/v1/betaGroups/${groupId}/relationships/builds`, {
+    await apiOrThrow("POST", `/v1/betaGroups/${groupId}/relationships/builds`, {
       data: [{ type: "builds", id: buildId }],
     });
   } catch (e) {
-    if (String(e).includes("already") || String(e).includes("ENTITY_ERROR")) {
+    if (isAlreadyDone(e, ["ENTITY_ERROR.RELATIONSHIP.INVALID", "ENTITY_ERROR.ATTRIBUTE.INVALID.DUPLICATE"])) {
       console.log("  (já vinculado)");
     } else {
       throw e;
@@ -262,21 +267,22 @@ async function setBetaTestInfo(buildId) {
     "",
     "Known limits: content is in Portuguese (pt-BR); target users are Brazilians with bipolar disorder.",
   ].join("\n");
-  try {
-    await api("POST", "/v1/buildBetaDetails", {
+  // buildBetaDetail is created by Apple alongside the build — only GET+PATCH allowed.
+  const detailResp = await apiOrThrow("GET", `/v1/builds/${buildId}/buildBetaDetail`);
+  const detailId = detailResp.data?.id;
+  if (detailId) {
+    await apiOrThrow("PATCH", `/v1/buildBetaDetails/${detailId}`, {
       data: {
         type: "buildBetaDetails",
+        id: detailId,
         attributes: { autoNotifyEnabled: true },
-        relationships: { build: { data: { type: "builds", id: buildId } } },
       },
     });
-  } catch (_) {
-    // já existe — ok
   }
-  const r = await api("GET", `/v1/builds/${buildId}/betaBuildLocalizations`);
+  const r = await apiOrThrow("GET", `/v1/builds/${buildId}/betaBuildLocalizations`);
   const existing = r.data.find((l) => l.attributes.locale === "en-US");
   if (existing) {
-    await api("PATCH", `/v1/betaBuildLocalizations/${existing.id}`, {
+    await apiOrThrow("PATCH", `/v1/betaBuildLocalizations/${existing.id}`, {
       data: {
         type: "betaBuildLocalizations",
         id: existing.id,
@@ -284,7 +290,7 @@ async function setBetaTestInfo(buildId) {
       },
     });
   } else {
-    await api("POST", "/v1/betaBuildLocalizations", {
+    await apiOrThrow("POST", "/v1/betaBuildLocalizations", {
       data: {
         type: "betaBuildLocalizations",
         attributes: { locale: "en-US", whatsNew: whatToTest },
@@ -307,9 +313,10 @@ async function setBetaAppReviewDetails(appId) {
     notes:
       "Reviewer account has 30 days of seeded mood/sleep/medication data. Sign in with Apple also available. App is a wellness companion for bipolar disorder — not a medical device.",
   };
-  const r = await api("GET", `/v1/apps/${appId}/betaAppReviewDetail`);
-  await api("PATCH", `/v1/betaAppReviewDetails/${r.data.id}`, {
-    data: { type: "betaAppReviewDetails", id: r.data.id, attributes },
+  const r = await apiOrThrow("GET", `/v1/apps/${appId}/betaAppReviewDetail`);
+  const detailId = r.data.id;
+  await apiOrThrow("PATCH", `/v1/betaAppReviewDetails/${detailId}`, {
+    data: { type: "betaAppReviewDetails", id: detailId, attributes },
   });
 }
 
@@ -320,18 +327,19 @@ async function submitForReview(buildId) {
   }
   console.log("▸ Submetendo pra Beta App Review");
   try {
-    await api("POST", "/v1/betaAppReviewSubmissions", {
+    await apiOrThrow("POST", "/v1/betaAppReviewSubmissions", {
       data: {
         type: "betaAppReviewSubmissions",
         relationships: { build: { data: { type: "builds", id: buildId } } },
       },
     });
   } catch (e) {
-    const msg = String(e);
     if (
-      msg.includes("ENTITY_ERROR.ATTRIBUTE.INVALID") ||
-      msg.includes("not in a valid processing state") ||
-      msg.includes("422")
+      isAlreadyDone(e, [
+        "ENTITY_ERROR.ATTRIBUTE.INVALID.DUPLICATE",
+        "ENTITY_ERROR.RELATIONSHIP.INVALID",
+      ]) ||
+      e.status === 422
     ) {
       console.log("  (build já em review)");
     } else {
@@ -352,14 +360,14 @@ async function addTester(groupId) {
   console.log(`▸ Adicionando tester ${FATHER_EMAIL}`);
 
   async function linkExisting() {
-    const r = await api(
+    const r = await apiOrThrow(
       "GET",
       `/v1/betaTesters?filter[email]=${encodeURIComponent(FATHER_EMAIL)}&limit=1`,
     );
     if (!r.data.length) return false;
     const testerId = r.data[0].id;
     try {
-      await api("POST", `/v1/betaGroups/${groupId}/relationships/betaTesters`, {
+      await apiOrThrow("POST", `/v1/betaGroups/${groupId}/relationships/betaTesters`, {
         data: [{ type: "betaTesters", id: testerId }],
       });
       console.log("  ✅ tester existente vinculado ao grupo");
@@ -370,7 +378,7 @@ async function addTester(groupId) {
   }
 
   try {
-    await api("POST", "/v1/betaTesters", {
+    await apiOrThrow("POST", "/v1/betaTesters", {
       data: {
         type: "betaTesters",
         attributes: {
@@ -386,7 +394,10 @@ async function addTester(groupId) {
     console.log("  ✅ convite enviado por email");
   } catch (e) {
     const msg = String(e);
-    if (msg.includes("already exists")) {
+    if (
+      msg.includes("already exists") ||
+      isAlreadyDone(e, ["ENTITY_ERROR.ATTRIBUTE.INVALID.DUPLICATE"])
+    ) {
       await linkExisting();
       return;
     }

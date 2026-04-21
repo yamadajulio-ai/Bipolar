@@ -1,5 +1,9 @@
 # Bugs identificados em smoke test TestFlight — 2026-04-20
 
+> **Status atual (2026-04-20 noite):** Build 1.0 (6) subiu para ASC com TODOS os fixes desta página aplicados (OAuth bridge, splash dark adaptativo, cores alinhadas, env hardening). Aguardando 10-30min de processamento no App Store Connect. Commits: `971a08d` (OAuth bridge), `1d3612c` (splash), `ecad89d` (cores alinhadas + script hardening + esta doc).
+>
+> Build anterior testado no smoke era 1.0 (1) de 2026-03-31 — antes de qualquer fix. Por isso bugs #1 e #2 aparecem abaixo como "resolvidos aguardando validação" em vez de "fixados em produção".
+
 ---
 
 ## ✅ RESOLVIDO 2026-04-20: Splash screen + WebView não adaptavam ao dark mode
@@ -156,14 +160,50 @@ Defesas aplicadas em [scripts/testflight-upload.sh](scripts/testflight-upload.sh
 
 ---
 
-## Próximo TestFlight (validar todos os fixes desta sessão)
+## Build 1.0 (6) — subido 2026-04-20 noite
 
-Rodar:
-```
-./scripts/testflight-upload.sh
-```
+Sequência executada: `pnpm build` → `cap sync ios` → `agvtool` bump (5→6) → `xcodebuild archive` → `xcodebuild -exportArchive` (destino `upload`) → ASC processando. Notificação por email do Apple quando "Ready to Test".
 
-Sequência: `pnpm build` → `cap sync ios` → `agvtool` bump (1→2) → `xcodebuild archive` → `xcodebuild -exportArchive` (destino `upload`) → processa 10–30min no ASC. Depois validar os checklists "Validação pendente" acima.
+### Checklist de validação — ordem recomendada no iPhone 17 Pro Max
+
+**Pré-flight (ASC):**
+- [ ] Build 1.0 (6) aparece em TestFlight → Builds. Status "Ready to Test" (ou amarelo "Processing" por 10-30min).
+- [ ] Export Compliance: clicar o warning amarelo, marcar "No" para encryption (ou "Exempt" — Capacitor só usa HTTPS padrão iOS, não custom crypto).
+
+**Splash (fix `1d3612c` + `ecad89d`):**
+- [ ] iPhone em **dark mode** → força-close → tap ícone: splash escuro `#171411` com logo teal, SEM flash branco, SEM placeholder "X".
+- [ ] iPhone em **light mode** → força-close → tap ícone: splash cream `#f6f3ee` com logo teal.
+- [ ] Transição splash → WebView: sem piscar. Se piscar = ainda tem mismatch, comparar corner pixel do PNG com `--background` do token CSS.
+- [ ] Toggle light↔dark com app aberto: transição suave sem flash.
+- [ ] Multitasking switcher (swipe up + hold): card do app respeita tema atual.
+
+**OAuth Google bridge (fix `971a08d`):**
+- [ ] Logout (Menu → Sair) → tela de login
+- [ ] Tap "Continuar com Google" → SFSafari abre fullscreen (barra Safari em cima é normal DENTRO do Safari)
+- [ ] Login Google completa (select account + consent)
+- [ ] **CRÍTICO:** Safari **fecha sozinho** automaticamente
+- [ ] User chega em `/hoje` (ou `/onboarding` se primeira vez) SEM barra `suportebipolar.com` visível
+- [ ] URL bar da página interna NÃO aparece em lugar nenhum do app
+
+**Face ID (consequência do OAuth fix):**
+- [ ] Menu → Conta → seção Face ID aparece (prova que `Capacitor.isNativePlatform()` retorna `true`)
+- [ ] Ativa Face ID → força-close → reabre: prompt biométrico ANTES de mostrar conteúdo
+- [ ] 3 falhas biométricas seguidas → logout automático (segurança)
+
+**Apple Sign-In (validação bug §0 env vars):**
+- [ ] Logout → "Continuar com Apple" → dialog fullscreen nativo ASAuthorizationController
+- [ ] Login completa → chega em `/hoje` ou `/onboarding`
+- [ ] Se falhar: checar se `APPLE_PRIVATE_KEY` tem `\n` residual (bug §0 não corrigiu esse especificamente porque PEM tem newlines legítimos)
+
+### Se algo falhar
+
+1. **Safari OAuth não fecha:** bug do fix, não do build. Ordem de debug:
+   - Verificar `NativeAppShell` está montado (layout.tsx:129 ✓)
+   - Console do Capacitor: `appUrlOpen` dispara ao voltar do Google?
+   - Cookie `google-login-native=1` chega no callback? (sameSite=lax, pode quebrar cross-site se Google fizer POST em vez de GET)
+   - Response do callback tem `Location: suportebipolar://auth-success?token=…`?
+2. **Splash ainda pisca:** comparar hex do corner pixel do PNG novo com `--background` do token CSS (`#171411` dark, `#f6f3ee` light). Se bater e ainda pisca = React hydration demorando → investigar bundle size.
+3. **Face ID não aparece mesmo com OAuth ok:** checar `isBiometricAvailable()` no device (alguns iPhones têm Touch ID descoberto, mas 17 Pro Max tem Face ID garantido).
 
 ---
 

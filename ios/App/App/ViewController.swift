@@ -18,10 +18,14 @@ class ViewController: CAPBridgeViewController {
     }
 
     private func applyDynamicBackground() {
+        // Cores alinhadas com tokens CSS (src/app/globals.css) E splash PNGs:
+        //   light  → #f6f3ee (cream, --background root)
+        //   dark   → #171411 (--background em .dark)
+        // Splash PNGs + CSS body + WebView precisam bater pra não piscar na transição.
         let dynamic = UIColor { trait in
             trait.userInterfaceStyle == .dark
-                ? UIColor(red: 13.0/255.0, green: 13.0/255.0, blue: 15.0/255.0, alpha: 1.0)
-                : .white
+                ? UIColor(red: 23.0/255.0, green: 20.0/255.0, blue: 17.0/255.0, alpha: 1.0)
+                : UIColor(red: 246.0/255.0, green: 243.0/255.0, blue: 238.0/255.0, alpha: 1.0)
         }
         view.backgroundColor = dynamic
         if let webView = self.webView {

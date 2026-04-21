@@ -51,14 +51,16 @@ npx cap sync ios
 if [ "$DO_BUMP" = "1" ]; then
   echo "▸ [3/6] agvtool bump"
   cd "$IOS_DIR"
-  CURRENT=$(agvtool what-version -terse)
+  CURRENT=$(agvtool what-version -terse | head -n1 | tr -d '[:space:]')
+  [[ "$CURRENT" =~ ^[0-9]+$ ]] || { echo "❌ agvtool retornou build number inválido: '$CURRENT'"; exit 1; }
   NEXT=$((CURRENT + 1))
   agvtool new-version -all "$NEXT" >/dev/null
   echo "  build: $CURRENT → $NEXT"
   cd "$ROOT"
 else
   cd "$IOS_DIR"
-  echo "▸ [3/6] skipping bump (build=$(agvtool what-version -terse))"
+  CURRENT=$(agvtool what-version -terse | head -n1 | tr -d '[:space:]')
+  echo "▸ [3/6] skipping bump (build=$CURRENT)"
   cd "$ROOT"
 fi
 
@@ -116,6 +118,12 @@ if [ ! -f "$ROOT/.env.testflight" ]; then
   exit 1
 fi
 set -a; . "$ROOT/.env.testflight"; set +a
+
+# Defesa contra o bug recorrente de env vars Apple com \n/espaço no final (vide docs/bugs-pre-submissao-2026-04-20.md §0)
+ASC_KEY_ID="$(printf '%s' "${ASC_KEY_ID:-}" | tr -d '[:space:]')"
+ASC_ISSUER_ID="$(printf '%s' "${ASC_ISSUER_ID:-}" | tr -d '[:space:]')"
+: "${ASC_KEY_ID:?ASC_KEY_ID ausente em .env.testflight}"
+: "${ASC_ISSUER_ID:?ASC_ISSUER_ID ausente em .env.testflight}"
 
 echo "▸ [6/6] altool upload"
 xcrun altool --upload-app \

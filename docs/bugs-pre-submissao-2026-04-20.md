@@ -17,10 +17,20 @@ Três camadas estavam travadas em light:
 3. **Splash.imageset**: `Contents.json` só tinha variantes `1x/2x/3x` para light — sem `appearances: [{value: "dark"}]`. E a imagem em si era um placeholder ("X" azul) que não representava a marca.
 
 ### Fix aplicado
-- **Novo `ViewController.swift`** substitui `CAPBridgeViewController` como classe da view no Main.storyboard. Aplica bg dinâmico (`#0d0d0f` dark / white light) na view + WebView + scrollView nos hooks `viewDidLoad`, `viewWillAppear`, `traitCollectionDidChange`.
+- **Novo `ViewController.swift`** substitui `CAPBridgeViewController` como classe da view no Main.storyboard. Aplica bg dinâmico (token-accurate: `#171411` dark / `#f6f3ee` cream) na view + WebView + scrollView nos hooks `viewDidLoad`, `viewWillAppear`, `traitCollectionDidChange`.
 - **LaunchScreen.storyboard**: removido `appearance="light"` e override de `systemBackgroundColor` — iOS agora usa a cor adaptativa real.
-- **Splash.imageset**: regeneradas 6 PNGs 2732x2732 (3 light cream `#f6f3ee`, 3 dark `#0d0d0f`) a partir da logo real `public/logo-square.png` (brain teal + "SUPORTE BIPOLAR"). `Contents.json` declara variantes com `luminosity: dark`.
+- **Splash.imageset**: regeneradas 6 PNGs 2732x2732 (3 light cream `#f6f3ee`, 3 dark `#171411`) a partir da logo real `public/logo-square.png` (brain teal + "SUPORTE BIPOLAR"). `Contents.json` declara variantes com `luminosity: dark`.
 - **Script reusável**: `scripts/generate-dark-splash.py` faz chroma-key da logo source sobre qualquer bg — rode quando a marca mudar.
+
+### Cores alinhadas (checklist zero-flash)
+Cada camada da stack de renderização usa a MESMA cor — qualquer divergência reintroduz flash:
+
+| camada | light | dark | fonte |
+| --- | --- | --- | --- |
+| LaunchScreen.storyboard | systemBg (adaptativo) | systemBg (adaptativo) | iOS default |
+| Splash.imageset PNG | `#f6f3ee` | `#171411` | `generate-dark-splash.py` |
+| ViewController host + WebView bg | `#f6f3ee` | `#171411` | `ios/App/App/ViewController.swift` |
+| CSS body | `#f6f3ee` (`--background` root) | `#171411` (`.dark --background`) | `src/app/globals.css` |
 
 ### Validação pendente (após próximo build TestFlight)
 - [ ] Splash dark em cold start: iPhone dark mode → tap ícone → splash escuro com logo teal, sem branco
@@ -71,49 +81,89 @@ Removido e re-adicionado cada env var via `vercel env add` com `printf` (sem `\n
 
 ---
 
-## 1. OAuth Google — SFSafariViewController não fecha após login (BLOQUEADOR)
+## ✅ FIX IMPLEMENTADO 2026-04-20 (commit 971a08d): OAuth Google — SFSafariViewController não fechava
 
-### Sintoma
+> **Build testado no smoke test era 1.0(1) de 2026-03-31 — anterior ao fix. Validação final depende de novo build TestFlight (vide seção "Próximo TestFlight" abaixo).**
+
+### Sintoma (no build 1.0(1))
 - Usuário toca "Continuar com Google" → abre SFSafariViewController in-app
 - Completa fluxo OAuth no Google
 - Safari volta pro app **mas não fecha** — fica mostrando `suportebipolar.com` com barra do Safari no topo
 - App funciona "por cima" do Safari, mas contexto é **web (cookies Safari)**, não Capacitor nativo
 
 ### Consequências em cadeia
-- **Face ID não aparece** em `Menu → Conta` (plugin Capacitor Face ID só funciona em contexto nativo)
+- **Face ID não aparecia** em `Menu → Conta` (plugin Capacitor Face ID só funciona em contexto nativo) — bug #2 abaixo é consequência direta
 - **Barra `suportebipolar.com` visível** no topo da tela (quebra experiência de app nativo — motivo de rejeição App Store)
-- Sessão fica em localStorage do Safari in-app, não no WebView do Capacitor → risco de perder sessão ao matar o app
+- Sessão ficava em localStorage do Safari in-app, não no WebView do Capacitor → perde sessão ao matar o app
 
-### Causa raiz
-Backend `/api/auth/google-login` sempre redireciona callback pro domínio web (`https://suportebipolar.com/...`), sem detectar que origem é Capacitor iOS.
+### Fix aplicado (bridge OAuth via custom scheme)
+Arquitetura: OAuth roda no SFSafari (Google bloqueia WebView embedded), mas cookie jar dele é isolada do WebView. Callback assina um bridge token HMAC curto (TTL 2min), redireciona pro custom scheme, app re-entra via `/api/auth/native-session` pra criar a iron-session real no WebView.
 
-Scheme custom `suportebipolar://` **já está registrado no `Info.plist`** (CFBundleURLSchemes) — só falta o backend usá-lo.
+| Camada | Arquivo | O que faz |
+| --- | --- | --- |
+| Frontend | [src/app/(auth)/login/page.tsx:109-128](src/app/(auth)/login/page.tsx#L109-L128) | Se `Capacitor.isNativePlatform()`, abre `Browser.open({ url: …/google-login?native=1 })` |
+| Backend login | [src/app/api/auth/google-login/route.ts](src/app/api/auth/google-login/route.ts) | Detecta `?native=1`, seta cookie `google-login-native=1` (sameSite=lax, httpOnly) antes de redirecionar pro Google |
+| Backend callback | [src/app/api/auth/google-login/callback/route.ts](src/app/api/auth/google-login/callback/route.ts) | Se cookie nativo presente, responde `302 Location: suportebipolar://auth-success?token=<bridge>` em vez de criar iron-session |
+| Bridge token | [src/lib/oauth-native-bridge.ts](src/lib/oauth-native-bridge.ts) | HMAC-SHA256 com subkey derivada de `SESSION_SECRET` (`oauth-native-bridge-v1`), TTL 2min, payload `{uid, onb, exp, typ}` |
+| Deep link listener | [src/lib/capacitor/deep-links.ts:29-37](src/lib/capacitor/deep-links.ts#L29-L37) | `App.addListener('appUrlOpen')` detecta `suportebipolar://auth-success`, chama `Browser.close()` e navega WebView pra `/api/auth/native-session?token=…` |
+| Bridge → session | [src/app/api/auth/native-session/route.ts](src/app/api/auth/native-session/route.ts) | Verifica HMAC, lookup user por `uid`, cria iron-session cookie no WebView, redireciona pra `/hoje` ou `/onboarding` |
+| Listener mount | [src/components/capacitor/NativeAppShell.tsx:116](src/components/capacitor/NativeAppShell.tsx#L116) | Registra `registerDeepLinkHandler` no mount do root layout |
+| URL scheme | `ios/App/App/Info.plist` CFBundleURLSchemes → `suportebipolar` | Declara scheme pro iOS resolver custom URL pro bundle |
 
-### Correção necessária
-1. **Frontend (Capacitor):** adicionar `?native=true` (ou header `X-Client: capacitor-ios`) na chamada inicial do OAuth
-2. **Backend `/api/auth/google-login`:**
-   - Detectar `?native=true` query param OU User-Agent contendo `CapacitorIOS`
-   - Se nativo: redirecionar callback final pra `suportebipolar://auth-success?token=<jwt>`
-   - Se web: comportamento atual (redirect pra `/dashboard`)
-3. **App Capacitor:** escutar via `App.addListener('appUrlOpen', ...)`, extrair token, estabelecer sessão no WebView nativo, fechar SFSafariViewController (`Browser.close()` do plugin `@capacitor/browser`)
+### Ordem de execução (cold-start + login)
+1. User tap "Continuar com Google" no WebView
+2. Capacitor abre `Browser.open(…/api/auth/google-login?native=1)` → SFSafari abre
+3. Servidor: seta cookie `google-login-native=1`, redireciona pro Google
+4. User autentica no Google
+5. Google redireciona pro callback: `…/api/auth/google-login/callback?code=…&state=…`
+6. Callback lê cookie, chama `signBridgeToken(user.id, onboarded)`, responde `302 Location: suportebipolar://auth-success?token=…`
+7. iOS vê scheme `suportebipolar://` registrado → chama `application:openURL:` no app
+8. Capacitor dispara `appUrlOpen` event no JS
+9. Handler chama `Browser.close()` (fecha SFSafari) e `window.location.href = /api/auth/native-session?token=…`
+10. WebView bate no endpoint, verifica HMAC, cria iron-session cookie, redireciona pra `/hoje` ou `/onboarding`
 
-### Workaround imediato pro smoke test
-Usar **"Continuar com Apple"** — o plugin `@capacitor-community/apple-sign-in` usa `ASAuthorizationController` nativo (não SFSafariViewController), então fluxo completa em contexto Capacitor real.
+### Validação pendente (após próximo build TestFlight)
+- [ ] Cold start → login Google → SFSafari fecha automaticamente → chega em `/hoje` ou `/onboarding` SEM barra `suportebipolar.com`
+- [ ] Logout → re-login → fluxo completa de novo (bridge token não é reutilizável, mas user re-autentica)
+- [ ] Token inválido/expirado → `/login?error=invalid_token`
+- [ ] `suportebipolar://auth-error?error=…` fecha Safari e navega pra `/login?error=…`
+- [ ] Face ID em `Menu → Conta` aparece (confirma que contexto é Capacitor nativo — resolve bug #2)
 
-**Status:** Bloqueante para submissão pública. Corrigir antes do próximo build TestFlight.
+### Workaround temporário (se fix quebrar em produção)
+Usar **"Continuar com Apple"** — plugin `@capacitor-community/apple-sign-in` usa `ASAuthorizationController` nativo (nunca abriu SFSafari), então independe desse fix.
 
 ---
 
-## 2. Face ID não aparece em Menu → Conta
+## ✅ RESOLVIDO (consequência do #1): Face ID não aparecia em Menu → Conta
 
 ### Sintoma
-- Usuário vai em `Menu → Conta`
-- Seção de Face ID não é renderizada
+- Usuário ia em `Menu → Conta`
+- Seção de Face ID não era renderizada
 
 ### Causa raiz
 Consequência direta do bug #1 — código que renderiza toggle Face ID checa `Capacitor.isNativePlatform()` e/ou disponibilidade do plugin biometric. Em contexto Safari in-app, retorna `false`.
 
-**Status:** Resolve sozinho quando bug #1 for corrigido. Re-testar após fix do OAuth.
+**Resolução automática:** com o fix do #1 em produção, sessão fica no WebView Capacitor, `isNativePlatform()` retorna `true`, toggle aparece. **Validar após próximo build TestFlight.**
+
+---
+
+## Hardening script TestFlight (2026-04-20, mesma sessão)
+
+Defesas aplicadas em [scripts/testflight-upload.sh](scripts/testflight-upload.sh) contra falhas recorrentes:
+
+- **agvtool multi-line**: `agvtool what-version -terse` pode retornar múltiplas linhas em projetos multi-target, o que passava lixo pro `$((CURRENT + 1))`. Agora filtra `head -n1 | tr -d '[:space:]'` e valida `^[0-9]+$` — falha rápido se a saída não for um inteiro limpo.
+- **env vars trimadas + validadas**: depois de `source .env.testflight`, `ASC_KEY_ID` e `ASC_ISSUER_ID` passam por `tr -d '[:space:]'` e `${VAR:?…}`. Defesa direta contra o mesmo bug §0 (newline literal no final da env var) — se acontecer no arquivo local, o trim neutraliza; se a var não existir, aborta com mensagem clara em vez de chamar `altool` com credencial vazia.
+
+---
+
+## Próximo TestFlight (validar todos os fixes desta sessão)
+
+Rodar:
+```
+./scripts/testflight-upload.sh
+```
+
+Sequência: `pnpm build` → `cap sync ios` → `agvtool` bump (1→2) → `xcodebuild archive` → `xcodebuild -exportArchive` (destino `upload`) → processa 10–30min no ASC. Depois validar os checklists "Validação pendente" acima.
 
 ---
 

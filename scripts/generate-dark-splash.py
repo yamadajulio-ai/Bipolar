@@ -13,7 +13,8 @@ This preserves the native teal of the logo (no wash-out from unmix) while killin
 both the outer cream frame and the inner white card cleanly on any background.
 
 Light bg: #f6f3ee (brand cream — matches --background token + Instagram grid)
-Dark  bg: #0d0d0f (matches ViewController.swift dynamic background)
+Dark  bg: #171411 (matches .dark --background token em globals.css + ViewController.swift)
+                   Any drift reintroduz flash na transição splash → WebView.
 """
 from PIL import Image
 from pathlib import Path
@@ -24,7 +25,7 @@ CANVAS = 2732
 LOGO_TARGET = 1200
 
 LIGHT_BG = (246, 243, 238)  # #f6f3ee
-DARK_BG = (13, 13, 15)      # #0d0d0f
+DARK_BG = (23, 20, 17)      # #171411
 
 BG_CUTOFF = 240  # min_rgb >= this -> pure background
 LOGO_CUTOFF = 120  # min_rgb <= this -> pure logo
